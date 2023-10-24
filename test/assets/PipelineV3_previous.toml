@@ -1,0 +1,31 @@
+
+"Interpreter::backend" = "PipelineV3"
+instance_num = 4
+
+[jpg_decoder]
+backend = "Identity"
+next = "preprocessor,crop"
+
+
+[preprocessor]
+# backend = "DecodeMat"
+instance_num = 1
+backend = "Sleep"
+time="1"
+next = "dbnet"
+
+[dbnet]
+backend = "Identity"
+next = "crop"
+
+
+
+[crop]
+backend = "C10Exception" 
+map = "jpg_decoder[TASK_RESULT_KEY:TASK_DATA_KEY] ,single[ TASK_RESULT_KEY :TASK_BOX_KEY]" # ; <- multimap
+next="topython"
+
+[topython]
+backend="Identity"
+
+[single]

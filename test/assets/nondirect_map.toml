@@ -1,0 +1,13 @@
+
+[in]
+next="resize"
+[resize]
+backend="SyncTensor[ResizeTensor]"
+resize_h="111"
+resize_w="111"
+next="final"
+[final]
+map="in[result:data]"
+
+# todo 没有数据依赖，不应该next连接
+# todo 不容许冗余连接

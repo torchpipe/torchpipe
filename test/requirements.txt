@@ -1,0 +1,7 @@
+pytest
+torchvision
+onnxruntime
+onnxsim
+psutil
+timm
+pillow>=10.0.0

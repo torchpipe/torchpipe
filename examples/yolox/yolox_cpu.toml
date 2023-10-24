@@ -1,0 +1,27 @@
+batching_timeout = 5 #默认的凑batch的超时时间
+precision = "fp16" 
+
+[jpg_decoder]
+backend = "Sequential[DecodeMat,cvtColorMat,ResizePadMat,Mat2Tensor,SyncTensor]"
+color = "bgr"
+instance_num = 5
+max_h = 416
+max_w = 416
+
+next = "detect"
+[detect]
+# 静态batch， max默认为1
+backend = "SyncTensor[TensorrtTensor]" 
+batching_timeout = 5 #默认的凑batch的超时时间
+instance_num = 2 
+max = 4 
+model = "./yolox_tiny.onnx" 
+"model::cache" = "./yolox_tiny.trt" 
+postprocessor = "BatchingPostProcYolox_45_30" 
+# mean="123.675, 116.28, 103.53"
+# std="58.395, 57.120, 57.375"
+next = "remove_extra_key"
+
+[remove_extra_key]
+backend = "Identity"
+map = "detect[result:data]"

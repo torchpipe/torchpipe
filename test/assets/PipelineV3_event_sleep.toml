@@ -1,0 +1,42 @@
+
+"Interpreter::backend" = "PipelineV3"
+instance_num = 1
+
+[jpg_decoder]
+backend = "Identity"
+next = "preprocessor,z_id"
+
+[z_id]
+filter="Break"
+
+backend = "Identity"
+
+next = "crop"
+
+[preprocessor]
+# backend = "DecodeMat"
+instance_num = 1
+# Pipeline'parameter
+# next = "preprocess" # cv::Mat 暂时没法回传到python
+
+# [preprocess]
+backend = "Sleep"
+"Sleep::time"="100"
+
+
+next = "dbnet"
+
+[dbnet]
+backend = "Identity"
+
+next = "crop"
+
+
+
+[crop]
+backend = "Identity" 
+map = "z_id[TASK_RESULT_KEY:TASK_DATA_KEY] ,dbnet[ TASK_RESULT_KEY :TASK_BOX_KEY]" # ; <- multimap
+next="topython"
+
+[topython]
+backend="Identity"

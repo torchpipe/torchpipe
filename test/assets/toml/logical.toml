@@ -1,0 +1,9 @@
+[in]
+next="rec,rec.2"
+[rec]
+next="final"
+[rec.2]
+next="final"
+backend="C10Exception"
+[final]
+map="rec[result:data],rec.2[result:data.2]"

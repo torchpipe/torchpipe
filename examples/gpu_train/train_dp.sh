@@ -1,0 +1,14 @@
+python train_dp.py \
+    --data="hymenoptera_data" \
+    --arch="resnet50" \
+    --workers=4 \
+    --epochs=2 \
+    --start-epoch=0 \
+    --batch-size=128 \
+    --lr=0.01 \
+    --print-freq=10 \
+    --num-classes=2 \
+    --gpus 0,1 \
+    --output_checkpoint_path="./model/output/hymenoptera/checkpoint_resnet50.pth.tar" \
+    --best_checkpoint_path="./model/output/hymenoptera/model_best_resnet50.pth.tar" \
+    --weight_decay_schedules="8,16,24"

@@ -1,0 +1,29 @@
+# vis: python -m torchpipe.tool.vis assets/toml/graph1.toml
+
+"Interpreter::backend" = "PipelineV3"
+backend = "Identity"
+[r_1]
+
+next = "a_1, b_1"
+[a_1]
+next = "a_2"
+
+[a_2]
+next = "a_2_1,a_2_2"
+[a_2_1]
+next = "a_3"
+[a_2_2]
+next = "a_3"
+[a_3]
+map = "[result:data, result:result]"
+next = "r_2"
+
+[b_1]
+next = "b_2"
+
+[b_2]
+next = "r_2"
+[r_2]
+map = "[result:data]"
+
+[i_1]

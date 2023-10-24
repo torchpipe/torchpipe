@@ -1,0 +1,27 @@
+# vis: python -m torchpipe.tool.vis assets/toml/graph1.toml
+
+"Interpreter::backend" = "PipelineV3"
+backend = "Identity"
+[det]
+
+next = "rec, crop"
+[rec]
+next = "final"
+
+[crop]
+backend = "CopySplit"
+next = "map_reduce"
+split_size = 5
+[map_reduce]
+backend = "MapReduce"
+jump = "rec.2"
+map = "[result:data]"
+merge = "result"
+next = "combine"
+split = "data"
+
+[combine]
+next = "final"
+[final]
+map = "[result:data]"
+[rec.2]

@@ -1,0 +1,135 @@
+# FROM nvcr.io/nvidia/cuda:11.6.0-devel-ubuntu20.04 as base_devel
+# FROM nvcr.io/nvidia/cuda:11.6.0-runtime-ubuntu20.04 as base
+
+FROM nvcr.io/nvidia/cuda:11.6.2-cudnn8-devel-ubuntu20.04 as base_devel
+FROM nvcr.io/nvidia/cuda:11.6.2-cudnn8-runtime-ubuntu20.04 as base
+
+# nvidia/ 前缀也可以
+
+
+LABEL maintainer "zhangshiyang"
+WORKDIR /app
+
+
+# 1) base
+RUN apt-get update -y && apt-get install -y vim ninja-build zip python3-pip && apt-get clean && apt-get autoclean && apt-get autoremove && rm -rf /root/.cache/*
+RUN ln -s /usr/bin/python3 /usr/bin/python  && python -m pip install --upgrade pip 
+RUN pip --no-cache-dir install torch numpy torchvision --index-url https://download.pytorch.org/whl/cu116 &&\
+    rm -rf /root/.cache/
+
+From base as thirdparty
+# 2) TensorRT/opencv Installation
+# Please manually download the TensorRT installation package in advance.
+# Here, we use TensorRT-8.6.1.6.Linux.x86_64-gnu.cuda-11.8.tar.gz
+ADD thirdparty/TensorRT-8.6.1.6.Linux.x86_64-gnu.cuda-11.8.tar.gz /app/ 
+
+RUN rm -rf /app/TensorRT-8.6.1.6/data && \
+     rm -rf /app/TensorRT-8.6.1.6/targets/x86_64-linux-gnu/lib/*.a 
+
+
+# Please manually download the opencv installation package in advance: wget https://codeload.github.com/opencv/opencv/zip/refs/tags/4.5.4 -O thirdparty/opencv-4.5.4.zip
+COPY thirdparty/opencv-4.5.4.zip /app/ 
+
+RUN unzip opencv-4.5.4.zip  && rm -rf /app/opencv-4.5.4.zip
+RUN pip  --no-cache-dir install cmake==3.21
+RUN cd opencv-4.5.4/ && sed -i '1a add_definitions(-D_GLIBCXX_USE_CXX11_ABI=0)' CMakeLists.txt  && mkdir build && cd build && \
+        cmake -D CMAKE_BUILD_TYPE=Release \
+            -D BUILD_WITH_DEBUG_INFO=OFF \
+            -D CMAKE_INSTALL_PREFIX=/opencv_install \
+            -D INSTALL_C_EXAMPLES=OFF \
+            -D INSTALL_PYTHON_EXAMPLES=OFF \
+            -DENABLE_NEON=OFF  \
+            -D WITH_TBB=ON \
+            -DBUILD_TBB=ON  \
+            -DBUILD_WEBP=OFF \
+            -D BUILD_ITT=OFF -D WITH_IPP=ON  \
+            -D WITH_V4L=OFF \
+            -D WITH_QT=OFF \
+            -D WITH_OPENGL=OFF \
+            -D BUILD_opencv_dnn=OFF \
+            -DBUILD_opencv_java=OFF \
+            -DBUILD_opencv_python2=OFF \
+            -DBUILD_opencv_python3=ON \
+            -D BUILD_NEW_PYTHON_SUPPORT=ON \
+            -D BUILD_PYTHON_SUPPORT=ON \
+            -D PYTHON_DEFAULT_EXECUTABLE=/usr/bin/python3 \
+            -DBUILD_opencv_java_bindings_generator=OFF \
+            -DBUILD_opencv_python_bindings_generator=ON \
+            -D BUILD_EXAMPLES=OFF \
+            -D WITH_OPENEXR=OFF \
+            -DWITH_JPEG=ON  \
+            -DBUILD_JPEG=ON\
+            -D BUILD_JPEG_TURBO_DISABLE=OFF \
+            -D BUILD_DOCS=OFF \
+            -D BUILD_PERF_TESTS=OFF \
+            -D BUILD_TESTS=OFF \
+            -D BUILD_opencv_apps=OFF \
+            -D BUILD_opencv_calib3d=OFF \
+            -D BUILD_opencv_contrib=OFF \
+            -D BUILD_opencv_features2d=OFF \
+            -D BUILD_opencv_flann=OFF \
+            -DBUILD_opencv_gapi=OFF \
+            -D WITH_CUDA=OFF \
+            -D WITH_CUDNN=OFF \
+            -D OPENCV_DNN_CUDA=OFF \
+            -D ENABLE_FAST_MATH=1 \
+            -D WITH_CUBLAS=0 \
+            -D BUILD_opencv_gpu=OFF \
+            -D BUILD_opencv_ml=OFF \
+            -D BUILD_opencv_nonfree=OFF \
+            -D BUILD_opencv_objdetect=OFF \
+            -D BUILD_opencv_photo=OFF \
+            -D BUILD_opencv_stitching=OFF \
+            -D BUILD_opencv_superres=OFF \
+            -D BUILD_opencv_ts=OFF \
+            -D BUILD_opencv_video=OFF \
+            -D BUILD_videoio_plugins=OFF \
+            -D BUILD_opencv_videostab=OFF \
+            -DBUILD_EXAMPLES=OFF \
+            -DBUILD_opencv_calib3d=OFF \
+            -DBUILD_opencv_features2d=OFF\
+            -DBUILD_opencv_flann=OFF\
+            -DBUILD_opencv_ml=OFF\
+            -DBUILD_opencv_videoio=OFF\
+                .. && make -j4 && make install
+# rm /app/targets/x86_64-linux-gnu/lib/libnvinfer_builder_resource.so.8.6.1
+
+From  base_devel as base_devel_removed
+# RUN rm /usr/local/cuda-11.6/targets/x86_64-linux/lib/*.a
+
+RUN find /usr/local/cuda-11.6/targets/x86_64-linux/lib/ -type f \( -name 'lib*.a' ! -name 'libcudart_static.a' ! -name 'libcudadevrt.a' \) -delete
+
+RUN rm /usr/local/cuda-11.6/targets/x86_64-linux/lib/libcusparse.so*
+RUN rm /usr/local/cuda-11.6/targets/x86_64-linux/lib/libcusolverMg.so*
+RUN rm /usr/local/cuda-11.6/targets/x86_64-linux/lib/libcusolver.so*
+RUN rm /usr/local/cuda-11.6/targets/x86_64-linux/lib/libcufft.so*
+
+# 3) TensorRT opencv cuda Installation
+From base
+COPY --from=thirdparty /app/TensorRT-8.6.1.6/targets/x86_64-linux-gnu/lib/ /usr/lib/
+COPY --from=thirdparty /app/TensorRT-8.6.1.6/include/ /usr/include/
+COPY --from=thirdparty /opencv_install/ /usr/local/
+COPY --from=thirdparty /app/TensorRT-8.6.1.6/python/tensorrt-8.6.1-cp38-none-linux_x86_64.whl /app/
+COPY --from=thirdparty /app/TensorRT-8.6.1.6/bin/trtexec /usr/bin/
+
+COPY --from=base_devel_removed  /usr/local/cuda-11.6/include/ /usr/local/cuda-11.6/include/
+COPY --from=base_devel_removed /usr/local/cuda-11.6/bin/ /usr/local/cuda-11.6/bin
+COPY --from=base_devel_removed /usr/local/cuda-11.6/nvvm /usr/local/cuda-11.6/nvvm
+COPY --from=base_devel_removed /usr/local/cuda-11.6/targets/x86_64-linux/lib /usr/local/cuda-11.6/lib64
+# COPY --from=base_devel_removed /usr/include/cudnn.h /usr/include/cudnn.h
+# COPY --from=base_devel_removed /usr/lib/x86_64-linux-gnu/libcudnn.so* /usr/lib/x86_64-linux-gnu/
+RUN pip install /app/tensorrt-8.6.1-cp38-none-linux_x86_64.whl && rm /app/tensorrt-8.6.1-cp38-none-linux_x86_64.whl
+
+RUN apt-get update -y && apt-get install git -y && pip --no-cache-dir install cmake 
+WORKDIR /app
+
+# docker build --network=host -f docker/torchpipe.base -t base_trt-8.6 .
+
+# docker run --rm   --network=host --gpus=all  --ulimit memlock=-1 --ulimit stack=67108864  --privileged=true  -v `pwd`:/workspace -it base_trt-8.6  /bin/bash 
+ 
+# python -c "import torch;torch.zeros(1).cuda()"
+# python setup.py bdist_wheel
+
+# torch-1.13.1+cu116 torchvision-0.14.1+cu116
+
+# https://hub.docker.com/r/pytorch/pytorch/

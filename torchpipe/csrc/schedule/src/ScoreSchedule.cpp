@@ -1,0 +1,183 @@
+// Copyright 2021-2023 NetEase.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#include "ScoreSchedule.hpp"
+
+#include <chrono>
+#include <functional>
+#include <sstream>
+#include <thread>
+#include "base_logging.hpp"
+#include "Backend.hpp"
+#include "dict.hpp"
+#include "Instances.hpp"
+#include "time_utils.hpp"
+namespace ipipe {
+
+ScoreSchedule::~ScoreSchedule() {
+  bThreadInited_.store(false);
+  if (!input_.empty()) {
+    SPDLOG_ERROR("!input_.empty()");
+  }
+  if (thread_.joinable()) {
+    thread_.join();
+  }
+}
+
+bool ScoreSchedule::init(const std::unordered_map<std::string, std::string>& config,
+                         dict dict_config) {
+  params_ = std::unique_ptr<Params>(new Params({{"Schedule::backend", ""},
+                                                {"batching_timeout", "0"},
+                                                {"node_name", ""},
+                                                {"number_factor", "1.5"}},
+                                               {}, {}, {}));
+  if (config.empty()) {
+    SPDLOG_ERROR("empty config. Only support single-node configuration.");
+    return false;
+  }
+
+  if (!params_->init(config)) return false;
+  // auto batching_timeouts = str_split(params_->at("batching_timeout"), '&');
+  // batching_timeout_ = 0;
+  // for (const auto& item : batching_timeouts) {
+  //   batching_timeout_ = std::max(batching_timeout_, std::stof(item));
+  // }
+
+  TRACE_EXCEPTION(batching_timeout_ = std::stof(params_->at("batching_timeout")));
+
+  TRACE_EXCEPTION(number_factor_ = std::stof(params_->at("number_factor")));
+  if (number_factor_ <= 0) {
+    SPDLOG_ERROR("Illegal number_factor_: {}", number_factor_);
+    return false;
+  }
+
+  node_name_ = params_->at("node_name");
+
+  if (params_->at("Schedule::backend").empty()) {
+    backend_ = std::make_unique<RangeMerger>();
+  } else {
+    backend_ = std::unique_ptr<Backend>(IPIPE_CREATE(Backend, params_->at("Schedule::backend")));
+  }
+
+  runing_state_ = std::make_shared<RuningState>();
+  if (backend_ && backend_->init(config, dict_config)) {
+    max_batch_size_ = backend_->max();
+    if (max_batch_size_ == UINT32_MAX) {
+      SPDLOG_WARN(node_name_ + ": max() == UINT32_MAX");
+    }
+    if (max_batch_size_ != 1) {
+      bThreadInited_.store(true);
+      thread_ = std::thread(&ScoreSchedule::run, this);
+    }
+    SPDLOG_INFO("{}: max_batch_size={}", node_name_, max_batch_size_);
+
+    return true;
+  } else {
+    return false;
+  }
+}
+
+void ScoreSchedule::forward(const std::vector<dict>& raw_inputs) {
+  std::vector<std::shared_ptr<SimpleEvents>> events;  // 注意，
+  // 事件需要提前准备好，不可运行时从map获得，容易造成多线程问题
+
+  for (auto raw_input : raw_inputs) {
+    std::shared_ptr<RuningStateMonitor> guard_state =
+        std::make_shared<RuningStateMonitor>(runing_state_, 1);
+    assert(guard_state);
+    auto& map_data = *raw_input;
+    map_data.erase(TASK_RESULT_KEY);
+
+    auto iter = raw_input->find(TASK_EVENT_KEY);
+    if (iter == raw_input->end()) {
+      auto event = make_event();
+      events.emplace_back(event);
+      event->add_callback([guard_state]() { guard_state->del(); });
+      map_data[TASK_EVENT_KEY] = event;
+    } else {
+      events.emplace_back(nullptr);
+
+      std::shared_ptr<SimpleEvents> ev = any_cast<std::shared_ptr<SimpleEvents>>(iter->second);
+      ev->add_callback([guard_state]() { guard_state->del(); });
+    }
+  }
+
+  assert(events.size() == raw_inputs.size());
+
+  {
+    // 注意：资源所有权问题， 从此刻起 对 raw_input 没有读写权限，
+    // 除非event通知
+
+    if (max_batch_size_ == 1) {
+      for (auto raw_input : raw_inputs) {
+        backend_->forward({raw_input});  // 异步调用
+      }
+    } else {
+      std::vector<ThreadSafeSortList<float, dict>::ScoreValue> new_value;
+      for (auto raw_input : raw_inputs) {
+        auto iter = raw_input->find("_sort_score");
+        if (iter != raw_input->end()) {
+          float score = any_cast<float>(iter->second);  // todo exception
+          raw_input->erase(iter);
+          // input_.Push(raw_input, score); // todo 限制送入的不能超过最大值
+          new_value.emplace_back(ThreadSafeSortList<float, dict>::ScoreValue{raw_input, score});
+        } else {
+          float score = -1 * time_passed();
+          // input_.Push(raw_input, score); // todo 限制送入的不能超过最大值
+          new_value.emplace_back(ThreadSafeSortList<float, dict>::ScoreValue{raw_input, score});
+        }
+      }
+      input_.Push(new_value);
+    }
+  }
+
+  /*! WARNING Push 之后 Wait 结束之前，本线程不再有raw_inputs的访问权,
+   * 否则造成多线程访问，***********/
+  for (std::size_t i = 0; i < raw_inputs.size(); ++i) {
+    // 当阻塞式调用时 todo  非阻塞调用
+    if (events[i]) {
+      events[i]->Wait();
+      // 重新获得资源所有权
+
+      raw_inputs[i]->erase(TASK_EVENT_KEY);
+    } else {
+      // 无资源所有权
+      continue;
+    }
+  }
+
+  return;
+};
+void ScoreSchedule::run() {  // only one ScoreSchedule thread
+
+  while (bThreadInited_.load()) {
+    std::shared_ptr<SimpleEvents> event =
+        any_cast<std::shared_ptr<SimpleEvents>>(input_.front()->at(TASK_EVENT_KEY));
+    auto time_es = event->time_passed();
+    auto input_data = input_.WaitTimeOut(  // WaitTimeOut WaitForPop
+        std::max(0, int(batching_timeout_ - time_es)), max_batch_size_, number_factor_);
+
+    if (input_data.empty()) {
+      input_.WaitUnEmpty(100);
+    }
+
+    assert(input_data.size() <= max_batch_size_);
+    if (input_data.empty()) continue;
+
+    backend_->forward(input_data);
+  }  // end while
+};
+IPIPE_REGISTER(Backend, ScoreSchedule, "ScoreSchedule");
+
+}  // namespace ipipe

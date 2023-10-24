@@ -1,0 +1,32 @@
+
+"Interpreter::backend" = "PipelineV3"
+instance_num = 4
+
+[jpg_decoder]
+backend = "Identity"
+next = "preprocessor,crop"
+
+[preprocessor]
+# backend = "DecodeMat"
+instance_num = 4
+# Pipeline'parameter
+# next = "preprocess" # cv::Mat 暂时没法回传到python
+
+# [preprocess]
+backend = "Identity"
+
+
+next = "dbnet"
+
+[dbnet]
+backend = "Identity"
+
+next = "crop"
+
+[crop]
+backend = "C10Exception" 
+map = "jpg_decoder[TASK_RESULT_KEY:TASK_DATA_KEY] ,dbnet[ TASK_RESULT_KEY :TASK_BOX_KEY]" # ; <- multimap
+next="topython"
+
+[topython]
+backend="Identity"

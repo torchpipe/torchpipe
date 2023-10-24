@@ -1,0 +1,111 @@
+# Schedule'parameter
+batching_timeout = 5 #默认的凑batch的超时时间
+
+# DynamicTensorrtTensor'parameter
+instance_num = 4
+precision = "fp16"
+
+[jpg_decoder]
+backend = "SyncTensor[Tensor2Mat]"
+next = "preprocessor"
+
+[preprocessor]
+instance_num = 4
+
+backend = "Sequential[ResizeImgType0Mat,cvtColorMat, Mat2Tensor,SyncTensor]"
+max_size_len = "960"
+
+color = "bgr"
+
+next = "dbnet"
+
+[dbnet]
+backend = "Sequential[TensorrtTensor,SyncTensor]" 
+map = "jpg_decoder[TASK_RESULT_KEY:original_img] ,preprocessor[ TASK_RESULT_KEY :TASK_DATA_KEY,ratio_h:ratio_h,ratio_w:ratio_w]" # ; <- multimap
+max = "1x3x960x960" 
+mean = "123.675, 116.28, 103.53" 
+min = "1x3x64x64" 
+model = "./onnx/det_sim.onnx" 
+"model::cache" = "./onnx/det_sim.trt" 
+std = "58.395, 57.120, 57.375" 
+
+next = "recog"
+postprocessor = "dbnet"
+
+[recog]
+map="jpg_decoder[result:data,color:color],dbnet[TASK_BOX_KEY:TASK_BOX_KEY]"
+backend="MapReduce"
+jump="crop"
+split="TASK_BOX_KEY"
+merge="result,scores"
+next="final"
+batching_timeout = 0 #默认的凑batch的超时时间
+instance_num=8
+
+[crop]
+backend = "S[PerspectiveTransformMat]"
+# save_dir="./" 
+next = "ocr_cls_preprocess" 
+
+[ocr_cls_preprocess]
+map = "crop[TASK_RESULT_KEY:TASK_DATA_KEY,TASK_RESULT_KEY:cropped_img, color:color]" # ; <- multimap
+
+
+backend = "Sequential[FixHResizePadMat,Mat2Tensor,SyncTensor]" 
+max_w = 192 
+next = "cls" 
+# save_dir="./" 
+resize_h = 48 
+
+[cls]
+backend = "Sequential[TensorrtTensor,SyncTensor]"
+max = "32x3x48x192"
+mean = "123.675, 116.28, 103.53"
+min = "1x3x48x192"
+model = "./onnx/cls_sim.onnx"
+"model::cache" = "./onnx/cls_sim.trt"
+next = "main"
+postprocessor = "rotate"
+std = "58.395, 57.120, 57.375"
+instance_num = 2
+
+[independent_node]
+# backend="Sequential[DynamicFixHResizePadMat,cvtColorMat, SaveMat, Mat2Tensor,SyncTensor]"
+backend = "Sequential[DynamicFixHResizePadMat,cvtColorMat, Mat2Tensor,SyncTensor]"
+
+color = "bgr" # todo
+instance_num = 10 
+pad_value = 127 
+resize_h = 32
+# save_dir="./tmp"
+
+
+[main]
+# "PipelineV3::backend" = "SortSchedule"
+backend = "Sequential[BatchFixHLimitW, Jump,Jump]"
+jump="|independent_node|rec" 
+pad_value = 127
+resize_h = 32
+
+"BatchFixHLimitW::max" = 32 
+align = 32 
+batching_timeout = 40 
+instance_num = 1 
+max_w = 512 
+
+[rec]
+backend = "Sequential[TensorrtTensor,SyncTensor]"
+max = "1x3x32x512;4x3x32x512;8x3x32x512;32x3x32x512" 
+min = "1x3x32x32; 4x3x32x32; 8x3x32x32; 32x3x32x32" #todo trt onnx not match
+mean = "123.675, 116.28, 103.53" 
+std = "58.395, 57.120, 57.375" 
+postprocessor = "RecPost" 
+model = "./onnx/rec_sim.onnx" 
+"model::cache" = "./onnx/rec_sim.trt" 
+instance_num = 4 
+batching_timeout = 40 
+label_path = "ppocr_keys_v1.txt" 
+
+
+
+[final]

@@ -1,0 +1,14 @@
+build/
+.*
+.*/
+examples/
+test/
+tmp/
+Miniconda3*
+docs/
+ext_libraries/
+opt/
+packaging/
+pyllama_data/
+LLAMA/
+dist/

@@ -1,0 +1,98 @@
+// Copyright 2021-2023 NetEase.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#include <ATen/ATen.h>
+
+#include "c10/cuda/CUDAStream.h"
+#include "prepost.hpp"
+#include "torch_utils.hpp"
+
+#include "Backend.hpp"
+#include "dict.hpp"
+#include "reflect.h"
+
+namespace ipipe {
+/**
+ * @brief 数据拷贝到cpu
+ * @note 这里发生了显式的流同步
+ *
+ */
+class BatchingPostProc2Cpu : public PostProcessor<at::Tensor> {
+ public:
+  void forward(std::vector<at::Tensor> net_putputs, std::vector<dict> input,
+               const std::vector<at::Tensor>& net_inputs) {
+    for (auto& item : net_putputs) {
+      item = item.cpu();  // 这种写法也可以， 不过如果多个输出可能同步多次
+      // https://github.com/pytorch/pytorch/blob/e10b762537214ad152724d772b72b17a4448f145/aten/src/ATen/native/cuda/Copy.cu#L231
+      // 在当前流上
+      // item = async2cpu(item); //
+    }
+    // c10::cuda::getCurrentCUDAStream()
+    //     .synchronize(); // 多个输出可以只同步一次； 如果使用.cpu()
+    // 则不需要此句
+
+    PostProcessor<at::Tensor>::forward(net_putputs, input, net_inputs);
+  }
+};
+
+IPIPE_REGISTER(PostProcessor<at::Tensor>, BatchingPostProc2Cpu, "cpu");
+
+class BatchingPostProcMax : public PostProcessor<at::Tensor> {
+ public:
+  void forward(std::vector<at::Tensor> net_putputs, std::vector<dict> input,
+               const std::vector<at::Tensor>& net_inputs) {
+    IPIPE_ASSERT(net_putputs.size() == 1);
+    auto item = net_putputs[0].softmax(1);
+    auto result = at::max(item, 1);
+    auto index = std::get<1>(result);
+    auto score = std::get<0>(result);
+
+    if (input.size() == 1) {
+      std::vector<float> single_result{float(index.item<int64_t>()), score.item<float>()};
+      (*input[0])[TASK_RESULT_KEY] = single_result;
+    } else {
+      index = index.cpu();
+      score = score.cpu();
+      for (std::size_t i = 0; i < input.size(); ++i) {
+        std::vector<float> single_result{float(index[i].item<int64_t>()),
+                                         float(score[i].item<float>())};
+        (*input[i])[TASK_RESULT_KEY] = single_result;
+      }
+    }
+  }
+};
+
+IPIPE_REGISTER(PostProcessor<at::Tensor>, BatchingPostProcMax, "SoftmaxMax");
+
+class BatchingPostProcSoftmaxCpu : public PostProcessor<at::Tensor> {
+ public:
+  void forward(std::vector<at::Tensor> net_outputs, std::vector<dict> input,
+               const std::vector<at::Tensor>& net_inputs) {
+    for (auto& item : net_outputs) {
+      if (item.dim() == 2) {
+        item = item.softmax(1).cpu();  // 隐式同步
+        // item = async2cpu(item);
+      }
+    }
+    // c10::cuda::getCurrentCUDAStream().synchronize(); // 同步cpu数据
+
+    PostProcessor<at::Tensor>::forward(net_outputs, input, net_inputs);
+  }
+};
+
+IPIPE_REGISTER(PostProcessor<at::Tensor>, BatchingPostProcSoftmaxCpu, "softmaxcpu,SoftmaxCpu");
+
+using PostProcessor_at_Tensor = PostProcessor<at::Tensor>;
+IPIPE_REGISTER(PostProcessor<at::Tensor>, PostProcessor_at_Tensor, "split");
+}  // namespace ipipe
