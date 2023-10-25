@@ -1,4 +1,6 @@
 
+[English](./README_en.md) | 简体中文
+
 ---
 
 
@@ -19,7 +21,7 @@
 
 
 
-[English](./README_en.md) | 简体中文
+
 
 torchpipe是 介于底层加速库（如tensorrt，opencv，torchscript）以及 RPC（如thrift, gRPC）之间并与他们严格解耦的多实例流水线并行库；对外提供面向pytorch前端的线程安全函数接口，对内提供面向用户的细粒度后端扩展。
 

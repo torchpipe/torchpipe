@@ -1,5 +1,8 @@
 
 
+English | [简体中文](README.md)
+
+---
 
 <div align="center">
 <h1 align="center">torchpipe</h1>
@@ -13,7 +16,6 @@
 <!-- <img alt="last commit" src="https://img.shields.io/github/last-commit/torchpipe/torchpipe.github.io?style=flat-square"> -->
 </div>
 
-English | [简体中文](README.md)
 
 Torchpipe is a multi-instance pipeline parallel library that acts as a bridge between lower-level acceleration libraries (such as TensorRT, OpenCV, TorchScript) and RPC frameworks (like Thrift, gRPC), ensuring a strict decoupling from them. It offers a thread-safe function interface for the PyTorch frontend at a higher level, while empowering users with fine-grained backend extension capabilities at a lower level.
 
