@@ -58,6 +58,8 @@ inline size_t DataSize(DataType data_type) {
       break;
     case at::kDouble:
       size = 8;
+    case at::kLong:
+      size = 8;
 
     default:
       throw std::runtime_error("it is not allowed that sizeof(data_type) > 4");
