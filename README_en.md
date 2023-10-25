@@ -2,7 +2,6 @@
 
 English | [简体中文](README.md)
 
----
 
 <div align="center">
 <h1 align="center">torchpipe</h1>
