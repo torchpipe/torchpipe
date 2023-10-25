@@ -460,6 +460,7 @@ void TensorrtTensor::forward(const std::vector<dict>& raw_inputs) {
           target_dtype = at::kLong;
           break;
 #endif
+
         case nvinfer1::DataType::kBOOL:
           target_dtype = at::kBool;
           break;
