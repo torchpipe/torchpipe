@@ -86,6 +86,8 @@ model(input)  # 可多线程并行调用
 print(input["result"].shape)  # 失败则此键值一定不存在，即使输入时已经存在。
 ```
 
+> 纯c++ API 可通过 [libtorch+cmake] 或者 [pybind11]的方式获得.
+
 <!-- end quickstart -->
 ### 4. 我们的核心功能为多个节点间的一系列流水线设施。
 
