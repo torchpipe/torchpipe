@@ -150,7 +150,7 @@ test/assets/resnet18.onnx
 svtr.py
 upload.sh
 examples/debug.py
-thirdparty/ppl.cv
+#thirdparty/ppl.cv
 LLAMA/
 7B/
 pyllama_data/
