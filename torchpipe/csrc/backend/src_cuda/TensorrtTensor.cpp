@@ -455,6 +455,9 @@ void TensorrtTensor::forward(const std::vector<dict>& raw_inputs) {
         // case nvinfer1::DataType::kUINT8:
         //   target_dtype = at::kByte;
         //   break;
+        case nvinfer1::DataType::kINT64:
+          target_dtype = at::kLong;
+          break;
         case nvinfer1::DataType::kBOOL:
           target_dtype = at::kBool;
           break;
@@ -462,7 +465,7 @@ void TensorrtTensor::forward(const std::vector<dict>& raw_inputs) {
           target_dtype = at::kHalf;
           break;
         default:
-          SPDLOG_ERROR("out: only support type of kFLOAT, kINT32, kINT8, kBOOL, kHALF");
+          SPDLOG_ERROR("out: only support type of kFLOAT, kINT32, kINT64, kINT8, kBOOL, kHALF");
           throw std::runtime_error("unsupportted datatype");
       }
 
