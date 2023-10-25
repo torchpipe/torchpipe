@@ -82,6 +82,8 @@ model(input)  # Can be called in parallel with multiple threads
 print(input["result"].shape)  # If failed, this key value must not exist, even if it already exists when input.
 ```
 
+> c++ API is also possible through [libtorch+cmake] or [pybind11].
+
 <!-- end quickstart -->
 ### 4. Our core functionality is a series of pipeline facilities
 
