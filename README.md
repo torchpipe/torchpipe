@@ -102,12 +102,12 @@ torchpie目前处于一个快速迭代阶段，我们非常需要你的帮助。
 
 我们的最终目标是让服务端高吞吐部署尽可能简单。为了实现这一目标，我们将积极自我迭代，也愿意参与有相近目标的其他项目。
 
-2023年度和2024年度 RoadMap
-- 技术报告
+近期 RoadMap
 - 大模型方面的示例
 - 公开的基础镜像和pypi(manylinux)
 - 优化编译系统，分为core,pplcv,model/tensorrt,opencv等模块
 - 基础结构优化。包含python与c++交互，异常，日志系统，跨进程后端的优化；
+- 技术报告
 
 潜在未完成的研究方向
 
@@ -119,3 +119,5 @@ torchpie目前处于一个快速迭代阶段，我们非常需要你的帮助。
 我们的代码库使用或者修改后使用了多个开源库，请查看[致谢](./ACKNOWLEDGEMENTS.md)了解更多详细信息。
 
 
+### 7. 交流提问
+微信群： https://torchpipe.github.io/zh/docs/contribution_guide/communicate
