@@ -452,12 +452,15 @@ void TensorrtTensor::forward(const std::vector<dict>& raw_inputs) {
         case nvinfer1::DataType::kINT8:
           target_dtype = at::kChar;
           break;
-        // case nvinfer1::DataType::kUINT8:
-        //   target_dtype = at::kByte;
-        //   break;
+// case nvinfer1::DataType::kUINT8:
+//   target_dtype = at::kByte;
+//   break;
+#if NV_TENSORRT_MAJOR >= 9
         case nvinfer1::DataType::kINT64:
           target_dtype = at::kLong;
           break;
+#endif
+
         case nvinfer1::DataType::kBOOL:
           target_dtype = at::kBool;
           break;
