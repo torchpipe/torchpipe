@@ -12,13 +12,13 @@ Execute `python yolox.py` to start the inference. Finally, the visualization res
 ![](../static/dog_result.jpg)
 ![](../static/dog_result_official.jpg)
 
-GitHub Copilot: ## AOT Compilation Process
+## AOT Compilation Process
 To compile with custom backend and post-processing defined in `csrc/yolox.cpp`, follow the steps below:
 
 ```python
 torchpipe.utils.cpp_extension.load(name="yolox", sources=["./yolox.cpp"])
 ```
-GitHub Copilot: In the post-processing, we accelerated the sorting process.
+In the post-processing, we accelerated the sorting process.
 
 ## Speed Test
 
