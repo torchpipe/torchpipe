@@ -59,7 +59,6 @@ resnet18 = models.resnet18(pretrained=True).eval().cuda()
 
 import tempfile, os, torch
 model_path =  os.path.join(tempfile.gettempdir(), "./resnet18.onnx") 
-resnet18 = models.resnet18(pretrained=True).eval().cuda()
 data_bchw = torch.rand((1, 3, 224, 224)).cuda()
 print("export: ", model_path)
 torch.onnx.export(resnet18, data_bchw, model_path,

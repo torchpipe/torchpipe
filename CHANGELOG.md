@@ -5,7 +5,7 @@
 - Remove incorrect shape checking when the model has multiple inputs with different shapes.
 - TensorrtTensor does not support non-float input types; this version fixes this issue.
 
-## v0.3.2 Release Candidate 3
+## v0.3.2 Release Candidate 3 (2023.10.13)
  
 - Fix the bug that compilation fails due to missing `setMaxThreads` when the TensorRT version is too low；Compiled successfully under the image nvcr.io/nvidia/pytorch:21.07-py3
 -  Add ppl.cv compilation option (BUILD_PPLCV).
