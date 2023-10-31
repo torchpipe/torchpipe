@@ -66,6 +66,7 @@ void PPLResizeTensor::forward(dict input_dict) {
   } else {
     throw std::invalid_argument("error datatype of tensor.  need datatype float or char.");
   }
+  ppl.finalize();
 }
 
 IPIPE_REGISTER(Backend, PPLResizeTensor, "PPLResizeTensor")

@@ -8,7 +8,8 @@ struct HWCTensorWrapper {
   HWCTensorWrapper(dict input_dict);
   HWCTensorWrapper(dict input_dict, int target_h, int target_w);
   HWCTensorWrapper(dict input_dict, int top, int bottom, int left, int right);
-  ~HWCTensorWrapper();
+  void finalize();
+  ~HWCTensorWrapper()=default;
 
   at::Tensor input_tensor;
   at::Tensor output_tensor;
