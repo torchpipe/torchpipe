@@ -1,9 +1,12 @@
 # Changelog
 
-## v0.3.3 Beta 1 (In progress)
+
+
+## v0.3.3 Beta 1 (2023.10.31)
 - Add support for tensorrt 9.1
 - Remove incorrect shape checking when the model has multiple inputs with different shapes.
 - TensorrtTensor does not support non-float input types; this version fixes this issue.
+- finish open source code
 
 ## v0.3.2 Release Candidate 3 (2023.10.13)
  

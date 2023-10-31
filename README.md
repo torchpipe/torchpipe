@@ -33,9 +33,9 @@ Torchpipe is a multi-instance pipeline parallel library that acts as a bridge be
 
 
 
-## 注意事项 
+<!-- ## 注意事项 
 - 版本说明：推荐使用最新tag以及对应release
-- main分支用于发布版本更新，develop分支用于提交代码和日常开发；
+- main分支用于发布版本更新，develop分支用于提交代码和日常开发； -->
 
 
 <!-- end elevator-pitch -->
@@ -121,6 +121,9 @@ torchpie目前处于一个快速迭代阶段，我们非常需要你的帮助。
 ### 6. 致谢
 我们的代码库使用或者修改后使用了多个开源库，请查看[致谢](./ACKNOWLEDGEMENTS.md)了解更多详细信息。
 
+感谢以下项目
+
+- [nndeploy](https://github.com/Alwaysssssss/nndeploy)
 
 ### 7. 交流提问
 微信群： https://torchpipe.github.io/zh/docs/contribution_guide/communicate

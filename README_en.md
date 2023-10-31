@@ -24,9 +24,9 @@ Torchpipe is a multi-instance pipeline parallel library that acts as a bridge be
 
 
 
-## Notes
+<!-- ## Notes
 -  Use the latest tag and corresponding release.
--  The main branch is used for releasing version updates, while the develop branch is used for code submission and daily development.
+-  The main branch is used for releasing version updates, while the develop branch is used for code submission and daily development. -->
 
 
 
