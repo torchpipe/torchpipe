@@ -1,6 +1,8 @@
 # Changelog
 
+## v0.3.3 Beta 2 (In development)
 
+- Fixed the issue where a value is still assigned to the `result` when an error occurs in calling pplcv
 
 ## v0.3.3 Beta 1 (2023.10.31)
 - Add support for tensorrt 9.1
