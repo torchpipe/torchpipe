@@ -117,6 +117,7 @@ COPY --from=base_devel_removed /usr/local/cuda-11.6/targets/x86_64-linux/lib /us
 # COPY --from=base_devel_removed /usr/lib/x86_64-linux-gnu/libcudnn.so* /usr/lib/x86_64-linux-gnu/
 RUN pip install /app/tensorrt-*-cp38-none-linux_x86_64.whl && rm /app/tensorrt-*-cp38-none-linux_x86_64.whl
 
+# git is needed for building PPL.CV
 RUN apt-get update -y && apt-get install git -y && pip --no-cache-dir install cmake 
 WORKDIR /app
 

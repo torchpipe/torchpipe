@@ -16,7 +16,7 @@ English | [简体中文](README.md)
 </div>
 
 
-Torchpipe is a multi-instance pipeline parallel library that acts as a bridge between lower-level acceleration libraries (such as TensorRT, OpenCV, TorchScript) and RPC frameworks (like Thrift, gRPC), ensuring a strict decoupling from them. It offers a thread-safe function interface for the PyTorch frontend at a higher level, while empowering users with fine-grained backend extension capabilities at a lower level.
+Torchpipe is a multi-instance pipeline parallel library that acts as a bridge between lower-level acceleration libraries (such as TensorRT, OpenCV, ppl.cv) and RPC frameworks (like Thrift, gRPC), ensuring a strict decoupling from them. It offers a thread-safe function interface for the PyTorch frontend at a higher level, while empowering users with fine-grained backend extension capabilities at a lower level.
 
 
 
@@ -24,9 +24,9 @@ Torchpipe is a multi-instance pipeline parallel library that acts as a bridge be
 
 
 
-## Notes
+<!-- ## Notes
 -  Use the latest tag and corresponding release.
--  The main branch is used for releasing version updates, while the develop branch is used for code submission and daily development.
+-  The main branch is used for releasing version updates, while the develop branch is used for code submission and daily development. -->
 
 
 
@@ -53,7 +53,6 @@ resnet18 = models.resnet18(pretrained=True).eval().cuda()
 
 import tempfile, os, torch
 model_path =  os.path.join(tempfile.gettempdir(), "./resnet18.onnx") 
-resnet18 = models.resnet18(pretrained=True).eval().cuda()
 data_bchw = torch.rand((1, 3, 224, 224)).cuda()
 print("export: ", model_path)
 torch.onnx.export(resnet18, data_bchw, model_path,

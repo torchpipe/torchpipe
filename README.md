@@ -23,19 +23,19 @@
 
 
 
-torchpipe是 介于底层加速库（如tensorrt，opencv，torchscript）以及 RPC（如thrift, gRPC）之间并与他们严格解耦的多实例流水线并行库；对外提供面向pytorch前端的线程安全函数接口，对内提供面向用户的细粒度后端扩展。
+torchpipe是 介于底层加速库（如tensorrt，opencv，ppl.cv）以及 RPC（如thrift, gRPC）之间并与他们严格解耦的多实例流水线并行库；对外提供面向pytorch前端的线程安全函数接口，对内提供面向用户的细粒度后端扩展。
 
 
 
-Torchpipe is a multi-instance pipeline parallel library that acts as a bridge between lower-level acceleration libraries (such as TensorRT, OpenCV, TorchScript) and RPC frameworks (like Thrift, gRPC), ensuring a strict decoupling from them. It offers a thread-safe function interface for the PyTorch frontend at a higher level, while empowering users with fine-grained backend extension capabilities at a lower level.
+Torchpipe is a multi-instance pipeline parallel library that acts as a bridge between lower-level acceleration libraries (such as TensorRT, OpenCV, ppl.cv) and RPC frameworks (like Thrift, gRPC), ensuring a strict decoupling from them. It offers a thread-safe function interface for the PyTorch frontend at a higher level, while empowering users with fine-grained backend extension capabilities at a lower level.
 
 
 
 
 
-## 注意事项 
+<!-- ## 注意事项 
 - 版本说明：推荐使用最新tag以及对应release
-- main分支用于发布版本更新，develop分支用于提交代码和日常开发；
+- main分支用于发布版本更新，develop分支用于提交代码和日常开发； -->
 
 
 <!-- end elevator-pitch -->
@@ -59,7 +59,6 @@ resnet18 = models.resnet18(pretrained=True).eval().cuda()
 
 import tempfile, os, torch
 model_path =  os.path.join(tempfile.gettempdir(), "./resnet18.onnx") 
-resnet18 = models.resnet18(pretrained=True).eval().cuda()
 data_bchw = torch.rand((1, 3, 224, 224)).cuda()
 print("export: ", model_path)
 torch.onnx.export(resnet18, data_bchw, model_path,
@@ -122,6 +121,9 @@ torchpie目前处于一个快速迭代阶段，我们非常需要你的帮助。
 ### 6. 致谢
 我们的代码库使用或者修改后使用了多个开源库，请查看[致谢](./ACKNOWLEDGEMENTS.md)了解更多详细信息。
 
+感谢以下项目
+
+- [nndeploy](https://github.com/Alwaysssssss/nndeploy)
 
 ### 7. 交流提问
 微信群： https://torchpipe.github.io/zh/docs/contribution_guide/communicate
