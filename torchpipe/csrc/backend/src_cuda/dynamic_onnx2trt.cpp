@@ -201,6 +201,52 @@ std::shared_ptr<CudaEngineWithRuntime> loadCudaBackend(std::string const& trtMod
   return en_with_rt;
 }
 
+nvinfer1::ITimingCache* prepareTimeCache(const std::string& cache_file,
+                                         nvinfer1::IBuilderConfig* config) {
+  std::vector<char> cache;
+  if (!Is_File_Exist(cache_file)) {
+    nvinfer1::ITimingCache* timingCache =
+        config->createTimingCache(static_cast<const void*>(cache.data()), cache.size());
+    IPIPE_ASSERT(config->setTimingCache(*timingCache, false));
+    return timingCache;
+  }
+  std::ifstream iFile(cache_file, std::ios::in | std::ios::binary);
+
+  if (!iFile) {
+    throw std::runtime_error("Could not read timing cache from: " + cache_file);
+  } else {
+    iFile.seekg(0, std::ifstream::end);
+    size_t fsize = iFile.tellg();
+    iFile.seekg(0, std::ifstream::beg);
+    cache.resize(fsize);
+    iFile.read(cache.data(), fsize);
+    iFile.close();
+
+    SPDLOG_INFO("Load {} Mb of timing cache from {}", cache.size() / 1000 / 1000, cache_file);
+  }
+
+  nvinfer1::ITimingCache* timingCache =
+      config->createTimingCache(static_cast<const void*>(cache.data()), cache.size());
+  IPIPE_ASSERT(config->setTimingCache(*timingCache, false));
+  return timingCache;
+}
+
+void writeTimeCache(const std::string& cache_file, nvinfer1::IBuilderConfig* config,
+                    nvinfer1::ITimingCache* timingCache) {
+  auto blob = std::unique_ptr<nvinfer1::IHostMemory>(config->getTimingCache()->serialize());
+
+  // fileTimingCache->combine(*timingCache, false);
+  if (!blob) {
+    throw std::runtime_error("Failed to serialize ITimingCache!");
+  }
+  std::ofstream oFile(cache_file, std::ios::out | std::ios::binary);
+  IPIPE_ASSERT(oFile);
+
+  oFile.write((char*)blob->data(), blob->size());
+  oFile.close();
+  SPDLOG_INFO("Saved {} Mb of timing cache to {}", blob->size() / 1000 / 1000, cache_file);
+}
+
 std::shared_ptr<CudaEngineWithRuntime> onnx2trt(
     std::string const& onnxModelPath, std::string model_type,
     std::vector<std::vector<std::vector<int>>>&
@@ -230,6 +276,15 @@ std::shared_ptr<CudaEngineWithRuntime> onnx2trt(
   if (hardware_concurrency >= 8) hardware_concurrency = 8;
   builder->setMaxThreads(hardware_concurrency);
   SPDLOG_INFO("nvinfer1::IBuilder: setMaxThreads {}.", hardware_concurrency);
+#endif
+
+#if NV_TENSORRT_MAJOR >= 8
+  std::unique_ptr<nvinfer1::ITimingCache> time_cache;
+  if (!precision.timecache.empty()) {
+    time_cache.reset(prepareTimeCache(precision.timecache, config.get()));
+  }
+#else
+  IPIPE_ASSERT(precision.timecache.empty());
 #endif
 
 #if CUDA_VERSION <= 10020
@@ -454,7 +509,7 @@ std::shared_ptr<CudaEngineWithRuntime> onnx2trt(
     auto time_pass = time_passed(time_now);
     SPDLOG_INFO("finish building engine within {} seconds", int(time_pass / 1000.0));
     auto local_engine = en_with_rt->engine;
-    config = nullptr;
+    // config = nullptr;
     if (local_engine) {
       unique_ptr_destroy<nvinfer1::IHostMemory> p_engine_plan{local_engine->serialize()};
 
@@ -462,6 +517,16 @@ std::shared_ptr<CudaEngineWithRuntime> onnx2trt(
 
       SPDLOG_INFO("Building engine finished. size of engine is {} MB",
                   engine_plan.size() / (1024 * 1024));
+
+#if NV_TENSORRT_MAJOR >= 8
+      if (!precision.timecache.empty()) {
+        if (!Is_File_Exist(precision.timecache)) {
+          SPDLOG_INFO("write time cache to {}", precision.timecache);
+          writeTimeCache(precision.timecache, config.get(), time_cache.get());
+        }
+      }
+#endif
+
       return en_with_rt;
     } else {
       return nullptr;

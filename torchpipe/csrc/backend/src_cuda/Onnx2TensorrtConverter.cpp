@@ -38,6 +38,7 @@ bool Onnx2TensorrtConverter::init(const std::unordered_map<std::string, std::str
                                                 {"std", ""},
                                                 {"model", ""},
                                                 {"model::cache", ""},
+                                                {"model::timingcache", ""},
                                                 {"preprocessor", ""},
                                                 {"model_type", ""}},
                                                {}, {}, {}));
@@ -222,6 +223,7 @@ bool Onnx2TensorrtConverter::init(const std::unordered_map<std::string, std::str
     std::vector<float> stds = strs2number(params_->at("std"));
 
     OnnxParams onnxp;
+    onnxp.timecache = params_->at("model::timingcache");
     onnxp.precision = params_->at("precision");
     if (onnxp.precision.empty()) {
       auto sm = get_sm();
