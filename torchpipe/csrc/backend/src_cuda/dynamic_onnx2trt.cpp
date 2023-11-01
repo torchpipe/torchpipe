@@ -222,7 +222,7 @@ nvinfer1::ITimingCache* prepareTimeCache(const std::string& cache_file,
     iFile.read(cache.data(), fsize);
     iFile.close();
 
-    SPDLOG_INFO("Load {} Mb of timing cache from {}", cache.size() / 1000 / 1000, cache_file);
+    SPDLOG_INFO("Load {}K of timing cache from {}", cache.size() / 1000.0, cache_file);
   }
 
   nvinfer1::ITimingCache* timingCache =
@@ -235,6 +235,7 @@ void writeTimeCache(const std::string& cache_file, nvinfer1::IBuilderConfig* con
                     nvinfer1::ITimingCache* timingCache) {
   auto blob = std::unique_ptr<nvinfer1::IHostMemory>(config->getTimingCache()->serialize());
 
+  if (!blob->size()) return;
   // fileTimingCache->combine(*timingCache, false);
   if (!blob) {
     throw std::runtime_error("Failed to serialize ITimingCache!");
@@ -344,7 +345,7 @@ std::shared_ptr<CudaEngineWithRuntime> onnx2trt(
     modify_layers_precision(precision.precision_output_fp16, network.get(),
                             nvinfer1::DataType::kHALF, true);
     if (!use_only_fp32) parse_ln(network.get());
-#if NV_TENSORRT_MAJOR == 8 && NV_TENSORRT_MINOR >= 5
+#if (NV_TENSORRT_MAJOR == 8 && NV_TENSORRT_MINOR >= 5)
     config->setPreviewFeature(nvinfer1::PreviewFeature::kFASTER_DYNAMIC_SHAPES_0805, true);
     SPDLOG_INFO("use tensorrt's PreviewFeature: kFASTER_DYNAMIC_SHAPES_0805");
 #endif
@@ -521,7 +522,6 @@ std::shared_ptr<CudaEngineWithRuntime> onnx2trt(
 #if NV_TENSORRT_MAJOR >= 8
       if (!precision.timecache.empty()) {
         if (!Is_File_Exist(precision.timecache)) {
-          SPDLOG_INFO("write time cache to {}", precision.timecache);
           writeTimeCache(precision.timecache, config.get(), time_cache.get());
         }
       }
