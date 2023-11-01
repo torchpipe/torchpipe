@@ -245,7 +245,7 @@ void writeTimeCache(const std::string& cache_file, nvinfer1::IBuilderConfig* con
 
   oFile.write((char*)blob->data(), blob->size());
   oFile.close();
-  SPDLOG_INFO("Saved {} Mb of timing cache to {}", blob->size() / 1000 / 1000, cache_file);
+  SPDLOG_INFO("Saved {} K of timing cache to {}", blob->size() / 1000., cache_file);
 }
 
 std::shared_ptr<CudaEngineWithRuntime> onnx2trt(
