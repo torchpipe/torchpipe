@@ -130,8 +130,7 @@ class Dataloader:
                 break
             try:
                 data = self.queue.get(timeout=5)
-            except Exception as e:
-                print("error inner: {}".format(e))   
+            except Exception as e:   
                 continue
 
             try:
