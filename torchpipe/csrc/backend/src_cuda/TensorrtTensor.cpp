@@ -87,6 +87,8 @@ bool TensorrtTensor::init(const std::unordered_map<std::string, std::string>& co
       return false;
     }
   }
+
+  backend_.reset();//release memory
   assert(config.count("_engine") != 0);
 
   engine_ = any_cast<std::shared_ptr<CudaEngineWithRuntime>>(config.at("_engine"));
@@ -163,11 +165,11 @@ bool TensorrtTensor::init(const std::unordered_map<std::string, std::string>& co
   }
 
   // save engne if needed.
-  if (!params_->at("save_engine").empty() && _independent_thread_index == 0) {
-    SPDLOG_INFO("engine saved:  {}{}", params_->at("save_engine"), "\n");
-    std::ofstream ff(params_->at("save_engine"));
-    ff << engine_plan;
-  }
+  // if (!params_->at("save_engine").empty() && _independent_thread_index == 0) {
+  //   SPDLOG_INFO("engine saved:  {}{}", params_->at("save_engine"), "\n");
+  //   std::ofstream ff(params_->at("save_engine"));
+  //   ff << engine_plan;
+  // }
 
   if (maxs_.empty() || maxs_[0].empty() || mins_.empty() || mins_[0].empty()) {
     SPDLOG_ERROR("maxs_.empty() || maxs_[0].empty() || mins_.empty() || mins_[0].empty()");
