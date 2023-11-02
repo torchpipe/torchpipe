@@ -335,6 +335,52 @@ void TensorrtTensor::parse_context(dict dict_config, int _independent_thread_ind
   }
 }
 
+decltype(at::kFloat) trt2torch_type(decltype(nvinfer1::DataType::kFLOAT) dtype) {
+  auto target_dtype = at::kFloat;
+  switch (dtype) {
+    case nvinfer1::DataType::kFLOAT:
+      target_dtype = at::kFloat;
+      break;
+    case nvinfer1::DataType::kINT32:
+      target_dtype = at::kInt;
+      break;
+    case nvinfer1::DataType::kINT8:
+      target_dtype = at::kChar;
+      break;
+// case nvinfer1::DataType::kUINT8:
+//   target_dtype = at::kByte;
+//   break;
+#if NV_TENSORRT_MAJOR >= 9
+    case nvinfer1::DataType::kINT64:
+      target_dtype = at::kLong;
+      break;
+#endif
+
+    case nvinfer1::DataType::kBOOL:
+      target_dtype = at::kBool;
+      break;
+    case nvinfer1::DataType::kHALF:
+      target_dtype = at::kHalf;
+      break;
+    default:
+      SPDLOG_ERROR("out: only support type of kFLOAT, kINT32, kINT64, kINT8, kBOOL, kHALF");
+      throw std::runtime_error("unsupportted datatype");
+  }
+  return target_dtype;
+}
+
+at::Tensor guard_contiguous_type_and_device(at::Tensor input_data, at::ScalarType target_format) {
+  // assert(input_data.is_cuda() && input_data.scalar_type() == at::kFloat);
+  if (target_format == input_data.dtype() && !is_cpu_tensor(input_data) &&
+      input_data.is_contiguous()) {
+    return input_data;
+  }
+
+  input_data = input_data.to(at::kCUDA, target_format,
+                             /* non_blocking =*/true, false, at::MemoryFormat::Contiguous);
+  assert(input_data.is_contiguous());
+  return input_data;
+}
 void TensorrtTensor::forward(const std::vector<dict>& raw_inputs) {
   assert(raw_inputs.size() <= max() && raw_inputs.size() >= min());
   if (raw_inputs.empty()) return;
@@ -359,26 +405,6 @@ void TensorrtTensor::forward(const std::vector<dict>& raw_inputs) {
 
   {
     for (auto& true_input : inputs_) {
-      // assert(true_input.is_cuda() && true_input.scalar_type() == at::kFloat);
-      auto target_format = true_input.scalar_type();  // todo modified acc to engine
-      bool need_switch_data_type = false;
-      if (target_format == at::kByte || target_format == at::kChar) {
-        need_switch_data_type = true;
-        target_format = at::kFloat;
-      }
-      if (is_cpu_tensor(true_input)) {
-        true_input = true_input.to(at::kCUDA, target_format,
-                                   /* non_blocking =*/true, false, at::MemoryFormat::Contiguous);
-      } else {
-        if (need_switch_data_type) {
-          true_input = true_input.to(target_format, true, false,
-                                     at::MemoryFormat::Contiguous);  // to (Device device,
-        }
-        if (!true_input.is_contiguous()) {
-          true_input = true_input.contiguous();
-        }
-      }
-      assert(true_input.is_contiguous());
     }
   }
 
@@ -399,14 +425,19 @@ void TensorrtTensor::forward(const std::vector<dict>& raw_inputs) {
       const auto index = profile_index_ * n_inputsOutputs + j;
 
       nvinfer1::Dims infer_dims = context_->getBindingDimensions(index);
+      auto dtype = engine_->engine->getBindingDataType(index);
+      auto target_type = trt2torch_type(dtype);
 
       if (engine_->engine->bindingIsInput(index)) {
-        const auto& input_data = inputs_[new_location_inputs_[index_input]];
+        auto& input_data = inputs_[new_location_inputs_[index_input]];
+
+        input_data = guard_contiguous_type_and_device(input_data, target_type);
+
         binding_.push_back(input_data.data_ptr());
         if (infer_dims.nbDims != input_data.sizes().size()) {
           std::stringstream ss;
-          ss << "shape not match: model input and preprocessed tensor(s): " << infer_dims.nbDims
-             << " != " << input_data.sizes().size();
+          ss << "shape not match: model input and preprocessed tensor(s): (infer_dims)"
+             << infer_dims.nbDims << " != (input_data)" << input_data.sizes().size();
           SPDLOG_ERROR(ss.str());
           throw std::runtime_error(ss.str());
         }
@@ -439,38 +470,7 @@ void TensorrtTensor::forward(const std::vector<dict>& raw_inputs) {
         continue;
       }
 
-      infer_dims = context_->getBindingDimensions(index);
-      auto dtype = engine_->engine->getBindingDataType(index);
-      auto target_dtype = at::kFloat;
-      switch (dtype) {
-        case nvinfer1::DataType::kFLOAT:
-          target_dtype = at::kFloat;
-          break;
-        case nvinfer1::DataType::kINT32:
-          target_dtype = at::kInt;
-          break;
-        case nvinfer1::DataType::kINT8:
-          target_dtype = at::kChar;
-          break;
-// case nvinfer1::DataType::kUINT8:
-//   target_dtype = at::kByte;
-//   break;
-#if NV_TENSORRT_MAJOR >= 9
-        case nvinfer1::DataType::kINT64:
-          target_dtype = at::kLong;
-          break;
-#endif
-
-        case nvinfer1::DataType::kBOOL:
-          target_dtype = at::kBool;
-          break;
-        case nvinfer1::DataType::kHALF:
-          target_dtype = at::kHalf;
-          break;
-        default:
-          SPDLOG_ERROR("out: only support type of kFLOAT, kINT32, kINT64, kINT8, kBOOL, kHALF");
-          throw std::runtime_error("unsupportted datatype");
-      }
+      // infer_dims = context_->getBindingDimensions(index);
 
       if (infer_dims.nbDims == -1) {
         throw std::range_error("tensorrt: getBindingDimensions for output failed");
@@ -478,7 +478,7 @@ void TensorrtTensor::forward(const std::vector<dict>& raw_inputs) {
 
       outputs_.emplace_back(
           at::empty(std::vector<int64_t>(infer_dims.d, infer_dims.d + infer_dims.nbDims),
-                    get_tensor_option(target_dtype), at::MemoryFormat::Contiguous));
+                    get_tensor_option(target_type), at::MemoryFormat::Contiguous));
       binding_.push_back(outputs_.back().data_ptr());
     }
   }

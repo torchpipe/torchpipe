@@ -4,6 +4,7 @@
 
 - Fixed the issue where a value is still assigned to the `result` when an error occurs in calling pplcv
 - Add the model::timingcache parameter to TensorrtTensor to speed up the construction of models with the same structure in llm
+- Fix the error when the model input type and the actual input type are different (such as torch.int32 and torch.int64).
 
 ## v0.3.3 Beta 1 (2023.10.31)
 - Add support for tensorrt 9.1
