@@ -74,6 +74,11 @@ class TensorrtTensor : public Backend {
     return mins_[0][0];
     ;
   };
+  ~TensorrtTensor() {
+    // maintain order
+    context_.reset();
+    engine_.reset();
+  };
 
  private:
   void parse_context(dict dict_config, int _independent_thread_index);
