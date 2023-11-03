@@ -300,6 +300,7 @@ std::shared_ptr<CudaEngineWithRuntime> onnx2trt(
   bool b_parsed = false;
 
   if (endswith(model_type, ".onnx")) {
+    // SPDLOG_INFO("start parsing {}", onnxModelPath);
     b_parsed = parser->parseFromFile(onnxModelPath.c_str(),
                                      static_cast<int>(nvinfer1::ILogger::Severity::kINFO));
   } else if (endswith(model_type, ".onnx.encrypt")) {
