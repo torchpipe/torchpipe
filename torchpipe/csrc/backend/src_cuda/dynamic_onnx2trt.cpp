@@ -62,8 +62,9 @@ nvinfer1::Dims vtodim(std::vector<int> input, const nvinfer1::Dims& net_input) {
       }
     } else if (net_input.d[i] != -1 && net_input.d[i] != input[i]) {
       const std::string error_msg =
-          "shape from network and shape from configuration not match: net_input= " +
-          std::to_string(net_input.d[i]) + " input= " + std::to_string(input[i]);
+          "shape from network and shape from configuration not match: net_input[" +
+          std::to_string(i) + "]= " + std::to_string(net_input.d[i]) +
+          " input= " + std::to_string(input[i]);
       SPDLOG_ERROR(error_msg);
       throw std::invalid_argument(error_msg);
     }
