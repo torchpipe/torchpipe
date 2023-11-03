@@ -16,6 +16,7 @@
 #include "base_logging.hpp"
 #include "ipipe_common.hpp"
 #include <set>
+#include <unordered_set>
 #include <sstream>
 namespace ipipe {
 
