@@ -254,7 +254,7 @@ bool Onnx2TensorrtConverter::init(const std::unordered_map<std::string, std::str
       std::ofstream ff(params_->at("model::cache"));
       ff << engine_plan;
       SPDLOG_INFO("model cached: {}, size = {}MB", params_->at("model::cache"),
-                  int(engine_plan.size() / 1024.0 / 1024.0));
+                  int(100 * engine_plan.size() / 1024.0 / 1024.0) / 100.0);
     } else if (endswith(params_->at("model::cache"), ".trt.encrypted")) {
       encrypt_buffer_to_file(engine_plan, params_->at("model::cache"), "");
     } else {

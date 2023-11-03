@@ -274,7 +274,7 @@ std::shared_ptr<CudaEngineWithRuntime> onnx2trt(
 #if ((NV_TENSORRT_MAJOR >= 8 && NV_TENSORRT_MINOR >= 4) || (NV_TENSORRT_MAJOR >= 9))
   auto hardware_concurrency = std::thread::hardware_concurrency();
   if (hardware_concurrency == 0) hardware_concurrency = 4;
-  if (hardware_concurrency >= 8) hardware_concurrency = 8;
+  if (hardware_concurrency >= 8) hardware_concurrency = 4;
   builder->setMaxThreads(hardware_concurrency);
   SPDLOG_INFO("nvinfer1::IBuilder: setMaxThreads {}.", hardware_concurrency);
 #endif
@@ -320,7 +320,11 @@ std::shared_ptr<CudaEngineWithRuntime> onnx2trt(
   if (b_parsed) {
     bool use_only_fp32 = true;
     constexpr size_t MAX_WORKSPACE_SIZE = 1ULL << 30;  // 1 GB
+#if (NV_TEONSORRT_MAJOR == 8 && NV_TENSORRT_MINOR >= 4) || (NV_TENSORRT_MAJOR >= 9)
+    config->setMemoryPoolLimit(nvinfer1::MemoryPoolType::kWORKSPACE, MAX_WORKSPACE_SIZE);
+#else
     config->setMaxWorkspaceSize(MAX_WORKSPACE_SIZE);
+#endif
     if ((fp16_enable.count(precision.precision)) && builder->platformHasFastFp16()) {
       SPDLOG_INFO("platformHasFastFp16. FP16 will be used");
       config->setFlag(nvinfer1::BuilderFlag::kFP16);

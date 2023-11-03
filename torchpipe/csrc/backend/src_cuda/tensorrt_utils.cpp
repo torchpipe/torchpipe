@@ -25,8 +25,12 @@ bool check_dynamic_batchsize(nvinfer1::INetworkDefinition* network) {
     if (layer->getType() == nvinfer1::LayerType::kSHUFFLE) {
       nvinfer1::IShuffleLayer* resizer = static_cast<nvinfer1::IShuffleLayer*>(layer);
       nvinfer1::Dims out = resizer->getReshapeDimensions();
-      if (out.nbDims == -1) return true;
-      if (out.nbDims == 1) return true;  // Unsqueeze
+      if (out.nbDims == -1) continue;
+      if (out.nbDims == 1) continue;  // Unsqueeze
+      static const std::unordered_set<std::string> skip_layers{"ONNXTRT_Broadcast"};
+      if (skip_layers.count(resizer->getName())) {
+        continue;
+      }
       IPIPE_ASSERT(out.nbDims >= 1);
       if (out.d[0] != -1) {
         std::stringstream ss;
