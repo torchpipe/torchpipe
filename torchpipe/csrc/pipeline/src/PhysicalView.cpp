@@ -69,7 +69,7 @@ bool PhysicalView::init(mapmap config) {
       std::string tmp_name = any_cast<std::string>(iter_pipeline_backend->second);
       backends_[iter->first] = std::unique_ptr<Backend>(IPIPE_CREATE(Backend, tmp_name));
     }
-    SPDLOG_INFO("start init node: {}", iter->first);
+    SPDLOG_INFO("\n\nstart init node: {}", iter->first);
     if (!backends_[iter->first] || !backends_[iter->first]->init(iter->second, dict_config_)) {
       SPDLOG_ERROR("{}: init failed", iter->first);
       backends_.clear();
