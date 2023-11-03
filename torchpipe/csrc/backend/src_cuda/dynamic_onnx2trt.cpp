@@ -521,7 +521,7 @@ std::shared_ptr<CudaEngineWithRuntime> onnx2trt(
       engine_plan = std::string((char*)p_engine_plan->data(), p_engine_plan->size());
 
       SPDLOG_INFO("Building engine finished. size of engine is {} MB",
-                  engine_plan.size() / (1024 * 1024));
+                  int(100 * engine_plan.size() / (1024 * 1024)) / 100.0);
 
 #if NV_TENSORRT_MAJOR >= 8
       if (!precision.timecache.empty()) {
