@@ -30,7 +30,7 @@ bool check_dynamic_batchsize(nvinfer1::INetworkDefinition* network) {
       if (out.nbDims == 1) continue;  // Unsqueeze
       static const std::unordered_set<std::string> skip_layers{"ONNXTRT_Broadcast"};
       bool need_skip = false;
-      for (const auto& item : skip_layer) {
+      for (const auto& item : skip_layers) {
         if (item.find(resizer->getName()) != std::string::npos) {
           need_skip = true;
           break;
