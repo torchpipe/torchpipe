@@ -5,6 +5,16 @@
 - Fixed the issue where a value is still assigned to the `result` when an error occurs in calling pplcv
 - Add the model::timingcache parameter to TensorrtTensor to speed up the construction of models with the same structure in llm
 - Fix the error when the model input type and the actual input type are different (such as torch.int32 and torch.int64).
+- Add conversion from tuple type to C++
+- Add Range; Use dynamic programming to check for optimal match, for example, 10 <= [2,9]: 10 = 8 + 2
+```
+torchpipe.pipe(
+        {"Interpreter::backend": "Range[S[TensorrtTensor,SyncTensor]]",
+        "range":"8,19","max": 9,"min":2, "model": "a.onnx"})
+
+assert 19 == self.model_trt.max()
+assert 8 == self.model_trt.min()
+```
 
 ## v0.3.3 Beta 1 (2023.10.31)
 - Add support for tensorrt 9.1

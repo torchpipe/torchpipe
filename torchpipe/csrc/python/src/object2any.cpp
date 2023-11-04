@@ -28,9 +28,9 @@
 namespace py = pybind11;
 
 namespace ipipe {
-template <template <class... Args> class container>
-any list_cast(py::handle second) {
-  py::list list_data = py::cast<py::list>(second);
+template <template <class... Args> class container, typename py_container>
+any container_cast(py::handle second) {
+  py_container list_data = py::cast<py_container>(second);
   int len = py::len(list_data);
   if (0 == len) {
     SPDLOG_DEBUG("not enough information to know the type inside this container.");
@@ -122,7 +122,7 @@ any object2any(pybind11::handle data) {
   if (py::isinstance<SimpleEvents>(data)) {
     return py::cast<std::shared_ptr<SimpleEvents>>(data);
   } else if (py::isinstance<py::list>(data)) {
-    return list_cast<std::vector>(data);
+    return container_cast<std::vector, py::list>(data);
   } else if (py::isinstance<py::set>(data)) {
     return set_cast(data);
   } else if (py::isinstance<py::dict>(data)) {
@@ -141,6 +141,10 @@ any object2any(pybind11::handle data) {
     return (float)py::cast<double>(data);  // change to float
   } else if (py::isinstance<ipipe::any>(data)) {
     return py::cast<ipipe::any>(data);
+  }
+  // handle tuple
+  else if (py::isinstance<py::tuple>(data)) {
+    return container_cast<std::vector, py::tuple>(data);
   } else if (py::isinstance<py::array>(data)) {
     IPIPE_THROW(
         "array is not convertable to c++. You may use torch.from_numpy(...) to prepare data. ");
