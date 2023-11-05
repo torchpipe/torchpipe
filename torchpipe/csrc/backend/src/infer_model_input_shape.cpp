@@ -6,7 +6,7 @@
 #ifdef PYBIND
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
-#endif
+
 #include "params.hpp"
 namespace ipipe {
 std::vector<std::vector<int>> infer_shape(std::shared_ptr<CudaEngineWithRuntime> engine) {
@@ -58,7 +58,6 @@ int supported_opset() {
     return 13;
 };
 
-#ifdef PYBIND
 namespace py = pybind11;
 // 通过pybind11将infer_onnx_shape函数暴露到python中，注意其参数
 void init_infer_shape(py::module& m) {
