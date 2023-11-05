@@ -5,7 +5,8 @@ English | [简体中文](README_zh.md)
 
 <div align="center">
 <h1 align="center">torchpipe</h1>
-<h6 align="center">Accelerated <a href="https://pytorch.org/">Pytorch</a> Serving through Multithreading</h6>
+<h6 align="center">Ensemble Pipeline Serving for  <a href="https://pytorch.org/">Pytorch</a> Frontend</h6>
+
 
 <!-- <img alt="license" src="https://img.shields.io/github/license/alibaba/async_simple?style=flat-square"> -->
 [![Documentation](https://img.shields.io/badge/torchpipe-Docs-brightgreen.svg)](https://torchpipe.github.io)
@@ -20,6 +21,7 @@ Torchpipe is a multi-instance pipeline parallel library that acts as a bridge be
 
 
 
+Production-Grade：Within NetEase about billions of calls supported by Torchpipe everyday.
 
 
 
@@ -39,6 +41,7 @@ Torchpipe is a multi-instance pipeline parallel library that acts as a bridge be
 
 
 ###  1. Installation
+
 
 See [Installation](https://torchpipe.github.io/docs/installation).
 
@@ -98,7 +101,8 @@ print(input["result"].shape)  # If failed, this key value must not exist, even i
 
 
 
-torchpie is currently in a rapid iteration phase, and we greatly appreciate your help. We prioritize content over the contribution format. Feel free to provide feedback through issues or merge requests. Check out our [Contribution Guidelines](./CONTRIBUTING.md).
+torchpie is currently in a rapid iteration phase, and we greatly appreciate your help.  Feel free to provide feedback through issues or merge requests. Check out our [Contribution Guidelines](./CONTRIBUTING.md).
+
 
 Our ultimate goal is to make high-throughput deployment on the server side as simple as possible. To achieve this, we actively iterate and are willing to collaborate with other projects with similar goals.
 
