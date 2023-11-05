@@ -16,6 +16,7 @@
 #include "base_logging.hpp"
 #include "ipipe_common.hpp"
 #include <set>
+#include <unordered_set>
 #include <sstream>
 namespace ipipe {
 
@@ -25,8 +26,18 @@ bool check_dynamic_batchsize(nvinfer1::INetworkDefinition* network) {
     if (layer->getType() == nvinfer1::LayerType::kSHUFFLE) {
       nvinfer1::IShuffleLayer* resizer = static_cast<nvinfer1::IShuffleLayer*>(layer);
       nvinfer1::Dims out = resizer->getReshapeDimensions();
-      if (out.nbDims == -1) return true;
-      if (out.nbDims == 1) return true;  // Unsqueeze
+      if (out.nbDims == -1) continue;
+      if (out.nbDims == 1) continue;  // Unsqueeze
+      static const std::unordered_set<std::string> skip_layers{"ONNXTRT_Broadcast"};
+      bool need_skip = false;
+      for (const auto& item : skip_layers) {
+        if (std::string(resizer->getName()).find(item) != std::string::npos) {
+          need_skip = true;
+          break;
+        }
+      }
+      if (need_skip) continue;
+
       IPIPE_ASSERT(out.nbDims >= 1);
       if (out.d[0] != -1) {
         std::stringstream ss;

@@ -38,6 +38,7 @@ bool Onnx2TensorrtConverter::init(const std::unordered_map<std::string, std::str
                                                 {"std", ""},
                                                 {"model", ""},
                                                 {"model::cache", ""},
+                                                {"model::timingcache", ""},
                                                 {"preprocessor", ""},
                                                 {"model_type", ""}},
                                                {}, {}, {}));
@@ -222,6 +223,7 @@ bool Onnx2TensorrtConverter::init(const std::unordered_map<std::string, std::str
     std::vector<float> stds = strs2number(params_->at("std"));
 
     OnnxParams onnxp;
+    onnxp.timecache = params_->at("model::timingcache");
     onnxp.precision = params_->at("precision");
     if (onnxp.precision.empty()) {
       auto sm = get_sm();
@@ -252,7 +254,7 @@ bool Onnx2TensorrtConverter::init(const std::unordered_map<std::string, std::str
       std::ofstream ff(params_->at("model::cache"));
       ff << engine_plan;
       SPDLOG_INFO("model cached: {}, size = {}MB", params_->at("model::cache"),
-                  int(engine_plan.size() / 1024.0 / 1024.0));
+                  int(100 * engine_plan.size() / 1024.0 / 1024.0) / 100.0);
     } else if (endswith(params_->at("model::cache"), ".trt.encrypted")) {
       encrypt_buffer_to_file(engine_plan, params_->at("model::cache"), "");
     } else {

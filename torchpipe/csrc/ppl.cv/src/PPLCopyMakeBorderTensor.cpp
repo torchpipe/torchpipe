@@ -68,6 +68,7 @@ void PPLCopyMakeBorderTensor::forward(dict input_dict) {
   } else {
     throw std::invalid_argument("error datatype of tensor. Need datatype float or char.");
   }
+  ppl.finalize();
 }
 
 IPIPE_REGISTER(Backend, PPLCopyMakeBorderTensor, "PPLCopyMakeBorderTensor")

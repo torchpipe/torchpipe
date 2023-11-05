@@ -65,7 +65,7 @@ class Onnx2TensorrtConverter : public Backend {
  private:
   std::unique_ptr<Params> params_;
   std::shared_ptr<CudaEngineWithRuntime> engine_;
-  std::unique_ptr<Backend> backend_;
+  // std::unique_ptr<Backend> backend_;
   std::vector<std::vector<std::vector<int>>> mins_;
   std::vector<std::vector<std::vector<int>>> maxs_;  // profile - inputs - dim
 

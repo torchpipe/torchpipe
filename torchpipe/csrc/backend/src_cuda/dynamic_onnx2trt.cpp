@@ -62,8 +62,9 @@ nvinfer1::Dims vtodim(std::vector<int> input, const nvinfer1::Dims& net_input) {
       }
     } else if (net_input.d[i] != -1 && net_input.d[i] != input[i]) {
       const std::string error_msg =
-          "shape from network and shape from configuration not match: net_input= " +
-          std::to_string(net_input.d[i]) + " input= " + std::to_string(input[i]);
+          "shape from network and shape from configuration not match: net_input[" +
+          std::to_string(i) + "]= " + std::to_string(net_input.d[i]) +
+          " input= " + std::to_string(input[i]);
       SPDLOG_ERROR(error_msg);
       throw std::invalid_argument(error_msg);
     }
@@ -201,6 +202,53 @@ std::shared_ptr<CudaEngineWithRuntime> loadCudaBackend(std::string const& trtMod
   return en_with_rt;
 }
 
+nvinfer1::ITimingCache* prepareTimeCache(const std::string& cache_file,
+                                         nvinfer1::IBuilderConfig* config) {
+  std::vector<char> cache;
+  if (!Is_File_Exist(cache_file)) {
+    nvinfer1::ITimingCache* timingCache =
+        config->createTimingCache(static_cast<const void*>(cache.data()), cache.size());
+    IPIPE_ASSERT(config->setTimingCache(*timingCache, false));
+    return timingCache;
+  }
+  std::ifstream iFile(cache_file, std::ios::in | std::ios::binary);
+
+  if (!iFile) {
+    throw std::runtime_error("Could not read timing cache from: " + cache_file);
+  } else {
+    iFile.seekg(0, std::ifstream::end);
+    size_t fsize = iFile.tellg();
+    iFile.seekg(0, std::ifstream::beg);
+    cache.resize(fsize);
+    iFile.read(cache.data(), fsize);
+    iFile.close();
+
+    SPDLOG_INFO("Load {}K of timing cache from {}", cache.size() / 1000.0, cache_file);
+  }
+
+  nvinfer1::ITimingCache* timingCache =
+      config->createTimingCache(static_cast<const void*>(cache.data()), cache.size());
+  IPIPE_ASSERT(config->setTimingCache(*timingCache, false));
+  return timingCache;
+}
+
+void writeTimeCache(const std::string& cache_file, nvinfer1::IBuilderConfig* config,
+                    nvinfer1::ITimingCache* timingCache) {
+  auto blob = std::unique_ptr<nvinfer1::IHostMemory>(config->getTimingCache()->serialize());
+
+  if (!blob->size()) return;
+  // fileTimingCache->combine(*timingCache, false);
+  if (!blob) {
+    throw std::runtime_error("Failed to serialize ITimingCache!");
+  }
+  std::ofstream oFile(cache_file, std::ios::out | std::ios::binary);
+  IPIPE_ASSERT(oFile);
+
+  oFile.write((char*)blob->data(), blob->size());
+  oFile.close();
+  SPDLOG_INFO("Saved {} K of timing cache to {}", blob->size() / 1000., cache_file);
+}
+
 std::shared_ptr<CudaEngineWithRuntime> onnx2trt(
     std::string const& onnxModelPath, std::string model_type,
     std::vector<std::vector<std::vector<int>>>&
@@ -227,9 +275,18 @@ std::shared_ptr<CudaEngineWithRuntime> onnx2trt(
 #if ((NV_TENSORRT_MAJOR >= 8 && NV_TENSORRT_MINOR >= 4) || (NV_TENSORRT_MAJOR >= 9))
   auto hardware_concurrency = std::thread::hardware_concurrency();
   if (hardware_concurrency == 0) hardware_concurrency = 4;
-  if (hardware_concurrency >= 8) hardware_concurrency = 8;
+  if (hardware_concurrency >= 8) hardware_concurrency = 4;
   builder->setMaxThreads(hardware_concurrency);
   SPDLOG_INFO("nvinfer1::IBuilder: setMaxThreads {}.", hardware_concurrency);
+#endif
+
+#if NV_TENSORRT_MAJOR >= 8
+  std::unique_ptr<nvinfer1::ITimingCache> time_cache;
+  if (!precision.timecache.empty()) {
+    time_cache.reset(prepareTimeCache(precision.timecache, config.get()));
+  }
+#else
+  IPIPE_ASSERT(precision.timecache.empty());
 #endif
 
 #if CUDA_VERSION <= 10020
@@ -244,6 +301,7 @@ std::shared_ptr<CudaEngineWithRuntime> onnx2trt(
   bool b_parsed = false;
 
   if (endswith(model_type, ".onnx")) {
+    // SPDLOG_INFO("start parsing {}", onnxModelPath);
     b_parsed = parser->parseFromFile(onnxModelPath.c_str(),
                                      static_cast<int>(nvinfer1::ILogger::Severity::kINFO));
   } else if (endswith(model_type, ".onnx.encrypt")) {
@@ -264,7 +322,11 @@ std::shared_ptr<CudaEngineWithRuntime> onnx2trt(
   if (b_parsed) {
     bool use_only_fp32 = true;
     constexpr size_t MAX_WORKSPACE_SIZE = 1ULL << 30;  // 1 GB
+#if (NV_TEONSORRT_MAJOR == 8 && NV_TENSORRT_MINOR >= 4) || (NV_TENSORRT_MAJOR >= 9)
+    config->setMemoryPoolLimit(nvinfer1::MemoryPoolType::kWORKSPACE, MAX_WORKSPACE_SIZE);
+#else
     config->setMaxWorkspaceSize(MAX_WORKSPACE_SIZE);
+#endif
     if ((fp16_enable.count(precision.precision)) && builder->platformHasFastFp16()) {
       SPDLOG_INFO("platformHasFastFp16. FP16 will be used");
       config->setFlag(nvinfer1::BuilderFlag::kFP16);
@@ -289,7 +351,7 @@ std::shared_ptr<CudaEngineWithRuntime> onnx2trt(
     modify_layers_precision(precision.precision_output_fp16, network.get(),
                             nvinfer1::DataType::kHALF, true);
     if (!use_only_fp32) parse_ln(network.get());
-#if NV_TENSORRT_MAJOR == 8 && NV_TENSORRT_MINOR >= 5
+#if (NV_TENSORRT_MAJOR == 8 && NV_TENSORRT_MINOR >= 5)
     config->setPreviewFeature(nvinfer1::PreviewFeature::kFASTER_DYNAMIC_SHAPES_0805, true);
     SPDLOG_INFO("use tensorrt's PreviewFeature: kFASTER_DYNAMIC_SHAPES_0805");
 #endif
@@ -454,14 +516,23 @@ std::shared_ptr<CudaEngineWithRuntime> onnx2trt(
     auto time_pass = time_passed(time_now);
     SPDLOG_INFO("finish building engine within {} seconds", int(time_pass / 1000.0));
     auto local_engine = en_with_rt->engine;
-    config = nullptr;
+    // config = nullptr;
     if (local_engine) {
       unique_ptr_destroy<nvinfer1::IHostMemory> p_engine_plan{local_engine->serialize()};
 
       engine_plan = std::string((char*)p_engine_plan->data(), p_engine_plan->size());
 
       SPDLOG_INFO("Building engine finished. size of engine is {} MB",
-                  engine_plan.size() / (1024 * 1024));
+                  int(100 * engine_plan.size() / (1024 * 1024)) / 100.0);
+
+#if NV_TENSORRT_MAJOR >= 8
+      if (!precision.timecache.empty()) {
+        if (!Is_File_Exist(precision.timecache)) {
+          writeTimeCache(precision.timecache, config.get(), time_cache.get());
+        }
+      }
+#endif
+
       return en_with_rt;
     } else {
       return nullptr;

@@ -89,15 +89,15 @@ HWCTensorWrapper::HWCTensorWrapper(dict input_dict) : input(input_dict) {
   assert(output_tensor.stride(0) == target_w * c);
 }
 
-HWCTensorWrapper::~HWCTensorWrapper() {
-  try {
-    if (!is_hwc_input) {
-      output_tensor = output_tensor.permute({2, 0, 1}).unsqueeze(0);
-    }
-  } catch (std::exception& e) {
-    SPDLOG_ERROR("HWCTensorWrapper::~HWCTensorWrapper() failed: {}", e.what());
-    input = nullptr;
+void HWCTensorWrapper::finalize() {
+  // try {
+  if (!is_hwc_input) {
+    output_tensor = output_tensor.permute({2, 0, 1}).unsqueeze(0);
   }
+  // } catch (std::exception& e) {
+  //   SPDLOG_ERROR("HWCTensorWrapper::~HWCTensorWrapper() failed: {}", e.what());
+  //   input = nullptr;
+  // }
 
   if (input) (*input)[TASK_RESULT_KEY] = output_tensor;
 }

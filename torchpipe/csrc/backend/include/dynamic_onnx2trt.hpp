@@ -32,6 +32,7 @@ struct OnnxParams {
   std::set<std::string> precision_fp16;
   std::set<std::string> precision_output_fp32;
   std::set<std::string> precision_output_fp16;
+  std::string timecache;
 };
 
 std::shared_ptr<CudaEngineWithRuntime> onnx2trt(
