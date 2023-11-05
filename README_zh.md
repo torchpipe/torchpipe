@@ -105,7 +105,7 @@ print(input["result"].shape)  # 失败则此键值一定不存在，即使输入
 
 
 
-torchpie目前处于一个快速迭代阶段，我们非常需要你的帮助。相对于贡献形式，我们对内容方面更为在意。欢迎通过issues或者merge requests等方式进行反馈。[贡献指南](https://torchpipe.github.io/zh/docs/contribution)。 
+torchpie目前处于一个快速迭代阶段，我们非常需要你的帮助。欢迎通过issues或者merge requests等方式进行反馈。[贡献指南](https://torchpipe.github.io/zh/docs/contribution)。 
 
 我们的最终目标是让服务端高吞吐部署尽可能简单。为了实现这一目标，我们将积极自我迭代，也愿意参与有相近目标的其他项目。
 

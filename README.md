@@ -98,7 +98,7 @@ print(input["result"].shape)  # If failed, this key value must not exist, even i
 
 
 
-torchpie is currently in a rapid iteration phase, and we greatly appreciate your help. We prioritize content over the contribution format. Feel free to provide feedback through issues or merge requests. Check out our [Contribution Guidelines](./CONTRIBUTING.md).
+torchpie is currently in a rapid iteration phase, and we greatly appreciate your help.  Feel free to provide feedback through issues or merge requests. Check out our [Contribution Guidelines](./CONTRIBUTING.md).
 
 Our ultimate goal is to make high-throughput deployment on the server side as simple as possible. To achieve this, we actively iterate and are willing to collaborate with other projects with similar goals.
 
