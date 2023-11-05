@@ -1,6 +1,6 @@
 # Changelog
 
-## v0.3.3 Beta 2 (In development)
+## v0.3.3 Beta 2 (2023.11.05)
 
 - Fixed the issue where a value is still assigned to the `result` when an error occurs in calling pplcv
 - Add the model::timingcache parameter to TensorrtTensor to speed up the construction of models with the same structure in llm
