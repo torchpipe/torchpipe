@@ -5,7 +5,7 @@ English | [简体中文](README_zh.md)
 
 <div align="center">
 <h1 align="center">torchpipe</h1>
-<h6 align="center">Accelerated <a href="https://pytorch.org/">Pytorch</a> Serving through Multithreading</h6>
+<h6 align="center">Ensemble Pipeline Serving for  <a href="https://pytorch.org/">Pytorch</a> Frontend</h6>
 
 <!-- <img alt="license" src="https://img.shields.io/github/license/alibaba/async_simple?style=flat-square"> -->
 [![Documentation](https://img.shields.io/badge/torchpipe-Docs-brightgreen.svg)](https://torchpipe.github.io)
