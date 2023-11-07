@@ -59,6 +59,21 @@ bool MultipleInstances::init(const std::unordered_map<std::string, std::string>&
   TRACE_EXCEPTION(activate_grp_index = std::stoi(params_->at("active_instances_grp")));
   TRACE_EXCEPTION(instances_grp_ = str2set(params_->at("instances_grp"), ',', ';'));
 
+  // TRACE_EXCEPTION(force_ranges_ = str2int(params_->at("force_range"), ',', ';'));
+
+  // if (!force_ranges_.empty()) {
+  //   auto num_grp = instances_grp_.empty() ? 1 : instances_grp_.size();
+  //   IPIPE_ASSERT(force_ranges_.size() <= num_grp);
+  //   while (force_ranges_.size() < num_grp) {
+  //     force_ranges_.push_back(force_ranges_.back());
+  //   }
+
+  //   for (const auto& force_range : force_ranges_) {
+  //     IPIPE_ASSERT(force_range.size() == 2);
+  //     IPIPE_ASSERT(force_range[0] >= 1 && force_range[0] <= force_range[1]);
+  //   }
+  // }
+
   std::string borrow_from = params_->at("borrow_from");
   if (borrow_from.empty()) {
     auto total = range_data(instance_num_);

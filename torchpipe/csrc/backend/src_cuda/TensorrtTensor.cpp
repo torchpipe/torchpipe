@@ -177,15 +177,20 @@ bool TensorrtTensor::init(const std::unordered_map<std::string, std::string>& co
     return false;
   }
 
-  std::vector<int> force_range;
-  TRACE_EXCEPTION(force_range = str2int(params_->at("force_range"), ','));
-  IPIPE_ASSERT(force_range.empty() || force_range.size() == 2);
-  if (force_range.size() == 2) {
+  std::vector<std::vector<int>> force_ranges;
+  TRACE_EXCEPTION(force_ranges = str2int(params_->at("force_range"), ',', ';'));
+  max_ = maxs_[0][0];
+  min_ = mins_[0][0];
+  if (!force_ranges.empty()) {
+    while (force_ranges.size() < instance_num) {
+      force_ranges.push_back(force_ranges.back());
+    }
+    IPIPE_ASSERT(force_ranges.size() == instance_num);
+
+    const auto& force_range = force_ranges[independent_thread_index_];
+    IPIPE_ASSERT(force_range.size() == 2);
     max_ = force_range[1];
     min_ = force_range[0];
-  } else {
-    max_ = maxs_[0][0];
-    min_ = mins_[0][0];
   }
   IPIPE_ASSERT(min_ >= 1 && max_ >= min_);
 
