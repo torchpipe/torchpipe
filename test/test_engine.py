@@ -306,7 +306,7 @@ class TestBackend:
 
     def test_version(self):
         z = torchpipe.__version__
-        assert z.startswith("0.3.3b2")
+        assert z.startswith("0.3.3b3")
         print(z)
 
 

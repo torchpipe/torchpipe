@@ -71,15 +71,15 @@ class TestBackend:
 
         data = torch.rand((5, 224))
 
- 
         ts = torchpipe.pipe({"a":{"model": self.onnx_path,"instance_num":3, 
                                   "instances_grp":"1;0,2",
+                                  "active_instances_grp":0,
                                   "backend": "Torch[TensorrtTensor]",
                                   "device_id":1, 'batching_timeout': '5',
                                   "max":"6,6;4,4;6,6",
                                   "min":"1,1"},
                              "b":{"model": "not_exists",
-                                  "borrow_from":"a","active_instances_grp":"1",
+                                  "borrow_from":"a","active_instances_grp":1,
                                    "backend": "Torch[TensorrtTensor]","device_id":1, 'batching_timeout': '5'}})
         input = {"data": [data, data],"node_name": "b"}
         ts(input)
