@@ -59,7 +59,8 @@ bool MultipleInstances::init(const std::unordered_map<std::string, std::string>&
   TRACE_EXCEPTION(activate_grp_index = std::stoi(params_->at("active_instances_grp")));
   TRACE_EXCEPTION(instances_grp_ = str2set(params_->at("instances_grp"), ',', ';'));
 
-  if (params_->at("borrow_from").empty()) {
+  std::string borrow_from = params_->at("borrow_from");
+  if (borrow_from.empty()) {
     auto total = range_data(instance_num_);
 
     if (instances_grp_.empty()) {
@@ -104,12 +105,10 @@ bool MultipleInstances::init(const std::unordered_map<std::string, std::string>&
       std::lock_guard<std::mutex> lock_tmp(lock_);
       shared_instances_[node_name + "." + std::to_string(i)] = si;
     }
-
+    dict dict_config_split =
+        dict_config ? std::make_shared<std::unordered_map<std::string, any>>(*dict_config)
+                    : std::make_shared<std::unordered_map<std::string, any>>();
     for (std::size_t i = 0; i < instance_num_; ++i) {
-      dict dict_config_split =
-          dict_config ? std::make_shared<std::unordered_map<std::string, any>>(*dict_config)
-                      : std::make_shared<std::unordered_map<std::string, any>>();
-
       (*dict_config_split)["_batched_queue"] = grp_queues_[thread_index2instance_grp[i]].get();
 
       auto new_config = config;
@@ -124,7 +123,6 @@ bool MultipleInstances::init(const std::unordered_map<std::string, std::string>&
       // batched_queue_ = grp_queues_[activate_grp_index].get();
     }
   } else {
-    std::string borrow_from = params_->at("borrow_from");
     {
       std::lock_guard<std::mutex> alock(lock_);
       TRACE_EXCEPTION(active_backends_ = shared_instances_.at(borrow_from + "." +

@@ -12,7 +12,7 @@ next = "cpu_decoder"
 instance_num =6
 
 [cpu_decoder]
-backend = "Sequential[DecodeMat,ResizeMat,cvtColorMat,Mat2Tensor,Torch]" 
+backend = "Torch[Sequential[DecodeMat,ResizeMat,cvtColorMat,Mat2Tensor]]" 
 filter = "or" 
 resize_h = 224 
 resize_w = 224 

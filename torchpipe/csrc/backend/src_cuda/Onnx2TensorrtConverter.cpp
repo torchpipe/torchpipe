@@ -89,8 +89,9 @@ bool Onnx2TensorrtConverter::init(const std::unordered_map<std::string, std::str
     bool error_shape = false;
     if (maxs_[profile_index].size() != mins_[profile_index].size()) {
       SPDLOG_ERROR(
-          "number of inputs not match: maxs_[profile_index].size() !=  "
-          "mins_[profile_index].size()");
+          "number of inputs not match: maxs_[profile_index].size()({}) !=  "
+          "mins_[profile_index].size()({})",
+          maxs_[profile_index].size(), mins_[profile_index].size());
       return false;
     }
     for (std::size_t j = 0; j < maxs_[profile_index].size() && j < mins_[profile_index].size();

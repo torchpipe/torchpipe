@@ -89,6 +89,8 @@ class TensorrtTensor : public Backend {
   unique_ptr_destroy<nvinfer1::IExecutionContext> context_ = nullptr;  // 资源所有权
   std::vector<std::vector<int>> mins_;
   std::vector<std::vector<int>> maxs_;
+  int max_{1};
+  int min_{1};
 
   std::vector<at::Tensor> inputs_;
   std::vector<at::Tensor> outputs_;

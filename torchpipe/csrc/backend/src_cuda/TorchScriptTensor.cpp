@@ -24,6 +24,8 @@
 #include "MultipleConcatPreprocess.hpp"
 #include "ipipe_common.hpp"
 #include "file_utils.hpp"
+#include "exception.hpp"
+
 #include <sstream>
 namespace ipipe {
 
@@ -32,7 +34,8 @@ bool TorchScriptTensor::init(const std::unordered_map<std::string, std::string>&
   params_ = std::unique_ptr<Params>(new Params({{"max", "1"}}, {"model"}, {}, {}));
   if (!params_->init(config_param)) return false;
   auto model_path = params_->at("model");
-  max_ = std::stoi(params_->at("max"));
+  TRACE_EXCEPTION(max_ = std::stoi(params_->at("max")));
+  // IPIPE_ASSERT(max_ == 1);
   if (!os_path_exists(model_path)) {
     SPDLOG_ERROR("{} not exists", model_path);
     return false;

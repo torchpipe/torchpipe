@@ -364,7 +364,10 @@ at::Tensor tensor_permute(at::Tensor input, const std::vector<int>& min_shape,
     input = input.unsqueeze(0);
   } else if (input.sizes().size() == max_shape.size()) {
     if (input.sizes()[0] > max_shape[0]) {
-      throw std::runtime_error("data's batchsize should be smaller than max batch size");
+      std::stringstream ss;
+      ss << "data's batchsize(" << input.sizes()[0] << ") should be smaller than max batch size("
+         << max_shape[0] << ")";
+      throw std::runtime_error(ss.str());
     }
   } else {
     throw std::runtime_error("input data's dim not match model's. input = " +

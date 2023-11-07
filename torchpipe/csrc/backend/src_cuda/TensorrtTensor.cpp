@@ -56,7 +56,8 @@ bool TensorrtTensor::init(const std::unordered_map<std::string, std::string>& co
                                                 {"_independent_thread_index", "0"},
                                                 {"TensorrtTensor::backend", ""},
                                                 {"save_engine", ""},
-                                                {"instance_num", "1"}},
+                                                {"instance_num", "1"},
+                                                {"force_range", ""}},
                                                {}, {}, {}));
 
 #if NV_TENSORRT_MAJOR < 7
@@ -88,7 +89,7 @@ bool TensorrtTensor::init(const std::unordered_map<std::string, std::string>& co
     }
   }
 
-  backend_.reset();//release memory
+  backend_.reset();  // release memory
   assert(config.count("_engine") != 0);
 
   engine_ = any_cast<std::shared_ptr<CudaEngineWithRuntime>>(config.at("_engine"));
@@ -175,6 +176,18 @@ bool TensorrtTensor::init(const std::unordered_map<std::string, std::string>& co
     SPDLOG_ERROR("maxs_.empty() || maxs_[0].empty() || mins_.empty() || mins_[0].empty()");
     return false;
   }
+
+  std::vector<int> force_range;
+  TRACE_EXCEPTION(force_range = str2int(params_->at("force_range"), ','));
+  IPIPE_ASSERT(force_range.empty() || force_range.size() == 2);
+  if (force_range.size() == 2) {
+    max_ = force_range[1];
+    min_ = force_range[0];
+  } else {
+    max_ = maxs_[0][0];
+    min_ = mins_[0][0];
+  }
+  IPIPE_ASSERT(min_ >= 1 && max_ >= min_);
 
   return true;
 }
