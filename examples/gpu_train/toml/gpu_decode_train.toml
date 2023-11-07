@@ -3,7 +3,7 @@ batching_timeout = 1
 instance_num =1
 
 [jpg_decoder]
-backend = "SyncTensor[ Sequential[DecodeTensor,ResizeTensor,cvtColorTensor] ]" 
+backend = "Torch[ Sequential[DecodeTensor,ResizeTensor,cvtColorTensor] ]" 
 resize_h = 232
 resize_w = 232 
 color = "rgb"
@@ -11,7 +11,7 @@ next = "cpu_decoder"
 instance_num =6
 
 [cpu_decoder]
-backend = "Sequential[DecodeMat,ResizeMat,cvtColorMat,Mat2Tensor,SyncTensor]" 
+backend = "Sequential[DecodeMat,ResizeMat,cvtColorMat,Mat2Tensor,Torch]" 
 filter = "or" 
 resize_h = 232 
 resize_w = 232 

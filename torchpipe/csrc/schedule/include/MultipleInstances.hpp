@@ -19,6 +19,7 @@
 #include <memory>
 #include <numeric>
 #include <string>
+#include <unordered_map>
 
 #include <vector>
 #include "time_utils.hpp"
@@ -60,7 +61,8 @@ class MultipleInstances : public Backend {
       auto input_true = split_inputs(inputs, index);
       assert(!input_true.empty());
 
-      batched_queue_.PushIfEmpty(input_true);
+      active_backends_[index]->forward(input_true);
+      // batched_queue_.PushIfEmpty(input_true);
     }
   }
 
@@ -72,7 +74,7 @@ class MultipleInstances : public Backend {
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
   // 先销毁消费线程， 确保销毁顺序
-  ~MultipleInstances() { backends_.clear(); }
+  ~MultipleInstances() { all_backends_.clear(); }
 #endif
  private:
   // from
@@ -89,7 +91,7 @@ class MultipleInstances : public Backend {
   }
   int get_best_match(std::size_t size_of_input) {
     for (auto item : sorted_max_) {
-      if (size_of_input >= backends_[item]->min()) {
+      if (size_of_input >= active_backends_[item]->min()) {
         return item;
       }
     }
@@ -100,28 +102,43 @@ class MultipleInstances : public Backend {
     assert(!inputs.empty());
     index = get_best_match(inputs.size());
     assert(index >= 0);
-    assert(inputs.size() >= backends_[index]->min());
+    assert(inputs.size() >= active_backends_[index]->min());
 
-    if (inputs.size() <= backends_[index]->max()) {
+    if (inputs.size() <= active_backends_[index]->max()) {
       std::vector<dict> out;
       std::swap(out, inputs);
       return out;
     } else {
-      std::vector<dict> out(inputs.begin(), inputs.begin() + backends_[index]->max());
-      inputs = std::vector<dict>(inputs.begin() + backends_[index]->max(), inputs.end());
+      std::vector<dict> out(inputs.begin(), inputs.begin() + active_backends_[index]->max());
+      inputs = std::vector<dict>(inputs.begin() + active_backends_[index]->max(), inputs.end());
       return out;
     }
   }
 
  private:
   std::unique_ptr<Params> params_;
-  std::vector<std::unique_ptr<Backend>> backends_;
-  ThreadSafeQueue<std::vector<dict>> batched_queue_;
+  std::vector<Backend*> active_backends_;
+  std::vector<std::unique_ptr<Backend>> all_backends_;
+  // ThreadSafeQueue<std::vector<dict>> batched_queue_;
+  std::vector<std::unique_ptr<ThreadSafeQueue<std::vector<dict>>>> grp_queues_;
+  // ThreadSafeQueue<std::vector<dict>>* batched_queue_{nullptr};
   uint32_t instance_num_;
   std::shared_ptr<StateEvents> state_;
   uint32_t max_{0};
   uint32_t min_{0};
 
   std::vector<std::size_t> sorted_max_;
+
+  std::vector<std::set<int>> instances_grp_;
+
+  std::unordered_map<std::string, std::string> config_;
+
+  // class SharedInstances {
+  //  public:
+  //   ThreadSafeQueue<std::vector<dict>>* queue;
+  //   std::vector<Backend*> backends;
+  // };
+  static std::mutex lock_;
+  static std::unordered_map<std::string, std::vector<Backend*>> shared_instances_;
 };
 }  // namespace ipipe

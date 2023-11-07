@@ -4,7 +4,7 @@ instance_num =1
 precision="fp16"
 
 [jpg_decoder]
-backend = "SyncTensor[ Sequential[DecodeTensor,ResizeTensor,cvtColorTensor] ]" 
+backend = "Torch[ Sequential[DecodeTensor,ResizeTensor,cvtColorTensor] ]" 
 resize_h = 224
 resize_w = 224 
 color = "rgb"
@@ -12,7 +12,7 @@ next = "cpu_decoder"
 instance_num =6
 
 [cpu_decoder]
-backend = "Sequential[DecodeMat,ResizeMat,cvtColorMat,Mat2Tensor,SyncTensor]" 
+backend = "Sequential[DecodeMat,ResizeMat,cvtColorMat,Mat2Tensor,Torch]" 
 filter = "or" 
 resize_h = 224 
 resize_w = 224 
@@ -21,7 +21,7 @@ instance_num =8
 next = "resnet50"
 
 [resnet50]
-backend = "SyncTensor[TensorrtTensor]" # 需要处理背景线程cuda流同步问题可用SyncTensor， SyncTensor确保初始化和前向在同一个线程时，能准确处理cuda流同步时机;注意DynamicTensorrtTensor本身也可以正确处理。
+backend = "Torch[TensorrtTensor]" # 需要处理背景线程cuda流同步问题可用Torch， Torch确保初始化和前向在同一个线程时，能准确处理cuda流同步时机;注意DynamicTensorrtTensor本身也可以正确处理。
 max='4'
 model = "/app/pth/dog-cat/checkpoint_resnet50.onnx" #  [ you need to convert your model to onnx ]
 # mean = "123.675, 116.28, 103.53" # 255*"0.485, 0.456, 0.406"

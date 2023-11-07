@@ -15,6 +15,12 @@
 
 import torch
 
+import torch._C
+# 检查库的版本号
+assert(torch._C)
+if torch.cuda.is_available():
+    assert(torch.zeros((1)).cuda().is_cuda)
+
 import logging
 
 import os

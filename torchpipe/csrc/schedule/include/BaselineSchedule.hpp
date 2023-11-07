@@ -59,7 +59,7 @@ class BaselineSchedule : public Backend {
       if (max_batch_size_ == UINT32_MAX) {
         SPDLOG_WARN(node_name_ + ": max() == UINT32_MAX");
       }
-      if (max_batch_size_ != 1) {
+      if (max_batch_size_ != 1 || batching_timeout_ == 0) {
         bThreadInited_.store(true);
         thread_ = std::thread(&BaselineSchedule::run, this);
       }
@@ -107,7 +107,7 @@ class BaselineSchedule : public Backend {
       // 注意：资源所有权问题， 从此刻起 对 raw_input 没有读写权限，
       // 除非event通知
 
-      if (max_batch_size_ == 1) {
+      if (!bThreadInited_.load()) {
         for (auto raw_input : raw_inputs) {
           backend_->forward({raw_input});  // 异步调用
         }
