@@ -166,7 +166,7 @@ def main_worker(gpus, args):
     train_dataset = datasets.ImageFolder(traindir, loader=cv2_loader)
     train_loader = torch.utils.data.DataLoader(
         train_dataset, batch_size=args.batch_size, shuffle=True,
-        num_workers=args.workers, pin_memory=True)
+        num_workers=args.workers)
     print(train_dataset.class_to_idx)
 
     # step 3: 设置 gpu augment , 这里不需要resize操作，resize在torchpipe的toml里面设置了，
@@ -209,7 +209,7 @@ def main_worker(gpus, args):
     val_loader = torch.utils.data.DataLoader(
         datasets.ImageFolder(valdir, loader=cv2_loader),
         batch_size=args.batch_size, shuffle=False,
-        num_workers=args.workers, pin_memory=True)
+        num_workers=args.workers)
 
     val_transform_gpu = transforms.Compose([
         TensorToTensor(),

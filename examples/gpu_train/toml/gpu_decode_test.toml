@@ -9,7 +9,7 @@ resize_h = 224
 resize_w = 224 
 color = "rgb"
 next = "cpu_decoder"
-instance_num =6
+instance_num =3
 
 [cpu_decoder]
 backend = "Torch[Sequential[DecodeMat,ResizeMat,cvtColorMat,Mat2Tensor]]" 
@@ -17,7 +17,7 @@ filter = "or"
 resize_h = 224 
 resize_w = 224 
 color = "rgb"
-instance_num =8 
+instance_num =4 
 next = "resnet50"
 
 [resnet50]
