@@ -212,8 +212,10 @@ void TensorrtTensor::parse_context(dict dict_config, int _independent_thread_ind
     // config.erase("_engine_raw");
   }
 
-  context_ =
-      unique_ptr_destroy<nvinfer1::IExecutionContext>(engine_->engine->createExecutionContext());
+  context_ = unique_ptr_destroy<nvinfer1::IExecutionContext>(
+      engine_->engine->createExecutionContextWithoutDeviceMemory());
+  auto mem = torch_allocate(engine_->engine->getDeviceMemorySize());
+  context_->setDeviceMemory(mem.data_ptr());
   context_->setOptimizationProfile(profile_index_);
 
   // const int n_profiles = engine_->engine->getNbOptimizationProfiles();
@@ -506,6 +508,9 @@ void TensorrtTensor::forward(const std::vector<dict>& raw_inputs) {
     }
   }
 
+  auto mem = torch_allocate(engine_->engine->getDeviceMemorySize());
+  context_->setDeviceMemory(mem.data_ptr());
+
   { context_->enqueueV2(&binding_[0], c10::cuda::getCurrentCUDAStream(), nullptr); }
 
   auto outputs_sorted = std::vector<at::Tensor>(outputs_.size());
@@ -514,7 +519,11 @@ void TensorrtTensor::forward(const std::vector<dict>& raw_inputs) {
   }
   outputs_.swap(outputs_sorted);
 
-  { postprocessor_->forward(outputs_, raw_inputs, inputs_); }
+  postprocessor_->forward(outputs_, raw_inputs, inputs_);
+
+  at::cuda::getCurrentCUDAStream().synchronize();  // for Reclaim GPU Memory of mem outputs_
+  outputs_.clear();
+  inputs_.clear();
 }
 
 IPIPE_REGISTER(Backend, TensorrtTensor, "TensorrtTensor");

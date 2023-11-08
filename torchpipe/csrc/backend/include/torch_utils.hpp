@@ -77,4 +77,15 @@ void save(std::string name, at::Tensor input);
 
 at::Tensor load_tensor(std::string name);
 
+static inline at::Tensor torch_allocate(int64_t size) {
+  // auto options = at::TensorOptions()
+  //                    .device(at::kCUDA, -1)
+  //                    .dtype(at::kByte)
+  //                    .layout(at::kStrided)
+  //                    .requires_grad(false);
+  // return at::empty({size}, options, at::MemoryFormat::Contiguous);
+
+  return at::empty({size}, at::dtype(at::kByte).device(at::kCUDA), at::MemoryFormat::Contiguous);
+}
+
 }  // namespace ipipe

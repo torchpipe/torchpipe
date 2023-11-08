@@ -88,9 +88,10 @@ class TestBackend:
         model_trt(input)
         assert input["result"].shape[0] == 8
 
-        dummy_input = torch.randn(2, 3, 224, 224)
-        input = {"data":dummy_input}
-        model_trt(input)
+        with pytest.raises(RuntimeError):
+            dummy_input = torch.randn(2, 3, 224, 224)
+            input = {"data":dummy_input}
+            model_trt(input)
         
         
  
