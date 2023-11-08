@@ -181,6 +181,7 @@ bool TensorrtTensor::init(const std::unordered_map<std::string, std::string>& co
   TRACE_EXCEPTION(force_ranges = str2int(params_->at("force_range"), ',', ';'));
   max_ = maxs_[0][0];
   min_ = mins_[0][0];
+
   if (!force_ranges.empty()) {
     while (force_ranges.size() < instance_num) {
       force_ranges.push_back(force_ranges.back());
@@ -191,6 +192,8 @@ bool TensorrtTensor::init(const std::unordered_map<std::string, std::string>& co
     IPIPE_ASSERT(force_range.size() == 2);
     max_ = force_range[1];
     min_ = force_range[0];
+    SPDLOG_DEBUG("force_range: thread_index={} min = {}, max= {}", independent_thread_index_, min_,
+                 max_);
   }
   IPIPE_ASSERT(min_ >= 1 && max_ >= min_);
 

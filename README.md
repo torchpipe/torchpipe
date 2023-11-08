@@ -21,7 +21,7 @@ Torchpipe is a multi-instance pipeline parallel library that acts as a bridge be
 
 
 
-Production-Grade：Within NetEase about billions of calls supported by Torchpipe everyday.
+Production-Grade：Within NetEase over billions of calls supported by Torchpipe everyday.
 
 
 

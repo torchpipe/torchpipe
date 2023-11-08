@@ -30,7 +30,7 @@ torchpipe是 介于底层加速库（如tensorrt，opencv，ppl.cv）以及 RPC�
 Torchpipe is a multi-instance pipeline parallel library that acts as a bridge between lower-level acceleration libraries (such as TensorRT, OpenCV, ppl.cv) and RPC frameworks (like Thrift, gRPC), ensuring a strict decoupling from them. It offers a thread-safe function interface for the PyTorch frontend at a higher level, while empowering users with fine-grained backend extension capabilities at a lower level.
 
 
-生产级别：在网易智企内部，每天有海量调用由Torchpipe支持。
+生产级别：在网易智企内部，每天有海量调用由Torchpipe提供支持。
 
 
 <!-- ## 注意事项 

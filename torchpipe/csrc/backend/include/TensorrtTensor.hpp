@@ -65,13 +65,13 @@ class TensorrtTensor : public Backend {
    * @brief 此实例中模型的最大batch
    *
    */
-  virtual uint32_t max() const { return maxs_[0][0]; }
+  virtual uint32_t max() const { return max_; }
   /**
    * @brief 此实例中模型的最大小batch
    *
    */
   virtual uint32_t min() const {
-    return mins_[0][0];
+    return min_;
     ;
   };
   ~TensorrtTensor() {
