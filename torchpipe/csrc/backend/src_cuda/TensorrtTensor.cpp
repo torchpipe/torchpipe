@@ -40,6 +40,7 @@
 #include "MultipleConcatPreprocess.hpp"
 // https://github.com/NVIDIA/Torch-TensorRT/blob/3a98a8b198a071e622c43283caea7416fe8a8a1a/core/runtime/register_trt_op.cpp
 
+// #define USE_OUT_MEM
 namespace ipipe {
 
 bool TensorrtTensor::init(const std::unordered_map<std::string, std::string>& config_param,
@@ -212,11 +213,16 @@ void TensorrtTensor::parse_context(dict dict_config, int _independent_thread_ind
     // config.erase("_engine_raw");
   }
 
+#ifdef USE_OUT_MEM
   context_ = unique_ptr_destroy<nvinfer1::IExecutionContext>(
       engine_->engine->createExecutionContextWithoutDeviceMemory());
   auto mem = torch_allocate(engine_->engine->getDeviceMemorySize());
   context_->setDeviceMemory(mem.data_ptr());
+#else
+  context_ =
+      unique_ptr_destroy<nvinfer1::IExecutionContext>(engine_->engine->createExecutionContext());
   context_->setOptimizationProfile(profile_index_);
+#endif
 
   // const int n_profiles = engine_->engine->getNbOptimizationProfiles();
   const int n_inputsOutputs = engine_->engine->getNbBindings() / n_profiles;
@@ -507,9 +513,10 @@ void TensorrtTensor::forward(const std::vector<dict>& raw_inputs) {
       binding_.push_back(outputs_.back().data_ptr());
     }
   }
-
+#ifdef USE_OUT_MEM
   auto mem = torch_allocate(engine_->engine->getDeviceMemorySize());
   context_->setDeviceMemory(mem.data_ptr());
+#endif
 
   { context_->enqueueV2(&binding_[0], c10::cuda::getCurrentCUDAStream(), nullptr); }
 
