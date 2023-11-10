@@ -2,5 +2,6 @@
 
 # Experimental
 ```
-python resnet50.py
+pip install pynvml matplotlib
+CUDA_VISIBLES_DEVICES=1 python resnet50.py
 ```

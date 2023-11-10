@@ -40,7 +40,9 @@ def draw(keys, result):
 
     for i in range(len(keys)):
         ax[i].bar(num_clients, datas[i],color=color[i])
+        
         ax[i].legend([keys[i]])
+    ax[len(keys)-1].set_xlabel('Number of Clients')
 
     plt.savefig('resnet.svg')
     # plt.savefig('resnet.png')
@@ -81,7 +83,7 @@ if __name__ == "__main__":
     from torchpipe.utils.test import test_from_raw_file
 
     results = {}
-    for i in range(0,16):
+    for i in range(1,16):
         result = test_from_raw_file(run, os.path.join("../..", "test/assets/encode_jpeg/"),num_clients=i+1, batch_size=1,total_number=10000)
         results[i]=result
 
