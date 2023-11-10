@@ -2,9 +2,9 @@
 
 ## v0.3.3 Beta 3 (WIP)
 
-- Add force_range for TensorrtTensor, borrow_from, active_instances_grp for Schedule
+- Add force_range for TensorrtTensor, borrow_from, active_instances_grp for BaselineSchedule
 - fix TorchScriptTensor for batching input; docs for training-tool
-
+- test_tools: Add output of median GPU usage rate
 
 
 ## v0.3.3 Beta 2 (2023.11.05)

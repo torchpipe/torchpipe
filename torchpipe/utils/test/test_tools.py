@@ -57,6 +57,7 @@ version = "20230817"
 # update 2023-06-02  对齐文档中的新的API，兼容广义场景（API仍处于测试阶段）;                        
 # update 2023-07-25  更改主要API为test_from_raw_file;                        
 # update 2023-08-17  增加测试结果的返回;                        
+# update 2023-11-09  增加gpu使用率中位数输出;                        
 
 # ##########################################################################################################################
 # 评价服务性的最佳指标是
@@ -220,30 +221,37 @@ class GpuInfo(object):
 
         gpuDeviceCount = pynvml.nvmlDeviceGetCount()  # 获取Nvidia GPU块数
         i = -1
-        while self.need_record_index < 0:
-            i += 1
-            i %= gpuDeviceCount
-            handle = pynvml.nvmlDeviceGetHandleByIndex(
-                i
-            )  # 获取GPU i的handle，后续通过handle来处理
-            # info = pynvml.nvmlDeviceGetMemoryInfo(handle)#通过handle获取GPU i的信息
-            ## gpu_memory_total = info.total #GPU i的总显存
-            # gpu_memory_used = info.used / NUM_EXPAND #转为MB单位
-            # all_gpu_used.append(gpu_memory_used) #添加进list
 
-            ###还可以直接针对pid的gpu消耗进行统计
-            info_list = pynvml.nvmlDeviceGetComputeRunningProcesses(
-                handle
-            )  # 获取所有GPU上正在运行的进程信息
-            info_list_len = len(info_list)
-            gpu_memory_used = 0
-            if info_list_len > 0:  # 0表示没有正在运行的进程
-                for info_i in info_list:
-                    print(info_i.pid, pid)
-                    if info_i.pid == pid:  # 如果与需要记录的pid一致
-                        # gpu_memory_used += info_i.usedGpuMemory / NUM_EXPAND #统计某pid使用的总显存
-                        self.need_record_index = info_i
-                        break
+        self.need_record_index = int(os.environ.get("CUDA_VISIBLE_DEVICES", "0"))
+        # while self.need_record_index < 0:
+        #     i += 1
+        #     if i >= gpuDeviceCount:
+        #         assert(False, "node gpu not found")
+        #         break
+        #     print(i, gpuDeviceCount, type(torch.cuda.current_device()))
+        #     handle = pynvml.nvmlDeviceGetHandleByIndex(
+        #         i
+        #     )  # 获取GPU i的handle，后续通过handle来处理
+        #     # info = pynvml.nvmlDeviceGetMemoryInfo(handle)#通过handle获取GPU i的信息
+        #     ## gpu_memory_total = info.total #GPU i的总显存
+        #     # gpu_memory_used = info.used / NUM_EXPAND #转为MB单位
+        #     # all_gpu_used.append(gpu_memory_used) #添加进list
+
+        #     ###还可以直接针对pid的gpu消耗进行统计
+        #     info_list = pynvml.nvmlDeviceGetComputeRunningProcesses(
+        #         handle
+        #     )  # 获取所有GPU上正在运行的进程信息
+        #     # print(info_list)
+        #     # import pdb; pdb.set_trace()
+        #     info_list_len = len(info_list)
+        #     gpu_memory_used = 0
+        #     if info_list_len > 0:  # 0表示没有正在运行的进程
+        #         for info_i in info_list:
+        #             # print(info_i.pid, pid)
+        #             if info_i.pid == pid:  # 如果与需要记录的pid一致
+        #                 # gpu_memory_used += info_i.usedGpuMemory / NUM_EXPAND #统计某pid使用的总显存
+        #                 self.need_record_index = info_i
+        #                 break
         self.handle = pynvml.nvmlDeviceGetHandleByIndex(self.need_record_index)
         util = pynvml.nvmlDeviceGetUtilizationRates(self.handle).gpu
 
@@ -281,7 +289,8 @@ class GpuInfo(object):
 
     def __del__(self):
         # 最后要关闭管理工具
-        self.pynvml.nvmlShutdown()
+        pass
+        # self.pynvml.nvmlShutdown()
 
 
 # note 如果待测试函数有返回值，比如cuda上的tensor，有一定概率会copy到cpu并打印出来（初始概率下约打印10次，后续如果打印对象太大，则相应递减概率，但通常对性能影响小于千分之三
@@ -314,7 +323,12 @@ class ResourceThread(threading.Thread):
         self.my_event = my_event
 
         self.gpu = None
-        # self.gpu = GpuInfo(pid)
+
+        try :
+            import pynvml
+            self.gpu = GpuInfo(pid)
+        except Exception as e:
+            print(" pynvml not found, gpu info not available, e=", e)
         # try:
         #     self.gpu = GpuInfo(pid)
         #     self.gpu.get_gpu_device()
@@ -326,16 +340,19 @@ class ResourceThread(threading.Thread):
 
     def run(self):
         import time
-
+        scale = 1
+        index = 0
         while not self.my_event.wait(timeout=2):
+
+            index += 1
             cpu_percent = self.p.cpu_percent()
             mem_percent = self.p.memory_percent()
             if cpu_percent > 0 and mem_percent > 0:
-                # if self.gpu:
-                #     util = self.gpu.get_pid_info()
-                #     self.result_list.append((cpu_percent, mem_percent, util))
-                # else:
-                self.result_list.append((cpu_percent, mem_percent))
+                if self.gpu and (index%scale==0):
+                    util = self.gpu.get_pid_info()
+                    self.result_list.append((cpu_percent, mem_percent, util))
+                else:
+                    self.result_list.append((cpu_percent, mem_percent, None))
 
 
 def test(sample: Union[Sampler, List[Sampler]], total_number=10000):
@@ -398,20 +415,30 @@ def test(sample: Union[Sampler, List[Sampler]], total_number=10000):
     total_time = 1 * (all_time[len(all_time) - 1] - all_time[0])
     resource_thread.join()
 
-    resource_result = np.array(resource_result)
+    # import pdb; pdb.set_trace()
+    gpu_resource_result=[]
     try:
-        cpu_ = int(10 * np.median(resource_result[:, 0])) / 10
+        gpu_resource_result = [x for x in list(zip(*resource_result))[2] if x is not None]
+    except:
+        pass
+    
+    cpu_resource_result = list(zip(*resource_result))
+    
+    resource_result = np.array(cpu_resource_result)[:2,:].astype(np.float32)
+    try:
+        cpu_ = int(10 * np.median(resource_result[0,:])) / 10
         if cpu_ < 0.8 * 100:
             cpu_ = 0
     except:
         cpu_ = 0
 
     try:
-        gpu_ = int(10 * np.median(resource_result[:, 2])) / 10
-        if gpu_ < 0.5 * 100:
+        gpu_ = int(10 * np.median(gpu_resource_result)) / 10
+        if gpu_ < 5:
             gpu_ = "-"
-    except:
+    except Exception as e:
         gpu_ = "-"
+        print("gpu_ error", e)
 
     print("resource every 2s:")
     print(resource_result)
@@ -453,7 +480,10 @@ def test(sample: Union[Sampler, List[Sampler]], total_number=10000):
     print(
         f"                 avg:  {mean}   -50,-40,-20,-10,-1: {tp_5},{tp_4},{tp_3},{tp_2},{tp_1} ms"
     )
-    print(f"cpu::            usage: {cpu_}%")
+    if cpu_ != "-":
+        print(f"cpu::            usage: {cpu_}%")
+    if gpu_ != "-":
+        print(f"gpu::            usage: {gpu_}%")
     print(
         "-------------------------------------------------------------------\n",
         flush=True,
@@ -466,30 +496,31 @@ def test(sample: Union[Sampler, List[Sampler]], total_number=10000):
     # x.set_style(prettytable.MARKDOWN)
     # print(x, flush=True)
     data = []
-    # x.field_names = ["Project",  "Value"]
-    data.append(["tool's version", version])
-    data.append(["num_clients", num_clients])
-    data.append(["total_number", total_number])
+    if False:
+        # x.field_names = ["Project",  "Value"]
+        data.append(["tool's version", version])
+        data.append(["num_clients", num_clients])
+        data.append(["total_number", total_number])
 
-    data.append(["throughput::qps", qps])
-    data.append(["throughput::avg", f"{avg}"])
-    data.append(["latency::TP50", f"{tp50}"])
-    data.append(["latency::TP90", f"{tp90}"])
-    data.append(["latency::TP99", f"{tp99}"])
-    data.append(["latency::avg", mean])
-    data.append(["-50,-40,-20,-10,-1", f"{tp_5},{tp_4},{tp_3},{tp_2},{tp_1}"])
-    try:
-        from prettytable import PrettyTable
-        import prettytable
+        data.append(["throughput::qps", qps])
+        data.append(["throughput::avg", f"{avg}"])
+        data.append(["latency::TP50", f"{tp50}"])
+        data.append(["latency::TP90", f"{tp90}"])
+        data.append(["latency::TP99", f"{tp99}"])
+        data.append(["latency::avg", mean])
+        data.append(["-50,-40,-20,-10,-1", f"{tp_5},{tp_4},{tp_3},{tp_2},{tp_1}"])
+        try:
+            from prettytable import PrettyTable
+            import prettytable
 
-        x = PrettyTable()
-        x.field_names = ["Project", "Value"]
-        for item in data:
-            x.add_row(item)
-        x.set_style(prettytable.MARKDOWN)
-        print("markdown style:\n\n", x, flush=True)
-    except:
-        print("if you need markdown style result, run: pip install PrettyTable")
+            x = PrettyTable()
+            x.field_names = ["Project", "Value"]
+            for item in data:
+                x.add_row(item)
+            x.set_style(prettytable.MARKDOWN)
+            print("markdown style:\n\n", x, flush=True)
+        except:
+            print("if you need markdown style result, run: pip install PrettyTable")
     result = {}
     result["tool's version"] = version
     result["num_clients"] = num_clients
@@ -507,6 +538,7 @@ def test(sample: Union[Sampler, List[Sampler]], total_number=10000):
     result["-10"] = tp_2
     result["-1"] = tp_1
     result["cpu_usage"] = cpu_
+    result["gpu_usage"] = gpu_
     return result
 
 

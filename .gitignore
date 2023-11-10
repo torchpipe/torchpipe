@@ -155,3 +155,12 @@ LLAMA/
 7B/
 pyllama_data/
 *.log
+
+**/Experimental/*.trt
+**/Experimental/*.onnx
+**/Experimental/*.png
+**/Experimental/*.jpg
+**/Experimental/*.svg
+
+
+resnet50.onnx
