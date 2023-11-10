@@ -161,6 +161,7 @@ pyllama_data/
 **/Experimental/*.png
 **/Experimental/*.jpg
 **/Experimental/*.svg
-
+**/Experimental/*.pdf
 
 resnet50.onnx
+

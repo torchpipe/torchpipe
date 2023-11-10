@@ -36,8 +36,11 @@ def draw(keys, result):
 
     num_clients = [x+1 for x in result.keys()]
 
-    fig,ax=plt.subplots(len(keys),1,figsize=(10,8))
+    from matplotlib.backends.backend_pdf import PdfPages
+    pp = PdfPages('resnet.pdf')
 
+    fig,ax=plt.subplots(len(keys),1,figsize=(10,8))
+    
     for i in range(len(keys)):
         ax[i].bar(num_clients, datas[i],color=color[i])
         
@@ -45,10 +48,13 @@ def draw(keys, result):
     ax[len(keys)-1].set_xlabel('Number of Clients')
 
     plt.savefig('resnet.svg')
+    pp.savefig(plt.gcf())
+
     # plt.savefig('resnet.png')
 
     #%%
     plt.show()
+    pp.close()
  
 if __name__ == "__main__":
 
@@ -83,7 +89,9 @@ if __name__ == "__main__":
     from torchpipe.utils.test import test_from_raw_file
 
     results = {}
-    for i in range(1,16):
+    for i in range(0,16):
+        if i%2 == 1:
+            continue
         result = test_from_raw_file(run, os.path.join("../..", "test/assets/encode_jpeg/"),num_clients=i+1, batch_size=1,total_number=10000)
         results[i]=result
 
