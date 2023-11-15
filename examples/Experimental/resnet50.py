@@ -23,28 +23,31 @@ def export_onnx(onnx_save_path):
     tp.utils.models.onnx_export(resnet50, onnx_save_path, x)
     
 
-def draw(keys, result):
+def draw(show_keys, result):
     color = ["red", "green", "yellow", "blue", "black", "pink", "gray", "orange", "purple"]
     import matplotlib.pyplot as plt 
 
     datas = []
+    keys = show_keys.keys()
     for key in keys:
         data = []
         for k,v in result.items():
             data.append(float(v[key]))
         datas.append(data)
 
-    num_clients = [x+1 for x in result.keys()]
+    num_clients = [x for x in result.keys()]
 
     from matplotlib.backends.backend_pdf import PdfPages
     pp = PdfPages('resnet.pdf')
 
+    plt.rcParams.update({'font.size': 20})
     fig,ax=plt.subplots(len(keys),1,figsize=(10,8))
     
     for i in range(len(keys)):
         ax[i].bar(num_clients, datas[i],color=color[i])
+        ax[i].set_xticks(num_clients)
         
-        ax[i].legend([keys[i]])
+        ax[i].legend([show_keys[keys[i]]])
     ax[len(keys)-1].set_xlabel('Number of Clients')
 
     plt.savefig('resnet.svg')
@@ -55,6 +58,8 @@ def draw(keys, result):
     #%%
     plt.show()
     pp.close()
+
+    print("done. Saved to resnet.pdf and resnet.svg")
  
 if __name__ == "__main__":
 
@@ -89,15 +94,18 @@ if __name__ == "__main__":
     from torchpipe.utils.test import test_from_raw_file
 
     results = {}
-    for i in range(0,16):
-        if i%2 == 1:
+    for i in range(1,17):
+        num_clients = i
+        if num_clients%2 == 1:
             continue
-        result = test_from_raw_file(run, os.path.join("../..", "test/assets/encode_jpeg/"),num_clients=i+1, batch_size=1,total_number=10000)
-        results[i]=result
+        result = test_from_raw_file(run, os.path.join("../..", "test/assets/encode_jpeg/"),num_clients=num_clients, batch_size=1,total_number=10000)
+        results[num_clients]=result
 
     print(results)
 
-    keys= ["throughput::qps", "latency::TP50", "gpu_usage", ]
+    show_keys= {"throughput::qps":"QPS", 
+               "latency::TP50":"TP50",
+               "gpu_usage":"GPU Usage",}
 
 
-    draw(keys, results)
+    draw(show_keys, results)

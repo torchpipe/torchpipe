@@ -144,7 +144,7 @@ class IPIPE_LOCAL EncryptHelper {
     return result;
   }
   uint32_t get_ipipe_tag() {
-    return 54320000 + sizeof(PaddingHead) + array_sum(get_ipipe_key()) + ipipe_version_sum();
+    return 54320000 + sizeof(PaddingHead) + array_sum(get_ipipe_key());  // + ipipe_version_sum();
   }
 };
 }  // namespace
