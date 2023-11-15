@@ -424,13 +424,13 @@ def test(sample: Union[Sampler, List[Sampler]], total_number=10000):
     
     cpu_resource_result = list(zip(*resource_result))
     
-    resource_result = np.array(cpu_resource_result)[:2,:].astype(np.float32)
     try:
+        resource_result = np.array(cpu_resource_result)[:2,:].astype(np.float32)
         cpu_ = int(10 * np.median(resource_result[0,:])) / 10
         if cpu_ < 0.8 * 100:
             cpu_ = 0
     except:
-        cpu_ = 0
+        cpu_ = "-"
 
     try:
         gpu_ = int(10 * np.median(gpu_resource_result)) / 10

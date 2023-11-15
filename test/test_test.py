@@ -106,4 +106,4 @@ if __name__ == "__main__":
     # test_test_random(dir = "assets/norm_jpg/")
 
     # test_all_files(file_dir = "../examples/ocr_poly_v2/test_img/", num_clients=10)
-    test_test_function()
+    test_test_from_raw_file()
