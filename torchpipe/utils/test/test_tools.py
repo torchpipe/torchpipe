@@ -222,7 +222,11 @@ class GpuInfo(object):
         gpuDeviceCount = pynvml.nvmlDeviceGetCount()  # 获取Nvidia GPU块数
         i = -1
 
-        self.need_record_index = int(os.environ.get("CUDA_VISIBLE_DEVICES", "0"))
+        CUDA_VISIBLE_DEVICES = os.environ.get("CUDA_VISIBLE_DEVICES", "0").split(",")
+        if len(CUDA_VISIBLE_DEVICES) == 1:
+            self.need_record_index = int(CUDA_VISIBLE_DEVICES[0])
+        else:
+            raise RuntimeError("CUDA_VISIBLE_DEVICES: only support single gpu")
         # while self.need_record_index < 0:
         #     i += 1
         #     if i >= gpuDeviceCount:
@@ -328,7 +332,8 @@ class ResourceThread(threading.Thread):
             import pynvml
             self.gpu = GpuInfo(pid)
         except Exception as e:
-            print(" pynvml not found, gpu info not available, e=", e)
+            print("gpu info not available: ", e)
+            self.gpu = None
         # try:
         #     self.gpu = GpuInfo(pid)
         #     self.gpu.get_gpu_device()
@@ -433,9 +438,11 @@ def test(sample: Union[Sampler, List[Sampler]], total_number=10000):
         cpu_ = "-"
 
     try:
-        gpu_ = int(10 * np.median(gpu_resource_result)) / 10
-        if gpu_ < 5:
-            gpu_ = "-"
+        gpu_ = "-"
+        if gpu_resource_result:
+            gpu_ = int(10 * np.median(gpu_resource_result)) / 10
+            if gpu_ < 5:
+                gpu_ = "-"
     except Exception as e:
         gpu_ = "-"
         print("gpu_ error", e)

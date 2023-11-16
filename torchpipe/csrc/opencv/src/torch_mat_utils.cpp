@@ -89,9 +89,11 @@ at::Tensor cvMat2TorchGPU(cv::Mat da) {
   if (!da.isContinuous()) {
     da = da.clone();
   }
+  const auto elesize = da.elemSize1();
+  IPIPE_ASSERT(elesize == 1 || elesize == 4);
 
   auto image_tensor = at::from_blob(da.data, {da.rows, da.cols, da.channels()},
-                                    da.elemSize1() == 1 ? at::kByte : at::kFloat);
+                                    elesize == 1 ? at::kByte : at::kFloat);
   image_tensor = image_tensor.cuda().permute({2, 0, 1}).unsqueeze(0);
 
   return image_tensor;

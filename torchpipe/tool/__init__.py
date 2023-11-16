@@ -17,6 +17,7 @@ __all__ = [
     "encrypt",
     "test_tools",
     "onnx_tools",
+    "cpp_tools",
     "gpu_train_tools",
 ]
 
