@@ -45,7 +45,7 @@ from torchpipe.libipipe import (
     TASK_INFO_KEY,
     TASK_EVENT_KEY,
     TASK_NODE_NAME_KEY,
-    any,
+    # any,
     infer_shape,
     supported_opset,
 )
@@ -91,7 +91,7 @@ __all__ = [
     "TASK_NODE_NAME_KEY",
     "TASK_EVENT_KEY",
     "encrypt",
-    "any",
+    # "any",
     "infer_shape",
     "supported_opset",
 ]

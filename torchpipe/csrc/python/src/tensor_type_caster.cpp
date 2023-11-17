@@ -17,6 +17,12 @@
 #include "ipipe_utils.hpp"
 #include "any2object.hpp"
 #include "object2any.hpp"
+
+#ifdef PYBIND
+#include <pybind11/pybind11.h>
+#include <pybind11/cast.h>
+#endif
+
 // #include "Backend.hpp"
 
 namespace ipipe {
@@ -66,3 +72,55 @@ dict py2dict(pybind11::dict input) {
 }
 
 }  // namespace ipipe
+
+#ifdef PYBIND
+
+namespace pybind11 {
+namespace detail {
+template <>
+struct type_caster<ipipe::any> {
+ public:
+  PYBIND11_TYPE_CASTER(ipipe::any, _("ipipe::any"));
+
+  // Python -> C++
+  bool load(handle src, bool) {
+    value = ipipe::object2any(src);
+    return true;
+  }
+
+  // C++ -> Python
+  static handle cast(const ipipe::any& src, return_value_policy /* policy */, handle /* parent */) {
+    return ipipe::any2object(src).release();
+  }
+};
+
+template <>
+struct type_caster<ipipe::dict> {
+ public:
+  PYBIND11_TYPE_CASTER(ipipe::dict, _("ipipe::dict"));
+
+  // Python -> C++
+  bool load(handle src, bool) {
+    auto dict = src.cast<py::dict>();
+    auto map = std::make_shared<std::unordered_map<std::string, ipipe::any>>();
+    for (auto item : dict) {
+      (*map)[item.first.cast<std::string>()] = ipipe::object2any(item.second);
+    }
+    value = map;
+    return true;
+  }
+
+  // C++ -> Python
+  static handle cast(const ipipe::dict& src, return_value_policy /* policy */,
+                     handle /* parent */) {
+    py::dict dict;
+    for (const auto& item : *src) {
+      dict[item.first.c_str()] = ipipe::any2object(item.second);
+    }
+    return dict.release();
+  }
+};
+
+}  // namespace detail
+}  // namespace pybind11
+#endif

@@ -214,6 +214,18 @@ bool is_registered(std::string backend) {
   return std::find(all_backens.begin(), all_backens.end(), backend) != all_backens.end();
 }
 
+template <typename T>
+void bind_backend(py::module& m, const char* name) {
+  py::class_<T, Backend, std::shared_ptr<T>>(m, name)
+      .def(py::init<>())
+      .def("init", &T::init, py::arg("config"),
+           py::arg_v("dict_config", py::none(), "optional dictionary config"),
+           py::call_guard<py::gil_scoped_release>())
+      .def("forward", &T::forward, py::arg("input_dicts"), py::call_guard<py::gil_scoped_release>())
+      .def("max", &T::max)
+      .def("min", &T::min);
+}
+
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   m.attr("TASK_RESULT_KEY") = py::cast(TASK_RESULT_KEY);
   m.attr("TASK_DATA_KEY") = py::cast(TASK_DATA_KEY);
@@ -315,7 +327,8 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
                 )docdelimiter",
            py::arg("data"));
 
-  pybind11::class_<ipipe::any, std::shared_ptr<ipipe::any>>(m, "any").def(py::init<>());
+  // bind_backend<MyBackend1>(m, "MyBackend1");
+  // bind_backend<MyBackend2>(m, "MyBackend2");
 
   pybind11::class_<SimpleEvents, std::shared_ptr<SimpleEvents>>(m, "Event")
       .def(py::init<>())
@@ -337,6 +350,7 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
                     Returns:
                         float.
                 )docdelimiter");
+
   init_infer_shape(m);
   supported_opset(m);
 }

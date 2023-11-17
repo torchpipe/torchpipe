@@ -33,7 +33,7 @@ std::unordered_map<std::string, any> get_data_map() {
   data["unsigned int"] = (unsigned int)123;
   data["char"] = char(1);
   data["unsigned char"] = (unsigned char)1;
-  data["any"] = empty_any_struct();
+  // data["any"] = empty_any_struct();
   return data;
 }
 

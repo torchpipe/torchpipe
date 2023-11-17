@@ -164,4 +164,4 @@ pyllama_data/
 **/Experimental/*.pdf
 
 resnet50.onnx
-
+examples/**/*.pkl
