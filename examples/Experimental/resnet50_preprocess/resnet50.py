@@ -83,7 +83,7 @@ if __name__ == "__main__":
     run([(img_path, img)])
 
     from torchpipe.utils.test import test_from_raw_file
-    result = test_from_raw_file(run, os.path.join("../../..", "test/assets/encode_jpeg/"),num_clients=40, batch_size=1,total_number=40000)
+    result = test_from_raw_file(run, os.path.join("../../..", "test/assets/encode_jpeg/"),num_clients=40, batch_size=1,total_number=20000)
 
 
     print("\n", result)

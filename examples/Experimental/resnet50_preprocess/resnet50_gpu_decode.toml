@@ -25,9 +25,9 @@ next = "resnet50"
 
 backend = "SyncTensor[TensorrtTensor]" # 需要处理背景线程cuda流同步问题可用SyncTensor， SyncTensor确保初始化和前向在同一个线程时，能准确处理cuda流同步时机;注意DynamicTensorrtTensor本身也可以正确处理。
 
-max = "8x3x224x224"
+max = "16x3x224x224"
 min = "1x3x224x224"
-instance_num=4
+instance_num=3
 # or max='4'
 model = "./resnet50.onnx" # or resnet50_merge_mean_std_by_onnx.onnx
 
