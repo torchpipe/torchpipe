@@ -34,7 +34,7 @@ output [
   {
     name: "DALI_OUTPUT_0"
     data_type: TYPE_FP32
-    dims: [ 224, 224, 3 ]
+    dims: [ 3,224, 224  ]
   }
 ]
 
@@ -53,6 +53,6 @@ parameters: [
 ]
 
 dynamic_batching {
-  preferred_batch_size: [ 8 ]
+  # preferred_batch_size: [ 16 ]
   max_queue_delay_microseconds: 5
 }

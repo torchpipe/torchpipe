@@ -35,4 +35,5 @@ def pipe():
                                            output_layout="HWC",
                                            mean=[0.485 * 255, 0.456 * 255, 0.406 * 255],
                                            std=[0.229 * 255, 0.224 * 255, 0.225 * 255])
+    images = dali.fn.transpose(images, perm=[2, 0, 1])  # Convert from HWC to CHW
     return images
