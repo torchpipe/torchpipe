@@ -21,7 +21,7 @@
 
 name: "dali"
 backend: "dali"
-max_batch_size: 8
+max_batch_size: 16
 input [
   {
     name: "DALI_INPUT_0"

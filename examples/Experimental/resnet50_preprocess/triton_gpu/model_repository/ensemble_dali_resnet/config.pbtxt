@@ -23,7 +23,7 @@
 
 name: "ensemble_dali_resnet"
 platform: "ensemble"
-max_batch_size: 8
+max_batch_size: 16
 input [
   {
     name: "INPUT"
@@ -54,6 +54,7 @@ ensemble_scheduling {
     },
     {
       model_name: "resnet_trt"
+      model_version: 1
       input_map {
         key: "input"
         value: "preprocessed_image"
