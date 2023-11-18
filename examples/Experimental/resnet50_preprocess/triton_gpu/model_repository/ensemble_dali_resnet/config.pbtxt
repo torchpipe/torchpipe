@@ -43,7 +43,7 @@ ensemble_scheduling {
   step [
     {
       model_name: "dali"
-      model_version: 1
+      model_version: -1
       input_map {
         key: "DALI_INPUT_0"
         value: "INPUT"
@@ -55,7 +55,7 @@ ensemble_scheduling {
     },
     {
       model_name: "resnet_trt"
-      model_version: 1
+      model_version: -1
       input_map {
         key: "input"
         value: "preprocessed_image"
