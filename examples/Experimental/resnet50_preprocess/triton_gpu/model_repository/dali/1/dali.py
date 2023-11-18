@@ -25,7 +25,7 @@ from nvidia.dali.plugin.triton import autoserialize
 
 
 @autoserialize
-@dali.pipeline_def(batch_size=16, num_threads=8, device_id=0)
+@dali.pipeline_def(batch_size=8, num_threads=8, device_id=0)
 def pipe():
     images = dali.fn.external_source(device="cpu", name="DALI_INPUT_0")
     images = dali.fn.decoders.image(images, device="mixed", output_type=types.RGB)

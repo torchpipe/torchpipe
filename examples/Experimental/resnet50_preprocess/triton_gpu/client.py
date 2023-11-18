@@ -5,7 +5,7 @@ import os
 import numpy as np
 
 import tritongrpcclient
-
+MODEL_NAME="ensemble_dali_resnet"
 class TritonInfer:
     def __init__(self):
         
@@ -93,8 +93,14 @@ forwards = [TritonInfer() for i in range(num_clients)]
 forwards[0].run([(img_path, img)])
 
 from torchpipe.utils.test import test_from_raw_file
-result = test_from_raw_file([x.run for x in forwards], os.path.join("../../../..", "test/assets/encode_jpeg/"),num_clients=40, batch_size=1,total_number=20000)
+result = test_from_raw_file([x.run for x in forwards], os.path.join("../../../..", "test/assets/encode_jpeg/"),num_clients=40, batch_size=1,total_number=40000)
 
 
 print("\n", result)
 
+if True:
+    import pickle
+    pkl_path = MODEL_NAME+".pkl"# toml_path.replace(".toml",".pkl")
+    with open(pkl_path,"wb") as f:
+        pickle.dump(result, f)
+    print("save result to ", pkl_path)
