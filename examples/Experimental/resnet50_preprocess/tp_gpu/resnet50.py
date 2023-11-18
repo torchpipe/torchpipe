@@ -1,4 +1,5 @@
 # Copyright 2021-2023 NetEase.
+# Copyright 2021-2023 NetEase.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,7 +25,7 @@ import argparse
 
 parser = argparse.ArgumentParser()
 
-parser.add_argument('--config', dest='config', type=str,  default="./resnet50.toml",
+parser.add_argument('--config', dest='config', type=str,  default="./resnet50_gpu_decode.toml",
                     help='configuration file')
 
 args = parser.parse_args()
@@ -58,7 +59,7 @@ if __name__ == "__main__":
     if not os.path.exists(onnx_save_path):
         export_onnx(onnx_save_path)
 
-    img_path = "../../../test/assets/image/gray.jpg"
+    img_path = "../../../../test/assets/image/gray.jpg"
     img=open(img_path,'rb').read()
 
     toml_path = args.config 
@@ -73,7 +74,7 @@ if __name__ == "__main__":
          
         nodes(input)
 
-        input[TASK_RESULT_KEY].argmax().item()
+       
         max_score, max_class = torch.max(input[TASK_RESULT_KEY], dim=1)
         max_score_float = max_score.item()
         max_class_int = max_class.item()
@@ -83,7 +84,7 @@ if __name__ == "__main__":
     run([(img_path, img)])
 
     from torchpipe.utils.test import test_from_raw_file
-    result = test_from_raw_file(run, os.path.join("../../..", "test/assets/encode_jpeg/"),num_clients=40, batch_size=1,total_number=20000)
+    result = test_from_raw_file(run, os.path.join("../../../..", "test/assets/encode_jpeg/"),num_clients=40, batch_size=1,total_number=20000)
 
 
     print("\n", result)
