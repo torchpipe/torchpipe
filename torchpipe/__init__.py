@@ -46,6 +46,7 @@ from torchpipe.libipipe import (
     TASK_EVENT_KEY,
     TASK_NODE_NAME_KEY,
     # any,
+    register_backend,
     infer_shape,
     supported_opset,
 )

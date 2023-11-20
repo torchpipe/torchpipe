@@ -24,6 +24,8 @@
 namespace py = pybind11;
 
 namespace ipipe {
+void register_py(py::object class_def, const std::string& name);
+
 class Params;
 
 /**
@@ -31,7 +33,7 @@ class Params;
  * 修改自 https://github.com/zurutech/pillow-resize
  * 性能上可能比不上opencv版本。
  */
-class Python : public SingleBackend {
+class Python : public Backend {
  public:
   /**
    * @brief 设置相关参数。
@@ -43,14 +45,15 @@ class Python : public SingleBackend {
    * @todo 支持的通道顺序与CropTensor对齐
    * @param[out] TASK_RESULT_KEY cv::Mat
    */
-  virtual void forward(dict) override;
+  virtual void forward(const std::vector<dict>& input_dicts) override;
+  virtual uint32_t max() const override { return max_; }
 
  private:
   std::unique_ptr<Params> params_;
-
+  uint32_t max_{1};
   py::object py_backend_;
 
   // static py::scoped_interpreter python_;
 };
 
-}  // namespace ipipe
+};  // namespace ipipe

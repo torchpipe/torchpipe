@@ -20,7 +20,7 @@
 #include "BaselineSchedule.hpp"
 #ifdef PYBIND
 #include <pybind11/stl.h>
-
+#include "Python.hpp"
 #endif
 namespace ipipe {
 namespace {
@@ -226,6 +226,10 @@ void bind_backend(py::module& m, const char* name) {
       .def("min", &T::min);
 }
 
+void register_backend(py::object class_def, const std::string& register_name) {
+  register_py(class_def, register_name);
+}
+
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   m.attr("TASK_RESULT_KEY") = py::cast(TASK_RESULT_KEY);
   m.attr("TASK_DATA_KEY") = py::cast(TASK_DATA_KEY);
@@ -239,6 +243,8 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
 
   m.def("list_backends", &list_backends, py::call_guard<py::gil_scoped_release>());
   m.def("is_registered", &is_registered, py::call_guard<py::gil_scoped_release>());
+
+  m.def("register_backend", &register_backend, py::arg("class_def"), py::arg("register_name"));
   /**
    * @brief c++ Interpreter wrapper
    */

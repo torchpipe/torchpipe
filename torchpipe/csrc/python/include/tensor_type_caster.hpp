@@ -60,5 +60,5 @@ namespace ipipe {
 
 dict py2dict(pybind11::dict input);
 
-void dict2py(dict input, pybind11::dict result_dict);
+void dict2py(dict input, pybind11::dict result_dict, bool keep_data = false);
 }  // namespace ipipe

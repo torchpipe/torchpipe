@@ -28,7 +28,6 @@
 namespace ipipe {
 
 void cast_type_v2(const any& data, py::dict result_dict, std::string key) {
-  if (key == TASK_DATA_KEY) return;  // TASK_DATA_KEY 不变
   try {
     result_dict[py::str(key)] = any2object(data);
   } catch (...) {
@@ -38,12 +37,15 @@ void cast_type_v2(const any& data, py::dict result_dict, std::string key) {
   return;
 }
 
-void dict2py(dict input, pybind11::dict result_dict) {
+void dict2py(dict input, pybind11::dict result_dict, bool keep_data) {
   if (result_dict.contains(TASK_RESULT_KEY)) {
     PyDict_DelItemString(result_dict.ptr(), TASK_RESULT_KEY);
   }
 
   for (auto iter = input->begin(); iter != input->end(); ++iter) {
+    if (!keep_data && iter->first == TASK_DATA_KEY) {
+      continue;
+    }
     cast_type_v2(iter->second, result_dict, iter->first);
   }
 
