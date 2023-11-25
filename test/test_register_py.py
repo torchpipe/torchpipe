@@ -36,7 +36,7 @@ class TestBackend:
 
         torchpipe.register_backend(AnyPythonBackend, "py_model_1")
         self.model_trt = torchpipe.pipe(
-            {"backend": "Python[py_model_1]","config":1})
+            {"backend": "Python[py_model_1]","config":1,"any_key_u_want":"uhiojh"})
  
     def test_register_py(self):
         input = {"data":2}

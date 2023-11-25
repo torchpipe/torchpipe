@@ -64,7 +64,7 @@ dict py2dict(pybind11::dict input) {
           "During the process of converting the input[Python dict object] to a C++ object, "
           "unsupported type was discovered."
           " key: " +
-          key + ", value: " + std::string(py::str((item.second))).substr(0, 200);
+          key + ", value: " + std::string(py::str(py::type::of(item.second)));
       // key + ", value: " + std::string(py::str(py::type::of(item.second)));
 
       std::throw_with_nested(std::runtime_error(err_msg));

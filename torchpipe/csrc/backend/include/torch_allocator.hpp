@@ -14,9 +14,22 @@
 
 #pragma once
 
+#include "NvInferRuntimeCommon.h"
+#include <unordered_map>
 #include <ATen/ATen.h>
+#include <mutex>
+namespace ipipe {
+class TorchAllocator : public nvinfer1::IGpuAllocator {
+ public:
+  TorchAllocator() = default;
 
-#include "Backend.hpp"
-#include "dict.hpp"
+  void* allocate(uint64_t size, uint64_t alignment, uint32_t flags) noexcept override;
 
-namespace ipipe {}  // namespace ipipe
+  void free(void* const memory) noexcept override;
+  bool deallocate(void* const memory) noexcept override;
+
+ private:
+  std::unordered_map<void*, at::Tensor> data_;
+  std::mutex mutex_;
+};
+}  // namespace ipipe

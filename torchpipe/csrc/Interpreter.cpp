@@ -133,6 +133,7 @@ void Interpreter::init(mapmap config) {
     backend_ = nullptr;
     throw std::runtime_error("Interpreter init failed");
   }
+  SPDLOG_INFO("Initialization completed.");
 }
 
 uint32_t Interpreter::max() const { return backend_->max(); }
