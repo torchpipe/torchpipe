@@ -172,6 +172,11 @@ std::vector<std::vector<int>> infer_onnx_shape(std::string onnx_path) {
 std::shared_ptr<CudaEngineWithRuntime> loadEngineFromBuffer(const std::string& engine_plan) {
   std::shared_ptr<CudaEngineWithRuntime> en_with_rt =
       std::make_shared<CudaEngineWithRuntime>(nvinfer1::createInferRuntime(gLogger_inplace));
+#ifdef USE_TORCH_ALLOCATOR
+  SPDLOG_INFO("use torch allocator");
+  en_with_rt->allocator = new TorchAllocator();
+  en_with_rt->runtime->setGpuAllocator(en_with_rt->allocator);
+#endif
 
   IPIPE_ASSERT(en_with_rt && en_with_rt->deserializeCudaEngine(engine_plan));
   return en_with_rt;
@@ -182,6 +187,12 @@ std::shared_ptr<CudaEngineWithRuntime> loadCudaBackend(std::string const& trtMod
                                                        std::string& engine_plan) {
   std::shared_ptr<CudaEngineWithRuntime> en_with_rt =
       std::make_shared<CudaEngineWithRuntime>(nvinfer1::createInferRuntime(gLogger_inplace));
+
+#ifdef USE_TORCH_ALLOCATOR
+  SPDLOG_INFO("use torch allocator");
+  en_with_rt->allocator = new TorchAllocator();
+  en_with_rt->runtime->setGpuAllocator(en_with_rt->allocator);
+#endif
 
   std::vector<char> trtModelStream;
   if (model_type == ".trt.encrypt") {
