@@ -91,7 +91,7 @@ void DecodeMat::forward(dict input_dict) {
     return;
   }
   if (tensor.empty()) {
-    SPDLOG_ERROR(std::string(" height or weight is zero"));
+    SPDLOG_ERROR(std::string("DecodeMat: result is empty"));
     return;
   }
   IPIPE_ASSERT(tensor.size().width != 0 && tensor.size().height != 0);
