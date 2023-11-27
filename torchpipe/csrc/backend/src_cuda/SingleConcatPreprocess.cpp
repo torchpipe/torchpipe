@@ -42,7 +42,7 @@ bool SingleConcatPreprocess::init(const std::unordered_map<std::string, std::str
     throw std::runtime_error("min_value_ >= 2 || max_value_ >= 2 || min_value_ != max_value_");
   }
   if (!min_value_.empty()) {
-    if (min_value_[0].size() != max_value_[0].size() || (min_value_[0].size() <= 1)) {
+    if (min_value_[0].size() != max_value_[0].size() || (min_value_[0].empty())) {
       throw std::runtime_error(
           "min_value_[0].size() != max_value_[0].size() || (min_value_[0].size() <= 1)");
     }

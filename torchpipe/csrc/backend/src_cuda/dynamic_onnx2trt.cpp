@@ -361,7 +361,9 @@ std::shared_ptr<CudaEngineWithRuntime> onnx2trt(
 #else
     config->setMaxWorkspaceSize(precision.max_workspace_size);
 #endif
-    SPDLOG_INFO("max workspace size setted to {}M", precision.max_workspace_size / 1024.0 / 1024.0);
+    if (precision.max_workspace_size != 1024)
+      SPDLOG_INFO("max workspace size setted to {}M",
+                  precision.max_workspace_size / 1024.0 / 1024.0);
     if ((fp16_enable.count(precision.precision)) && builder->platformHasFastFp16()) {
       SPDLOG_INFO("platformHasFastFp16. FP16 will be used");
       config->setFlag(nvinfer1::BuilderFlag::kFP16);
