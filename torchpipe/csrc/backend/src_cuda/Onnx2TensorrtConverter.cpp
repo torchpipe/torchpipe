@@ -40,7 +40,8 @@ bool Onnx2TensorrtConverter::init(const std::unordered_map<std::string, std::str
                                                 {"model::cache", ""},
                                                 {"model::timingcache", ""},
                                                 {"preprocessor", ""},
-                                                {"model_type", ""}},
+                                                {"model_type", ""},
+                                                {"max_workspace_size", "1024"}},
                                                {}, {}, {}));
 
   if (!params_->init(config_param)) return false;
@@ -224,6 +225,9 @@ bool Onnx2TensorrtConverter::init(const std::unordered_map<std::string, std::str
     std::vector<float> stds = strs2number(params_->at("std"));
 
     OnnxParams onnxp;
+    auto max_workspace_size = std::stoi(params_->at("max_workspace_size"));
+    onnxp.max_workspace_size = 1024 * 1024 * max_workspace_size;
+    IPIPE_ASSERT(max_workspace_size >= 1);
     onnxp.timecache = params_->at("model::timingcache");
     onnxp.precision = params_->at("precision");
     if (onnxp.precision.empty()) {

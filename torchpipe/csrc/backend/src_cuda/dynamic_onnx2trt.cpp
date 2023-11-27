@@ -355,12 +355,13 @@ std::shared_ptr<CudaEngineWithRuntime> onnx2trt(
 
   if (b_parsed) {
     bool use_only_fp32 = true;
-    constexpr size_t MAX_WORKSPACE_SIZE = 1ULL << 30;  // 1 GB
+    // constexpr size_t MAX_WORKSPACE_SIZE = 1ULL << 30;  // 1 GB
 #if (NV_TEONSORRT_MAJOR == 8 && NV_TENSORRT_MINOR >= 4) || (NV_TENSORRT_MAJOR >= 9)
-    config->setMemoryPoolLimit(nvinfer1::MemoryPoolType::kWORKSPACE, MAX_WORKSPACE_SIZE);
+    config->setMemoryPoolLimit(nvinfer1::MemoryPoolType::kWORKSPACE, precision.max_workspace_size);
 #else
-    config->setMaxWorkspaceSize(MAX_WORKSPACE_SIZE);
+    config->setMaxWorkspaceSize(precision.max_workspace_size);
 #endif
+    SPDLOG_INFO("max workspace size setted to {}M", precision.max_workspace_size / 1024.0 / 1024.0);
     if ((fp16_enable.count(precision.precision)) && builder->platformHasFastFp16()) {
       SPDLOG_INFO("platformHasFastFp16. FP16 will be used");
       config->setFlag(nvinfer1::BuilderFlag::kFP16);
