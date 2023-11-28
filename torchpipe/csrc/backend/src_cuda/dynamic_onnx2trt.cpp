@@ -387,7 +387,7 @@ std::shared_ptr<CudaEngineWithRuntime> onnx2trt(
                             nvinfer1::DataType::kFLOAT, true);
     modify_layers_precision(precision.precision_output_fp16, network.get(),
                             nvinfer1::DataType::kHALF, true);
-    if (!use_only_fp32) parse_ln(network.get());
+    // if (!use_only_fp32) parse_ln(network.get());
 #if (NV_TENSORRT_MAJOR == 8 && NV_TENSORRT_MINOR >= 5)
     config->setPreviewFeature(nvinfer1::PreviewFeature::kFASTER_DYNAMIC_SHAPES_0805, true);
     SPDLOG_INFO("use tensorrt's PreviewFeature: kFASTER_DYNAMIC_SHAPES_0805");
