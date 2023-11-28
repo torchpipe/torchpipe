@@ -55,6 +55,8 @@ bool MultipleConcatPreprocess::init(const std::unordered_map<std::string, std::s
 
 std::vector<at::Tensor> MultipleConcatPreprocess::forward(const std::vector<dict>& raw_inputs) {
   std::vector<std::vector<at::Tensor>> resized_inputs;
+
+  bool may_need_quick_cat = true;
   for (std::size_t index = 0; index < raw_inputs.size(); ++index) {
     auto item = raw_inputs[index];
     auto iter_data = item->find(TASK_DATA_KEY);
@@ -75,12 +77,19 @@ std::vector<at::Tensor> MultipleConcatPreprocess::forward(const std::vector<dict
       auto& net_input = net_inputs[i];
 
       if (is_cpu_tensor(net_input)) {
+        may_need_quick_cat = false;
         //  注意：前处理在某些特殊情况下在cpu上可能变得特别慢，
         net_input = net_input.to(at::kCUDA, net_input.dtype(), /* non_blocking =*/true, false);
       }
 
       assert(net_input.is_cuda());
-      if (!min_value_.empty()) net_input = tensor_permute(net_input, min_value_[i], max_value_[i]);
+      if (!min_value_.empty()) {
+        bool need_permute = false;
+        net_input = tensor_permute(net_input, min_value_[i], max_value_[i], need_permute);
+        if (need_permute || !net_input.is_contiguous()) {
+          may_need_quick_cat = false;
+        }
+      }
     }
 
     resized_inputs.push_back(net_inputs);
@@ -107,7 +116,20 @@ std::vector<at::Tensor> MultipleConcatPreprocess::forward(const std::vector<dict
     for (const auto& inputs : resized_inputs) {
       data.push_back(inputs[j]);
     }
-    result.emplace_back(at::cat(data, 0));
+    at::Tensor true_input;
+    if (data.size() > 1) {
+      if (may_need_quick_cat) {
+        true_input = try_quick_cat(data);
+      } else {
+        true_input = at::cat(data, 0);
+      }
+    } else if (data.empty()) {
+      throw std::runtime_error("ConcatPreprocess: data is empty.");
+    } else {
+      true_input = data[0];
+    }
+
+    result.emplace_back(true_input);
     // if (size_input == 0)
     //   size_input = result.back().sizes().size();
     // else if (size_input != result.back().sizes().size()) {

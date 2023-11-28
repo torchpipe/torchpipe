@@ -65,7 +65,7 @@ bool is_nchw(at::Tensor in);
 at::Tensor img_hwc_guard(at::Tensor in);
 
 at::Tensor tensor_permute(at::Tensor input, const std::vector<int>& min_shape,
-                          const std::vector<int>& max_shape);
+                          const std::vector<int>& max_shape, bool& need_permute);
 
 /**
  * @brief 保存 at::Tensor 到文件。等价于 ``torch.save(name: str, tensor: torch.Tensor)``
@@ -88,4 +88,5 @@ static inline at::Tensor torch_allocate(int64_t size) {
   return at::empty({size}, at::dtype(at::kByte).device(at::kCUDA), at::MemoryFormat::Contiguous);
 }
 
+at::Tensor try_quick_cat(std::vector<at::Tensor> resized_inputs);
 }  // namespace ipipe

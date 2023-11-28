@@ -2,13 +2,14 @@
 
 ## v0.3.3 Beta 3 (WIP)
 
-- Add force_range for TensorrtTensor, borrow_from, active_instances_grp for BaselineSchedule
+
 - fix TorchScriptTensor for batching input; update docs for training-tool
 - test_tools: Add output of median GPU usage rate
 - fix cuda arch error for pytorch 1.13.1 on NVIDIA A10
 - The backend does not allow the deletion of the node_name key, as it would cause the scheduling system to crash.
 - Further support for the Python backend has been added.
-
+- add quick concat for tensor with same storage
+- Add force_range for TensorrtTensor, borrow_from, active_instances_grp for BaselineSchedule(experimental)
 
 ## v0.3.3 Beta 2 (2023.11.05)
 
