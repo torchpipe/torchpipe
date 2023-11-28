@@ -25,7 +25,7 @@ import pytest
 def test_multiple_inputs(file_dir: str = "assets/norm_jpg/", num_clients=10, batch_size=1,
                          ext=[".jpg", '.JPG', '.jpeg', '.JPEG']):
 
-    model = torchpipe.pipe({"backend": "BorrowRepay", "max_batch_size": 123})
+    model = torchpipe.pipe({"backend": "BorrowReplay", "max_batch_size": 123})
     data = torch.randn((3, 3, 576, 768))
     inputs = {"data": [data], "borrow_type": "borrow_or_insert", "id":1}
     model(inputs)
@@ -46,7 +46,7 @@ def test_multiple_inputs(file_dir: str = "assets/norm_jpg/", num_clients=10, bat
 
 def test_force_batch():
 
-    model = torchpipe.pipe({"backend": "BorrowRepay", "max_batch_size": 123})
+    model = torchpipe.pipe({"backend": "BorrowReplay", "max_batch_size": 123})
     data = torch.randn((3, 3, 576, 768))
     inputs = {"data": [data], "borrow_type": "borrow_or_insert", "id":1}
     model(inputs)
@@ -79,7 +79,7 @@ def test_multiple_input():
 
     
 
-    model = torchpipe.pipe({"backend": "BorrowRepay", "max_batch_size": 123})
+    model = torchpipe.pipe({"backend": "BorrowReplay", "max_batch_size": 123})
     data = [torch.randn((3, 3, 576, 768)), torch.randn((3, 3, 576, 768))]
     inputs = {"data": data, "borrow_type": "borrow_or_insert", "id":1}
     model(inputs)
