@@ -60,6 +60,13 @@ class TensorData {
     data_.push_back(data_id);
     sum_ += data[0].size(0);
   }
+  void reset() {
+    // IPIPE_ASSERT(data_.empty());
+    data_.clear();
+    borrowed_.clear();
+    sum_ = 0;
+  }
+
   std::vector<std::vector<at::Tensor>> borrow(int id, uint32_t length) {  // can borrow enough data
     borrowed_[id] = std::vector<DataWithNumView>();
     std::vector<DataWithNumView>& result = borrowed_[id];
@@ -133,7 +140,7 @@ class TensorData {
   /* data */
 };
 
-class BorrowRepay : public Backend {
+class BorrowReplay : public Backend {
  public:
   bool init(const std::unordered_map<std::string, std::string>& config, dict dict_config) override;
 
@@ -142,7 +149,7 @@ class BorrowRepay : public Backend {
   void forward(const std::vector<dict>& raw_inputs);
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-  ~BorrowRepay();
+  ~BorrowReplay();
 #endif
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS

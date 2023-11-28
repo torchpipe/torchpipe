@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "BorrowRepay.hpp"
+#include "BorrowReplay.hpp"
 
 #include <chrono>
 #include <functional>
@@ -28,9 +28,9 @@
 
 namespace ipipe {
 
-BorrowRepay::~BorrowRepay() {}
+BorrowReplay::~BorrowReplay() {}
 
-bool BorrowRepay::init(const std::unordered_map<std::string, std::string>& config,
+bool BorrowReplay::init(const std::unordered_map<std::string, std::string>& config,
                        dict dict_config) {
   params_ = std::unique_ptr<Params>(new Params({}, {"max_batch_size"}, {}, {}));
   if (config.empty()) {
@@ -43,7 +43,7 @@ bool BorrowRepay::init(const std::unordered_map<std::string, std::string>& confi
   return true;
 }
 
-void BorrowRepay::forward(const std::vector<dict>& raw_inputs) {
+void BorrowReplay::forward(const std::vector<dict>& raw_inputs) {
   // borrowed
   // borrow_or_insert set_replay get_replay borrow_all
 
@@ -78,11 +78,12 @@ void BorrowRepay::forward(const std::vector<dict>& raw_inputs) {
     int id = dict_get<int>(raw_inputs[0], "id");
     auto result = pool_.get_replay(id);
     (*raw_inputs[0])["result"] = result;
-  } else if (borrow_type == "borrow_all") {
+  } else if (borrow_type == "reset") {
+    pool_.reset();
   } else {
     throw std::runtime_error(
         "borrow_type must be one of [borrow_or_insert, set_replay, "
-        "get_replay, borrow_all], but get " +
+        "get_replay, borrow_all, reset], but get " +
         borrow_type);
   }
 
@@ -106,6 +107,6 @@ void BorrowRepay::forward(const std::vector<dict>& raw_inputs) {
 
   return;
 };
-IPIPE_REGISTER(Backend, BorrowRepay, "BorrowRepay");
+IPIPE_REGISTER(Backend, BorrowReplay, "BorrowReplay");
 
 }  // namespace ipipe
