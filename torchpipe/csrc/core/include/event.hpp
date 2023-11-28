@@ -97,6 +97,15 @@ class SimpleEvents {
     data_cond.notify_one();
   }
 
+  void notify_one(int num) {
+    {
+      // do not remove this lock even if ref_count is atomic
+      std::lock_guard<std::mutex> lk(mut);
+      ref_add(num);
+    }
+
+    data_cond.notify_one();
+  }
   /**
    * @brief 通知所有监听者。
    * @ref SimpleEvents::notify_one
@@ -106,6 +115,16 @@ class SimpleEvents {
       // do not remove this lock even if ref_count is atomic
       std::lock_guard<std::mutex> lk(mut);
       ref_add();
+    }
+
+    data_cond.notify_all();
+  }
+
+  void notify_all(int num) {
+    {
+      // do not remove this lock even if ref_count is atomic
+      std::lock_guard<std::mutex> lk(mut);
+      ref_add(num);
     }
 
     data_cond.notify_all();
@@ -152,6 +171,22 @@ class SimpleEvents {
     }
   }
 
+  void ref_add(int num) {
+    if (ref_count < num_task)
+      ref_count += num;
+    else {
+      assert(false);
+    }
+
+    if ((ref_count >= num_task) && !callbacks_.empty()) {
+      for (auto iter = callbacks_.rbegin(); iter != callbacks_.rend(); iter++) {
+        (*iter)();
+      }
+
+      callbacks_.clear();
+    }
+  }
+
   /**
    * @brief 清理并返回被设置的异常
    */
@@ -160,6 +195,11 @@ class SimpleEvents {
     auto re = eptr_;
     eptr_ = nullptr;
     return re;
+  }
+
+  void task_add(int num) {
+    std::lock_guard<std::mutex> lk(mut);
+    num_task += num;
   }
 
   /// 参见 @ref SimpleEvents::set_exception_and_notify_one
@@ -189,7 +229,7 @@ class SimpleEvents {
   std::mutex mut;  // mutable
   std::condition_variable data_cond;
   uint32_t ref_count = 0;
-  const uint32_t num_task;
+  uint32_t num_task;
   std::vector<std::function<void()>> callbacks_;
 
   std::exception_ptr eptr_;

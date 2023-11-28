@@ -41,6 +41,12 @@ any container_cast(py::handle second) {
 
   if (THPVariable_Check(obj)) {
     return py::cast<container<at::Tensor>>(second);
+  } else if (py::isinstance<py::list>((*list_data.begin()))) {
+    container<container<at::Tensor>> result;
+    for (auto item : list_data) {
+      result.push_back(py::cast<container<at::Tensor>>(item));
+    }
+    return result;
   } else if (py::isinstance<py::str>((*list_data.begin()))) {
     return py::cast<container<std::string>>(second);
   } else if (py::isinstance<py::bytes>((*list_data.begin()))) {
