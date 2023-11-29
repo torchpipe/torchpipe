@@ -30,8 +30,7 @@ Production-Grade：Within NetEase over billions of calls supported by Torchpipe 
 -  Use the latest tag and corresponding release.
 -  The main branch is used for releasing version updates, while the develop branch is used for code submission and daily development. -->
 
-## update
-- We have updated a basic version of the [Llama example](https://github.com/torchpipe/LLM.TensorRT.Serve)
+
 
 <!-- end elevator-pitch -->
 
