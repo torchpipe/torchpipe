@@ -33,7 +33,7 @@ model = "./resnet50.onnx" # or resnet50_merge_mean_std_by_onnx.onnx
 mean = "123.675, 116.28, 103.53" # 255*"0.485, 0.456, 0.406"
 std = "58.395, 57.120, 57.375" # 255*"0.229, 0.224, 0.225"
 
-"model::cache" = "./resnet50_gpu.trt" # or ./resnet50.trt.encrypted
+"model::cache" = "./resnet50_gpu_dual.trt" # or ./resnet50.trt.encrypted
 
 [resnet50_2]
 
@@ -47,7 +47,7 @@ model = "./resnet50.onnx" # or resnet50_merge_mean_std_by_onnx.onnx
 mean = "123.675, 116.28, 103.53" # 255*"0.485, 0.456, 0.406"
 std = "58.395, 57.120, 57.375" # 255*"0.229, 0.224, 0.225"
 
-"model::cache" = "./resnet50_gpu.trt" # or ./resnet50.trt.encrypted
+"model::cache" = "./resnet50_gpu_dual.trt" # or ./resnet50.trt.encrypted
 
 [final]
 map="resnet50[result:data],resnet50_2[result:data_2]"
