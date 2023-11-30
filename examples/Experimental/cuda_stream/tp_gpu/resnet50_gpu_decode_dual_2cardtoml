@@ -1,24 +1,28 @@
 # Schedule'parameter
 batching_timeout = 5 #默认的凑batch的超时时间
 precision = "fp16" 
+
+
 [jpg_decoder]
-filter="run"
+filter="half_chance"
 backend = "Torch[ Sequential[DecodeTensor,ResizeTensor,cvtColorTensor]  ]" # 需要处理背景线程cuda流同步问题可用Torch， 否则可用Sequential；Torch确保初始化和前向在同一个线程时，能准确处理多个backend的同步时机
 resize_h = 224 
 resize_w = 224 
 
-instance_num = 8
+instance_num = 4
 color = "rgb"
-next = "cpu_decoder"
 
-[cpu_decoder]
-backend = " Sequential[DecodeMat,ResizeMat,cvtColorMat,Mat2Tensor,Torch]  " # 需要处理背景线程cuda流同步问题可用Torch， 否则可用Sequential；Torch确保初始化和前向在同一个线程时，能准确处理多个backend的同步时机
-filter = "or" 
+next = "jpg_decoder_1"
+
+[jpg_decoder_1]
+filter="or"
+backend = "Torch[ Sequential[DecodeTensor,ResizeTensor,cvtColorTensor]  ]" # 需要处理背景线程cuda流同步问题可用Torch， 否则可用Sequential；Torch确保初始化和前向在同一个线程时，能准确处理多个backend的同步时机
 resize_h = 224 
 resize_w = 224 
-instance_num = 8
 
+instance_num = 4
 color = "rgb"
+
 next = "resnet50,resnet50_2"
 
 [resnet50]

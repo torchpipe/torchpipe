@@ -76,4 +76,17 @@ class FilterTarget : public Filter {
 
 IPIPE_REGISTER(Filter, FilterTarget, "Target")
 
+class FilterHalfChance : public Filter {
+ public:
+  status forward(dict input) {
+    input->erase(TASK_RESULT_KEY);
+    if (rand() % 2 == 0)
+      return status::Run;
+    else
+      return status::Skip;
+  }
+};
+
+IPIPE_REGISTER(Filter, FilterHalfChance, "half_chance")
+
 }  // namespace ipipe
