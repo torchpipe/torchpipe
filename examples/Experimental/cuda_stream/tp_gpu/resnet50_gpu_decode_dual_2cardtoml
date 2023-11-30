@@ -1,6 +1,6 @@
 batching_timeout = 5 #默认的凑batch的超时时间
 precision = "fp16" 
-instance_num=2
+instance_num=4
 device_id=0
 
 [jpg_decoder]
