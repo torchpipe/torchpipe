@@ -30,7 +30,9 @@ parser.add_argument('--config', dest='config', type=str,  default="./resnet50_gp
 # support --half
 parser.add_argument('--half', dest='half', action='store_true',
                     help='use half clients')
-
+#  add clients parameters, default to 40
+parser.add_argument('--num_clients', dest='num_clients', type=int, default=40,
+                    help='number of clients')
 args = parser.parse_args()
 
 
@@ -88,9 +90,8 @@ if __name__ == "__main__":
 
     from torchpipe.utils.test import test_from_raw_file
     num = 40
-    if args.half:
-        num = 20
-    result = test_from_raw_file(run, os.path.join("../../../..", "test/assets/encode_jpeg/"),num_clients=num, batch_size=1,total_number=20000)
+
+    result = test_from_raw_file(run, os.path.join("../../../..", "test/assets/encode_jpeg/"),num_clients=args.num_clients, batch_size=1,total_number=20000)
 
 
     print("\n", result)
@@ -101,6 +102,15 @@ if __name__ == "__main__":
     #     pickle.dump(result, f)
     # print("save result to ", pkl_path)
 
-# python resnet50.py --config ./resnet50_gpu_decode.toml --half
-# python resnet50.py --config ./resnet50_gpu_decode_half.toml --half
-# multiple_thread gpu 
+# python resnet50.py --config ./resnet50_gpu_decode.toml  
+# 3819.19, 1431MiB 94.0%  
+#
+# python resnet50.py --config ./resnet50_gpu_decode_half.toml
+#   3128.22 2500MiB 99.0%
+# 
+# (3819.19/0.94)/(3128.22/0.99) = 1.286
+
+# python resnet50.py --config ./resnet50_gpu_decode_half.toml --num_clients 20
+#   3144 2500MiB 99.0%
+# 
+#  
