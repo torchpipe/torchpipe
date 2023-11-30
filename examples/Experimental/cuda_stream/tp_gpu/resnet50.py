@@ -110,6 +110,14 @@ if __name__ == "__main__":
 # 
 # (3819.19/0.94)/(3128.22/0.99) = 1.286
 
+# python resnet50.py --config ./resnet50_gpu_decode_quarter.toml
+#    
+# 
+
+
+
+
+
 # python resnet50.py --config ./resnet50_gpu_decode_half.toml --num_clients 20
 #   3144 2500MiB 99.0%
 # 
