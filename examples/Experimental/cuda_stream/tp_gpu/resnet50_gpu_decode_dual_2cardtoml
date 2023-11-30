@@ -1,7 +1,6 @@
-# Schedule'parameter
 batching_timeout = 5 #默认的凑batch的超时时间
 precision = "fp16" 
-
+instance_num=2
 
 [jpg_decoder]
 filter="half_chance"
@@ -11,7 +10,7 @@ resize_w = 224
 
 instance_num = 4
 color = "rgb"
-
+device_id=0
 next = "jpg_decoder_1"
 
 [jpg_decoder_1]
@@ -22,16 +21,14 @@ resize_w = 224
 
 instance_num = 4
 color = "rgb"
-
+device_id=1
 next = "resnet50,resnet50_2"
 
 [resnet50]
 
 backend = "Torch[TensorrtTensor]" # 需要处理背景线程cuda流同步问题可用Torch， Torch确保初始化和前向在同一个线程时，能准确处理cuda流同步时机;注意DynamicTensorrtTensor本身也可以正确处理。
 
-max = "32"
-min = "1"
-instance_num=1
+max = 16
 model = "./resnet50.onnx" # or resnet50_merge_mean_std_by_onnx.onnx
 device_id=1
 mean = "123.675, 116.28, 103.53" # 255*"0.485, 0.456, 0.406"
@@ -44,9 +41,7 @@ next="final"
 
 backend = "Torch[TensorrtTensor]" # 需要处理背景线程cuda流同步问题可用Torch， Torch确保初始化和前向在同一个线程时，能准确处理cuda流同步时机;注意DynamicTensorrtTensor本身也可以正确处理。
 
-max = "32"
-min = "1"
-instance_num=1
+max = 16
 model = "./resnet50.onnx" # or resnet50_merge_mean_std_by_onnx.onnx
 
 mean = "123.675, 116.28, 103.53" # 255*"0.485, 0.456, 0.406"
