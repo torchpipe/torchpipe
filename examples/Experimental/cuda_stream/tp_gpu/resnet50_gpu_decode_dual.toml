@@ -35,6 +35,7 @@ std = "58.395, 57.120, 57.375" # 255*"0.229, 0.224, 0.225"
 
 "model::cache" = "./resnet50_gpu_dual.trt" # or ./resnet50.trt.encrypted
 
+next="final"
 [resnet50_2]
 
 backend = "SyncTensor[TensorrtTensor]" # 需要处理背景线程cuda流同步问题可用SyncTensor， SyncTensor确保初始化和前向在同一个线程时，能准确处理cuda流同步时机;注意DynamicTensorrtTensor本身也可以正确处理。
@@ -48,6 +49,7 @@ mean = "123.675, 116.28, 103.53" # 255*"0.485, 0.456, 0.406"
 std = "58.395, 57.120, 57.375" # 255*"0.229, 0.224, 0.225"
 
 "model::cache" = "./resnet50_gpu_dual.trt" # or ./resnet50.trt.encrypted
+next="final"
 
 [final]
 map="resnet50[result:data],resnet50_2[result:data_2]"
