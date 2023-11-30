@@ -114,6 +114,9 @@ if __name__ == "__main__":
 #    
 # 2222.87, 98%  1485
 
+# python resnet50.py --config resnet50_gpu_decode_dual_32.toml --num_clients 40
+
+
 # python resnet50.py --config resnet50_gpu_decode_dual_2cardtoml --num_clients 80
 
 
