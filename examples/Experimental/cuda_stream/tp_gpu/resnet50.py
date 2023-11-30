@@ -29,7 +29,7 @@ parser.add_argument('--config', dest='config', type=str,  default="./resnet50_gp
                     help='configuration file')
 # support --half
 parser.add_argument('--half', dest='half', action='store_true',
-                    help='use half precision')
+                    help='use half clients')
 
 args = parser.parse_args()
 
@@ -88,8 +88,8 @@ if __name__ == "__main__":
 
     from torchpipe.utils.test import test_from_raw_file
     num = 40
-    # if args.half:
-    #     num = 20
+    if args.half:
+        num = 20
     result = test_from_raw_file(run, os.path.join("../../../..", "test/assets/encode_jpeg/"),num_clients=num, batch_size=1,total_number=20000)
 
 
@@ -100,3 +100,7 @@ if __name__ == "__main__":
     # with open(pkl_path,"wb") as f:
     #     pickle.dump(result, f)
     # print("save result to ", pkl_path)
+
+# python resnet50.py --config ./resnet50_gpu_decode.toml --half
+# python resnet50.py --config ./resnet50_gpu_decode_half.toml --half
+# multiple_thread gpu 
