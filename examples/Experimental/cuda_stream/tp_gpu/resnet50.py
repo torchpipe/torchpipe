@@ -112,13 +112,15 @@ if __name__ == "__main__":
 
 # python resnet50.py --config ./resnet50_gpu_decode_quarter.toml
 #    
-# 
+# 2222.87, 98%  1485
+
+# python resnet50.py --config resnet50_gpu_decode_dual_2cardtoml --num_clients 80
 
 
 
 
 
 # python resnet50.py --config ./resnet50_gpu_decode_half.toml --num_clients 20
-#   3144 2500MiB 99.0%
+#   3144 2500MiB 98.0%
 # 
 #  
