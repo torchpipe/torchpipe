@@ -119,7 +119,8 @@ if __name__ == "__main__":
 
 # python resnet50.py --config resnet50_gpu_decode_dual_2cardtoml --num_clients 80
 
-
+# PYTORCH_NO_CUDA_MEMORY_CACHING
+# 1173 
 
 
 

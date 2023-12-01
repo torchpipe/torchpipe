@@ -15,6 +15,7 @@
 
 import os
 import platform
+import tempfile
 
 IS_WINDOWS = platform.system() == "Windows"
 IS_DARWIN = platform.system() == "Darwin"
@@ -76,6 +77,68 @@ def _import_module_from_library(module_name, path, is_python_module):
     else:
         torch.ops.load_library(filepath)
 
+def load_filter(
+    name="",
+    sources = "",
+    sources_header="",
+    is_python_module=False,
+    extra_include_paths=[],
+    extra_ldflags=[],
+    with_cuda=True,
+    *args,
+    **kwargs,
+):
+    if len(name) == 0:
+        import random
+        name = str(random.random())
+    cls_name = name.replace(".","")
+    # 通过tempfile获得临时文件夹
+    if True:
+        # 将源文件写入临时文件夹
+        file_context_start = f'''
+        #include <torch/extension.h>
+        #include "filter.hpp"
+        #include "reflect.h"
+        {sources_header}
+        //using Filter = ipipe::Filter;
+        //using status = Filter::status;
+        namespace ipipe{{
+        namespace {{
+        class Filter{cls_name} : public Filter {{
+            public:
+            {sources}
+        }};
+        }}
+        IPIPE_REGISTER(Filter, Filter{cls_name}, "{name}");
+        }}
+        
+        '''
+        from torch.utils.cpp_extension import _get_build_directory
+
+        target_exten_dir = _get_build_directory(name, False)
+        tmpdir = target_exten_dir
+
+        with open(os.path.join(tmpdir, f"{name}.cpp"), "w") as f:
+            f.write(file_context_start)
+            print(f"write source file to {tmpdir}/{name}.cpp")
+            print(file_context_start)
+        # 调用load函数编译
+        load(
+            name=name,
+            sources=[os.path.join(tmpdir, f"{name}.cpp")],
+            rebuild_if_exist=True,
+            is_python_module=is_python_module,
+            extra_include_paths=extra_include_paths,
+            extra_ldflags=extra_ldflags,
+            with_cuda=with_cuda,
+            *args,
+            **kwargs,
+        )
+        # 调用import_module_from_library函数导入
+        return _import_module_from_library(name, tmpdir, is_python_module)
+    
+    # call load to compile filter
+    
 
 def load(
     name="",

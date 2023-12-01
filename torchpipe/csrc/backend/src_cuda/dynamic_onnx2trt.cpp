@@ -173,9 +173,12 @@ std::shared_ptr<CudaEngineWithRuntime> loadEngineFromBuffer(const std::string& e
   std::shared_ptr<CudaEngineWithRuntime> en_with_rt =
       std::make_shared<CudaEngineWithRuntime>(nvinfer1::createInferRuntime(gLogger_inplace));
 #ifdef USE_TORCH_ALLOCATOR
-  SPDLOG_INFO("use torch allocator");
-  en_with_rt->allocator = new TorchAllocator();
-  en_with_rt->runtime->setGpuAllocator(en_with_rt->allocator);
+  const char* value = std::getenv("PYTORCH_NO_CUDA_MEMORY_CACHING");
+  if (value == nullptr) {
+    SPDLOG_INFO("use torch allocator");
+    en_with_rt->allocator = new TorchAllocator();
+    en_with_rt->runtime->setGpuAllocator(en_with_rt->allocator);
+  }
 #endif
 
   IPIPE_ASSERT(en_with_rt && en_with_rt->deserializeCudaEngine(engine_plan));
@@ -189,9 +192,12 @@ std::shared_ptr<CudaEngineWithRuntime> loadCudaBackend(std::string const& trtMod
       std::make_shared<CudaEngineWithRuntime>(nvinfer1::createInferRuntime(gLogger_inplace));
 
 #ifdef USE_TORCH_ALLOCATOR
-  SPDLOG_INFO("use torch allocator");
-  en_with_rt->allocator = new TorchAllocator();
-  en_with_rt->runtime->setGpuAllocator(en_with_rt->allocator);
+  const char* value = std::getenv("PYTORCH_NO_CUDA_MEMORY_CACHING");
+  if (value == nullptr) {
+    SPDLOG_INFO("use torch allocator");
+    en_with_rt->allocator = new TorchAllocator();
+    en_with_rt->runtime->setGpuAllocator(en_with_rt->allocator);
+  }
 #endif
 
   std::vector<char> trtModelStream;
@@ -296,9 +302,13 @@ std::shared_ptr<CudaEngineWithRuntime> onnx2trt(
   std::shared_ptr<CudaEngineWithRuntime> en_with_rt = std::make_shared<CudaEngineWithRuntime>();
 
 #ifdef USE_TORCH_ALLOCATOR
-  SPDLOG_INFO("use torch allocator");
-  en_with_rt->allocator = new TorchAllocator();
-  builder->setGpuAllocator(en_with_rt->allocator);
+  const char* value = std::getenv("PYTORCH_NO_CUDA_MEMORY_CACHING");
+  if (value == nullptr) {
+    SPDLOG_INFO("use torch allocator");
+    en_with_rt->allocator = new TorchAllocator();
+    builder->setGpuAllocator(en_with_rt->allocator);
+  }
+
 #endif
 
   unique_ptr_destroy<nvinfer1::INetworkDefinition> network{builder->createNetworkV2(explicitBatch)};

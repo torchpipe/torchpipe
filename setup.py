@@ -364,6 +364,8 @@ def get_extensions():
         extra_compile_args["cxx"] += [(f"-DIPIPE_KEY={IPIPE_KEY}")]
     if PPLCV_INSTALL:
         extra_compile_args["cxx"] += [("-DWITH_PPLCV")]
+    if os.environ.get("PYTORCH_NO_CUDA_MEMORY_CACHING", "0") == "1":
+        extra_compile_args["cxx"] += [("-DPYTORCH_NO_CUDA_MEMORY_CACHING")]
     if debug_mode:
         print("Compile in debug mode")
         extra_compile_args["cxx"].append("-g")

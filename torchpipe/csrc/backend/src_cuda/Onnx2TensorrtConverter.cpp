@@ -41,7 +41,8 @@ bool Onnx2TensorrtConverter::init(const std::unordered_map<std::string, std::str
                                                 {"model::timingcache", ""},
                                                 {"preprocessor", ""},
                                                 {"model_type", ""},
-                                                {"max_workspace_size", "1024"}},
+                                                {"max_workspace_size", "1024"},
+                                                {"allocator", "torch"}},
                                                {}, {}, {}));
 
   if (!params_->init(config_param)) return false;
@@ -230,6 +231,8 @@ bool Onnx2TensorrtConverter::init(const std::unordered_map<std::string, std::str
     IPIPE_ASSERT(max_workspace_size >= 1);
     onnxp.timecache = params_->at("model::timingcache");
     onnxp.precision = params_->at("precision");
+    onnxp.allocator = params_->at("allocator");
+
     if (onnxp.precision.empty()) {
       auto sm = get_sm();
       if (sm <= "6.1")
