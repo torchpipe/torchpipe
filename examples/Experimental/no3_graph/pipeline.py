@@ -52,16 +52,15 @@ if __name__ == "__main__":
         model(input)
         print(input.keys())
         print(input["score_1"], input["score_2"], input["cls_1_result"],input["result"])
-        exit(0)
 
 
         if save_img:
-            detect_result = input[TASK_RESULT_KEY]
+            detect_result = input[TASK_BOX_KEY]
             print(("detect_result: ", detect_result))
 
             img = cv2.imread(img_path)
             for t in range(len(detect_result)):
-                x1, y1, x2, y2, label, prob = detect_result[t].tolist()
+                x1, y1, x2, y2= detect_result[t].tolist()
                 img = cv2.rectangle(
                     img, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2
                 )
@@ -75,7 +74,7 @@ if __name__ == "__main__":
         test.test_from_raw_file(
             run,
             os.path.join("../../../test/assets/norm_jpg"),
-            num_clients=10,
+            num_clients=20,
             total_number=10000,
         )
     else:

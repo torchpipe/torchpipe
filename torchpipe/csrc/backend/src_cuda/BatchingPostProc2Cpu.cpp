@@ -107,9 +107,6 @@ class BatchingPostProcSoftmaxArgMax : public PostProcessor<at::Tensor> {
     torch::Tensor max_values = std::get<0>(max_values_and_indices).cpu();
     torch::Tensor max_indices = std::get<1>(max_values_and_indices).cpu();
 
-    std::cout << "max_values" << max_values << std::endl;
-    std::cout << "max_indices" << max_indices << std::endl;
-
     for (std::size_t i = 0; i < input.size(); ++i) {
       float max_score = max_values[i].item<float>();
       int argmax = max_indices[i].item<int>();
