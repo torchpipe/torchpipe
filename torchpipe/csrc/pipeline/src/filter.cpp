@@ -106,4 +106,22 @@ class result2key_1 : public Filter {
 
 IPIPE_REGISTER(Filter, result2key_1, "result2key_1")
 
+class result2other : public Filter {
+ public:
+  status forward(dict input) {
+    auto iter = input->find(TASK_RESULT_KEY);
+    if (iter == input->end()) {
+      // there must be sth wrong
+
+      return status::Break;
+    }
+    (*input)[TASK_DATA_KEY] = iter->second;
+    // input->erase(TASK_RESULT_KEY);
+    (*input)["other"] = iter->second;
+    return status::Run;
+  }
+};
+
+IPIPE_REGISTER(Filter, result2other, "result2other")
+
 }  // namespace ipipe
