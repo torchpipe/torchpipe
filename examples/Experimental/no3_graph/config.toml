@@ -1,0 +1,139 @@
+batching_timeout = 5 #默认的凑batch的超时时间
+precision = "fp16" 
+
+[jpg_decoder]
+backend= "DecodeMat"
+next= "preprocessor"
+instance_num = 8
+
+
+
+[preprocessor]
+backend = "Sequential[cvtColorMat,ResizePadMat,Mat2Tensor]"
+color = "bgr"
+instance_num = 8
+max_h = 320
+max_w = 320
+next = "detect"
+
+[detect]
+map = "jpg_decoder[TASK_RESULT_KEY:original_img], preprocessor[TASK_RESULT_KEY:TASK_DATA_KEY, inverse_trans:inverse_trans]"
+backend = "TensorSync[TensorrtTensor]" 
+instance_num = 2 
+max = 4
+model = "/app/src/models/ONNX/detect.onnx.encrypted" 
+"model::cache" = "/app/src/models/ONNX/detect_other.trt.encrypted" 
+next = "cigarette_recog, gesture_recog, ec_recog" 
+postprocessor = "BatchingPostProcYolox_65_05" 
+
+
+[cigarette_recog]
+map="jpg_decoder[result:data,color:color],detect[boxes_cigarette:TASK_BOX_KEY, boxes_cigarette_ratio:boxes_cigarette_ratio]"
+backend="MapReduce"
+jump="cigarette_crop"
+split="TASK_BOX_KEY"
+merge="result"
+next="final"
+batching_timeout = 0
+
+
+
+[cigarette_crop]
+backend="Sequential[CropResizeMatV1,cvtColorMat,Mat2Tensor]"
+instance_num=8
+resize_h=224
+resize_w=224
+color="rgb"
+enlarge_ratio=0.5
+next="cigarette_cls"
+
+[cigarette_cls]
+backend = "Sequential[TensorrtTensor,Torch]"
+min = "1x3x224x224"
+max = "4x3x224x224"
+model = "/app/src/models/ONNX/cigarette_pre.onnx.encrypted"
+"model::cache" = "/app/src/models/ONNX/cigarette_pre_other.trt.encrypted"
+instance_num=2
+postprocessor = "cpu"
+next="cigarette_cls2"
+
+[cigarette_cls2]
+map = "cigarette_cls[result:cigarette_one_scores],cigarette_crop[result:data]"
+filter = "cigarettefilter"
+backend = "Sequential[TensorrtTensor,Torch]"
+min = "1x3x224x224"
+max = "4x3x224x224"
+model = "/app/src/models/ONNX/cigarette_post.onnx.encrypted"
+"model::cache" = "/app/src/models/ONNX/cigarette_post_other.trt.encrypted"
+instance_num=2
+postprocessor = "cigarettepost"
+
+
+
+[gesture_recog]
+map="jpg_decoder[result:data,color:color],detect[boxes_gesture:TASK_BOX_KEY, boxes_gesture_ratio:boxes_gesture_ratio]"
+backend="MapReduce"
+jump="gesture_crop"
+split="TASK_BOX_KEY"
+merge="result"
+next = "final"
+batching_timeout = 0
+
+
+
+[gesture_crop]
+backend="Sequential[CropResizeMatV1,cvtColorMat,Mat2Tensor]"
+instance_num=8
+resize_h=224
+resize_w=224
+color="rgb"
+enlarge_ratio=0.25
+next="gesture_cls"
+
+
+[gesture_cls]
+backend = "Sequential[TensorrtTensor,Torch]"
+min = "1x3x224x224"
+max = "4x3x224x224"
+model = "/app/src/models/ONNX/gesture.onnx.encrypted"
+"model::cache" = "/app/src/models/ONNX/gesture_other.trt.encrypted"
+instance_num=2
+postprocessor = "cpu"
+
+
+
+[ec_recog]
+map="jpg_decoder[result:data,color:color],detect[boxes_ec:TASK_BOX_KEY, boxes_ec_ratio:boxes_ec_ratio]"
+backend="MapReduce"
+jump="ec_crop"
+split="TASK_BOX_KEY"
+merge="result"
+next = "final"
+batching_timeout = 0
+
+
+
+[ec_crop]
+backend="Sequential[CropResizeMatV1,cvtColorMat,Mat2Tensor]"
+instance_num=8
+resize_h=224
+resize_w=224
+color="rgb"
+enlarge_ratio=0.25
+next="ec_cls"
+
+
+[ec_cls]
+backend = "Sequential[TensorrtTensor,Torch]"
+min = "1x3x224x224"
+max = "4x3x224x224"
+model = "/app/src/models/ONNX/ec.onnx.encrypted"
+"model::cache" = "/app/src/models/ONNX/ec_other.trt.encrypted"
+instance_num=2
+postprocessor = "cpu"
+
+
+[final]
+map = "cigarette_recog[TASK_RESULT_KEY: TASK_DATA_KEY, TASK_RESULT_KEY: cigarette_result, boxes_cigarette_ratio:cigarette_boxes], gesture_recog[TASK_RESULT_KEY: gesture_result, boxes_gesture_ratio:gesture_boxes],ec_recog[TASK_RESULT_KEY: ec_result, boxes_ec_ratio:ec_boxes]"
+backend="Identity"
+
