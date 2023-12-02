@@ -96,8 +96,8 @@ mean = "123.675, 116.28, 103.53" # 255*"0.485, 0.456, 0.406"
 std = "58.395, 57.120, 57.375" # 255*"0.229, 0.224, 0.225"
 backend="SyncTensor[TensorrtTensor]"
 max=4
-model="././fastervit_0_224_224.onnx"
-"model::cache"="./fastervit_0_224_224.trt"
+model="././resnet50.onnx"
+"model::cache"="./resnet50.trt"
 instance_num=2
 postprocessor="SoftmaxArgMax"
 

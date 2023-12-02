@@ -4,6 +4,16 @@
 from  torchpipe.utils.models import onnx_export
 
 
+def export_onnx_resnet50():
+    import torchvision
+    model = torchvision.models.resnet50(pretrained=True)
+    onnx_export(model, "resnet50.onnx", None, 17)
+    import onnxsim
+    for i in range(3):
+        model_simp, check = onnxsim.simplify("resnet50.onnx")
+        assert check, "Simplified ONNX model could not be validated"
+        onnx.save(model_simp, "resnet50.onnx")
+
 
 def export_onnx_resnet18():
     import torchvision
@@ -38,6 +48,7 @@ if __name__ == '__main__':
         onnx.save(model_simp, "fastervit_0_224_224.onnx")
 
     export_onnx_resnet18()
+    export_onnx_resnet50()
     # trtexec --onnx=fastervit_0_224_224.onnx --fp16  --minShapes=input:1x3x224x224 --optShapes=input:16x3x224x224 --maxShapes=input:16x3x224x224 --shapes=input:16x3x224x224  --saveEngine=fastervit_0_224_224_16.trt
     # 70.6406 3.29885
 
