@@ -11,15 +11,15 @@ if __name__ == "__main__":
      # config["resnet50"]["model::cache"] = f"resnet50_{}_{}.trt"
     config = {
         "backend":"SyncTensor[TensorrtTensor]",
-        "instance_num": 1,
+        "instance_num": 2,
         "model":"fastervit_0_224_224_1.trt"
     }
     nodes = pipe(config)
-    img = torch.zeros((1,3,224,224),device="cuda")
+    img_g = torch.zeros((1,3,224,224),device="cuda")
 
     def run(img):
         for img_path, img_bytes in img:
-            input = {TASK_DATA_KEY: img, "node_name": "jpg_decoder"}
+            input = {TASK_DATA_KEY: img_g, "node_name": "jpg_decoder"}
             nodes(input)
 
             if TASK_RESULT_KEY not in input.keys():
