@@ -50,11 +50,11 @@ if __name__ == "__main__":
         input = {TASK_DATA_KEY: img_data}
         input["node_name"] = "jpg_decoder"
         model(input)
-        print(input.keys())
-        print(input["score_1"], input["score_2"], input["cls_1_result"],input["result"])
-
 
         if save_img:
+            print(input.keys())
+            print(input["score_1"], input["score_2"], input["cls_1_result"],input["result"])
+
             detect_result = input[TASK_BOX_KEY]
             print(("detect_result: ", detect_result))
 
