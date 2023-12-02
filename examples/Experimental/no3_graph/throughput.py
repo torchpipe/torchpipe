@@ -11,8 +11,9 @@ if __name__ == "__main__":
      # config["resnet50"]["model::cache"] = f"resnet50_{}_{}.trt"
     config = {
         "backend":"SyncTensor[TensorrtTensor]",
-        "instance_num": 2,
-        "model":"fastervit_0_224_224_1.trt"
+        "instance_num": 1,
+        "model":"fastervit_0_224_224_32.trt",
+        "batching_timeout":6
     }
     nodes = pipe(config)
     img_g = torch.zeros((1,3,224,224),device="cuda")
@@ -30,6 +31,6 @@ if __name__ == "__main__":
     from torchpipe.utils.test import test_from_raw_file
 
  
-    num_clients = 20
+    num_clients = 40
 
-    result = test_from_raw_file(run, os.path.join("../../..", "test/assets/encode_jpeg/"),num_clients=num_clients, batch_size=1,total_number=10000)
+    result = test_from_raw_file(run, os.path.join("../../..", "test/assets/encode_jpeg/"),num_clients=num_clients, batch_size=1,total_number=40000)
