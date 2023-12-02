@@ -13,8 +13,16 @@
 // limitations under the License.
 
 #pragma once
-#include "reflect.h"
+
 #include "Backend.hpp"
-#include "ipipe_common.hpp"
-#include "filter.hpp"
-#include "base_logging.hpp"
+#include "dict.hpp"
+
+namespace ipipe {
+class CropMat : public SingleBackend {
+ public:
+  virtual void forward(dict) override;
+
+ private:
+};
+
+}  // namespace ipipe

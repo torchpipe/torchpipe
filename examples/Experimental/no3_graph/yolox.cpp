@@ -26,6 +26,7 @@
 #include "dict.hpp"
 #include "reflect.h"
 #include "prepost.hpp"
+#include "torchpipe/extension.h"
 
 // 第三方库头文件
 #include <ATen/ATen.h>
@@ -74,19 +75,24 @@ class BatchingPostProcYolox : public PostProcessor<at::Tensor> {
 
     for (auto i = 0; i < input.size(); ++i) {
       const std::vector<Object>& objects = final_objs[i];
-      std::vector<at::Tensor> boxes;
-      for (const auto& obj : objects) {
-        auto box = at::empty({6});
-        box[0] = obj.rect.x;
-        box[1] = obj.rect.y;
-        box[2] = obj.rect.width + obj.rect.x;
-        box[3] = obj.rect.height + obj.rect.y;
-        box[4] = obj.label;
-        box[5] = obj.prob;
-        boxes.emplace_back(box);
+
+      std::vector<std::vector<int>> boxes(objects.size());
+      std::vector<int> labels(objects.size());
+      std::vector<float> probs(objects.size());
+      for (std::size_t j = 0; j < objects.size(); ++j) {
+        const auto& obj = objects[j];
+        std::vector<int> x1y1x2y2{obj.rect.x, obj.rect.y, obj.rect.width + obj.rect.x,
+                                  obj.rect.height + obj.rect.y};
+
+        labels[j] = obj.label;
+        probs[j] = obj.prob;
+        boxes[j] = x1y1x2y2;
       }
+
       (*input[i])[TASK_RESULT_KEY] = boxes;
       (*input[i])[TASK_BOX_KEY] = boxes;
+      (*input[i])["labels"] = labels;
+      (*input[i])["probs"] = probs;
     }
   }
 
@@ -303,12 +309,6 @@ class BatchingPostProcYolox : public PostProcessor<at::Tensor> {
       float x1 = tmp.first;
       float y1 = tmp.second;
 
-      // clip
-      // x0 = std::max(std::min(x0, (float)(img_w - 1)), 0.f);
-      // y0 = std::max(std::min(y0, (float)(img_h - 1)), 0.f);
-      // x1 = std::max(std::min(x1, (float)(img_w - 1)), 0.f);
-      // y1 = std::max(std::min(y1, (float)(img_h - 1)), 0.f);
-
       objects[i].rect.x = x0;
       objects[i].rect.y = y0;
       objects[i].rect.width = x1 - x0;
@@ -317,59 +317,29 @@ class BatchingPostProcYolox : public PostProcessor<at::Tensor> {
   }
 };
 
-class BatchingPostProcYolox_custom : public BatchingPostProcYolox<20, 40> {
- public:
-  void forward(std::vector<at::Tensor> net_outputs, std::vector<dict> input,
-               const std::vector<at::Tensor>& net_inputs) override {
-    if (net_outputs.empty()) return;
-
-    auto final_objs = forward_impl(net_outputs, input, net_inputs);
-
-    for (auto i = 0; i < input.size(); ++i) {
-      const std::vector<Object>& objects = final_objs[i];
-      std::vector<at::Tensor> boxes;
-      std::vector<at::Tensor> boxes_for_crop;
-      for (const auto& obj : objects) {
-        auto box = at::empty({6});
-        box[0] = obj.rect.x;
-        box[1] = obj.rect.y;
-        box[2] = obj.rect.width + obj.rect.x;
-        box[3] = obj.rect.height + obj.rect.y;
-        box[4] = obj.label;
-        box[5] = obj.prob;
-        boxes.emplace_back(box);
-
-        at::Tensor img = any_cast<at::Tensor>((*input[i])[TASK_DATA_KEY]);
-        auto img_w = img.size(1);
-        auto img_h = img.size(0);
-
-        float pad = 1 * std::min(obj.rect.width, obj.rect.height);
-        pad = std::min(std::max(pad, 5.f), 40.f);
-
-        auto box_for_crop = at::empty({6});
-        box_for_crop[0] = std::max(0.f, obj.rect.x - pad);
-        box_for_crop[1] = std::max(0.f, obj.rect.y - pad);
-        box_for_crop[2] = std::min(obj.rect.width + obj.rect.x + pad, img_w - 1.f);
-        box_for_crop[3] = std::min(obj.rect.height + obj.rect.y + pad, img_h - 1.f);
-        box_for_crop[4] = obj.label;
-        box_for_crop[5] = obj.prob;
-        boxes_for_crop.emplace_back(box_for_crop);
-      }
-      (*input[i])[TASK_RESULT_KEY] = boxes;
-      (*input[i])[TASK_BOX_KEY] = boxes_for_crop;
-    }
-  }
-};
-
-using BatchingPostProcYolox_default = BatchingPostProcYolox<>;
-IPIPE_REGISTER(PostProcessor<at::Tensor>, BatchingPostProcYolox_default, "BatchingPostProcYolox");
-
 using BatchingPostProcYolox_45_30 = BatchingPostProcYolox<45, 30>;
 IPIPE_REGISTER(PostProcessor<at::Tensor>, BatchingPostProcYolox_45_30,
                "BatchingPostProcYolox_45_30");
 
-///   v2
-/// https://github.com/shouxieai/tensorRT_Pro/blob/2c5db6a987be9ab92abdc78db3ce4305053364f0/src/application/app_yolo/yolo_decode.cu
-// https://github.com/shouxieai/tensorRT_Pro/blob/main/README.zh-cn.md
-///   v3
-///   https://github.com/ttanzhiqiang/onnx_tensorrt_project/blob/main/src/yolox/yolox_detector.cpp
+namespace ipipe {
+class FilterScore : public Filter {
+ public:
+  status forward(dict data) override {
+    constexpr auto thres = 0.2;
+    auto iter = data->find("score");
+    if (iter == data->end()) {
+      return status::Error;
+    }
+    float score = any_cast<float>(iter->second);
+    // if (score < thres)
+    if ((float)rand() / RAND_MAX < 0.3) {
+      SPDLOG_INFO("run score {}", score);
+      return status::Run;
+    } else {
+      SPDLOG_INFO("skip score {}", score);
+      return status::Skip;
+    }
+  }
+};
+IPIPE_REGISTER(Filter, FilterScore, "filter_score");
+}  // namespace ipipe

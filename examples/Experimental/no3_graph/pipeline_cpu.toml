@@ -1,0 +1,111 @@
+batching_timeout = 5 #默认的凑batch的超时时间
+precision = "fp16" 
+
+[jpg_decoder]
+backend = "Sequential[DecodeMat,(result2key_1)cvtColorMat,ResizePadMat,Mat2Tensor,SyncTensor]"
+color = "bgr"
+instance_num = 5
+max_h = 416
+max_w = 416
+
+next = "detect"
+
+[detect]
+backend = "SyncTensor[TensorrtTensor]" 
+batching_timeout = 5 #默认的凑batch的超时时间
+instance_num = 2 
+max = 4 
+model = "../../../examples/yolox/yolox_tiny.onnx" 
+"model::cache" = "./yolox_tiny.trt" 
+postprocessor = "BatchingPostProcYolox_45_30" 
+next = "cls_1_brnch"
+
+[cls_1_brnch] 
+map="jpg_decoder[key_1:data,color:color],detect[TASK_BOX_KEY:TASK_BOX_KEY]"
+
+backend = "MapReduce"
+jump="cls_preprocess_1"
+
+split="TASK_BOX_KEY"
+merge="score,result"
+
+
+
+# sub graph 1
+[cls_preprocess_1]
+backend="Sequential[CropMat,ResizeMat,cvtColorMat,Mat2Tensor,SyncTensor]"
+resize_h=224
+resize_w=224
+color="rgb"
+instance_num=4
+# save_dir="./"
+
+next="cls_1"
+
+[cls_1]
+mean = "123.675, 116.28, 103.53" # 255*"0.485, 0.456, 0.406"
+std = "58.395, 57.120, 57.375" # 255*"0.229, 0.224, 0.225"
+backend="SyncTensor[TensorrtTensor]"
+max=4
+model="./resnet18.onnx"
+"model::cache"="./resnet18.trt"
+instance_num=2
+postprocessor="SoftmaxArgMax"
+
+next="faster_vit_1"
+
+[faster_vit_1]
+filter="filter_score"
+
+mean = "123.675, 116.28, 103.53" # 255*"0.485, 0.456, 0.406"
+std = "58.395, 57.120, 57.375" # 255*"0.229, 0.224, 0.225"
+backend="SyncTensor[TensorrtTensor]"
+max=4
+model="././fastervit_0_224_224.onnx"
+"model::cache"="./fastervit_0_224_224.trt"
+instance_num=2
+postprocessor="SoftmaxArgMax"
+
+
+
+
+
+
+# sub graph 2
+[cls_preprocess_2]
+backend="Sequential[CropMat,ResizeMat,cvtColorMat,Mat2Tensor]"
+resize_h=224
+resize_w=224
+color="rgb"
+instance_num=4
+# save_dir="./"
+
+next="cls_2"
+
+[cls_2]
+mean = "123.675, 116.28, 103.53" # 255*"0.485, 0.456, 0.406"
+std = "58.395, 57.120, 57.375" # 255*"0.229, 0.224, 0.225"
+backend="SyncTensor[TensorrtTensor]"
+max=4
+model="./resnet18.onnx"
+"model::cache"="./resnet18.trt"
+instance_num=2
+postprocessor="SoftmaxArgMax"
+
+next="faster_vit_2"
+
+[faster_vit_2]
+filter="filter_score"
+
+mean = "123.675, 116.28, 103.53" # 255*"0.485, 0.456, 0.406"
+std = "58.395, 57.120, 57.375" # 255*"0.229, 0.224, 0.225"
+backend="SyncTensor[TensorrtTensor]"
+max=4
+model="././fastervit_0_224_224.onnx"
+"model::cache"="./fastervit_0_224_224.trt"
+instance_num=2
+postprocessor="SoftmaxArgMax"
+
+
+
+ 

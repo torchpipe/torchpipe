@@ -82,7 +82,7 @@ at::Tensor tensor_crop(at::Tensor input, int x1, int y1, int x2, int y2) {
   return image_tensor;
 }
 // https://pytorch.org/cppdocs/notes/tensor_indexing.html
-at::Tensor libtorch_crop(at::Tensor input, uint32_t x1, uint32_t y1, uint32_t x2, uint32_t y2) {
+at::Tensor libtorch_crop(at::Tensor input, int x1, int y1, int x2, int y2) {
   if (input.sizes().size() >= 2) {  //..hw
     return input.index({"...", at::indexing::Slice(y1, y2), at::indexing::Slice(x1, x2)});
   } else {
@@ -93,38 +93,31 @@ at::Tensor libtorch_crop(at::Tensor input, uint32_t x1, uint32_t y1, uint32_t x2
   }
 }
 
-void CropTensor::forward(const std::vector<dict>& input_dicts) {
-  for (auto input_dict : input_dicts) {
-    auto& input = *input_dict;
+void CropTensor::forward(dict input_dict) {
+  auto& input = *input_dict;
 
-    std::vector<at::Tensor> cropped_tensors;
+  std::vector<int> pbox = dict_get<std::vector<int>>(input_dict, TASK_BOX_KEY);
 
-    std::vector<std::vector<uint32_t>> pboxes =
-        dict_get<std::vector<std::vector<uint32_t>>>(input_dict, TASK_BOX_KEY);
+  auto input_tensor = dict_get<at::Tensor>(input_dict, TASK_DATA_KEY);
 
-    auto input_tensor = dict_get<at::Tensor>(input_dict, TASK_DATA_KEY);
+  input_tensor = img_1chw_guard(input_tensor);
 
-    input_tensor = img_1chw_guard(input_tensor);
-
-    for (const auto& item : pboxes) {
-      if (item.size() < 4) {
-        SPDLOG_ERROR("TASK_BOX_KEY: boxes[i].size() < 4");
-        throw std::invalid_argument("get an error box");
-      }
-
-      const uint32_t& x1 = item[0];
-      const uint32_t& y1 = item[1];
-      const uint32_t& x2 = item[2];
-      const uint32_t& y2 = item[3];
-      auto cropped = libtorch_crop(input_tensor, x1, y1, x2, y2);
-      if (cropped.numel() <= 0) {
-        SPDLOG_ERROR("get an empty tensor");
-        throw std::runtime_error("get an empty tensor");
-      }
-      cropped_tensors.push_back(cropped);
-    }
-    input[TASK_RESULT_KEY] = cropped_tensors;
+  if (pbox.size() < 4) {
+    SPDLOG_ERROR("TASK_BOX_KEY: boxes[i].size() < 4");
+    throw std::invalid_argument("get an error box");
   }
+
+  const uint32_t& x1 = pbox[0];
+  const uint32_t& y1 = pbox[1];
+  const uint32_t& x2 = pbox[2];
+  const uint32_t& y2 = pbox[3];
+  auto cropped = libtorch_crop(input_tensor, x1, y1, x2, y2);
+  if (cropped.numel() <= 0) {
+    SPDLOG_ERROR("get an empty tensor");
+    throw std::runtime_error("get an empty tensor");
+  }
+
+  input[TASK_RESULT_KEY] = cropped;
 }
 
 IPIPE_REGISTER(Backend, CropTensor, "CropTensor");

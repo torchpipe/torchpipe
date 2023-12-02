@@ -19,9 +19,9 @@
 // #include "cuda.h"
 
 namespace ipipe {
-class CropTensor : public Backend {
+class CropTensor : public SingleBackend {
  public:
-  virtual void forward(const std::vector<dict>&) override;
+  virtual void forward(dict) override;
 
  private:
 };

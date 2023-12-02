@@ -79,7 +79,6 @@ IPIPE_REGISTER(Filter, FilterTarget, "Target")
 class FilterHalfChance : public Filter {
  public:
   status forward(dict input) {
-    input->erase(TASK_RESULT_KEY);
     if (rand() % 2 == 0)
       return status::Run;
     else
@@ -88,5 +87,23 @@ class FilterHalfChance : public Filter {
 };
 
 IPIPE_REGISTER(Filter, FilterHalfChance, "half_chance")
+
+class result2key_1 : public Filter {
+ public:
+  status forward(dict input) {
+    auto iter = input->find(TASK_RESULT_KEY);
+    if (iter == input->end()) {
+      // there must be sth wrong
+
+      return status::Break;
+    }
+    (*input)[TASK_DATA_KEY] = iter->second;
+    // input->erase(TASK_RESULT_KEY);
+    (*input)["key_1"] = iter->second;
+    return status::Run;
+  }
+};
+
+IPIPE_REGISTER(Filter, result2key_1, "result2key_1")
 
 }  // namespace ipipe
