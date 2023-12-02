@@ -69,17 +69,17 @@ model="./resnet18.onnx"
 instance_num=2
 postprocessor="SoftmaxArgMax"
 
-next="faster_vit_1"
+next="resnet50_1"
 
-[faster_vit_1]
+[resnet50_1]
 filter="filter_score"
 
 mean = "123.675, 116.28, 103.53" # 255*"0.485, 0.456, 0.406"
 std = "58.395, 57.120, 57.375" # 255*"0.229, 0.224, 0.225"
 backend="SyncTensor[TensorrtTensor]"
 max=4
-model="././fastervit_0_224_224.onnx"
-"model::cache"="./fastervit_0_224_224.trt"
+model="././resnet50.onnx"
+"model::cache"="./resnet50.trt"
 instance_num=2
 postprocessor="SoftmaxArgMax"
 
@@ -96,8 +96,8 @@ mean = "123.675, 116.28, 103.53" # 255*"0.485, 0.456, 0.406"
 std = "58.395, 57.120, 57.375" # 255*"0.229, 0.224, 0.225"
 backend="SyncTensor[TensorrtTensor]"
 max=4
-model="././resnet50.onnx"
-"model::cache"="./resnet50.trt"
+model="././fastervit_0_224_224.onnx"
+"model::cache"="./fastervit_0_224_224.trt"
 instance_num=2
 postprocessor="SoftmaxArgMax"
 
@@ -105,5 +105,5 @@ postprocessor="SoftmaxArgMax"
 next="subgraph_final"
 
 [subgraph_final]
-map="faster_vit_1[score:score_1,result:cls_1_result],cls_2[score:score_2,result:data]"
+map="resnet50_1[score:score_1,result:cls_1_result],cls_2[score:score_2,result:data]"
  
