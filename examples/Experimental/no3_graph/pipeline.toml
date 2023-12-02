@@ -1,4 +1,4 @@
-batching_timeout = 5 #默认的凑batch的超时时间
+batching_timeout = 10 #默认的凑batch的超时时间
 precision = "fp16" 
 
 [jpg_decoder]
@@ -63,7 +63,7 @@ next="cls_1,cls_2"
 mean = "123.675, 116.28, 103.53" # 255*"0.485, 0.456, 0.406"
 std = "58.395, 57.120, 57.375" # 255*"0.229, 0.224, 0.225"
 backend="SyncTensor[TensorrtTensor]"
-max=4
+max=8
 model="./resnet18.onnx"
 "model::cache"="./resnet18.trt"
 instance_num=2
@@ -95,7 +95,7 @@ next="subgraph_final"
 mean = "123.675, 116.28, 103.53" # 255*"0.485, 0.456, 0.406"
 std = "58.395, 57.120, 57.375" # 255*"0.229, 0.224, 0.225"
 backend="SyncTensor[TensorrtTensor]"
-max=4
+max=8
 model="././fastervit_0_224_224.onnx"
 "model::cache"="./fastervit_0_224_224.trt"
 instance_num=2
