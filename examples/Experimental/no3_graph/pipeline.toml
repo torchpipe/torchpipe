@@ -91,19 +91,6 @@ next="subgraph_final"
 # sub graph 2
 
 [cls_2]
-mean = "123.675, 116.28, 103.53" # 255*"0.485, 0.456, 0.406"
-std = "58.395, 57.120, 57.375" # 255*"0.229, 0.224, 0.225"
-backend="SyncTensor[TensorrtTensor]"
-max=4
-model="./resnet18.onnx"
-"model::cache"="./resnet18.trt"
-instance_num=2
-postprocessor="SoftmaxArgMax"
-
-next="faster_vit_2"
-
-[faster_vit_2]
-filter="filter_score"
 
 mean = "123.675, 116.28, 103.53" # 255*"0.485, 0.456, 0.406"
 std = "58.395, 57.120, 57.375" # 255*"0.229, 0.224, 0.225"
@@ -118,5 +105,5 @@ postprocessor="SoftmaxArgMax"
 next="subgraph_final"
 
 [subgraph_final]
-map="faster_vit_1[score:score_1,result:cls_1_result],faster_vit_2[score:score_2,result:data]"
+map="faster_vit_1[score:score_1,result:cls_1_result],cls_2[score:score_2,result:data]"
  

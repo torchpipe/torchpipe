@@ -325,18 +325,16 @@ namespace ipipe {
 class FilterScore : public Filter {
  public:
   status forward(dict data) override {
-    constexpr auto thres = 0.2;
+    constexpr auto thres = 0.3;
     auto iter = data->find("score");
     if (iter == data->end()) {
       return status::Error;
     }
     float score = any_cast<float>(iter->second);
-    // if (score < thres)
-    if ((float)rand() / RAND_MAX < 0.3) {
-      SPDLOG_INFO("run score {}", score);
+    if (score < thres) {
+      // if ((float)rand() / RAND_MAX < 0.3) {
       return status::Run;
     } else {
-      SPDLOG_INFO("skip score {}", score);
       return status::Skip;
     }
   }
