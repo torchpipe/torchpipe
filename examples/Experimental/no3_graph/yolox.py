@@ -70,7 +70,7 @@ if __name__ == "__main__":
         test.test_from_raw_file(
             run,
             os.path.join("../../../test/assets/norm_jpg"),
-            num_clients=10,
+            num_clients=40,
             total_number=10000,
         )
     else:
