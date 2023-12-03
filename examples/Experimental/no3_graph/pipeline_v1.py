@@ -80,6 +80,7 @@ if __name__ == "__main__":
         for i in range(len(cls_1_score)):
             if cls_1_score[i] < 0.3:
                 retry_indexes.append(i)
+        print("retry_indexes: ", retry_indexes)
         retry_cls_1_inputs = [{"data":inputs[i]["result"],'node_name':'post_cls_1'} for i in retry_indexes]
         model(retry_cls_1_inputs)
 

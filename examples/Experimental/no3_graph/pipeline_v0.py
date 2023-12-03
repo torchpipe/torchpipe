@@ -71,7 +71,8 @@ if __name__ == "__main__":
         cls_1_inputs = [{"data":x["result"],'node_name':'cls_1'} for x in inputs]
         cls_2_inputs = [{"data":x["result"],'node_name':'cls_2'} for x in inputs]
 
-        model(cls_1_inputs + cls_2_inputs)
+        model(cls_1_inputs)
+        model(cls_2_inputs)
 
         cls_1_score = [x["score"] for x in cls_1_inputs]
         cls_2_score = [x["score"] for x in cls_2_inputs]
