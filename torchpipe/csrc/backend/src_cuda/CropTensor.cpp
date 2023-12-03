@@ -32,6 +32,7 @@
 namespace ipipe {
 
 at::Tensor tensor_crop(at::Tensor input, int x1, int y1, int x2, int y2) {
+  return input;
   const int roi_w = x2 - x1;
   const int roi_h = y2 - y1;
 
@@ -82,16 +83,17 @@ at::Tensor tensor_crop(at::Tensor input, int x1, int y1, int x2, int y2) {
   return image_tensor;
 }
 // https://pytorch.org/cppdocs/notes/tensor_indexing.html
-at::Tensor libtorch_crop(at::Tensor input, int x1, int y1, int x2, int y2) {
-  if (input.sizes().size() >= 2) {  //..hw
-    return input.index({"...", at::indexing::Slice(y1, y2), at::indexing::Slice(x1, x2)});
-  } else {
-    std::stringstream ss;
-    ss << "input.sizes() = " << input.sizes() << " x1 y1 x2 y2 = " << x1 << " " << y1 << " " << x2
-       << " " << y2;
-    throw std::invalid_argument(ss.str());
-  }
-}
+// at::Tensor libtorch_crop(at::Tensor input, int x1, int y1, int x2, int y2) {
+//   if (input.sizes().size() >= 2) {  //..hw
+//     return input.index({"...", at::indexing::Slice(y1, y2), at::indexing::Slice(x1, x2)});
+//   } else {
+//     std::stringstream ss;
+//     ss << "input.sizes() = " << input.sizes() << " x1 y1 x2 y2 = " << x1 << " " << y1 << " " <<
+//     x2
+//        << " " << y2;
+//     throw std::invalid_argument(ss.str());
+//   }
+// }
 
 void CropTensor::forward(dict input_dict) {
   auto& input = *input_dict;
