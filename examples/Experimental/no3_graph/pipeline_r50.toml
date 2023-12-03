@@ -14,8 +14,10 @@ next = "detect"
 [detect]
 backend = "S[TensorrtTensor, PostProcYolox,SyncTensor]" 
 batching_timeout = 5 #默认的凑batch的超时时间
-instance_num = 2
-max = "8"
+instance_num = 3
+max = "8;8;4"
+min = "8;8;1"
+
 net_h=416
 net_w=416
 model = "../../../examples/yolox/yolox_tiny.onnx" 
