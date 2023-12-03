@@ -15,8 +15,7 @@ next = "detect"
 backend = "S[TensorrtTensor, PostProcYolox,SyncTensor]" 
 batching_timeout = 5 #默认的凑batch的超时时间
 instance_num = 1
-max = "8;8"
-min = "1;1" 
+max = "8"
 net_h=416
 net_w=416
 model = "../../../examples/yolox/yolox_tiny.onnx" 
@@ -65,9 +64,9 @@ model="./resnet18.onnx"
 instance_num=3
 # postprocessor="SoftmaxArgMax"
 
-next="resnet50_1"
+next="post_cls_1"
 
-[resnet50_1]
+[post_cls_1]
 filter="filter_score"
 
 mean = "123.675, 116.28, 103.53" # 255*"0.485, 0.456, 0.406"
@@ -105,5 +104,5 @@ batching_timeout=10
 next="subgraph_final"
 
 [subgraph_final]
-map="resnet50_1[score:score_1,result:cls_1_result],cls_2[score:score_2,result:data]"
+map="post_cls_1[score:score_1,result:cls_1_result],cls_2[score:score_2,result:data]"
  
