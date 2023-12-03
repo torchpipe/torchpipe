@@ -24,32 +24,32 @@ model = "../../../examples/yolox/yolox_tiny.onnx"
 "model::cache" = "./yolox_tiny.trt" 
 # postprocessor = "BatchingPostProcYolox_45_30" 
 "model::timingcache"="./yolox_tiny.timingcache"
-# next = "sub_graph"
+next = "sub_graph"
 
-# [sub_graph] 
-# map="jpg_decoder[other:data,color:color],detect[TASK_BOX_KEY:TASK_BOX_KEY]"
+[sub_graph] 
+map="jpg_decoder[other:data,color:color],detect[TASK_BOX_KEY:TASK_BOX_KEY]"
 
-# backend = "MapReduce"
-# jump="cls_preprocess"
+backend = "MapReduce"
+jump="cls_preprocess"
 
-# split="TASK_BOX_KEY"
+split="TASK_BOX_KEY"
 # merge="score_1,score_2,result,cls_1_result"
 
-# next="final"
-# instance_num=20
+next="final"
+instance_num=20
 
-# [final]
+[final]
 
 
 
 # #### sub graph ####
-# [cls_preprocess]
-# backend="Sequential[CropTensor,ResizeTensor,cvtColorTensor,SyncTensor]"
-# resize_h=224
-# resize_w=224
-# color="rgb"
-# instance_num=8
-# # save_dir="./"
+[cls_preprocess]
+backend="Sequential[CropTensor,ResizeTensor,cvtColorTensor,SyncTensor]"
+resize_h=224
+resize_w=224
+color="rgb"
+instance_num=8
+# save_dir="./"
 
 # next="cls_1,cls_2"
 
