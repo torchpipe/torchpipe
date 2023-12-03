@@ -27,13 +27,13 @@ tp.utils.cpp_extension.load(name="yolox", sources=["./yolox_new.cpp"])
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
-    "--config", dest="toml", type=str, default="./pipeline_v0.toml", help="configuration file"
+    "--config", dest="toml", type=str, default="./pipeline_ori_v0.toml", help="configuration file"
 )
 parser.add_argument("--benchmark", action="store_true")
 args = parser.parse_args()
 
 if __name__ == "__main__":
-    img_path = "../../../test/assets/norm_jpg/dog.jpg"
+    img_path = "../../../test/assets/norm_jpg_720p/dog.jpg"
     img = cv2.imread(img_path, 1)
     img = cv2.imencode(".jpg", img, [int(cv2.IMWRITE_JPEG_QUALITY), 95])[1]
     img = img.tobytes()
@@ -116,7 +116,7 @@ if __name__ == "__main__":
 
         test.test_from_raw_file(
             run,
-            os.path.join("../../../test/assets/norm_jpg"),
+            os.path.join("../../../test/assets/norm_jpg_720p"),
             num_clients=20,
             total_number=10000,
         )
