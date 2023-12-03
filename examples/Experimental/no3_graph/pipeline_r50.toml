@@ -48,6 +48,7 @@ backend="Sequential[CropTensor,SyncTensor]"
 resize_h=224
 resize_w=224
 color="rgb"
+batching_timeout=0
 instance_num=8
 # save_dir="./"
 

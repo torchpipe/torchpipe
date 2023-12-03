@@ -19,6 +19,7 @@
 #include "Backend.hpp"
 #include "dict.hpp"
 #include "params.hpp"
+#include <chrono>
 
 namespace ipipe {
 /**
