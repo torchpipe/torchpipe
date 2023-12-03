@@ -49,8 +49,6 @@ bool Jump::init(const std::unordered_map<std::string, std::string>& config, dict
 }
 
 void Jump::forward(const std::vector<dict>& input_dicts) {
-  // get time
-  auto start = std::chrono::high_resolution_clock::now();
   for (const auto& input : input_dicts) {
     IPIPE_ASSERT(input->find(TASK_EVENT_KEY) == input->end());
     IPIPE_ASSERT(input->find(TASK_STACK_KEY) == input->end());
@@ -76,10 +74,6 @@ void Jump::forward(const std::vector<dict>& input_dicts) {
 
     interpreter_->forward(total_splits);
     event->Wait();
-    auto end = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-    SPDLOG_INFO("jump {} cost {} ms. total_splits = {}, input_dicts={}", jump_, duration.count(),
-                total_splits.size(), input_dicts.size());
 
     for (std::size_t i = 0; i < splits.size(); ++i) {
       merge_wrapper(input_dicts[i], splits[i]);
