@@ -48,7 +48,7 @@ backend="Sequential[CropTensor,ResizeTensor,cvtColorTensor,SyncTensor]"
 resize_h=224
 resize_w=224
 color="rgb"
-instance_num=4
+instance_num=8
 # save_dir="./"
 
 # next="cls_1,cls_2"
