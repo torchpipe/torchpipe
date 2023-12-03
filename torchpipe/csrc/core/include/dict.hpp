@@ -113,7 +113,7 @@ T dict_get(dict data, const std::string& key, bool return_default = false) {
     if (return_default)
       return T();
     else {
-      throw std::invalid_argument("can not found key: " + key);
+      throw std::invalid_argument("dict_get: can not found key: " + key);
     }
   }
 }

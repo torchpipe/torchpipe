@@ -265,10 +265,25 @@ nvinfer1::ITimingCache* prepareTimeCache(const std::string& cache_file,
 
 void writeTimeCache(const std::string& cache_file, nvinfer1::IBuilderConfig* config,
                     nvinfer1::ITimingCache* timingCache) {
+  // fileTimingCache->combine(*timingCache, false);
   auto blob = std::unique_ptr<nvinfer1::IHostMemory>(config->getTimingCache()->serialize());
 
   if (!blob->size()) return;
-  // fileTimingCache->combine(*timingCache, false);
+
+  if (Is_File_Exist(cache_file)) {
+    // 如果cache_file的大小和blob的大小一样，就不用写了
+    std::ifstream iFile(cache_file, std::ios::in | std::ios::binary);
+    if (iFile) {
+      iFile.seekg(0, std::ifstream::end);
+      size_t fsize = iFile.tellg();
+      iFile.seekg(0, std::ifstream::beg);
+      if (fsize == blob->size()) {
+        SPDLOG_INFO("size of {} is same as blob's size, skip writing timing cache.", cache_file);
+        return;
+      }
+    }
+  }
+
   if (!blob) {
     throw std::runtime_error("Failed to serialize ITimingCache!");
   }
@@ -598,9 +613,8 @@ std::shared_ptr<CudaEngineWithRuntime> onnx2trt(
 
 #if NV_TENSORRT_MAJOR >= 8
       if (!precision.timecache.empty()) {
-        if (!Is_File_Exist(precision.timecache)) {
-          writeTimeCache(precision.timecache, config.get(), time_cache.get());
-        }
+        // if (!Is_File_Exist(precision.timecache))
+        { writeTimeCache(precision.timecache, config.get(), time_cache.get()); }
       }
 #endif
 
