@@ -138,9 +138,6 @@ class PostProcYolox : public Backend {
       auto iter = input[i]->find("inverse_trans");
       if (iter == input[i]->end()) {
         float ratio = dict_get<float>(input[i], "ratio");
-
-        // float x_ratio = img_w / (float)net_w;
-        // float y_ratio = img_h / (float)net_h;
         inverse_trans = [ratio](float x, float y) {
           return std::pair<float, float>(ratio * x, ratio * y);
         };
