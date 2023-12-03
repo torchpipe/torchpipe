@@ -82,22 +82,20 @@ at::Tensor tensor_crop(at::Tensor input, int x1, int y1, int x2, int y2) {
 
   return image_tensor;
 }
+
 // https://pytorch.org/cppdocs/notes/tensor_indexing.html
-// at::Tensor libtorch_crop(at::Tensor input, int x1, int y1, int x2, int y2) {
-//   if (input.sizes().size() >= 2) {  //..hw
-//     return input.index({"...", at::indexing::Slice(y1, y2), at::indexing::Slice(x1, x2)});
-//   } else {
-//     std::stringstream ss;
-//     ss << "input.sizes() = " << input.sizes() << " x1 y1 x2 y2 = " << x1 << " " << y1 << " " <<
-//     x2
-//        << " " << y2;
-//     throw std::invalid_argument(ss.str());
-//   }
-// }
+at::Tensor libtorch_crop(at::Tensor input, int x1, int y1, int x2, int y2) {
+  if (input.sizes().size() >= 2) {  //..hw
+    return input.index({"...", at::indexing::Slice(y1, y2), at::indexing::Slice(x1, x2)});
+  } else {
+    std::stringstream ss;
+    ss << "input.sizes() = " << input.sizes() << " x1 y1 x2 y2 = " << x1 << " " << y1 << " " << x2
+       << " " << y2;
+    throw std::invalid_argument(ss.str());
+  }
+}
 
 void CropTensor::forward(dict input_dict) {
-  (*input_dict)["result"] = 1;
-  return;
   auto& input = *input_dict;
 
   std::vector<int> pbox = dict_get<std::vector<int>>(input_dict, TASK_BOX_KEY);
@@ -115,7 +113,7 @@ void CropTensor::forward(dict input_dict) {
   const uint32_t& y1 = pbox[1];
   const uint32_t& x2 = pbox[2];
   const uint32_t& y2 = pbox[3];
-  auto cropped = tensor_crop(input_tensor, x1, y1, x2, y2);
+  auto cropped = libtorch_crop(input_tensor, x1, y1, x2, y2);
   if (cropped.numel() <= 0) {
     SPDLOG_ERROR("get an empty tensor");
     throw std::runtime_error("get an empty tensor");
