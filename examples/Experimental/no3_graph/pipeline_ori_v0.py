@@ -57,7 +57,7 @@ if __name__ == "__main__":
         input["data"] = input["result"]
         input["node_name"] = "detect"
 
-        img = torch.from_numpy(input["other"])
+        img = torch.from_numpy(input["other"]).cuda()
         del input["other"] 
         
         model(input)
