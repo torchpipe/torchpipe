@@ -96,7 +96,8 @@ at::Tensor tensor_crop(at::Tensor input, int x1, int y1, int x2, int y2) {
 // }
 
 void CropTensor::forward(dict input_dict) {
-  auto& input = *input_dict;
+  (*input_dict)["result"] = 1;
+  return auto & input = *input_dict;
 
   std::vector<int> pbox = dict_get<std::vector<int>>(input_dict, TASK_BOX_KEY);
 
