@@ -7,6 +7,7 @@ torchpipe.egg-info/
 dist/
 .vscode/
 test/./resnet18.onnx
+*.timingcache
 
 thirdparty/TensorRT*
 thirdparty/TensorRT-7.2.3.4.CentOS-7.9.x86_64-gnu.cuda-10.2.cudnn8.1.tar.gz

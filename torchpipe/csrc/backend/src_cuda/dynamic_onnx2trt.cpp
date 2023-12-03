@@ -268,7 +268,7 @@ void writeTimeCache(const std::string& cache_file, nvinfer1::IBuilderConfig* con
   // fileTimingCache->combine(*timingCache, false);
   auto blob = std::unique_ptr<nvinfer1::IHostMemory>(config->getTimingCache()->serialize());
 
-  if (!blob->size()) return;
+  if (!blob || !blob->size()) return;
 
   if (Is_File_Exist(cache_file)) {
     // 如果cache_file的大小和blob的大小一样，就不用写了
