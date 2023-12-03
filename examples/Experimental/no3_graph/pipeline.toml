@@ -12,14 +12,17 @@ max_w = 416
 next = "detect"
 
 [detect]
-backend = "SyncTensor[TensorrtTensor]" 
+backend = "S[TensorrtTensor, PostProcYolox,SyncTensor]" 
 batching_timeout = 5 #默认的凑batch的超时时间
 instance_num = 3
 max = "8;8;4"
 min = "8;4;1" 
+net_h=416
+net_w=416
 model = "../../../examples/yolox/yolox_tiny.onnx" 
 "model::cache" = "./yolox_tiny.trt" 
-postprocessor = "BatchingPostProcYolox_45_30" 
+# postprocessor = "BatchingPostProcYolox_45_30" 
+"model::timingcache"="./yolox_tiny.timingcache"
 next = "sub_graph"
 
 [sub_graph] 
@@ -57,6 +60,8 @@ backend="S[TensorrtTensor,SoftmaxArgMaxTensor,SyncTensor]"
 max=4
 model="./resnet18.onnx"
 "model::cache"="./resnet18.trt"
+"model::timingcache"="resnet18.timingcache"
+
 instance_num=2
 # postprocessor="SoftmaxArgMax"
 
@@ -71,6 +76,8 @@ backend="S[TensorrtTensor,SoftmaxArgMaxTensor,SyncTensor]"
 max=4
 model="././resnet50.onnx"
 "model::cache"="./resnet50.trt"
+"model::timingcache"="resnet50.timingcache"
+
 instance_num=2
 # postprocessor="SoftmaxArgMax"
 
@@ -87,6 +94,8 @@ backend="S[TensorrtTensor,SoftmaxArgMaxTensor,SyncTensor]"
 max="8;4"
 model="././fastervit_0_224_224.onnx"
 "model::cache"="./fastervit_0_224_224.trt"
+"model::timingcache"="fastervit_0_224_224.timingcache"
+
 instance_num=2
 # postprocessor="SoftmaxArgMax"
 batching_timeout=10

@@ -23,7 +23,7 @@ import torch
 import torchpipe as tp
 from torchpipe import pipe, TASK_DATA_KEY, TASK_RESULT_KEY, TASK_BOX_KEY
 
-tp.utils.cpp_extension.load(name="yolox", sources=["./yolox.cpp"])
+tp.utils.cpp_extension.load(name="yolox", sources=["./yolox_new.cpp"])
 
 parser = argparse.ArgumentParser()
 parser.add_argument(

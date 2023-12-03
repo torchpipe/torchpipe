@@ -35,6 +35,9 @@
 
 // #define CLASS_SPECIFIC
 
+constexpr int NMS_THRESH = 45;
+constexpr int BBOX_CONF_THRESH = 30;
+
 using namespace ipipe;
 
 template <typename T>
@@ -64,14 +67,29 @@ static inline cv_rect<T> operator&(const cv_rect<T>& a, const cv_rect<T>& b) {
 }
 
 // stuff we know about the network and the input/output blobs
-template <int NMS_THRESH = 45, int BBOX_CONF_THRESH = 30>
-class BatchingPostProcYolox : public PostProcessor<at::Tensor> {
+
+class PostProcYolox : public Backend {
  public:
-  virtual void forward(std::vector<at::Tensor> net_outputs, std::vector<dict> input,
-                       const std::vector<at::Tensor>& net_inputs) override {
+  virtual bool init(const std::unordered_map<std::string, std::string>& config, dict dict_config) {
+    if (config.find("net_h") == config.end() || config.find("net_w") == config.end()) {
+      std::cerr << "net_h or net_w not found" << std::endl;
+      return false;
+    }
+    net_h_ = std::stoi(config.at("net_h"));
+    net_w_ = std::stoi(config.at("net_w"));
+    return true;
+  };
+  void forward(const std::vector<dict>& data) override {
+    IPIPE_ASSERT(data.size() == 1);
+    at::Tensor result = dict_get<at::Tensor>(data[0], TASK_DATA_KEY);
+    forward({result}, data);
+  }
+
+ private:
+  void forward(std::vector<at::Tensor> net_outputs, std::vector<dict> input) {
     if (net_outputs.empty()) return;
 
-    auto final_objs = forward_impl(net_outputs, input, net_inputs);
+    auto final_objs = forward_impl(net_outputs, input);
 
     for (auto i = 0; i < input.size(); ++i) {
       const std::vector<Object>& objects = final_objs[i];
@@ -104,13 +122,11 @@ class BatchingPostProcYolox : public PostProcessor<at::Tensor> {
   };
 
   std::vector<std::vector<Object>> forward_impl(std::vector<at::Tensor> net_outputs,
-                                                std::vector<dict> input,
-                                                const std::vector<at::Tensor>& net_inputs) {
+                                                std::vector<dict> input) {
     net_outputs[0] = net_outputs[0].cpu();
 
-    const auto& input_shape = net_inputs[0].sizes().vec();
-    auto net_w = net_inputs[0].size(-1);
-    auto net_h = net_inputs[0].size(-2);
+    auto net_w = net_w_;
+    auto net_h = net_h_;
 
     const int num_classes = net_outputs[0].size(-1) - 5;
     assert(num_classes > 0);
@@ -315,12 +331,15 @@ class BatchingPostProcYolox : public PostProcessor<at::Tensor> {
       objects[i].rect.height = y1 - y0;
     }
   }
+
+ private:
+  int net_h_;
+  int net_w_;
 };
 
-using BatchingPostProcYolox_45_30 = BatchingPostProcYolox<45, 30>;
-IPIPE_REGISTER(PostProcessor<at::Tensor>, BatchingPostProcYolox_45_30,
-               "BatchingPostProcYolox_45_30");
-
+// using PostProcYolox_45_30 = PostProcYolox;
+// IPIPE_REGISTER(PostProcessor<at::Tensor>, PostProcYolox_45_30, "PostProcYolox_45_30");
+IPIPE_REGISTER(Backend, PostProcYolox, "PostProcYolox");
 namespace ipipe {
 class FilterScore : public Filter {
  public:
@@ -340,90 +359,4 @@ class FilterScore : public Filter {
   }
 };
 IPIPE_REGISTER(Filter, FilterScore, "filter_score");
-
-void decode_outputs(const float* prob, std::vector<Object>& objects,
-                    std::function<std::pair<float, float>(float, float)> inverse_trans,
-                    const int num_classes, unsigned net_h, unsigned net_w) {
-  // https://raw.githubusercontent.com/shouxieai/tensorRT_Pro/fb9a20c55516b879abfe9ec9316f8c1547780abd/README.md
-  std::vector<Object> proposals;
-  { generate_yolox_proposals(prob, BBOX_CONF_THRESH / 100., proposals, num_classes, net_h, net_w); }
-
-  // std::cout << "num of boxes before nms: " << proposals.size()
-  //           << std::endl;
-  {
-    // qsort_descent_inplace(proposals);
-    std::sort(proposals.begin(), proposals.end(),
-              [](const Object& b1, const Object& b2) { return b1.prob > b2.prob; });
-  }
-
-  std::vector<int> picked;
-#ifdef CLASS_SPECIFIC
-  nms_sorted_bboxes_class_specific(proposals, picked, NMS_THRESH / 100., num_classes);
-#else
-  nms_sorted_bboxes(proposals, picked, NMS_THRESH / 100.);
-#endif
-
-  int count = picked.size();
-
-  // std::cout << "num of boxes: " << count << std::endl;
-
-  objects.resize(count);
-  for (int i = 0; i < count; i++) {
-    objects[i] = proposals[picked[i]];
-    auto tmp = inverse_trans(objects[i].rect.x + 1, objects[i].rect.y + 1);
-    // adjust offset to original unpadded
-    float x0 = tmp.first;
-    float y0 = tmp.second;
-    tmp = inverse_trans(objects[i].rect.x + objects[i].rect.width,
-                        objects[i].rect.y + objects[i].rect.height);
-    float x1 = tmp.first;
-    float y1 = tmp.second;
-
-    objects[i].rect.x = x0;
-    objects[i].rect.y = y0;
-    objects[i].rect.width = x1 - x0;
-    objects[i].rect.height = y1 - y0;
-  }
-}
-
-std::vector<Object> yolox_parse_net_output(
-    at::Tensor output, int net_h int net_w,
-    std::function<std::pair<float, float>(float, float)> inverse_trans) {
-  if (output.is_cuda()) output = output.cpu();
-
-  assert(num_classes > 0);
-  std::vector<std::vector<Object>> all_objects;
-  const float* prob = output[i].data_ptr<float>();
-
-  std::vector<Object> objects;
-
-  const int num_classes = output.size(-1) - 5;
-
-  decode_outputs(prob, objects, inverse_trans, num_classes, net_h, net_w);
-  return objects;
-}
-
-class YoloXPostProcessTensor : public Backend {
-  virtual bool init(const std::unordered_map<std::string, std::string>& config,
-                    dict dict_config) override {
-    input_h_ = std::stoi(config.at("input_h"));
-    input_w_ = std::stoi(config.at("input_w"));
-    return true;
-  };
-  void forward(const std::vector<dict>& input_dicts) override {
-    auto& input = *input_dicts[0];
-
-    at::Tensor outputs = dict_get<at::Tensor>(input_dicts[0], TASK_RESULT_KEY);
-
-    std::function<std::pair<float, float>(float, float)> inverse_trans =
-        any_cast<std::function<std::pair<float, float>(float, float)>>(
-            (*input_dicts[0])["inverse_trans"]);
-
-    yolox_parse_net_output(outputs, input_h_, input_w_, inverse_trans);
-  }
-
- private:
-  uint32_t input_w_;
-  uint32_t input_h_;
-};
 }  // namespace ipipe
