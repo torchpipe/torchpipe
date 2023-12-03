@@ -107,6 +107,8 @@ class PostProcYolox : public Backend {
         boxes[j] = x1y1x2y2;
       }
 
+      SPDLOG_INFO("TASK_RESULT_KEY: boxes.size() = {}", boxes.size());
+
       (*input[i])[TASK_RESULT_KEY] = boxes;
       (*input[i])[TASK_BOX_KEY] = boxes;
       (*input[i])["labels"] = labels;
