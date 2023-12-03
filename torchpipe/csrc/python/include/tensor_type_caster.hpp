@@ -61,4 +61,16 @@ namespace ipipe {
 dict py2dict(pybind11::dict input);
 
 void dict2py(dict input, pybind11::dict result_dict, bool keep_data = false);
+
+class AnyWrapper {
+ public:
+  AnyWrapper(){};
+
+  const ipipe::any& value() const { return value_; }
+  void set_value(const ipipe::any& value) { value_ = value; }
+  ipipe::any get_value() { return value_; }
+
+ private:
+  ipipe::any value_;
+};
 }  // namespace ipipe

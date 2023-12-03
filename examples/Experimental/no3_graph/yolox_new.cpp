@@ -135,7 +135,7 @@ class PostProcYolox : public Backend {
       const float* prob = net_outputs[0][i].data_ptr<float>();
       std::function<std::pair<float, float>(float, float)> inverse_trans =
           any_cast<std::function<std::pair<float, float>(float, float)>>(
-              (*input[i])["inverse_trans"]);
+              (*input[i]).at("inverse_trans"));
 
       std::vector<Object> objects;
 

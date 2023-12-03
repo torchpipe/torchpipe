@@ -23,6 +23,8 @@
 #include <c10/util/Type.h>
 #include <torch/csrc/autograd/python_variable.h>
 #include "event.hpp"
+#include "tensor_type_caster.hpp"
+
 #ifdef WITH_OPENCV
 #include "opencv2/core.hpp"
 #endif
@@ -369,6 +371,7 @@ py::object any2object(const any& data) {
         IPIPE_THROW("empty python container is not allowed to return back to python. ");
         break;
       default:
+        return py::cast(data);
         std::string error_mes = std::string("can not cast type '") +
                                 local_demangle(data.type().name()) + "' to python " + ".";
         IPIPE_THROW(error_mes);

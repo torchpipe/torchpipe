@@ -24,6 +24,7 @@
 #include "pybind11/numpy.h"
 #include "pybind11/stl.h"
 #include "event.hpp"
+#include "tensor_type_caster.hpp"
 
 namespace py = pybind11;
 

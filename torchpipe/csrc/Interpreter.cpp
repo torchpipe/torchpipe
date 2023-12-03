@@ -336,6 +336,8 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
 
   // bind_backend<MyBackend1>(m, "MyBackend1");
   // bind_backend<MyBackend2>(m, "MyBackend2");
+  // py::class_<AnyWrapper>(m, "Any").def(py::init<>());
+  py::class_<ipipe::any>(m, "Any").def(py::init<>());
 
   pybind11::class_<SimpleEvents, std::shared_ptr<SimpleEvents>>(m, "Event")
       .def(py::init<>())
