@@ -44,7 +44,7 @@ instance_num=20
 
 # #### sub graph ####
 [cls_preprocess]
-backend="Sequential[CropTensor,ResizeTensor,cvtColorTensor,SyncTensor]"
+backend="Sequential[CropTensor,SyncTensor]"
 resize_h=224
 resize_w=224
 color="rgb"
