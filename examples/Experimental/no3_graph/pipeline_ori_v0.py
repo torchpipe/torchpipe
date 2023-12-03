@@ -68,29 +68,27 @@ if __name__ == "__main__":
         model(inputs)
 
         # classify
-        cls_1_inputs = [{"data":x["result"],'node_name':'cls_1'} for x in inputs]
-        cls_2_inputs = [{"data":x["result"],'node_name':'cls_2'} for x in inputs]
+        cls_1_inputs = [{"data":img,'node_name':'cls_1'} for img in croped_img]
+        cls_2_inputs = [{"data":img,'node_name':'cls_2'} for img in croped_img]
 
         model(cls_1_inputs)
-        model(cls_2_inputs)
-
         cls_1_score = [x["score"] for x in cls_1_inputs]
-        cls_2_score = [x["score"] for x in cls_2_inputs]
         cls_1_class = [x["result"] for x in cls_1_inputs]
-        cls_2_class = [x["result"] for x in cls_2_inputs]
-
         # retry cls_1 for score < 0.3
         retry_indexes = []
         for i in range(len(cls_1_score)):
             if cls_1_score[i] < 0.3:
                 retry_indexes.append(i)
-        retry_cls_1_inputs = [{"data":inputs[i]["result"],'node_name':'post_cls_1'} for i in retry_indexes]
+        retry_cls_1_inputs = [{"data":croped_img[i],'node_name':'post_cls_1'} for i in retry_indexes]
         model(retry_cls_1_inputs)
-
-        # update cls_1_score and cls_1_class
+         # update cls_1_score and cls_1_class
         for i in range(len(retry_indexes)):
             cls_1_score[retry_indexes[i]] = retry_cls_1_inputs[i]["score"]
             cls_1_class[retry_indexes[i]] = retry_cls_1_inputs[i]["result"]
+
+        model(cls_2_inputs)
+        cls_2_score = [x["score"] for x in cls_2_inputs]
+        cls_2_class = [x["result"] for x in cls_2_inputs]
 
         if save_img:
             print("cls_1_score, cls_1_class, cls_2_score, cls_2_class: ", cls_1_score, cls_1_class, cls_2_score, cls_2_class)
