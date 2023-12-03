@@ -84,7 +84,7 @@ if __name__ == "__main__":
             # img -= np.array([0.485, 0.456, 0.406])
             # img /= np.array([0.229, 0.224, 0.225])
             img = img.transpose(2, 0, 1)
-            croped_img.append(torch.from_numpy(img).unsqueeze(0))
+            croped_img.append(torch.from_numpy(img).unsqueeze(0).cuda())
 
 
         # classify
