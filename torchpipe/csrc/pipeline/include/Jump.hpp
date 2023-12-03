@@ -41,7 +41,7 @@ class Jump : public Backend {
 
   // void forward(dict);
 
-  uint32_t max() const override final { return UINT32_MAX; };
+  uint32_t max() const override final { return 1; };
 
  protected:
   std::string jump_;
