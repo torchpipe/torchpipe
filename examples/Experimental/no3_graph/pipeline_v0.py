@@ -59,7 +59,7 @@ if __name__ == "__main__":
 
         # detect
         input = {}
-        input["data"] = torch.from_numpy(img).permute(2, 0, 1).unsqueeze(0)
+        input["data"] = torch.from_numpy(img).permute(2, 0, 1).unsqueeze(0).cuda()
         input["ratio"] = 1.0/ratio
 
 
