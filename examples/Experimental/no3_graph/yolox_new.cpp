@@ -133,9 +133,21 @@ class PostProcYolox : public Backend {
     std::vector<std::vector<Object>> all_objects;
     for (auto i = 0; i < input.size(); ++i) {
       const float* prob = net_outputs[0][i].data_ptr<float>();
-      std::function<std::pair<float, float>(float, float)> inverse_trans =
-          any_cast<std::function<std::pair<float, float>(float, float)>>(
-              (*input[i]).at("inverse_trans"));
+
+      std::function<std::pair<float, float>(float, float)> inverse_trans;
+      auto iter = input[i]->find("inverse_trans");
+      if (iter == input[i]->end()) {
+        float ratio = dict_get<float>(input[i], "ratio");
+
+        // float x_ratio = img_w / (float)net_w;
+        // float y_ratio = img_h / (float)net_h;
+        inverse_trans = [ratio](float x, float y) {
+          return std::pair<float, float>(ratio * x, ratio * y);
+        };
+      } else {
+        inverse_trans =
+            any_cast<std::function<std::pair<float, float>(float, float)>>(iter->second);
+      }
 
       std::vector<Object> objects;
 

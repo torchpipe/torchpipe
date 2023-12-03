@@ -17,7 +17,7 @@ import os
 import time
 import argparse
 
-import numpy as np
+
 import cv2
 import torch
 import torchpipe as tp
@@ -40,6 +40,7 @@ if __name__ == "__main__":
 
     toml_path = args.toml
     print(f"toml: {toml_path}")
+
  
     # 调用
     model = pipe(toml_path)
@@ -47,51 +48,31 @@ if __name__ == "__main__":
     def run(img_data, save_img=False):
         img_path, img_data = img_data[0]
 
-        ori_img = cv2.imdecode(np.frombuffer(img_data, dtype=np.uint8), cv2.IMREAD_COLOR)
-        # ori_img -> img,  pad to 416 416, and get the x_ratio and y_ratio
-        # use numpy and cv2
-        ratio = min(416 / ori_img.shape[0], 416 / ori_img.shape[1])
-        img = cv2.resize(ori_img, (int(ori_img.shape[1] * ratio), int(ori_img.shape[0] * ratio)))
-        img = cv2.copyMakeBorder(img, 0, 416 - img.shape[0], 0, 416 - img.shape[1], cv2.BORDER_CONSTANT, value=(0, 0, 0))
-        # float x_ratio = data.cols * 1.0f / resize_w;
-        # float y_ratio = data.rows * 1.0f / resize_h;
-    
+        # decode preprocess
+        input = {"data": img_data}
+        input["node_name"] = "jpg_decoder"
+        model(input)
 
         # detect
-        input = {}
-        input["data"] = torch.from_numpy(img).permute(2, 0, 1).unsqueeze(0)
-        input["ratio"] = 1.0/ratio
-
-
-        # input["ratio"] = 
+        input["data"] = input["result"]
         input["node_name"] = "detect"
 
+        img = torch.from_numpy(input["other"])
+        del input["other"] 
+        
         model(input)
         
-        boxes = input[TASK_BOX_KEY]
-        # crop from ori_img by boxes
-        # use numpy and cv2
-        croped_img = []
-        for box in boxes:
-            x1, y1, x2, y2 = box.tolist()
-            img = ori_img[int(y1):int(y2), int(x1):int(x2), :]
-            img = cv2.resize(img, (224, 224))
-            # cvtcolor
-            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-            # imagenet preprocess
-            img = img.astype(np.float32)
-            # img /= 255.0
-            # img -= np.array([0.485, 0.456, 0.406])
-            # img /= np.array([0.229, 0.224, 0.225])
-            img = img.transpose(2, 0, 1)
-            croped_img.append(torch.from_numpy(img).unsqueeze(0))
+        # classify preprocess
+        inputs = [{TASK_BOX_KEY:x.tolist(), "data": img , "color":input["color"], 'node_name':"cls_preprocess"} for x in input[TASK_BOX_KEY]]
 
+        model(inputs)
 
         # classify
-        cls_1_inputs = [{"data":img,'node_name':'cls_1'} for img in croped_img]
-        cls_2_inputs = [{"data":img,'node_name':'cls_2'} for img in croped_img]
+        cls_1_inputs = [{"data":x["result"],'node_name':'cls_1'} for x in inputs]
+        cls_2_inputs = [{"data":x["result"],'node_name':'cls_2'} for x in inputs]
 
-        model(cls_1_inputs+cls_2_inputs)
+        model(cls_1_inputs)
+        model(cls_2_inputs)
 
         cls_1_score = [x["score"] for x in cls_1_inputs]
         cls_2_score = [x["score"] for x in cls_2_inputs]
@@ -103,7 +84,7 @@ if __name__ == "__main__":
         for i in range(len(cls_1_score)):
             if cls_1_score[i] < 0.3:
                 retry_indexes.append(i)
-        retry_cls_1_inputs = [{"data":croped_img[i],'node_name':'post_cls_1'} for i in retry_indexes]
+        retry_cls_1_inputs = [{"data":inputs[i]["result"],'node_name':'post_cls_1'} for i in retry_indexes]
         model(retry_cls_1_inputs)
 
         # update cls_1_score and cls_1_class

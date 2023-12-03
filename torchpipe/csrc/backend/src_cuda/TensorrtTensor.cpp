@@ -408,8 +408,10 @@ at::Tensor guard_contiguous_type_and_device(at::Tensor input_data, at::ScalarTyp
   }
 
   input_data = input_data.to(at::kCUDA, target_format,
-                             /* non_blocking =*/true, false, at::MemoryFormat::Contiguous);
-  assert(input_data.is_contiguous());
+                             /* non_blocking =*/false, false, at::MemoryFormat::Contiguous);
+  if (!input_data.is_contiguous()) {
+    input_data = input_data.contiguous();
+  }
   return input_data;
 }
 void TensorrtTensor::forward(const std::vector<dict>& raw_inputs) {
