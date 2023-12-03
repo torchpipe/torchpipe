@@ -22,86 +22,86 @@ model = "../../../examples/yolox/yolox_tiny.onnx"
 "model::cache" = "./yolox_tiny.trt" 
 # postprocessor = "BatchingPostProcYolox_45_30" 
 "model::timingcache"="./yolox_tiny.timingcache"
-next = "sub_graph"
+# next = "sub_graph"
 
-[sub_graph] 
-map="jpg_decoder[other:data,color:color],detect[TASK_BOX_KEY:TASK_BOX_KEY]"
+# [sub_graph] 
+# map="jpg_decoder[other:data,color:color],detect[TASK_BOX_KEY:TASK_BOX_KEY]"
 
-backend = "MapReduce"
-jump="cls_preprocess"
+# backend = "MapReduce"
+# jump="cls_preprocess"
 
-split="TASK_BOX_KEY"
-merge="score_1,score_2,result,cls_1_result"
+# split="TASK_BOX_KEY"
+# merge="score_1,score_2,result,cls_1_result"
 
-next="final"
-instance_num=20
+# next="final"
+# instance_num=20
 
-[final]
-
-
-
-#### sub graph ####
-[cls_preprocess]
-backend="Sequential[CropTensor,ResizeTensor,cvtColorTensor,SyncTensor]"
-resize_h=224
-resize_w=224
-color="rgb"
-instance_num=8
-# save_dir="./"
-
-next="cls_1,cls_2"
-
-#### branch 1 ####
-[cls_1]
-mean = "123.675, 116.28, 103.53" # 255*"0.485, 0.456, 0.406"
-std = "58.395, 57.120, 57.375" # 255*"0.229, 0.224, 0.225"
-backend="S[TensorrtTensor,SoftmaxArgMaxTensor,SyncTensor]"
-max=4
-model="./resnet18.onnx"
-"model::cache"="./resnet18.trt"
-"model::timingcache"="resnet18.timingcache"
-
-instance_num=3
-# postprocessor="SoftmaxArgMax"
-
-next="post_cls_1"
-
-[post_cls_1]
-filter="filter_score"
-
-mean = "123.675, 116.28, 103.53" # 255*"0.485, 0.456, 0.406"
-std = "58.395, 57.120, 57.375" # 255*"0.229, 0.224, 0.225"
-backend="S[TensorrtTensor,SoftmaxArgMaxTensor,SyncTensor]"
-max=4
-model="././resnet50.onnx"
-"model::cache"="./resnet50.trt"
-"model::timingcache"="resnet50.timingcache"
-
-instance_num=3
-# postprocessor="SoftmaxArgMax"
+# [final]
 
 
-next="subgraph_final"
 
-#### branch 2 ####
+# #### sub graph ####
+# [cls_preprocess]
+# backend="Sequential[CropTensor,ResizeTensor,cvtColorTensor,SyncTensor]"
+# resize_h=224
+# resize_w=224
+# color="rgb"
+# instance_num=8
+# # save_dir="./"
 
-[cls_2]
+# next="cls_1,cls_2"
 
-mean = "123.675, 116.28, 103.53" # 255*"0.485, 0.456, 0.406"
-std = "58.395, 57.120, 57.375" # 255*"0.229, 0.224, 0.225"
-backend="S[TensorrtTensor,SoftmaxArgMaxTensor,SyncTensor]"
-max=4
-model="././resnet18.onnx"
-"model::cache"="./resnet18.trt"
-"model::timingcache"="resnet18.timingcache"
+# #### branch 1 ####
+# [cls_1]
+# mean = "123.675, 116.28, 103.53" # 255*"0.485, 0.456, 0.406"
+# std = "58.395, 57.120, 57.375" # 255*"0.229, 0.224, 0.225"
+# backend="S[TensorrtTensor,SoftmaxArgMaxTensor,SyncTensor]"
+# max=4
+# model="./resnet18.onnx"
+# "model::cache"="./resnet18.trt"
+# "model::timingcache"="resnet18.timingcache"
 
-instance_num=6
-# postprocessor="SoftmaxArgMax"
-batching_timeout=10
+# instance_num=3
+# # postprocessor="SoftmaxArgMax"
+
+# next="post_cls_1"
+
+# [post_cls_1]
+# filter="filter_score"
+
+# mean = "123.675, 116.28, 103.53" # 255*"0.485, 0.456, 0.406"
+# std = "58.395, 57.120, 57.375" # 255*"0.229, 0.224, 0.225"
+# backend="S[TensorrtTensor,SoftmaxArgMaxTensor,SyncTensor]"
+# max=4
+# model="././resnet50.onnx"
+# "model::cache"="./resnet50.trt"
+# "model::timingcache"="resnet50.timingcache"
+
+# instance_num=3
+# # postprocessor="SoftmaxArgMax"
 
 
-next="subgraph_final"
+# next="subgraph_final"
 
-[subgraph_final]
-map="post_cls_1[score:score_1,result:cls_1_result],cls_2[score:score_2,result:data]"
+# #### branch 2 ####
+
+# [cls_2]
+
+# mean = "123.675, 116.28, 103.53" # 255*"0.485, 0.456, 0.406"
+# std = "58.395, 57.120, 57.375" # 255*"0.229, 0.224, 0.225"
+# backend="S[TensorrtTensor,SoftmaxArgMaxTensor,SyncTensor]"
+# max=4
+# model="././resnet18.onnx"
+# "model::cache"="./resnet18.trt"
+# "model::timingcache"="resnet18.timingcache"
+
+# instance_num=6
+# # postprocessor="SoftmaxArgMax"
+# batching_timeout=10
+
+
+# next="subgraph_final"
+
+# [subgraph_final]
+# map="post_cls_1[score:score_1,result:cls_1_result],cls_2[score:score_2,result:data]"
  
