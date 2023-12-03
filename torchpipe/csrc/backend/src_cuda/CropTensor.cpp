@@ -111,7 +111,7 @@ void CropTensor::forward(dict input_dict) {
   const uint32_t& y1 = pbox[1];
   const uint32_t& x2 = pbox[2];
   const uint32_t& y2 = pbox[3];
-  auto cropped = libtorch_crop(input_tensor, x1, y1, x2, y2);
+  auto cropped = tensor_crop(input_tensor, x1, y1, x2, y2);
   if (cropped.numel() <= 0) {
     SPDLOG_ERROR("get an empty tensor");
     throw std::runtime_error("get an empty tensor");
