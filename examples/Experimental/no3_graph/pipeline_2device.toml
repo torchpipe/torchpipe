@@ -14,7 +14,7 @@ next = "detect"
 
 [detect]
 backend = "Torch[S[TensorrtTensor, PostProcYolox]]" 
-batching_timeout = 5
+batching_timeout = 10
 instance_num = 1
 max = 16
 net_h=416
