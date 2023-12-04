@@ -49,7 +49,7 @@ color="rgb"
 instance_num=12
 # save_dir="./"
 
-next="cls_1,cls_2"
+next="cls_1"
 
 #### branch 1 ####
 [cls_1]
