@@ -96,7 +96,7 @@ if __name__ == "__main__":
     results = {}
     for i in range(13,60):
         num_clients = i
-        if num_clients%3 == 1:
+        if num_clients%4 == 1:
             continue
         result = test_from_raw_file(run, os.path.join("../../..", "test/assets/encode_jpeg/"),num_clients=num_clients, batch_size=1,total_number=30000)
         results[num_clients]=result
