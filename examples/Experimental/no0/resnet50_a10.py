@@ -46,7 +46,7 @@ def draw(show_keys, result):
     xticks = np.linspace(num_clients[0], num_clients[-1], len(num_clients))  # Generate evenly spaced ticks
 
     for i in range(len(keys)):
-        ax[i].bar(num_clients, datas[i],color=color[i], width=1.2)
+        ax[i].bar(num_clients, datas[i],color=color[i], width=1.4)
         ax[i].set_xticks(xticks)
         ax[i].set_xticklabels(num_clients) 
         

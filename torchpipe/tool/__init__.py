@@ -12,14 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from process_tools import count_lines
 __all__ = [
     "encrypt",
     "test_tools",
     "onnx_tools",
     "cpp_tools",
     "gpu_train_tools",
-    "count_lines"
 ]
 
 import logging

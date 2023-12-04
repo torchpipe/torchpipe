@@ -142,7 +142,7 @@ void Python::forward(const std::vector<ipipe::dict>& input_dicts) {
 
 uint32_t Python::max() const {
   py::gil_scoped_acquire gil_lock;
-  if (py::cast<bool>(py_backend_.attr("hasattr")(py_backend_, "max"))) {
+  if (py::hasattr(py_backend_, "max")) {
     return py::cast<int>(py_backend_.attr("max")());
   }
   return 1;
