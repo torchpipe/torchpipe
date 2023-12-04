@@ -93,12 +93,12 @@ py::object create_py_filter(const std::string& name) {
 
 bool Python::init(const std::unordered_map<std::string, std::string>& config_param,
                   dict dict_config) {
-  params_ = std::unique_ptr<Params>(new Params({{"max", "1"}}, {"Python::backend"}, {}, {}));
+  params_ = std::unique_ptr<Params>(new Params({}, {"Python::backend"}, {}, {}));
 
   if (!params_->init(config_param)) {
     return false;
   }
-  TRACE_EXCEPTION(max_ = std::stoi(params_->at("max")));
+  // TRACE_EXCEPTION(max_ = std::stoi(params_->at("max")));
 
   py::gil_scoped_acquire gil_lock;
   TRACE_EXCEPTION(py_backend_ = create_py(params_->at("Python::backend"))());
@@ -138,6 +138,14 @@ void Python::forward(const std::vector<ipipe::dict>& input_dicts) {
   }
 
   return;
+}
+
+uint32_t Python::max() const {
+  py::gil_scoped_acquire gil_lock;
+  if (py::cast<bool>(py_backend_.attr("hasattr")(py_backend_, "max"))) {
+    return py::cast<int>(py_backend_.attr("max")());
+  }
+  return 1;
 }
 
 IPIPE_REGISTER(Backend, Python, "Python");

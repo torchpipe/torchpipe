@@ -48,7 +48,7 @@ class Python : public Backend {
    * @param[out] TASK_RESULT_KEY cv::Mat
    */
   virtual void forward(const std::vector<dict>& input_dicts) override;
-  virtual uint32_t max() const override { return max_; }
+  virtual uint32_t max() const override;
 
  private:
   std::unique_ptr<Params> params_;
