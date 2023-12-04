@@ -3,7 +3,7 @@ batching_timeout = 6 #默认的凑batch的超时时间
 instance_num = 3 
 precision = "fp16" 
 [jpg_decoder]
-filter="run"
+
 backend = "SyncTensor[ Sequential[DecodeTensor,ResizeTensor,cvtColorTensor]  ]" # 需要处理背景线程cuda流同步问题可用SyncTensor， 否则可用Sequential；SyncTensor确保初始化和前向在同一个线程时，能准确处理多个backend的同步时机
 resize_h = 224 
 resize_w = 224 
@@ -12,8 +12,9 @@ color = "rgb"
 next = "cpu_decoder"
 
 [cpu_decoder]
-backend = " Sequential[DecodeMat,ResizeMat,cvtColorMat,Mat2Tensor,SyncTensor]  " # 需要处理背景线程cuda流同步问题可用SyncTensor， 否则可用Sequential；SyncTensor确保初始化和前向在同一个线程时，能准确处理多个backend的同步时机
 filter = "or" 
+backend = " Sequential[DecodeMat,ResizeMat,cvtColorMat,Mat2Tensor,SyncTensor]  " # 需要处理背景线程cuda流同步问题可用SyncTensor， 否则可用Sequential；SyncTensor确保初始化和前向在同一个线程时，能准确处理多个backend的同步时机
+
 resize_h = 224 
 resize_w = 224 
 
