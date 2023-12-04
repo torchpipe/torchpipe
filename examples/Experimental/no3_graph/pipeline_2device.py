@@ -74,8 +74,8 @@ if __name__ == "__main__":
         test.test_from_raw_file(
             run,
             os.path.join("../../../test/assets/norm_jpg"),
-            num_clients=20,
-            total_number=10000,
+            num_clients=40,
+            total_number=20000,
         )
     else:
         run([(img_path, img)], save_img=True)
