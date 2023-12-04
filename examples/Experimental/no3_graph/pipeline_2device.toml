@@ -34,7 +34,7 @@ split="TASK_BOX_KEY"
 # merge="score_1,score_2,result,cls_1_result"
 
 next="final"
-instance_num=40
+instance_num=20
 
 [final]
 
@@ -46,10 +46,10 @@ backend="Torch[S[CropTensor,ResizeTensor,cvtColorTensor]]"
 resize_h=224
 resize_w=224
 color="rgb"
-instance_num=16
+instance_num=12
 # save_dir="./"
 
-next="cls_1"
+#next="cls_1"
 
 #### branch 1 ####
 [cls_1]
@@ -62,7 +62,7 @@ model="./resnet18.onnx"
 
 # postprocessor="SoftmaxArgMax"
 
-next="post_cls_1"
+#next="post_cls_1"
 
 [post_cls_1]
 filter="filter_score"
