@@ -28,7 +28,7 @@ def draw(show_keys, result):
     import matplotlib.pyplot as plt 
 
     datas = []
-    keys = show_keys.keys()
+    keys = list(show_keys.keys())
     for key in keys:
         data = []
         for k,v in result.items():
