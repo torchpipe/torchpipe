@@ -3,7 +3,7 @@ import cv2
 import os
 import torchpipe as tp
 
-
+import numpy as np
 import argparse
 
 parser = argparse.ArgumentParser()
@@ -43,10 +43,12 @@ def draw(show_keys, result):
     plt.rcParams.update({'font.size': 20})
     fig,ax=plt.subplots(len(keys),1,figsize=(10,8))
     
+    xticks = np.linspace(num_clients[0], num_clients[-1], len(num_clients))  # Generate evenly spaced ticks
+
     for i in range(len(keys)):
         ax[i].bar(num_clients, datas[i],color=color[i])
-        ax[i].set_xticks(num_clients)
-        ax[i].set_xticklabels(num_clients, rotation=45) 
+        ax[i].set_xticks(xticks)
+        ax[i].set_xticklabels(num_clients) 
         
         ax[i].legend([show_keys[keys[i]]])
     ax[len(keys)-1].set_xlabel('Number of Clients')
