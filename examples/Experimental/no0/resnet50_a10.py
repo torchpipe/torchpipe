@@ -94,7 +94,7 @@ if __name__ == "__main__":
     from torchpipe.utils.test import test_from_raw_file
 
     results = {}
-    for i in range(23,24):
+    for i in range(24,25):
         num_clients = i
         if num_clients%2 == 1:
             continue
