@@ -68,7 +68,7 @@ if __name__ == "__main__":
     if not os.path.exists(onnx_save_path):
         export_onnx(onnx_save_path)
 
-    img_path = "../../test/assets/image/gray.jpg"
+    img_path = "../../../test/assets/image/gray.jpg"
     img=open(img_path,'rb').read()
 
     toml_path = args.config 
@@ -98,7 +98,7 @@ if __name__ == "__main__":
         num_clients = i
         if num_clients%2 == 1:
             continue
-        result = test_from_raw_file(run, os.path.join("../..", "test/assets/encode_jpeg/"),num_clients=num_clients, batch_size=1,total_number=10000)
+        result = test_from_raw_file(run, os.path.join("../../..", "test/assets/encode_jpeg/"),num_clients=num_clients, batch_size=1,total_number=10000)
         results[num_clients]=result
 
     print(results)
