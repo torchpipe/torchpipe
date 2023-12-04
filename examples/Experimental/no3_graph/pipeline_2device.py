@@ -27,7 +27,7 @@ tp.utils.cpp_extension.load(name="yolox", sources=["./yolox_new.cpp"])
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
-    "--config", dest="toml", type=str, default="./pipeline_v1.toml", help="configuration file"
+    "--config", dest="toml", type=str, default="./pipeline_2device.toml", help="configuration file"
 )
 parser.add_argument("--benchmark", action="store_true")
 args = parser.parse_args()
@@ -41,60 +41,22 @@ if __name__ == "__main__":
     toml_path = args.toml
     print(f"toml: {toml_path}")
 
-
+ 
     # 调用
     model = pipe(toml_path)
 
     def run(img_data, save_img=False):
         img_path, img_data = img_data[0]
-
-        # decode preprocess
-        input = {"data": img_data}
+        input = {TASK_DATA_KEY: img_data}
         input["node_name"] = "jpg_decoder"
         model(input)
 
-        # detect
-        input["data"] = input["result"]
-        input["node_name"] = "detect"
-        
-        model(input)
-        
-        # classify preprocess
-        inputs = [{TASK_BOX_KEY:x.tolist(), "data": input["other"] , "color":input["color"], 'node_name':"cls_preprocess"} for x in input[TASK_BOX_KEY]]
-
-        model(inputs)
-
-        # classify
-        cls_1_inputs = [{"data":x["result"],'node_name':'cls_1'} for x in inputs]
-        cls_2_inputs = [{"data":x["result"],'node_name':'cls_2'} for x in inputs]
-
-        model(cls_1_inputs + cls_2_inputs)
-
-        cls_1_score = [x["score"] for x in cls_1_inputs]
-        cls_2_score = [x["score"] for x in cls_2_inputs]
-        cls_1_class = [x["result"] for x in cls_1_inputs]
-        cls_2_class = [x["result"] for x in cls_2_inputs]
-
-        # retry cls_1 for score < 0.3
-        retry_indexes = []
-        for i in range(len(cls_1_score)):
-            if cls_1_score[i] < 0.3:
-                retry_indexes.append(i)
-
-        retry_cls_1_inputs = [{"data":inputs[i]["result"],'node_name':'post_cls_1'} for i in retry_indexes]
-        model(retry_cls_1_inputs)
-
-        # update cls_1_score and cls_1_class
-        for i in range(len(retry_indexes)):
-            cls_1_score[retry_indexes[i]] = retry_cls_1_inputs[i]["score"]
-            cls_1_class[retry_indexes[i]] = retry_cls_1_inputs[i]["result"]
-
         if save_img:
-            print("cls_1_score, cls_1_class, cls_2_score, cls_2_class: ", cls_1_score, cls_1_class, cls_2_score, cls_2_class)
-            # print(input.keys())
+            print(input.keys())
+            print(input["score_1"], input["score_2"], input["cls_1_result"],input["result"])
 
             detect_result = input[TASK_BOX_KEY]
-            # print(("detect_result: ", detect_result))
+            print(("detect_result: ", detect_result))
 
             img = cv2.imread(img_path)
             for t in range(len(detect_result)):
@@ -105,8 +67,6 @@ if __name__ == "__main__":
             out_path = "dog_result.jpg"
             cv2.imwrite(out_path, img[:, :, ::1])
             print(f"result saved in: {out_path}")
-        return cls_1_score, cls_1_class, cls_2_score, cls_2_class
-
 
     if args.benchmark:
         from torchpipe.utils import test
@@ -119,9 +79,3 @@ if __name__ == "__main__":
         )
     else:
         run([(img_path, img)], save_img=True)
-
-
-
-
-
-# gpu前处理 （c++检测后处理）； python调度

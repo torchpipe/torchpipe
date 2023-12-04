@@ -50,3 +50,11 @@ if __name__ == "__main__":
             print(line)
             f.write(line + "\n")
             time.sleep(interval)
+
+def count_lines(toml_path):
+    with open(toml_path, "r") as f:
+        lines = f.readlines()
+        lines = [x.strip() for x in lines]
+        lines = [x for x in lines if x and not x.startswith("#")]
+        print(lines)
+        return len(lines)

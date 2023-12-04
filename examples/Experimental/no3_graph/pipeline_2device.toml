@@ -1,9 +1,10 @@
 batching_timeout = 10 #默认的凑batch的超时时间
 precision = "fp16" 
 instance_num=3
+device_id=0
 #### main graph ####
 [jpg_decoder]
-backend = "Sequential[DecodeTensor,(result2other)cvtColorTensor,ResizePadTensor,SyncTensor]"
+backend = "Torch[S[DecodeTensor,(result2other)cvtColorTensor,ResizePadTensor]]"
 color = "bgr"
 instance_num = 10
 max_h = 416
@@ -12,7 +13,7 @@ max_w = 416
 next = "detect"
 
 [detect]
-backend = "S[TensorrtTensor, PostProcYolox,SyncTensor]" 
+backend = "Torch[S[TensorrtTensor, PostProcYolox]]" 
 batching_timeout = 5
 instance_num = 1
 max = 8
@@ -41,7 +42,7 @@ instance_num=20
 
 #### sub graph ####
 [cls_preprocess]
-backend="Sequential[CropTensor,ResizeTensor,cvtColorTensor,SyncTensor]"
+backend="Torch[S[CropTensor,ResizeTensor,cvtColorTensor]]"
 resize_h=224
 resize_w=224
 color="rgb"
@@ -54,7 +55,7 @@ next="cls_1,cls_2"
 [cls_1]
 mean = "123.675, 116.28, 103.53" # 255*"0.485, 0.456, 0.406"
 std = "58.395, 57.120, 57.375" # 255*"0.229, 0.224, 0.225"
-backend="S[TensorrtTensor,SoftmaxArgMaxTensor,SyncTensor]"
+backend="Torch[S[TensorrtTensor,SoftmaxArgMaxTensor]]"
 max=4
 model="./resnet18.onnx"
 "model::cache"="./resnet18.trt"
@@ -68,7 +69,7 @@ filter="filter_score"
 
 mean = "123.675, 116.28, 103.53" # 255*"0.485, 0.456, 0.406"
 std = "58.395, 57.120, 57.375" # 255*"0.229, 0.224, 0.225"
-backend="S[TensorrtTensor,SoftmaxArgMaxTensor,SyncTensor]"
+backend="Torch[S[TensorrtTensor,SoftmaxArgMaxTensor]]"
 max=4
 model="././resnet50.onnx"
 "model::cache"="./resnet50.trt"
@@ -84,12 +85,12 @@ next="subgraph_final"
 
 mean = "123.675, 116.28, 103.53" # 255*"0.485, 0.456, 0.406"
 std = "58.395, 57.120, 57.375" # 255*"0.229, 0.224, 0.225"
-backend="S[TensorrtTensor,SoftmaxArgMaxTensor,SyncTensor]"
-max="16;16;16"
-min="16;16;1"
+backend="Torch[S[TensorrtTensor,SoftmaxArgMaxTensor]]"
+max="32;32;32"
+min="32;32;1"
 model="././fastervit_0_224_224.onnx"
-"model::cache"="./fastervit_0_224_224.trt"
-
+"model::cache"="./fastervit_0_224_224_32.trt"
+device_id=1
 # postprocessor="SoftmaxArgMax"
 batching_timeout=10
 
