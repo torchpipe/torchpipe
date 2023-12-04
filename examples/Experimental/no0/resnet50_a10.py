@@ -46,6 +46,7 @@ def draw(show_keys, result):
     for i in range(len(keys)):
         ax[i].bar(num_clients, datas[i],color=color[i])
         ax[i].set_xticks(num_clients)
+        ax[i].set_xticklabels(num_clients, rotation=45) 
         
         ax[i].legend([show_keys[keys[i]]])
     ax[len(keys)-1].set_xlabel('Number of Clients')
