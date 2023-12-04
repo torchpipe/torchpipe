@@ -29,6 +29,16 @@ class AnyPythonBackend:
     def forward(self, data: [Dict[str, Any]]) -> None:
         data[0]["result"] = data[0]["data"] + self.add
 
+class AnyPythonFilter:
+    def init(self, config_param: Dict[str, str], dict_config) -> None:
+        print("config_param",config_param)
+        self.add = int(config_param["config"])
+
+    def forward(self, data: [Dict[str, Any]]) -> None:
+        if self.add == data["data"]:
+            return torchpipe.Status.Run
+        else:
+            return torchpipe.Status.Error
 
 class TestBackend:
     @classmethod
@@ -37,13 +47,20 @@ class TestBackend:
         torchpipe.register_backend(AnyPythonBackend, "py_model_1")
         self.model_trt = torchpipe.pipe(
             {"backend": "Python[py_model_1]","config":1,"any_key_u_want":"uhiojh"})
+
+        torchpipe.register_filter(AnyPythonFilter, "py_filter")
+        # self.filter = torchpipe.pipe(
+        #     {"backend": "Python[py_filter]","config":3,"any_key_u_want":"uhiojh"})
  
     def test_register_py(self):
         input = {"data":2}
         self.model_trt([input])
         print(input["result"])
         assert input["result"] == 3
-        
+
+    def test_register_filter(self):
+        pass
+
         
  
 if __name__ == "__main__":

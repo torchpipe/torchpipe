@@ -153,7 +153,9 @@ bool PyFilter::init(const std::unordered_map<std::string, std::string>& config_p
   py::gil_scoped_acquire gil_lock;
   TRACE_EXCEPTION(py_backend_ = create_py(params_->at("Python::backend"))());
   IPIPE_ASSERT(!py_backend_.is(py::none()));
-  if (!py_backend_.attr("init")(config_param)) {
+  pybind11::dict result_dict;
+  dict2py(dict_config, result_dict, true);
+  if (!py_backend_.attr("init")(config_param, result_dict)) {
     SPDLOG_ERROR(params_->at("Python::backend") + " init failed");
     return false;
   }

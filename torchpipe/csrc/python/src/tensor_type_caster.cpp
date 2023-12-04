@@ -38,6 +38,7 @@ void cast_type_v2(const any& data, py::dict result_dict, std::string key) {
 }
 
 void dict2py(dict input, pybind11::dict result_dict, bool keep_data) {
+  if (input == nullptr) return;
   if (result_dict.contains(TASK_RESULT_KEY)) {
     PyDict_DelItemString(result_dict.ptr(), TASK_RESULT_KEY);
   }
