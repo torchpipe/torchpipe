@@ -47,6 +47,7 @@ from torchpipe.libipipe import (
     TASK_NODE_NAME_KEY,
     # any,
     register_backend,
+    register_filter,
     infer_shape,
     supported_opset,
 )

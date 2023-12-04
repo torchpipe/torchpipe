@@ -231,6 +231,10 @@ void register_backend(py::object class_def, const std::string& register_name) {
   register_py(class_def, register_name);
 }
 
+void register_filter(py::object class_def, const std::string& register_name) {
+  register_py_filter(class_def, register_name);
+}
+
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   m.attr("TASK_RESULT_KEY") = py::cast(TASK_RESULT_KEY);
   m.attr("TASK_DATA_KEY") = py::cast(TASK_DATA_KEY);
@@ -246,6 +250,8 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   m.def("is_registered", &is_registered, py::call_guard<py::gil_scoped_release>());
 
   m.def("register_backend", &register_backend, py::arg("class_def"), py::arg("register_name"));
+  m.def("register_filter", &register_filter, py::arg("class_def"), py::arg("register_name"));
+
   /**
    * @brief c++ Interpreter wrapper
    */
@@ -338,6 +344,14 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   // bind_backend<MyBackend2>(m, "MyBackend2");
   // py::class_<AnyWrapper>(m, "Any").def(py::init<>());
   py::class_<ipipe::any>(m, "Any").def(py::init<>());
+
+  py::enum_<Filter::status>(m, "Status")
+      .value("Run", Filter::status::Run)
+      .value("Skip", Filter::status::Skip)
+      .value("SerialSkip", Filter::status::SerialSkip)
+      .value("SubGraphSkip", Filter::status::SubGraphSkip)
+      .value("Break", Filter::status::Break)
+      .value("Error", Filter::status::Error);
 
   pybind11::class_<SimpleEvents, std::shared_ptr<SimpleEvents>>(m, "Event")
       .def(py::init<>())

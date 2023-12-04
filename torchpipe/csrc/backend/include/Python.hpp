@@ -18,6 +18,7 @@
 
 #include "Backend.hpp"
 #include "dict.hpp"
+#include "filter.hpp"
 // #include <pybind11/embed.h>
 #include <pybind11/pybind11.h>
 // pybind11/pybind11.h
@@ -25,6 +26,7 @@ namespace py = pybind11;
 
 namespace ipipe {
 void register_py(py::object class_def, const std::string& name);
+void register_py_filter(py::object class_def, const std::string& name);
 
 class Params;
 
@@ -54,6 +56,18 @@ class Python : public Backend {
   py::object py_backend_;
 
   // static py::scoped_interpreter python_;
+};
+
+class PyFilter : public Filter {
+ public:
+  virtual bool init(const std::unordered_map<std::string, std::string>& config,
+                    dict /*dict_config*/) override;
+
+  virtual Filter::status forward(dict input) override;
+
+ private:
+  std::unique_ptr<Params> params_;
+  py::object py_backend_;
 };
 
 };  // namespace ipipe

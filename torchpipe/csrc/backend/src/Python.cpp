@@ -28,6 +28,8 @@
 // #include <torch/extension.h>
 #include <torch/python.h>
 #include "Backend.hpp"
+#include "filter.hpp"
+
 namespace ipipe {
 
 class RegisterPython {
@@ -35,6 +37,10 @@ class RegisterPython {
   void registe(const std::string& name, py::object obj) {
     std::lock_guard<std::mutex> tmp(lock_);
     objects_[name] = obj;
+  }
+  void registe_filter(const std::string& name, py::object obj) {
+    std::lock_guard<std::mutex> tmp(lock_);
+    filters_[name] = obj;
   }
   py::object create(const std::string& name) {
     std::lock_guard<std::mutex> tmp(lock_);
@@ -44,23 +50,45 @@ class RegisterPython {
     }
     return objects_[name];
   }
+  py::object create_filter(const std::string& name) {
+    std::lock_guard<std::mutex> tmp(lock_);
+    auto iter = filters_.find(name);
+    if (iter == filters_.end()) {
+      throw std::runtime_error("Register of Python filter: " + name + " not found");
+    }
+    return iter->second;
+  }
 
  private:
   static std::unordered_map<std::string, py::object> objects_;
+  static std::unordered_map<std::string, py::object> filters_;
   static std::mutex lock_;
 };
 
 std::mutex RegisterPython::lock_ = std::mutex();
 std::unordered_map<std::string, py::object> RegisterPython::objects_ =
     std::unordered_map<std::string, py::object>();
+std::unordered_map<std::string, py::object> RegisterPython::filters_ =
+    std::unordered_map<std::string, py::object>();
 
 void register_py(py::object class_def, const std::string& name) {
   RegisterPython register_python;
   register_python.registe(name, class_def);
 }
+
+void register_py_filter(py::object class_def, const std::string& name) {
+  RegisterPython register_python;
+  register_python.registe_filter(name, class_def);
+}
+
 py::object create_py(const std::string& name) {
   RegisterPython register_python;
   return register_python.create(name);
+}
+
+py::object create_py_filter(const std::string& name) {
+  RegisterPython register_python;
+  return register_python.create_filter(name);
 }
 
 bool Python::init(const std::unordered_map<std::string, std::string>& config_param,
@@ -113,4 +141,45 @@ void Python::forward(const std::vector<ipipe::dict>& input_dicts) {
 }
 
 IPIPE_REGISTER(Backend, Python, "Python");
+
+bool PyFilter::init(const std::unordered_map<std::string, std::string>& config_param,
+                    dict dict_config) {
+  params_ = std::unique_ptr<Params>(new Params({}, {"Python::backend"}, {}, {}));
+
+  if (!params_->init(config_param)) {
+    return false;
+  }
+
+  py::gil_scoped_acquire gil_lock;
+  TRACE_EXCEPTION(py_backend_ = create_py(params_->at("Python::backend"))());
+  IPIPE_ASSERT(!py_backend_.is(py::none()));
+  if (!py_backend_.attr("init")(config_param)) {
+    SPDLOG_ERROR(params_->at("Python::backend") + " init failed");
+    return false;
+  }
+  return true;
+  // return py_wrapper_->init(params_->at("module_name"), params_->at("backend_name"));
+}
+
+Filter::status PyFilter::forward(ipipe::dict input_dict) {
+  // params_->check_and_update(input_dict);
+  py::gil_scoped_acquire gil_lock;
+  py::list py_inputs;
+  py::dict py_input;
+  dict2py(input_dict, py_input, true);
+
+  auto final_status = py_backend_.attr("forward")(py_input);
+  std::vector<dict> results;
+
+  dict result = py2dict(py_input);
+
+  for (auto& item : *result) {
+    (*input_dict)[item.first] = item.second;
+  }
+
+  return py::cast<Filter::status>(final_status);
+}
+
+IPIPE_REGISTER(Filter, PyFilter, "PyFilter");
+
 }  // namespace ipipe
