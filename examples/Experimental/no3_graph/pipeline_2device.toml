@@ -58,7 +58,7 @@ std = "58.395, 57.120, 57.375" # 255*"0.229, 0.224, 0.225"
 backend="Torch[S[TensorrtTensor,SoftmaxArgMaxTensor]]"
 max="32;16"
 model="./resnet18.onnx"
-"model::cache"="./resnet18.trt"
+"model::cache"="./resnet18_2device.trt"
 
 # postprocessor="SoftmaxArgMax"
 
@@ -72,7 +72,7 @@ std = "58.395, 57.120, 57.375" # 255*"0.229, 0.224, 0.225"
 backend="Torch[S[TensorrtTensor,SoftmaxArgMaxTensor]]"
 max="32;16"
 model="././resnet50.onnx"
-"model::cache"="./resnet50.trt"
+"model::cache"="./resnet50_2device.trt"
 
 # postprocessor="SoftmaxArgMax"
 
