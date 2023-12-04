@@ -15,7 +15,7 @@ next = "detect"
 [detect]
 backend = "Torch[S[TensorrtTensor, PostProcYolox]]" 
 batching_timeout = 10
-instance_num = 2
+instance_num = 1
 max = 16
 net_h=416
 net_w=416 # for PostProcYolox
@@ -49,14 +49,14 @@ color="rgb"
 instance_num=16
 # save_dir="./"
 
-next="cls_1"
+next="cls_1,cls_2"
 
 #### branch 1 ####
 [cls_1]
 mean = "123.675, 116.28, 103.53" # 255*"0.485, 0.456, 0.406"
 std = "58.395, 57.120, 57.375" # 255*"0.229, 0.224, 0.225"
 backend="Torch[S[TensorrtTensor,SoftmaxArgMaxTensor]]"
-max="32;16"
+max=8
 model="./resnet18.onnx"
 "model::cache"="./resnet18.trt"
 
@@ -70,13 +70,33 @@ filter="filter_score"
 mean = "123.675, 116.28, 103.53" # 255*"0.485, 0.456, 0.406"
 std = "58.395, 57.120, 57.375" # 255*"0.229, 0.224, 0.225"
 backend="Torch[S[TensorrtTensor,SoftmaxArgMaxTensor]]"
-max="32;16"
+max=8
 model="././resnet50.onnx"
 "model::cache"="./resnet50.trt"
 
 # postprocessor="SoftmaxArgMax"
 
- 
+
+next="subgraph_final"
 
 #### branch 2 ####
+
+[cls_2]
+
+mean = "123.675, 116.28, 103.53" # 255*"0.485, 0.456, 0.406"
+std = "58.395, 57.120, 57.375" # 255*"0.229, 0.224, 0.225"
+backend="Torch[S[TensorrtTensor,SoftmaxArgMaxTensor]]"
+max="32;32;32"
+min="32;32;1"
+model="././fastervit_0_224_224.onnx"
+"model::cache"="./fastervit_0_224_224_32.trt"
+device_id=1
+# postprocessor="SoftmaxArgMax"
+batching_timeout=10
+
+
+next="subgraph_final"
+
+[subgraph_final]
+map="post_cls_1[score:score_1,result:cls_1_result],cls_2[score:score_2,result:data]"
  
