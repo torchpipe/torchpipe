@@ -56,8 +56,8 @@ mean = "123.675, 116.28, 103.53" # 255*"0.485, 0.456, 0.406"
 std = "58.395, 57.120, 57.375" # 255*"0.229, 0.224, 0.225"
 backend="S[TensorrtTensor,SoftmaxArgMaxTensor,SyncTensor]"
 max=16
-model="./resnet18_16.onnx"
-"model::cache"="./resnet18.trt"
+model="./resnet18.onnx"
+"model::cache"="./resnet18_16.trt"
 
 # postprocessor="SoftmaxArgMax"
 
