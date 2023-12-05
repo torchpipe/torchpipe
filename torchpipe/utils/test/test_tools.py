@@ -376,8 +376,8 @@ def test(sample: Union[Sampler, List[Sampler]], total_number=10000):
         InferThreadData(i, test_params, sample[i]) for i in range(len(sample))
     ]
 
-    warm_up_num = 10
-    print("Warm-up 10 times for each client")
+    warm_up_num = 20
+    print(f"Warm-up {warm_up_num} times for each client")
     from concurrent.futures import ThreadPoolExecutor
 
     with ThreadPoolExecutor(max_workers=num_clients) as t:

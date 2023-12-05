@@ -12,7 +12,7 @@ max_w = 416
 next = "detect"
 
 [detect]
-backend = "S[TensorrtTensor,SyncTensor]" 
+backend = "S[TensorrtTensor,PostProcYolox,SyncTensor]" 
 batching_timeout = 5
 instance_num = 1
 max = 8
@@ -20,7 +20,7 @@ net_h=416
 net_w=416 # for PostProcYolox
 model = "../../../examples/yolox/yolox_tiny.onnx" 
 "model::cache" = "./yolox_tiny.trt" 
-postprocessor = "BatchingPostProcYolox_45_30" 
+# postprocessor = "BatchingPostProcYolox_45_30" 
 next = "sub_graph"
 
 [sub_graph] 
