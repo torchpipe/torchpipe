@@ -82,7 +82,6 @@ if __name__ == "__main__":
         dets = yolox_post_process.multiclass_nms(boxes_xyxy, scores, nms_thr=0.45, score_thr=0.3)
         
         final_boxes, final_scores, final_cls_inds = dets[:, :4], dets[:, 4], dets[:, 5]
-        print(final_boxes, final_scores, final_cls_inds)
         # boxes = boxes[:, 0:4]
 
         croped_img = []
