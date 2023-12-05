@@ -12,19 +12,25 @@ max_w = 416
 next = "detect"
 
 [detect]
-backend = "S[TensorrtTensor,PostProcYolox,SyncTensor]" 
+backend = "S[TensorrtTensor,SyncTensor]" 
 batching_timeout = 5
 instance_num = 1
 max = 8
-net_h=416
-net_w=416 # for PostProcYolox
+
 model = "../../../examples/yolox/yolox_tiny.onnx" 
 "model::cache" = "./yolox_tiny.trt" 
 # postprocessor = "BatchingPostProcYolox_45_30" 
+
+next="post_det"
+[post_det]
+net_h=416
+net_w=416 # for PostProcYolox
+backend="SyncTensor[PostProcYolox]"
 next = "sub_graph"
+instance_num = 8
 
 [sub_graph] 
-map="jpg_decoder[other:data,color:color],detect[TASK_BOX_KEY:TASK_BOX_KEY]"
+map="jpg_decoder[other:data,color:color],post_det[TASK_BOX_KEY:TASK_BOX_KEY]"
 
 backend = "MapReduce"
 jump="cls_preprocess"
@@ -41,7 +47,7 @@ instance_num=20
 
 #### sub graph ####
 [cls_preprocess]
-backend="Sequential[CropTensor,ResizeTensor,cvtColorTensor,SyncTensor]"
+backend="Sequential[PPLCropTensor,PPLResizeTensor,cvtColorTensor,SyncTensor]"
 resize_h=224
 resize_w=224
 color="rgb"
@@ -99,3 +105,4 @@ next="subgraph_final"
 [subgraph_final]
 map="post_cls_1[score:score_1,result:cls_1_result],cls_2[score:score_2,result:data]"
  
+
