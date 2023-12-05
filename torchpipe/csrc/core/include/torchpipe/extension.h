@@ -18,3 +18,4 @@
 #include "ipipe_common.hpp"
 #include "filter.hpp"
 #include "base_logging.hpp"
+#include "torch_utils.hpp"
