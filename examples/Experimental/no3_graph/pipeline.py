@@ -75,7 +75,7 @@ if __name__ == "__main__":
             run,
             os.path.join("../../../test/assets/norm_jpg"),
             num_clients=20,
-            total_number=10000,
+            total_number=20000,
         )
     else:
         run([(img_path, img)], save_img=True)
