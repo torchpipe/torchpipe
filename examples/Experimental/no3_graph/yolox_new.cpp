@@ -123,7 +123,8 @@ class PostProcYolox : public Backend {
 
   std::vector<std::vector<Object>> forward_impl(std::vector<at::Tensor> net_outputs,
                                                 std::vector<dict> input) {
-    net_outputs[0] = net_outputs[0].cpu();
+    if (!is_cpu_tensor(net_outputs[0]))  // cpu tensor to gpu tensor
+      net_outputs[0] = net_outputs[0].cpu();
 
     auto net_w = net_w_;
     auto net_h = net_h_;
