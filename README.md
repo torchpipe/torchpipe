@@ -4,7 +4,10 @@ English | [简体中文](README_zh.md)
 
 
 <div align="center">
-<h1 align="center">torchpipe</h1>
+<h1 align="center">TorchPipe</h1>
+A Minimalist High-Throughput Deep Learning Model Deployment Framework
+
+Production-Grade：Within NetEase about billions of calls supported by Torchpipe everyday.
 <h6 align="center">Ensemble Pipeline Serving for  <a href="https://pytorch.org/">Pytorch</a> Frontend</h6>
 
 
@@ -16,22 +19,79 @@ English | [简体中文](README_zh.md)
 <!-- <img alt="last commit" src="https://img.shields.io/github/last-commit/torchpipe/torchpipe.github.io?style=flat-square"> -->
 </div>
 
+## Installation
 
+```bash
+$ git submodule update --init --recursive
+$ python setup.py install
+```
+
+<details>
+    <summary>Other installation options</summary>
+
+### Using NGC Docker Image
+The easiest way is to choose NGC mirror for source code compilation (official mirror may still be able to run low version drivers through Forward Compatibility or Minor Version Compatibility).
+
+- Minimum support `nvcr.io/nvidia/pytorch:21.07-py3` (Starting from 0.3.2rc3)
+- Maximum support `nvcr.io/nvidia/pytorch:23.08-py3`
+
+First, clone the code:
+```bash
+$ git clone https://github.com/torchpipe/torchpipe.git
+$ cd torchpipe/ && git submodule update --init --recursive
+```
+
+Then start the container and if your machine supports [a higher version of the image](https://catalog.ngc.nvidia.com/orgs/nvidia/containers/pytorch/tags), you can use the updated version of the Pytorch image.
+```bash
+img_name=nvcr.io/nvidia/pytorch:23.05-py3  # for tensort8.6.1, LayerNorm
+# img_name=nvcr.io/nvidia/pytorch:22.12-py3  # For driver version lower than 510
+docker run --rm --gpus=all --ipc=host  --network=host -v `pwd`:/workspace  --shm-size 1G  --ulimit memlock=-1 --ulimit stack=67108864  --privileged=true  -w/workspace -it $img_name /bin/bash
+```
+
+> NOTE: If you are using a transformer-ish model, it is strongly recommended to use TensorRT >= 8.6.1 (`nvcr.io/nvidia/pytorch:23.05-py3`) for supporting opset 17 for `LayerNormalization` and opset 18 `GroupNormalization`.
+
+</details>
+
+
+## Multi-Instance High-Throughput Serving
 Torchpipe is a multi-instance pipeline parallel library that acts as a bridge between lower-level acceleration libraries (such as TensorRT, OpenCV, ppl.cv) and RPC frameworks (like Thrift, gRPC), ensuring a strict decoupling from them. It offers a thread-safe function interface for the PyTorch frontend at a higher level, while empowering users with fine-grained backend extension capabilities at a lower level.
 
+<img alt="teaser" src="./docs/teaser.png">
 
 
-Production-Grade：Within NetEase about billions of calls supported by Torchpipe everyday.
+## Minimalist Configuration
 
+The configuration of AI pipelines can be a complex and error-prone task, often requiring deep technical expertise. TorchPipe is designed to be intuitive and user-friendly, allowing even those with limited technical background in AI deployment to configure and optimize their AI pipelines efficiently. This enables users to define complex pipeline behaviors without getting bogged down in intricate coding details.
 
+The following example shows the configuration for detection using YOLO-X. By default, it supports cross-request batching and node-level pipeline parallelism, under a product-ready environment.
 
+```toml
+batching_timeout = 5  # Waiting timeout for cross-request batching 
+precision = "fp16" 
+
+[jpg_decoder]
+backend = "Sequential[DecodeMat,cvtColorMat,ResizePadMat,Mat2Tensor,SyncTensor]"
+color = "bgr"
+instance_num = 5
+max_h = 416
+max_w = 416
+
+# the next node to go after this node
+next = "detect"
+
+[detect]
+backend = "SyncTensor[TensorrtTensor]" 
+batching_timeout = 5 # Waiting timeout for cross-request batching 
+instance_num = 2 
+max = 4  # maximum batchsize
+model = "./yolox_tiny.onnx"
+"model::cache" = "./yolox_tiny.trt"
+postprocessor = "BatchingPostProcYolox_45_30"
+```
 
 <!-- ## Notes
 -  Use the latest tag and corresponding release.
 -  The main branch is used for releasing version updates, while the develop branch is used for code submission and daily development. -->
-
-## update
-- We have updated a basic version of the [Llama example](https://github.com/torchpipe/LLM.TensorRT.Serve)
 
 <!-- end elevator-pitch -->
 
@@ -39,17 +99,7 @@ Production-Grade：Within NetEase about billions of calls supported by Torchpipe
 
 <!-- start quickstart -->
 
-
-###  1. Installation
-
-
-See [Installation](https://torchpipe.github.io/docs/installation).
-
-
-
-### 2. Get appropriate model file (currently supports ONNX, TensorRT engine, etc.).
-
-
+### 1. Get appropriate model file (currently supports ONNX, TensorRT engine, etc.).
 
 ```python
 import torchvision.models as models
@@ -67,8 +117,7 @@ torch.onnx.export(resnet18, data_bchw, model_path,
 # os.system(f"onnxsim {model_path} {model_path}")
 ```
  
-### 3. Now you can perform concurrent calls to a single model.
-
+### 2. Now you can perform concurrent calls to a single model.
 
 ```python
 import torch, torchpipe
@@ -88,25 +137,18 @@ print(input["result"].shape)  # If failed, this key value must not exist, even i
 
 > c++ API is also possible through [libtorch+cmake] or [pybind11].
 
+## Update
+- We have updated a basic version of the [Llama example](https://github.com/torchpipe/LLM.TensorRT.Serve)
+
 <!-- end quickstart -->
-### 4. Our core functionality is a series of pipeline facilities
 
+## Roadmap
 
-> For more information, please visit the [Torchpipe documentation][quickstart-docs-en].
-
-[quickstart-docs-en]: https://torchpipe.github.io/
-
-
-### 5. Roadmap
-
-
-
-torchpie is currently in a rapid iteration phase, and we greatly appreciate your help.  Feel free to provide feedback through issues or merge requests. Check out our [Contribution Guidelines](./CONTRIBUTING.md).
-
+TorchPipe is currently in a rapid iteration phase, and we greatly appreciate your help.  Feel free to provide feedback through issues or merge requests. Check out our [Contribution Guidelines](./CONTRIBUTING.md).
 
 Our ultimate goal is to make high-throughput deployment on the server side as simple as possible. To achieve this, we actively iterate and are willing to collaborate with other projects with similar goals.
 
-Recent RoadMap:
+Current RoadMap:
 
 - [Examples of large models](https://github.com/torchpipe/LLM.TensorRT.Serve)
 - Optimization of the compilation system, divided into modules such as core, pplcv, model/tensorrt, opencv, etc.
@@ -119,7 +161,5 @@ Potential research directions that have not been completed:
 - Debugging tools for multi-node scheduling. Since stack simulation design is used in multi-node scheduling, it is relatively easy to design node-level debugging tools.
 - Load balancing.
 
-
-### 6. Acknowledgements
+### Acknowledgements
 Our codebase is built using multiple opensource contributions, please see [ACKNOWLEDGEMENTS](./ACKNOWLEDGEMENTS.md) for more details.
-
