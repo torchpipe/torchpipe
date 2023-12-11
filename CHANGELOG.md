@@ -1,6 +1,10 @@
 # Changelog
 
-## v0.3.3 Beta 3 (WIP)
+
+## v0.3.3 Beta 4 (WIP)
+
+
+## v0.3.3 Beta 3 
 
 
 - fix TorchScriptTensor for batching input; update docs for training-tool
