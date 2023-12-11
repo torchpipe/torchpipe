@@ -23,7 +23,7 @@ import torch
 import torchpipe as tp
 from torchpipe import pipe, TASK_DATA_KEY, TASK_RESULT_KEY, TASK_BOX_KEY
 
-tp.utils.cpp_extension.load(name="yolox", sources=["./yolox.cpp"])
+tp.utils.cpp_extension.load(name="yolox", sources=["./yolox_new.cpp"])
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -56,7 +56,7 @@ if __name__ == "__main__":
 
             img = cv2.imread(img_path)
             for t in range(len(detect_result)):
-                x1, y1, x2, y2, label, prob = detect_result[t].tolist()
+                x1, y1, x2, y2 = detect_result[t].tolist()
                 img = cv2.rectangle(
                     img, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2
                 )

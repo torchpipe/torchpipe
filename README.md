@@ -83,13 +83,16 @@ max_w = 416
 next = "detect"
 
 [detect]
-backend = "SyncTensor[TensorrtTensor]" 
+backend = "Sequential[TensorrtTensor,PostProcYolox,SyncTensor]" 
 batching_timeout = 5 # Waiting timeout for cross-request batching 
 instance_num = 2 
 max = 4  # maximum batchsize
 model = "./yolox_tiny.onnx"
 "model::cache" = "./yolox_tiny.trt"
-postprocessor = "BatchingPostProcYolox_45_30"
+
+# params for user-defined backend PostProcYolox:
+net_h=416
+net_w=416
 ```
 
 <!-- ## Notes
@@ -140,8 +143,6 @@ print(input["result"].shape)  # If failed, this key value must not exist, even i
 
 > c++ API is also possible through [libtorch+cmake] or [pybind11].
 
-## Update
-- We have updated a basic version of the [Llama example](https://github.com/torchpipe/LLM.TensorRT.Serve)
 
 <!-- end quickstart -->
 
