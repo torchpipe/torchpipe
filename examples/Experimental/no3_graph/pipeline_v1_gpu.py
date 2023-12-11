@@ -17,7 +17,7 @@ import os
 import time
 import argparse
 
-import numpy as np
+
 import cv2
 import torch
 import torchpipe as tp
@@ -27,12 +27,10 @@ tp.utils.cpp_extension.load(name="yolox", sources=["./yolox_new.cpp"])
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
-    "--config", dest="toml", type=str, default="./pipeline_v0.toml", help="configuration file"
+    "--config", dest="toml", type=str, default="./pipeline_v1_gpu.toml", help="configuration file"
 )
 parser.add_argument("--benchmark", action="store_true")
 args = parser.parse_args()
-from concurrent.futures import ThreadPoolExecutor
-pool = ThreadPoolExecutor(max_workers=20)
 
 if __name__ == "__main__":
     img_path = "../../../test/assets/norm_jpg/dog.jpg"
@@ -42,85 +40,57 @@ if __name__ == "__main__":
 
     toml_path = args.toml
     print(f"toml: {toml_path}")
- 
+
+
     # 调用
     model = pipe(toml_path)
 
     def run(img_data, save_img=False):
         img_path, img_data = img_data[0]
 
-        ori_img = cv2.imdecode(np.frombuffer(img_data, dtype=np.uint8), cv2.IMREAD_COLOR)
-        # ori_img -> img,  pad to 416 416, and get the x_ratio and y_ratio
-        # use numpy and cv2
-        ratio = min(416 / ori_img.shape[0], 416 / ori_img.shape[1])
-        img = cv2.resize(ori_img, (int(ori_img.shape[1] * ratio), int(ori_img.shape[0] * ratio)))
-        img = cv2.copyMakeBorder(img, 0, 416 - img.shape[0], 0, 416 - img.shape[1], cv2.BORDER_CONSTANT, value=(0, 0, 0))
-        # float x_ratio = data.cols * 1.0f / resize_w;
-        # float y_ratio = data.rows * 1.0f / resize_h;
-    
-
-        # detect
-        input = {}
-        input["data"] = torch.from_numpy(img).permute(2, 0, 1).unsqueeze(0)
-        input["ratio"] = 1.0/ratio
-
-
-        # input["ratio"] = 
-        input["node_name"] = "detect"
-
+        # decode preprocess
+        input = {"data": img_data}
+        input["node_name"] = "jpg_decoder"
         model(input)
-        
-        boxes = input[TASK_BOX_KEY]
-        # crop from ori_img by boxes
-        # use numpy and cv2
-        croped_img = []
 
-        for box in []:#boxes:
-            x1, y1, x2, y2 = box.tolist()
-            img = ori_img[int(y1):int(y2), int(x1):int(x2), :]
-            img = cv2.resize(img, (224, 224))
-            # cvtcolor
-            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-            # imagenet preprocess
-            img = img.astype(np.float32)
-            # img /= 255.0
-            # img -= np.array([0.485, 0.456, 0.406])
-            # img /= np.array([0.229, 0.224, 0.225])
-            img = img.transpose(2, 0, 1)
-            croped_img.append(torch.from_numpy(img).unsqueeze(0))
-        def crop(img, box):
-            x1, y1, x2, y2 = box.tolist()
-            img = ori_img[int(y1):int(y2), int(x1):int(x2), :]
-            img = cv2.resize(img, (224, 224))
-            # cvtcolor
-            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-            # imagenet preprocess
-            img = img.astype(np.float32)
-            # img /= 255.0
-            # img -= np.array([0.485, 0.456, 0.406])
-            # img /= np.array([0.229, 0.224, 0.225])
-            img = img.transpose(2, 0, 1)
-            return torch.from_numpy(img).unsqueeze(0)
-        croped_img = pool.map(crop, [ori_img for _ in range(len(boxes))], boxes)
+        ori_img=input["other"]
+        ratio = min(416 / ori_img.shape[0], 416 / ori_img.shape[1])
+        # detect
+        det_input={}
+        det_input["data"] = torch.from_numpy(input["result"])
+        det_input["node_name"] = "detect"
+        det_input["ratio"] = 1.0/ratio
         
-        croped_img = list(croped_img)
+        model(det_input)
+        
+        ori_tensor = torch.from_numpy(input["other"]).cuda()
+        # classify preprocess
+        inputs = [{TASK_BOX_KEY:x.tolist(), "data": ori_tensor, "color":input["color"], 'node_name':"cls_preprocess"} for x in det_input[TASK_BOX_KEY]]
+
+        model(inputs)
 
         # classify
-        cls_1_inputs = [{"data":img,'node_name':'cls_1'} for img in croped_img]
-        cls_2_inputs = [{"data":img,'node_name':'cls_2'} for img in croped_img]
-        
-        #model(cls_1_inputs)
+        cls_1_inputs = [{"data":x["result"],'node_name':'cls_1'} for x in inputs]
+        cls_2_inputs = [{"data":x["result"],'node_name':'cls_2'} for x in inputs]
+
         model(cls_1_inputs+cls_2_inputs)
+
         cls_1_score = [x["score"] for x in cls_1_inputs]
+        
         cls_1_class = [x["result"] for x in cls_1_inputs]
+        
+
         # retry cls_1 for score < 0.3
         retry_indexes = []
         for i in range(len(cls_1_score)):
             if cls_1_score[i] < 0.3:
                 retry_indexes.append(i)
-        retry_cls_1_inputs = [{"data":croped_img[i],'node_name':'post_cls_1'} for i in retry_indexes]
+
+        retry_cls_1_inputs = [{"data":inputs[i]["result"],'node_name':'post_cls_1'} for i in retry_indexes]
         model(retry_cls_1_inputs)
-         # update cls_1_score and cls_1_class
+        
+        
+        # update cls_1_score and cls_1_class
         for i in range(len(retry_indexes)):
             cls_1_score[retry_indexes[i]] = retry_cls_1_inputs[i]["score"]
             cls_1_class[retry_indexes[i]] = retry_cls_1_inputs[i]["result"]
@@ -128,16 +98,11 @@ if __name__ == "__main__":
         #model(cls_2_inputs)
         cls_2_score = [x["score"] for x in cls_2_inputs]
         cls_2_class = [x["result"] for x in cls_2_inputs]
-
-        
-
-       
-
         if save_img:
             print("cls_1_score, cls_1_class, cls_2_score, cls_2_class: ", cls_1_score, cls_1_class, cls_2_score, cls_2_class)
             # print(input.keys())
 
-            detect_result = input[TASK_BOX_KEY]
+            detect_result = det_input[TASK_BOX_KEY]
             # print(("detect_result: ", detect_result))
 
             img = cv2.imread(img_path)
@@ -163,3 +128,10 @@ if __name__ == "__main__":
         )
     else:
         run([(img_path, img)], save_img=True)
+
+
+
+
+
+# gpu前处理 （c++检测后处理）； python调度
+

@@ -27,13 +27,12 @@ tp.utils.cpp_extension.load(name="yolox", sources=["./yolox_new.cpp"])
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
-    "--config", dest="toml", type=str, default="./pipeline_v0.toml", help="configuration file"
+    "--config", dest="toml", type=str, default="./pipeline_con.toml", help="configuration file"
 )
 parser.add_argument("--benchmark", action="store_true")
 args = parser.parse_args()
-from concurrent.futures import ThreadPoolExecutor
-pool = ThreadPoolExecutor(max_workers=20)
 
+use_threadpool = os.getenv("USE_THREADPOOL", "0") == "1"
 if __name__ == "__main__":
     img_path = "../../../test/assets/norm_jpg/dog.jpg"
     img = cv2.imread(img_path, 1)
@@ -45,6 +44,10 @@ if __name__ == "__main__":
  
     # 调用
     model = pipe(toml_path)
+
+    # if use_threadpool:
+    from concurrent.futures import ThreadPoolExecutor
+    pool = ThreadPoolExecutor(max_workers=20)
 
     def run(img_data, save_img=False):
         img_path, img_data = img_data[0]
@@ -73,9 +76,16 @@ if __name__ == "__main__":
         boxes = input[TASK_BOX_KEY]
         # crop from ori_img by boxes
         # use numpy and cv2
-        croped_img = []
 
-        for box in []:#boxes:
+        # ori_tensor = torch.from_numpy(ori_img)
+        # # classify preprocess
+        # inputs = [{TASK_BOX_KEY:x.tolist(), "data": ori_tensor, "color":'bgr', 'node_name':"cls_preprocess"} for x in boxes]
+
+        # model(inputs)
+        
+        # croped_img = [x["result"] for x in inputs]
+        
+        def sub_graph(img, box):
             x1, y1, x2, y2 = box.tolist()
             img = ori_img[int(y1):int(y2), int(x1):int(x2), :]
             img = cv2.resize(img, (224, 224))
@@ -87,49 +97,34 @@ if __name__ == "__main__":
             # img -= np.array([0.485, 0.456, 0.406])
             # img /= np.array([0.229, 0.224, 0.225])
             img = img.transpose(2, 0, 1)
-            croped_img.append(torch.from_numpy(img).unsqueeze(0))
-        def crop(img, box):
-            x1, y1, x2, y2 = box.tolist()
-            img = ori_img[int(y1):int(y2), int(x1):int(x2), :]
-            img = cv2.resize(img, (224, 224))
-            # cvtcolor
-            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-            # imagenet preprocess
-            img = img.astype(np.float32)
-            # img /= 255.0
-            # img -= np.array([0.485, 0.456, 0.406])
-            # img /= np.array([0.229, 0.224, 0.225])
-            img = img.transpose(2, 0, 1)
-            return torch.from_numpy(img).unsqueeze(0)
-        croped_img = pool.map(crop, [ori_img for _ in range(len(boxes))], boxes)
-        
-        croped_img = list(croped_img)
+            img =  torch.from_numpy(img).unsqueeze(0)
 
-        # classify
-        cls_1_inputs = [{"data":img,'node_name':'cls_1'} for img in croped_img]
-        cls_2_inputs = [{"data":img,'node_name':'cls_2'} for img in croped_img]
-        
-        #model(cls_1_inputs)
-        model(cls_1_inputs+cls_2_inputs)
-        cls_1_score = [x["score"] for x in cls_1_inputs]
-        cls_1_class = [x["result"] for x in cls_1_inputs]
-        # retry cls_1 for score < 0.3
-        retry_indexes = []
-        for i in range(len(cls_1_score)):
-            if cls_1_score[i] < 0.3:
-                retry_indexes.append(i)
-        retry_cls_1_inputs = [{"data":croped_img[i],'node_name':'post_cls_1'} for i in retry_indexes]
-        model(retry_cls_1_inputs)
-         # update cls_1_score and cls_1_class
-        for i in range(len(retry_indexes)):
-            cls_1_score[retry_indexes[i]] = retry_cls_1_inputs[i]["score"]
-            cls_1_class[retry_indexes[i]] = retry_cls_1_inputs[i]["result"]
+            cls_1_input = {"data":img,'node_name':'cls_1'} 
+            cls_2_input = {"data":img,'node_name':'cls_2'} 
+            model([cls_1_input,cls_2_input])
+            cls_1_score = cls_1_input["score"]
+            cls_1_class = cls_1_input["result"]
 
-        #model(cls_2_inputs)
-        cls_2_score = [x["score"] for x in cls_2_inputs]
-        cls_2_class = [x["result"] for x in cls_2_inputs]
+            
+            cls_2_score = cls_2_input["score"]
+            cls_2_class = cls_2_input["result"]
 
+            if cls_1_score < 0.3:
+                retry_cls_1_input = {"data":img,'node_name':'post_cls_1'} 
+                model(retry_cls_1_input)
+                cls_1_score=retry_cls_1_input["score"]
+                cls_1_class=retry_cls_1_input["result"]
+
+            return  cls_1_score, cls_1_class, cls_2_score, cls_2_class
+
+        result = pool.map(sub_graph, [ori_img for _ in range(len(boxes))], boxes)
         
+        result = list(result)
+
+        cls_1_score, cls_1_class, cls_2_score, cls_2_class = zip(*result)
+        # print(result)
+
+
 
        
 
@@ -163,3 +158,4 @@ if __name__ == "__main__":
         )
     else:
         run([(img_path, img)], save_img=True)
+
