@@ -50,11 +50,14 @@ class SoftmaxArgMaxTensor : public Backend {
 
     // for (std::size_t i = 0; i < 1; ++i) {
     float max_score = max_values.item<float>();
-    int argmax = max_indices.item<int>();
+    long argmax = max_indices.item<long>();
+    if (argmax > 10000){
+      
+    }
 
     input["score"] = max_score;
-    input["class"] = argmax;
-    input[TASK_RESULT_KEY] = argmax;
+    input["class"] = static_cast<int>(argmax);
+    input[TASK_RESULT_KEY] = static_cast<int>(argmax);
     // }
   }
 };

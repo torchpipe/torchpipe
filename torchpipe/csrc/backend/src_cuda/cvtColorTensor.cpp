@@ -47,6 +47,12 @@ void cvtColorTensor::forward(dict input_dict) {
   }
 
   auto input_tensor = dict_get<at::Tensor>(input_dict, TASK_DATA_KEY);
+  if (input_tensor.scalar_type() != at::kFloat) {
+    input_tensor = input_tensor.to(at::kFloat);
+  }
+  if (!input_tensor.is_contiguous()) {
+    input_tensor = input_tensor.contiguous();
+  }
 
   if (is_hwc(input_tensor)) {
     if (color_ != input_color) {

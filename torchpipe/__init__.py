@@ -50,6 +50,7 @@ from torchpipe.libipipe import (
     register_filter,
     infer_shape,
     supported_opset,
+    Status
 )
 from torchpipe.libipipe import Event
 from torchpipe.libipipe import encrypt

@@ -31,14 +31,16 @@ HWCTensorWrapper::HWCTensorWrapper(dict input_dict, int top, int bottom, int lef
       at::empty({top + bottom + input_tensor.sizes()[0], left + right + input_tensor.sizes()[1], c},
                 options, at::MemoryFormat::Contiguous);
 
-  assert((img_w + left + right) * c == output_tensor.stride(0));
+  // assert((img_w + left + right) * c == output_tensor.stride(0));
   assert(input_tensor.sizes()[1] * c == input_tensor.stride(0));
 }
 
 HWCTensorWrapper::HWCTensorWrapper(dict input_dict, int target_h, int target_w)
     : input(input_dict) {
   input_tensor = dict_get<at::Tensor>(input_dict, TASK_DATA_KEY);
-  IPIPE_ASSERT(!is_cpu_tensor(input_tensor));
+  if (is_cpu_tensor(input_tensor)) {
+    input_tensor = input_tensor.cuda();
+  }
   is_hwc_input = is_hwc(input_tensor);
   input_tensor = img_hwc_guard(input_tensor);
   if (!input_tensor.is_contiguous()) {
