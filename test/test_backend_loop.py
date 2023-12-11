@@ -37,7 +37,7 @@ class TestBackend:
 
     def test_gray(self):
         Torch_Loops = ["Torch[Torch[Identity]]",
-                       "TensorSync[TensorSync]", "SyncTensor[SyncTensor]"]
+                       "SyncTensor[SyncTensor]", "SyncTensor[SyncTensor]"]
 
         config = {'jpg_decoder':
                   {'backend': f"Torch[Torch[S[C10Exception]]]"}}
@@ -46,7 +46,7 @@ class TestBackend:
 
     def test_gray2(self):
         Torch_Loops = ["Torch[Identity]",
-                       "TensorSync[TensorSync]", "SyncTensor[SyncTensor]"]
+                       "SyncTensor[SyncTensor]", "SyncTensor[SyncTensor]"]
 
         config = {'jpg_decoder':
                   {'backend': f"Torch[S[{Torch_Loops[0]},{Torch_Loops[1]},S[{Torch_Loops[2]}]]]"}}
@@ -71,7 +71,7 @@ class TestBackend:
 
     def test_sts12(self):
         Torch_Loops = ["Torch[Identity]",
-                       "TensorSync[TensorSync]", "SyncTensor[SyncTensor]"]
+                       "SyncTensor[SyncTensor]", "SyncTensor[SyncTensor]"]
 
         config = {'jpg_decoder':
                   {'backend': f"Torch[S[{Torch_Loops[0]},{Torch_Loops[1]},S[C10Exception]]]"}}

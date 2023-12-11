@@ -87,7 +87,8 @@ class InstanceHandler : public Backend {
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
   void forward(const std::vector<dict>& input_dicts) override final {
-    throw std::runtime_error("not accessable");
+    batched_queue_->PushIfEmpty(input_dicts);
+    // throw std::runtime_error("not accessable");
   }
   virtual uint32_t max() const {
     return engine_->max();

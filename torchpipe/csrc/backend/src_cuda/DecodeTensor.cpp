@@ -29,7 +29,14 @@
 #include "Backend.hpp"
 namespace ipipe {
 
-bool check_nvjpeg_result(nvjpegStatus_t _e) { return (_e == NVJPEG_STATUS_SUCCESS); }
+bool check_nvjpeg_result(nvjpegStatus_t _e) {
+  if (_e == NVJPEG_STATUS_SUCCESS) {
+    return true;
+  } else {
+    SPDLOG_WARN("nvjpeg error: {}", int(_e));
+    return false;
+  }
+}
 
 bool DecodeTensor::init(const std::unordered_map<std::string, std::string>& config_param, dict) {
   params_ =
@@ -84,7 +91,7 @@ bool decode(const std::string& data, nvjpegHandle_t handle, nvjpegJpegState_t st
 
   if (!check_nvjpeg_result(nvjpegGetImageInfo(handle, blob, data.length(), &nComponents,
                                               &subsampling, widths, heights))) {
-    SPDLOG_ERROR("nvjpegGetImageInfo failed");
+    SPDLOG_WARN("nvjpegGetImageInfo failed");
     return false;
   }
 
@@ -156,7 +163,7 @@ bool decode(const std::string& data, nvjpegHandle_t handle, nvjpegJpegState_t st
 
   if (!check_nvjpeg_result(nvjpegDecode(handle, state, blob, data.length(), target_color, &nv_image,
                                         c10::cuda::getCurrentCUDAStream()))) {
-    SPDLOG_ERROR("nvjpegDecode failed");
+    SPDLOG_WARN("nvjpegDecode failed");
     return false;
   }
 

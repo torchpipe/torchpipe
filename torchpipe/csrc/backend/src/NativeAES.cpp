@@ -50,7 +50,7 @@ IPIPE_LOCAL std::string get_ipipe_key() {
 }
 #endif
 
-constexpr auto ipipe_version = "0.3.3b2";
+constexpr auto ipipe_version = "0.3.3b3";
 template <typename T, std::size_t N>
 constexpr uint32_t array_sum(T (&array)[N]) {
   uint32_t sum = 0;
@@ -144,7 +144,7 @@ class IPIPE_LOCAL EncryptHelper {
     return result;
   }
   uint32_t get_ipipe_tag() {
-    return 54320000 + sizeof(PaddingHead) + array_sum(get_ipipe_key()) + ipipe_version_sum();
+    return 54320000 + sizeof(PaddingHead) + array_sum(get_ipipe_key());  // + ipipe_version_sum();
   }
 };
 }  // namespace

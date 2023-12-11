@@ -32,8 +32,10 @@ $ python setup.py install
 ### Using NGC Docker Image
 The easiest way is to choose NGC mirror for source code compilation (official mirror may still be able to run low version drivers through Forward Compatibility or Minor Version Compatibility).
 
+
 - Minimum support `nvcr.io/nvidia/pytorch:21.07-py3` (Starting from 0.3.2rc3)
 - Maximum support `nvcr.io/nvidia/pytorch:23.08-py3`
+
 
 First, clone the code:
 ```bash
@@ -51,6 +53,7 @@ docker run --rm --gpus=all --ipc=host  --network=host -v `pwd`:/workspace  --shm
 > NOTE: If you are using a transformer-ish model, it is strongly recommended to use TensorRT >= 8.6.1 (`nvcr.io/nvidia/pytorch:23.05-py3`) for supporting opset 17 for `LayerNormalization` and opset 18 `GroupNormalization`.
 
 </details>
+
 
 
 ## Multi-Instance High-Throughput Serving
@@ -163,3 +166,8 @@ Potential research directions that have not been completed:
 
 ### Acknowledgements
 Our codebase is built using multiple opensource contributions, please see [ACKNOWLEDGEMENTS](./ACKNOWLEDGEMENTS.md) for more details.
+
+### 7. Questions & Discussions
+
+- For Chinese: Wechat Group: https://torchpipe.github.io/zh/docs/contribution_guide/communicate
+

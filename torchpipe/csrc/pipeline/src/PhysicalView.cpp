@@ -35,6 +35,14 @@
 #include "BaselineSchedule.hpp"
 namespace ipipe {
 
+std::string node_borrow_from(const std::unordered_map<std::string, std::string>& config) {
+  std::string borrow_from = "";
+  auto iter = config.find("borrow_from");
+  if (iter != config.end()) {
+    borrow_from = iter->second;
+  }
+  return borrow_from;
+}
 bool PhysicalView::init(const std::unordered_map<std::string, std::string>& config,
                         dict dict_config) {
   dict_config_ = dict_config;
@@ -55,7 +63,28 @@ bool PhysicalView::init(mapmap config) {
   }
   config.erase("global");
 
+  std::vector<decltype(config.begin())> iters;
   for (auto iter = config.begin(); iter != config.end(); ++iter) {
+    auto borrowed_from = node_borrow_from(iter->second);
+    if (!borrowed_from.empty()) {
+      borrow_from_[iter->first] = borrowed_from;
+      IPIPE_ASSERT(config.find(borrowed_from) != config.end());
+      iters.push_back(config.find(borrowed_from));
+      iters.push_back(iter);
+      // 链式borrow是不允许的
+    }
+  }
+  // 删除iters重复元素，并保持顺序
+  iters.erase(std::unique(iters.begin(), iters.end()), iters.end());
+  for (auto iter = config.begin(); iter != config.end(); ++iter) {
+    if (std::find(iters.begin(), iters.end(), iter) == iters.end()) {
+      iters.push_back(iter);
+    }
+  }
+
+  IPIPE_ASSERT(iters.size() == config.size());
+
+  for (const auto& iter : iters) {
     auto iter_dot = iter->first.find(".");
     if (iter_dot != std::string::npos) {
       logical2physical_.emplace(iter->first, iter->first.substr(0, iter_dot));

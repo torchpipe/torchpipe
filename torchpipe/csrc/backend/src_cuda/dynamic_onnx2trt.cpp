@@ -33,6 +33,11 @@
 #include <cuda.h>
 #include "time_utils.hpp"
 #include "tensorrt_utils.hpp"
+#include "ipipe_common.hpp"
+
+#ifdef USE_TORCH_ALLOCATOR
+#include "torch_allocator.hpp"
+#endif
 
 namespace ipipe {
 nvinfer1::Dims vtodim(std::vector<int> input) {
@@ -40,6 +45,14 @@ nvinfer1::Dims vtodim(std::vector<int> input) {
   out.nbDims = input.size();
   for (std::size_t i = 0; i < input.size(); ++i) out.d[i] = input[i];
 
+  return out;
+}
+
+nvinfer1::Dims shape_tensor_to_dim(std::vector<int> input) {
+  IPIPE_ASSERT(input.size() >= 1);
+  nvinfer1::Dims out;
+  out.nbDims = input.size();
+  for (std::size_t i = 0; i < input.size(); ++i) out.d[i] = input[i];
   return out;
 }
 
@@ -131,6 +144,7 @@ std::vector<std::vector<int>> infer_onnx_shape(std::string onnx_path) {
   constexpr auto explicitBatch =
       1U << static_cast<uint32_t>(nvinfer1::NetworkDefinitionCreationFlag::kEXPLICIT_BATCH);
   unique_ptr_destroy<nvinfer1::IBuilder> builder{nvinfer1::createInferBuilder(gLogger_inplace)};
+
   unique_ptr_destroy<nvinfer1::INetworkDefinition> network{builder->createNetworkV2(explicitBatch)};
   unique_ptr_destroy<nvonnxparser::IParser> parser{
       nvonnxparser::createParser(*network, gLogger_inplace)};
@@ -158,6 +172,14 @@ std::vector<std::vector<int>> infer_onnx_shape(std::string onnx_path) {
 std::shared_ptr<CudaEngineWithRuntime> loadEngineFromBuffer(const std::string& engine_plan) {
   std::shared_ptr<CudaEngineWithRuntime> en_with_rt =
       std::make_shared<CudaEngineWithRuntime>(nvinfer1::createInferRuntime(gLogger_inplace));
+#ifdef USE_TORCH_ALLOCATOR
+  const char* value = std::getenv("PYTORCH_NO_CUDA_MEMORY_CACHING");
+  if (value == nullptr) {
+    SPDLOG_INFO("use torch allocator");
+    en_with_rt->allocator = new TorchAllocator();
+    en_with_rt->runtime->setGpuAllocator(en_with_rt->allocator);
+  }
+#endif
 
   IPIPE_ASSERT(en_with_rt && en_with_rt->deserializeCudaEngine(engine_plan));
   return en_with_rt;
@@ -168,6 +190,15 @@ std::shared_ptr<CudaEngineWithRuntime> loadCudaBackend(std::string const& trtMod
                                                        std::string& engine_plan) {
   std::shared_ptr<CudaEngineWithRuntime> en_with_rt =
       std::make_shared<CudaEngineWithRuntime>(nvinfer1::createInferRuntime(gLogger_inplace));
+
+#ifdef USE_TORCH_ALLOCATOR
+  const char* value = std::getenv("PYTORCH_NO_CUDA_MEMORY_CACHING");
+  if (value == nullptr) {
+    SPDLOG_INFO("use torch allocator");
+    en_with_rt->allocator = new TorchAllocator();
+    en_with_rt->runtime->setGpuAllocator(en_with_rt->allocator);
+  }
+#endif
 
   std::vector<char> trtModelStream;
   if (model_type == ".trt.encrypt") {
@@ -234,10 +265,25 @@ nvinfer1::ITimingCache* prepareTimeCache(const std::string& cache_file,
 
 void writeTimeCache(const std::string& cache_file, nvinfer1::IBuilderConfig* config,
                     nvinfer1::ITimingCache* timingCache) {
+  // fileTimingCache->combine(*timingCache, false);
   auto blob = std::unique_ptr<nvinfer1::IHostMemory>(config->getTimingCache()->serialize());
 
-  if (!blob->size()) return;
-  // fileTimingCache->combine(*timingCache, false);
+  if (!blob || !blob->size()) return;
+
+  if (Is_File_Exist(cache_file)) {
+    // 如果cache_file的大小和blob的大小一样，就不用写了
+    std::ifstream iFile(cache_file, std::ios::in | std::ios::binary);
+    if (iFile) {
+      iFile.seekg(0, std::ifstream::end);
+      size_t fsize = iFile.tellg();
+      iFile.seekg(0, std::ifstream::beg);
+      if (fsize == blob->size()) {
+        SPDLOG_INFO("size of {} is same as blob's size, skip writing timing cache.", cache_file);
+        return;
+      }
+    }
+  }
+
   if (!blob) {
     throw std::runtime_error("Failed to serialize ITimingCache!");
   }
@@ -267,6 +313,19 @@ std::shared_ptr<CudaEngineWithRuntime> onnx2trt(
   constexpr auto explicitBatch =
       1U << static_cast<uint32_t>(nvinfer1::NetworkDefinitionCreationFlag::kEXPLICIT_BATCH);
   unique_ptr_destroy<nvinfer1::IBuilder> builder{nvinfer1::createInferBuilder(gLogger_inplace)};
+
+  std::shared_ptr<CudaEngineWithRuntime> en_with_rt = std::make_shared<CudaEngineWithRuntime>();
+
+#ifdef USE_TORCH_ALLOCATOR
+  const char* value = std::getenv("PYTORCH_NO_CUDA_MEMORY_CACHING");
+  if (value == nullptr) {
+    SPDLOG_INFO("use torch allocator");
+    en_with_rt->allocator = new TorchAllocator();
+    builder->setGpuAllocator(en_with_rt->allocator);
+  }
+
+#endif
+
   unique_ptr_destroy<nvinfer1::INetworkDefinition> network{builder->createNetworkV2(explicitBatch)};
   unique_ptr_destroy<nvonnxparser::IParser> parser{
       nvonnxparser::createParser(*network, gLogger_inplace)};
@@ -321,12 +380,15 @@ std::shared_ptr<CudaEngineWithRuntime> onnx2trt(
 
   if (b_parsed) {
     bool use_only_fp32 = true;
-    constexpr size_t MAX_WORKSPACE_SIZE = 1ULL << 30;  // 1 GB
+    // constexpr size_t MAX_WORKSPACE_SIZE = 1ULL << 30;  // 1 GB
 #if (NV_TEONSORRT_MAJOR == 8 && NV_TENSORRT_MINOR >= 4) || (NV_TENSORRT_MAJOR >= 9)
-    config->setMemoryPoolLimit(nvinfer1::MemoryPoolType::kWORKSPACE, MAX_WORKSPACE_SIZE);
+    config->setMemoryPoolLimit(nvinfer1::MemoryPoolType::kWORKSPACE, precision.max_workspace_size);
 #else
-    config->setMaxWorkspaceSize(MAX_WORKSPACE_SIZE);
+    config->setMaxWorkspaceSize(precision.max_workspace_size);
 #endif
+    if (precision.max_workspace_size != 1024)
+      SPDLOG_INFO("max workspace size setted to {}M",
+                  precision.max_workspace_size / 1024.0 / 1024.0);
     if ((fp16_enable.count(precision.precision)) && builder->platformHasFastFp16()) {
       SPDLOG_INFO("platformHasFastFp16. FP16 will be used");
       config->setFlag(nvinfer1::BuilderFlag::kFP16);
@@ -443,6 +505,23 @@ std::shared_ptr<CudaEngineWithRuntime> onnx2trt(
       }
 
       for (int i = 0; i < network->getNbInputs(); ++i) {
+        if (network->getInput(i)->isShapeTensor()) {
+          auto min_dim = shape_tensor_to_dim(mins[index_p][new_location[i]]);
+          auto max_dim = shape_tensor_to_dim(maxs[index_p][new_location[i]]);
+          IPIPE_ASSERT(min_dim.nbDims == max_dim.nbDims);
+
+          profile->setShapeValues(network->getInput(i)->getName(),
+                                  nvinfer1::OptProfileSelector::kMIN, &min_dim.d[0],
+                                  min_dim.nbDims);
+          profile->setShapeValues(network->getInput(i)->getName(),
+                                  nvinfer1::OptProfileSelector::kMAX, &max_dim.d[0],
+                                  max_dim.nbDims);
+          profile->setShapeValues(network->getInput(i)->getName(),
+                                  nvinfer1::OptProfileSelector::kOPT, &max_dim.d[0],
+                                  max_dim.nbDims);
+
+          continue;
+        }
         auto net_shape = network->getInput(i)->getDimensions();
         auto min_dim = vtodim(mins[index_p][new_location[i]], net_shape);
         auto max_dim = vtodim(maxs[index_p][new_location[i]], net_shape);
@@ -452,7 +531,14 @@ std::shared_ptr<CudaEngineWithRuntime> onnx2trt(
                                max_dim);
         profile->setDimensions(network->getInput(i)->getName(), nvinfer1::OptProfileSelector::kMAX,
                                max_dim);
-        IPIPE_ASSERT(max_dim.nbDims > 0 && min_dim.nbDims > 0);
+        if (!(max_dim.nbDims > 0 && min_dim.nbDims > 0)) {
+          SPDLOG_ERROR(
+              "max_dim.nbDims = {} net_shape.nbDims={} check failed: max_dim.nbDims > 0 && "
+              "min_dim.nbDims > 0",
+              max_dim.nbDims, min_dim.nbDims, net_shape.nbDims);
+          throw std::invalid_argument("max_dim.nbDims > 0 && min_dim.nbDims > 0");
+        }
+
         if (max_dim.d[0] > min_dim.d[0]) {
           if (!check_dynamic_batchsize(network.get())) {
             auto net_out_shape = network->getOutput(0)->getDimensions();
@@ -510,8 +596,8 @@ std::shared_ptr<CudaEngineWithRuntime> onnx2trt(
     auto time_now = now();
     auto* engine_ptr = builder->buildEngineWithConfig(*network, *config);
     IPIPE_ASSERT(engine_ptr);
-    std::shared_ptr<CudaEngineWithRuntime> en_with_rt =
-        std::make_shared<CudaEngineWithRuntime>(engine_ptr);
+
+    en_with_rt->engine = engine_ptr;
 
     auto time_pass = time_passed(time_now);
     SPDLOG_INFO("finish building engine within {} seconds", int(time_pass / 1000.0));
@@ -527,9 +613,8 @@ std::shared_ptr<CudaEngineWithRuntime> onnx2trt(
 
 #if NV_TENSORRT_MAJOR >= 8
       if (!precision.timecache.empty()) {
-        if (!Is_File_Exist(precision.timecache)) {
-          writeTimeCache(precision.timecache, config.get(), time_cache.get());
-        }
+        // if (!Is_File_Exist(precision.timecache))
+        { writeTimeCache(precision.timecache, config.get(), time_cache.get()); }
       }
 #endif
 

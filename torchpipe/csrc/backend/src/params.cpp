@@ -229,6 +229,27 @@ std::vector<int> str2int(const std::string& data, char a) {
   return result;
 }
 
+std::set<int> str2set(const std::string& data, char in) {
+  if (data.empty()) return {};
+  auto strs = str_split(data, in);
+  std::set<int> result;
+  for (const auto& str_ : strs) {
+    TRACE_EXCEPTION(result.insert(std::stoi(str_)));
+  }
+  return result;
+}
+
+std::vector<std::set<int>> str2set(const std::string& data, char a, char b) {
+  if (data.empty()) return {};
+  std::vector<std::set<int>> results;
+  auto strs = str_split(data, b);
+
+  for (const auto& str_ : strs) {
+    results.emplace_back(str2set(str_, a));
+  }
+  return results;
+}
+
 /// data="1x3x224x224,1x3x224x224", a='x' b=',' -> [[1,3,224,224],[1,3,224,224]]
 std::vector<std::vector<int>> str2int(const std::string& data, char a, char b) {
   if (data.empty()) return {};

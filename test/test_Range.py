@@ -57,17 +57,41 @@ class TestBackend:
 
  
     def test_trt_max(self):
-        self.model_trt = torchpipe.pipe(
+        model_trt = torchpipe.pipe(
             {"Interpreter::backend": "Range[S[TensorrtTensor,SyncTensor]]",
              "range":"8,19","max": 9,"min":2, "model": self.out_file})
         
-        assert 19 == self.model_trt.max()
-        assert 8 == self.model_trt.min()
+        assert 19 == model_trt.max()
+        assert 8 == model_trt.min()
 
         with pytest.raises(RuntimeError):
-            self.model_trt = torchpipe.pipe(
+            model_trt = torchpipe.pipe(
                 {"Interpreter::backend": "Range[S[TensorrtTensor,SyncTensor]]",
                 "range":"8,9","max": 8,"min":8, "model": self.out_file})
+        
+    def test_force_range(self):
+        model_trt = torchpipe.pipe(
+            {"Interpreter::backend": "S[TensorrtTensor,SyncTensor]",
+             "force_range":"1,1","max": 10,"min":10, "model": self.out_file})
+        
+        print(model_trt.max())
+        assert 1 == model_trt.max()
+        assert 1 == model_trt.min()
+
+
+        model_trt = torchpipe.pipe(
+                {"backend": "S[TensorrtTensor,SyncTensor]",
+                "force_range":"1,1","max": 8,"min":8, "model": self.out_file})
+        
+        dummy_input = torch.randn(8, 3, 224, 224)
+        input = {"data":dummy_input}
+        model_trt(input)
+        assert input["result"].shape[0] == 8
+
+        with pytest.raises(RuntimeError):
+            dummy_input = torch.randn(2, 3, 224, 224)
+            input = {"data":dummy_input}
+            model_trt(input)
         
         
  
@@ -76,4 +100,4 @@ if __name__ == "__main__":
     # time.sleep(5)
     a = TestBackend()
     a.setup_class()
-    a.test_trt_max()
+    a.test_force_range()

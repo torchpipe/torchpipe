@@ -105,32 +105,30 @@ if __name__ == "__main__":
         scores = input["scores"]
 
         print(boxes, scores, input[TASK_RESULT_KEY])
-    exit()
 
     def run(img_input):
         img_path, img_raw = img_input[0]
         nparr = np.fromstring(img_raw, np.uint8)
         img_data = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-        print(img_data.shape)
 
         # print("decode result: ", input[TASK_RESULT_KEY].shape, input["color"])
         input = {}
 
         input[TASK_DATA_KEY] = torch.from_numpy(
             gimg).cuda().permute(2, 0, 1).unsqueeze(0)
-        input["node_name"] = "det"
-        input["color"] = "rgb"
+        input["node_name"] = "jpg_decoder"
+        input["color"] = "bgr"
         nodes(input)
         # return None
-        print(input[TASK_RESULT_KEY][0].shape)
+        # print(input[TASK_RESULT_KEY][0].shape)
         return input[TASK_RESULT_KEY][0][0]
         # or nodes("resnet18",  input)
 
         # print("resnet18 result: ", len(input[TASK_RESULT_KEY]), input[TASK_RESULT_KEY][0].shape)
 
-    run([(img_path, img)])
-    from torchpipe.tool import test_tools
-    # test_tools.test_from_raw_jpg(run, os.path.join( "./", "test_img"))
+    # run([(img_path, img)])
+    # from torchpipe.tool import test_tools
+    # test_tools.test_from_raw_jpg(run, os.path.join( "./"))
     # c1    2200 b4     1181 b1
     # c2    2122 b4     1650 b1
     # c4    2124 b4     1976 b1

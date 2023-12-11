@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 __all__ = [
     "encrypt",
     "test_tools",
     "onnx_tools",
+    "cpp_tools",
     "gpu_train_tools",
 ]
 

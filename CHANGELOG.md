@@ -1,5 +1,20 @@
 # Changelog
 
+
+## v0.3.3 Beta 4 (WIP)
+
+
+## v0.3.3 Beta 3 
+
+
+- fix TorchScriptTensor for batching input; update docs for training-tool
+- test_tools: Add output of median GPU usage rate
+- fix cuda arch error for pytorch 1.13.1 on NVIDIA A10
+- The backend does not allow the deletion of the node_name key, as it would cause the scheduling system to crash.
+- Further support for the Python backend has been added.
+- add quick concat for tensor with same storage
+- Add force_range for TensorrtTensor, borrow_from, active_instances_grp for BaselineSchedule(experimental)
+
 ## v0.3.3 Beta 2 (2023.11.05)
 
 - Fixed the issue where a value is still assigned to the `result` when an error occurs in calling pplcv
@@ -7,6 +22,7 @@
 - Fix the error when the model input type and the actual input type are different (such as torch.int32 and torch.int64).
 - Add conversion from tuple type to C++
 - Add Range; Use dynamic programming to check for optimal match, for example, 10 <= [2,9]: 10 = 8 + 2
+
 ```
 torchpipe.pipe(
         {"Interpreter::backend": "Range[S[TensorrtTensor,SyncTensor]]",

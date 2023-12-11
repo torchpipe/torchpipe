@@ -15,6 +15,12 @@
 
 import torch
 
+import torch._C
+# 检查库的版本号
+assert(torch._C)
+if torch.cuda.is_available():
+    assert(torch.zeros((1)).cuda().is_cuda)
+
 import logging
 
 import os
@@ -39,9 +45,12 @@ from torchpipe.libipipe import (
     TASK_INFO_KEY,
     TASK_EVENT_KEY,
     TASK_NODE_NAME_KEY,
-    any,
+    # any,
+    register_backend,
+    register_filter,
     infer_shape,
     supported_opset,
+    Status
 )
 from torchpipe.libipipe import Event
 from torchpipe.libipipe import encrypt
@@ -85,7 +94,7 @@ __all__ = [
     "TASK_NODE_NAME_KEY",
     "TASK_EVENT_KEY",
     "encrypt",
-    "any",
+    # "any",
     "infer_shape",
     "supported_opset",
 ]

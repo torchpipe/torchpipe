@@ -19,6 +19,11 @@
 #include <set>
 #include <string>
 
+#if (NV_TENSORRT_MAJOR >= 9 || (NV_TENSORRT_MAJOR >= 8 && NV_TENSORRT_MINOR >= 6))
+#define USE_TORCH_ALLOCATOR
+#include "NvInferRuntimeCommon.h"
+#endif
+
 namespace ipipe {
 
 struct destroy_nvidia_pointer {
@@ -39,6 +44,7 @@ using unique_ptr_destroy = std::unique_ptr<T, destroy_nvidia_pointer>;
 
 // support tensorrt8.6.1, which requires that runtime keep alive when engine it is in use.
 struct CudaEngineWithRuntime {
+  explicit CudaEngineWithRuntime() = default;
   explicit CudaEngineWithRuntime(nvinfer1::IRuntime *runtime_ptr) : runtime(runtime_ptr){};
   explicit CudaEngineWithRuntime(nvinfer1::ICudaEngine *engine_ptr) : engine(engine_ptr){};
 
@@ -60,9 +66,11 @@ struct CudaEngineWithRuntime {
   ~CudaEngineWithRuntime() {
     if (engine) destroy_nvidia_pointer()(engine);
     if (runtime) destroy_nvidia_pointer()(runtime);
+    if (allocator) destroy_nvidia_pointer()(allocator);
   }
   nvinfer1::ICudaEngine *engine = nullptr;
   nvinfer1::IRuntime *runtime = nullptr;
+  nvinfer1::IGpuAllocator *allocator = nullptr;
 };
 
 bool check_dynamic_batchsize(nvinfer1::INetworkDefinition *network);

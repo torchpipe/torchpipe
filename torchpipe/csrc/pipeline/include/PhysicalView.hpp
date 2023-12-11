@@ -62,6 +62,7 @@ class PhysicalView : public SingleEventBackend {
 
   std::unordered_map<std::string, std::unique_ptr<Backend>> backends_;
   std::unordered_map<std::string, std::string> logical2physical_;
+  std::unordered_map<std::string, std::string> borrow_from_;
   dict dict_config_;
   // std::unordered_map<std::string, std::unordered_map<std::string, std::string>> config_;
 };

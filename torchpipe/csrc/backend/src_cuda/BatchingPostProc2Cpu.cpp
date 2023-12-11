@@ -21,7 +21,7 @@
 #include "Backend.hpp"
 #include "dict.hpp"
 #include "reflect.h"
-
+#include <torch/torch.h>
 namespace ipipe {
 /**
  * @brief 数据拷贝到cpu
@@ -95,4 +95,29 @@ IPIPE_REGISTER(PostProcessor<at::Tensor>, BatchingPostProcSoftmaxCpu, "softmaxcp
 
 using PostProcessor_at_Tensor = PostProcessor<at::Tensor>;
 IPIPE_REGISTER(PostProcessor<at::Tensor>, PostProcessor_at_Tensor, "split");
+
+class BatchingPostProcSoftmaxArgMax : public PostProcessor<at::Tensor> {
+ public:
+  void forward(std::vector<at::Tensor> net_outputs, std::vector<dict> input,
+               const std::vector<at::Tensor>& net_inputs) {
+    IPIPE_ASSERT(net_outputs.size() == 1);
+    at::Tensor output = net_outputs[0].softmax(1);
+    auto max_values_and_indices = torch::max(output, 1);
+
+    torch::Tensor max_values = std::get<0>(max_values_and_indices).cpu();
+    torch::Tensor max_indices = std::get<1>(max_values_and_indices).cpu();
+
+    for (std::size_t i = 0; i < input.size(); ++i) {
+      float max_score = max_values[i].item<float>();
+      int argmax = max_indices[i].item<int>();
+
+      (*input[i])["score"] = max_score;
+      (*input[i])["class"] = argmax;
+      (*input[i])[TASK_RESULT_KEY] = argmax;
+    }
+  }
+};
+
+IPIPE_REGISTER(PostProcessor<at::Tensor>, BatchingPostProcSoftmaxArgMax, "SoftmaxArgMax");
+
 }  // namespace ipipe

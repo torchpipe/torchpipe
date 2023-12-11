@@ -22,6 +22,7 @@
 #include <NvInferRuntime.h>
 #include "Backend.hpp"
 #include "dict.hpp"
+
 // #include "tensorrt_utils.hpp"
 
 namespace ipipe {
@@ -33,6 +34,8 @@ struct OnnxParams {
   std::set<std::string> precision_output_fp32;
   std::set<std::string> precision_output_fp16;
   std::string timecache;
+  uint32_t max_workspace_size;
+  std::string allocator;
 };
 
 std::shared_ptr<CudaEngineWithRuntime> onnx2trt(

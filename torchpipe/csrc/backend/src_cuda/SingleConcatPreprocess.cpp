@@ -26,6 +26,7 @@
 
 namespace ipipe {
 
+
 bool SingleConcatPreprocess::init(const std::unordered_map<std::string, std::string>& config,
                                   dict dict_config) {
   if (dict_config) {
@@ -42,7 +43,7 @@ bool SingleConcatPreprocess::init(const std::unordered_map<std::string, std::str
     throw std::runtime_error("min_value_ >= 2 || max_value_ >= 2 || min_value_ != max_value_");
   }
   if (!min_value_.empty()) {
-    if (min_value_[0].size() != max_value_[0].size() || (min_value_[0].size() <= 1)) {
+    if (min_value_[0].size() != max_value_[0].size() || (min_value_[0].empty())) {
       throw std::runtime_error(
           "min_value_[0].size() != max_value_[0].size() || (min_value_[0].size() <= 1)");
     }
@@ -53,6 +54,8 @@ bool SingleConcatPreprocess::init(const std::unordered_map<std::string, std::str
 
 std::vector<at::Tensor> SingleConcatPreprocess::forward(const std::vector<dict>& raw_inputs) {
   std::vector<at::Tensor> resized_inputs;
+
+  bool may_need_quick_cat = true;
   for (std::size_t index = 0; index < raw_inputs.size(); ++index) {
     auto item = raw_inputs[index];
     auto iter_data = item->find(TASK_DATA_KEY);
@@ -68,16 +71,51 @@ std::vector<at::Tensor> SingleConcatPreprocess::forward(const std::vector<dict>&
     at::Tensor net_input = any_cast<at::Tensor>(iter_data->second);
 
     if (is_cpu_tensor(net_input)) {
+      may_need_quick_cat = false;
       //  注意：前处理在某些特殊情况下在cpu上可能变得特别慢，
       //  所以这里我们将他拷贝到cuda上； 建议overlead computing 和 transform
       net_input = net_input.to(at::kCUDA, net_input.dtype(), /* non_blocking =*/false, false);
     }
-    if (!min_value_.empty()) net_input = tensor_permute(net_input, min_value_[0], max_value_[0]);
+
+    if (!min_value_.empty()) {
+      bool need_permute = false;
+      net_input = tensor_permute(net_input, min_value_[0], max_value_[0], need_permute);
+      if (need_permute || !net_input.is_contiguous()) {
+        may_need_quick_cat = false;
+      }
+    }
+
     resized_inputs.push_back(net_input);
   }
   assert(!resized_inputs.empty());
 
-  auto true_input = at::cat(resized_inputs, 0);
+  at::Tensor true_input;
+  if (resized_inputs.size() > 1) {
+    if (may_need_quick_cat)
+      true_input = try_quick_cat(resized_inputs);
+    else
+      true_input = at::cat(resized_inputs, 0);
+  } else if (resized_inputs.empty()) {
+    throw std::runtime_error("SingleConcatPreprocess: data is empty.");
+  } else {
+    true_input = resized_inputs[0];
+  }
+
+  // // Calculate total size
+  // int64_t total_size = 0;
+  // for (const auto& tensor : resized_inputs) {
+  //   total_size += tensor.numel();
+  // }
+
+  // // Preallocate output tensor
+  // auto true_input = at::empty({total_size}, resized_inputs[0].options());
+
+  // // Copy data
+  // int64_t offset = 0;
+  // for (const auto& tensor : resized_inputs) {
+  //   true_input.narrow(0, offset, tensor.numel()).copy_(tensor.view({-1}));
+  //   offset += tensor.numel();
+  // }
 
   if (raw_inputs.size() > true_input.size(0)) {
     SPDLOG_ERROR("wired batchsize: need {}, get {}", raw_inputs.size(), true_input.size(0));

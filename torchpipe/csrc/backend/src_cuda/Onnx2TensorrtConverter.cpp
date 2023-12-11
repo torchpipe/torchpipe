@@ -40,7 +40,9 @@ bool Onnx2TensorrtConverter::init(const std::unordered_map<std::string, std::str
                                                 {"model::cache", ""},
                                                 {"model::timingcache", ""},
                                                 {"preprocessor", ""},
-                                                {"model_type", ""}},
+                                                {"model_type", ""},
+                                                {"max_workspace_size", "1024"},
+                                                {"allocator", "torch"}},
                                                {}, {}, {}));
 
   if (!params_->init(config_param)) return false;
@@ -89,8 +91,9 @@ bool Onnx2TensorrtConverter::init(const std::unordered_map<std::string, std::str
     bool error_shape = false;
     if (maxs_[profile_index].size() != mins_[profile_index].size()) {
       SPDLOG_ERROR(
-          "number of inputs not match: maxs_[profile_index].size() !=  "
-          "mins_[profile_index].size()");
+          "number of inputs not match: maxs_[profile_index].size()({}) !=  "
+          "mins_[profile_index].size()({})",
+          maxs_[profile_index].size(), mins_[profile_index].size());
       return false;
     }
     for (std::size_t j = 0; j < maxs_[profile_index].size() && j < mins_[profile_index].size();
@@ -223,8 +226,13 @@ bool Onnx2TensorrtConverter::init(const std::unordered_map<std::string, std::str
     std::vector<float> stds = strs2number(params_->at("std"));
 
     OnnxParams onnxp;
+    auto max_workspace_size = std::stoi(params_->at("max_workspace_size"));
+    onnxp.max_workspace_size = 1024 * 1024 * max_workspace_size;
+    IPIPE_ASSERT(max_workspace_size >= 1);
     onnxp.timecache = params_->at("model::timingcache");
     onnxp.precision = params_->at("precision");
+    onnxp.allocator = params_->at("allocator");
+
     if (onnxp.precision.empty()) {
       auto sm = get_sm();
       if (sm <= "6.1")

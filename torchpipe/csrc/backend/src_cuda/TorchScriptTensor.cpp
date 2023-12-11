@@ -24,7 +24,9 @@
 #include "MultipleConcatPreprocess.hpp"
 #include "ipipe_common.hpp"
 #include "file_utils.hpp"
+#include "exception.hpp"
 
+#include <sstream>
 namespace ipipe {
 
 bool TorchScriptTensor::init(const std::unordered_map<std::string, std::string>& config_param,
@@ -32,7 +34,8 @@ bool TorchScriptTensor::init(const std::unordered_map<std::string, std::string>&
   params_ = std::unique_ptr<Params>(new Params({{"max", "1"}}, {"model"}, {}, {}));
   if (!params_->init(config_param)) return false;
   auto model_path = params_->at("model");
-  max_ = std::stoi(params_->at("max"));
+  TRACE_EXCEPTION(max_ = std::stoi(params_->at("max")));
+  // IPIPE_ASSERT(max_ == 1);
   if (!os_path_exists(model_path)) {
     SPDLOG_ERROR("{} not exists", model_path);
     return false;
@@ -40,7 +43,7 @@ bool TorchScriptTensor::init(const std::unordered_map<std::string, std::string>&
   try {
     // Deserialize the Scriptmodule from a file using torch::jit::load().
     module_ = torch::jit::load(model_path);
-    module_.to(at::kCUDA);
+    module_.to(at::kCUDA);  // module_.to(at::Device("cuda:1"));
     // https://github.com/pytorch/pytorch/blob/main/aten/src/ATen/core/builtin_function.h#L56
     // https://github.com/pytorch/pytorch/blob/01069ad4be449f376cf88a56d842b8eb50f6e9b6/torch/csrc/jit/api/method.h#L23
     num_inputs_ = module_.get_method("forward").num_inputs() - 1;
@@ -85,9 +88,13 @@ void TorchScriptTensor::forward(const std::vector<dict>& raw_inputs) {
 
   std::vector<torch::jit::IValue> model_inputs;
   for (const auto& input : inputs) {
-    std::cout << "input.shape" << input.sizes() << std::endl;
+    std::stringstream ss;
+    ss << "input.shape " << input.sizes() << std::endl;
+    SPDLOG_DEBUG(ss.str());
     if (input.sizes()[0] != raw_inputs.size()) {
-      throw std::runtime_error("only explict batch size supported for TorchScriptTensor");
+      // throw std::runtime_error("only explict batch size supported for TorchScriptTensor");
+      SPDLOG_DEBUG("input.sizes()[0] != raw_inputs.size() {} vs {}", input.sizes()[0],
+                   raw_inputs.size());
     }
     model_inputs.push_back(input);
   }
@@ -101,7 +108,7 @@ void TorchScriptTensor::forward(const std::vector<dict>& raw_inputs) {
 
   } else if (out_tmp.isTuple()) {
     auto out_data = out_tmp.toTuple();
-#if TORCH_VERSION_MAJOR >= 1 && TORCH_VERSION_MINOR >= 13
+#if (TORCH_VERSION_MAJOR == 1 && TORCH_VERSION_MINOR >= 13) || (TORCH_VERSION_MAJOR == 2)
     auto num_output = out_data->size();
 #else
     auto num_output = out_data->elements().size();
@@ -109,7 +116,7 @@ void TorchScriptTensor::forward(const std::vector<dict>& raw_inputs) {
 
     for (int i = 0; i < num_output; ++i) {
       outputs.emplace_back(out_data->elements()[i].toTensor());
-      std::cout << "outputs[i].shape" << outputs[i].sizes() << std::endl;
+      // std::cout << "outputs[i].shape" << outputs[i].sizes() << std::endl;
     }
   } else {
     SPDLOG_ERROR("output type not support");

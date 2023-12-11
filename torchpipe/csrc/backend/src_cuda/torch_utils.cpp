@@ -356,7 +356,7 @@ at::Tensor img_hwc_guard(at::Tensor in) {
 }
 
 at::Tensor tensor_permute(at::Tensor input, const std::vector<int>& min_shape,
-                          const std::vector<int>& max_shape) {
+                          const std::vector<int>& max_shape, bool& need_permute) {
   if (max_shape.size() != min_shape.size()) {
     throw std::runtime_error("max_shape.size() != min_shape.size()");
   }
@@ -364,13 +364,16 @@ at::Tensor tensor_permute(at::Tensor input, const std::vector<int>& min_shape,
     input = input.unsqueeze(0);
   } else if (input.sizes().size() == max_shape.size()) {
     if (input.sizes()[0] > max_shape[0]) {
-      throw std::runtime_error("data's batchsize should be smaller than max batch size");
+      std::stringstream ss;
+      ss << "data's batchsize(" << input.sizes()[0] << ") should be smaller than max batch size("
+         << max_shape[0] << ")";
+      throw std::runtime_error(ss.str());
     }
   } else {
     throw std::runtime_error("input data's dim not match model's. input = " +
                              std::to_string(input.sizes().size()));
   }
-  bool need_permute = false;
+  need_permute = false;
   std::vector<int64_t> permute_vector{0};
   for (std::size_t i = 1; i < max_shape.size(); ++i) {
     if (max_shape[i] < input.sizes()[i] || min_shape[i] > input.sizes()[i] || need_permute) {
@@ -400,6 +403,53 @@ at::Tensor tensor_permute(at::Tensor input, const std::vector<int>& min_shape,
     input = input.permute(permute_vector);
   }
   return input;
+}
+
+at::Tensor try_quick_cat(std::vector<at::Tensor> resized_inputs) {
+  IPIPE_ASSERT(resized_inputs.size() >= 2);
+  bool share_same_storage = true;
+  bool is_continuous = true;
+  auto first_data_ptr = resized_inputs[0].storage().data_ptr().get();
+  auto last_offset = resized_inputs[0].storage_offset() + resized_inputs[0].numel();
+
+  // Calculate total size
+  int64_t total_size = resized_inputs[0].numel();
+
+  for (size_t i = 1; i < resized_inputs.size(); ++i) {
+    const auto& tensor = resized_inputs[i];
+    assert(tensor.is_contiguous());
+    total_size += tensor.numel();
+    if (tensor.storage().data_ptr().get() != first_data_ptr) {
+      share_same_storage = false;
+      break;
+    }
+    if (tensor.storage_offset() != last_offset) {
+      is_continuous = false;
+      break;
+    }
+    last_offset += tensor.numel();
+  }
+
+  at::Tensor true_input;
+  if (share_same_storage && is_continuous) {
+    // All tensors share the same storage and they are continuous.
+    // You can reuse the storage.
+
+    auto sizes = resized_inputs[0].sizes().vec();
+    sizes[0] = resized_inputs.size();
+    true_input = at::empty({0}, resized_inputs[0].options())
+                     .set_(resized_inputs[0].storage(), resized_inputs[0].storage_offset(), sizes,
+                           resized_inputs[0].strides());
+    IPIPE_ASSERT(true_input.is_contiguous());
+    SPDLOG_DEBUG("use quick cat");
+    assert(true_input.storage().data_ptr().get() == first_data_ptr);
+  } else {
+    // Tensors do not share the same storage or they are not continuous.
+    // You need to concatenate them.
+    true_input = at::cat(resized_inputs, 0);
+  }
+
+  return true_input;
 }
 
 }  // namespace ipipe

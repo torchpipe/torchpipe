@@ -20,7 +20,7 @@
 #include "BaselineSchedule.hpp"
 #ifdef PYBIND
 #include <pybind11/stl.h>
-
+#include "Python.hpp"
 #endif
 namespace ipipe {
 namespace {
@@ -133,6 +133,7 @@ void Interpreter::init(mapmap config) {
     backend_ = nullptr;
     throw std::runtime_error("Interpreter init failed");
   }
+  SPDLOG_INFO("Initialization completed.");
 }
 
 uint32_t Interpreter::max() const { return backend_->max(); }
@@ -214,6 +215,26 @@ bool is_registered(std::string backend) {
   return std::find(all_backens.begin(), all_backens.end(), backend) != all_backens.end();
 }
 
+template <typename T>
+void bind_backend(py::module& m, const char* name) {
+  py::class_<T, Backend, std::shared_ptr<T>>(m, name)
+      .def(py::init<>())
+      .def("init", &T::init, py::arg("config"),
+           py::arg_v("dict_config", py::none(), "optional dictionary config"),
+           py::call_guard<py::gil_scoped_release>())
+      .def("forward", &T::forward, py::arg("input_dicts"), py::call_guard<py::gil_scoped_release>())
+      .def("max", &T::max)
+      .def("min", &T::min);
+}
+
+void register_backend(py::object class_def, const std::string& register_name) {
+  register_py(class_def, register_name);
+}
+
+void register_filter(py::object class_def, const std::string& register_name) {
+  register_py_filter(class_def, register_name);
+}
+
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   m.attr("TASK_RESULT_KEY") = py::cast(TASK_RESULT_KEY);
   m.attr("TASK_DATA_KEY") = py::cast(TASK_DATA_KEY);
@@ -227,6 +248,10 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
 
   m.def("list_backends", &list_backends, py::call_guard<py::gil_scoped_release>());
   m.def("is_registered", &is_registered, py::call_guard<py::gil_scoped_release>());
+
+  m.def("register_backend", &register_backend, py::arg("class_def"), py::arg("register_name"));
+  m.def("register_filter", &register_filter, py::arg("class_def"), py::arg("register_name"));
+
   /**
    * @brief c++ Interpreter wrapper
    */
@@ -315,7 +340,18 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
                 )docdelimiter",
            py::arg("data"));
 
-  pybind11::class_<ipipe::any, std::shared_ptr<ipipe::any>>(m, "any").def(py::init<>());
+  // bind_backend<MyBackend1>(m, "MyBackend1");
+  // bind_backend<MyBackend2>(m, "MyBackend2");
+  // py::class_<AnyWrapper>(m, "Any").def(py::init<>());
+  py::class_<ipipe::any>(m, "Any").def(py::init<>());
+
+  py::enum_<Filter::status>(m, "Status")
+      .value("Run", Filter::status::Run)
+      .value("Skip", Filter::status::Skip)
+      .value("SerialSkip", Filter::status::SerialSkip)
+      .value("SubGraphSkip", Filter::status::SubGraphSkip)
+      .value("Break", Filter::status::Break)
+      .value("Error", Filter::status::Error);
 
   pybind11::class_<SimpleEvents, std::shared_ptr<SimpleEvents>>(m, "Event")
       .def(py::init<>())
@@ -337,6 +373,7 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
                     Returns:
                         float.
                 )docdelimiter");
+
   init_infer_shape(m);
   supported_opset(m);
 }

@@ -40,6 +40,7 @@
 #include "MultipleConcatPreprocess.hpp"
 // https://github.com/NVIDIA/Torch-TensorRT/blob/3a98a8b198a071e622c43283caea7416fe8a8a1a/core/runtime/register_trt_op.cpp
 
+// #define USE_OUT_MEM
 namespace ipipe {
 
 bool TensorrtTensor::init(const std::unordered_map<std::string, std::string>& config_param,
@@ -56,7 +57,8 @@ bool TensorrtTensor::init(const std::unordered_map<std::string, std::string>& co
                                                 {"_independent_thread_index", "0"},
                                                 {"TensorrtTensor::backend", ""},
                                                 {"save_engine", ""},
-                                                {"instance_num", "1"}},
+                                                {"instance_num", "1"},
+                                                {"force_range", ""}},
                                                {}, {}, {}));
 
 #if NV_TENSORRT_MAJOR < 7
@@ -88,7 +90,7 @@ bool TensorrtTensor::init(const std::unordered_map<std::string, std::string>& co
     }
   }
 
-  backend_.reset();//release memory
+  backend_.reset();  // release memory
   assert(config.count("_engine") != 0);
 
   engine_ = any_cast<std::shared_ptr<CudaEngineWithRuntime>>(config.at("_engine"));
@@ -176,6 +178,26 @@ bool TensorrtTensor::init(const std::unordered_map<std::string, std::string>& co
     return false;
   }
 
+  std::vector<std::vector<int>> force_ranges;
+  TRACE_EXCEPTION(force_ranges = str2int(params_->at("force_range"), ',', ';'));
+  max_ = maxs_[0][0];
+  min_ = mins_[0][0];
+
+  if (!force_ranges.empty()) {
+    while (force_ranges.size() < instance_num) {
+      force_ranges.push_back(force_ranges.back());
+    }
+    IPIPE_ASSERT(force_ranges.size() == instance_num);
+
+    const auto& force_range = force_ranges[independent_thread_index_];
+    IPIPE_ASSERT(force_range.size() == 2);
+    max_ = force_range[1];
+    min_ = force_range[0];
+    SPDLOG_DEBUG("force_range: thread_index={} min = {}, max= {}", independent_thread_index_, min_,
+                 max_);
+  }
+  IPIPE_ASSERT(min_ >= 1 && max_ >= min_);
+
   return true;
 }
 
@@ -191,9 +213,16 @@ void TensorrtTensor::parse_context(dict dict_config, int _independent_thread_ind
     // config.erase("_engine_raw");
   }
 
+#ifdef USE_OUT_MEM
+  context_ = unique_ptr_destroy<nvinfer1::IExecutionContext>(
+      engine_->engine->createExecutionContextWithoutDeviceMemory());
+  auto mem = torch_allocate(engine_->engine->getDeviceMemorySize());
+  context_->setDeviceMemory(mem.data_ptr());
+#else
   context_ =
       unique_ptr_destroy<nvinfer1::IExecutionContext>(engine_->engine->createExecutionContext());
   context_->setOptimizationProfile(profile_index_);
+#endif
 
   // const int n_profiles = engine_->engine->getNbOptimizationProfiles();
   const int n_inputsOutputs = engine_->engine->getNbBindings() / n_profiles;
@@ -379,8 +408,10 @@ at::Tensor guard_contiguous_type_and_device(at::Tensor input_data, at::ScalarTyp
   }
 
   input_data = input_data.to(at::kCUDA, target_format,
-                             /* non_blocking =*/true, false, at::MemoryFormat::Contiguous);
-  assert(input_data.is_contiguous());
+                             /* non_blocking =*/false, false, at::MemoryFormat::Contiguous);
+  if (!input_data.is_contiguous()) {
+    input_data = input_data.contiguous();
+  }
   return input_data;
 }
 void TensorrtTensor::forward(const std::vector<dict>& raw_inputs) {
@@ -484,6 +515,10 @@ void TensorrtTensor::forward(const std::vector<dict>& raw_inputs) {
       binding_.push_back(outputs_.back().data_ptr());
     }
   }
+#ifdef USE_OUT_MEM
+  auto mem = torch_allocate(engine_->engine->getDeviceMemorySize());
+  context_->setDeviceMemory(mem.data_ptr());
+#endif
 
   { context_->enqueueV2(&binding_[0], c10::cuda::getCurrentCUDAStream(), nullptr); }
 
@@ -493,7 +528,11 @@ void TensorrtTensor::forward(const std::vector<dict>& raw_inputs) {
   }
   outputs_.swap(outputs_sorted);
 
-  { postprocessor_->forward(outputs_, raw_inputs, inputs_); }
+  postprocessor_->forward(outputs_, raw_inputs, inputs_);
+
+  at::cuda::getCurrentCUDAStream().synchronize();  // for Reclaim GPU Memory of mem outputs_
+  outputs_.clear();
+  inputs_.clear();
 }
 
 IPIPE_REGISTER(Backend, TensorrtTensor, "TensorrtTensor");

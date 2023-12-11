@@ -41,6 +41,11 @@ bool SyncTensor::init(const std::unordered_map<std::string, std::string>& config
     SPDLOG_DEBUG("SyncTensor: sync enabled={}", bNeedSync_);
   }
 
+  if (config_param.find("device_id") != config_param.end()) {
+    throw std::runtime_error(
+        "SyncTensor: device_id is not supported by SyncTensor. Use `Torch` instead.");
+  }
+
   engine_ = std::unique_ptr<Backend>(IPIPE_CREATE(Backend, params_->at("SyncTensor::backend")));
 
   auto config_param_new = config_param;

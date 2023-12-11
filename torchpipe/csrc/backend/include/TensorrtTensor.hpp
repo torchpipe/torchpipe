@@ -65,13 +65,13 @@ class TensorrtTensor : public Backend {
    * @brief 此实例中模型的最大batch
    *
    */
-  virtual uint32_t max() const { return maxs_[0][0]; }
+  virtual uint32_t max() const { return max_; }
   /**
    * @brief 此实例中模型的最大小batch
    *
    */
   virtual uint32_t min() const {
-    return mins_[0][0];
+    return min_;
     ;
   };
   ~TensorrtTensor() {
@@ -89,6 +89,8 @@ class TensorrtTensor : public Backend {
   unique_ptr_destroy<nvinfer1::IExecutionContext> context_ = nullptr;  // 资源所有权
   std::vector<std::vector<int>> mins_;
   std::vector<std::vector<int>> maxs_;
+  int max_{1};
+  int min_{1};
 
   std::vector<at::Tensor> inputs_;
   std::vector<at::Tensor> outputs_;

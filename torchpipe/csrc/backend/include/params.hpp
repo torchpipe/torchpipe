@@ -123,6 +123,10 @@ std::vector<std::string> str_split_brackets_match(std::string strtem, char a, ch
 
 std::vector<float> strs2number(const std::string& data, char a = ',');
 std::vector<int> str2int(const std::string& data, char in = ',');
+
+std::set<int> str2set(const std::string& data, char in = ',');
+std::vector<std::set<int>> str2set(const std::string& data, char a, char b);
+
 std::vector<std::vector<int>> str2int(const std::string& data, char a, char b);
 std::unordered_map<std::string, std::unordered_map<std::string, MapInfo>> generate_map(
     std::string data);

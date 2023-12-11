@@ -23,6 +23,8 @@
 #include <c10/util/Type.h>
 #include <torch/csrc/autograd/python_variable.h>
 #include "event.hpp"
+#include "tensor_type_caster.hpp"
+
 #ifdef WITH_OPENCV
 #include "opencv2/core.hpp"
 #endif
@@ -173,6 +175,16 @@ py::object list22numpy(const any& data) {
     return list22numpy<unsigned char>(*pdata);
   }
   IPIPE_THROW("unsupported arithmetic types");
+}
+
+py::object list22tensor(const any& data) {
+  const auto& in = data.inner_type();
+  if (in == typeid(std::vector<at::Tensor>)) {
+    const auto* pdata = any_cast<std::vector<std::vector<at::Tensor>>>(&data);
+    IPIPE_ASSERT(pdata);
+    return py::cast(*pdata);
+  }
+  IPIPE_THROW("unsupported tensor types");
 }
 
 py::object list32numpy(const any& data) {
@@ -359,6 +371,7 @@ py::object any2object(const any& data) {
         IPIPE_THROW("empty python container is not allowed to return back to python. ");
         break;
       default:
+        return py::cast(data);
         std::string error_mes = std::string("can not cast type '") +
                                 local_demangle(data.type().name()) + "' to python " + ".";
         IPIPE_THROW(error_mes);
@@ -385,9 +398,11 @@ py::object any2object(const any& data) {
       }
     }
   } else if (types.size() == 3) {
-    if (types[0] == PyClassType::list && types[1] == PyClassType::list &&
-        types[2] == PyClassType::arithmetic) {
-      return list22numpy(data);
+    if (types[0] == PyClassType::list && types[1] == PyClassType::list) {
+      if (types[2] == PyClassType::arithmetic)
+        return list22numpy(data);
+      else if (types[2] == PyClassType::other)
+        return list22tensor(data);
     }
   } else if (types.size() == 4) {
     if (types[0] == PyClassType::list && types[1] == PyClassType::list &&

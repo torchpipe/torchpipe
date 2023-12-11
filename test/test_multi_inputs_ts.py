@@ -112,6 +112,39 @@ class TestBackend:
         assert (torch.allclose(
             3*inputs_all[0]["result"][0], inputs_all[1]["result"][1]))
 
+    def test_batch(self):
+        identity_model = MultiIdentities().eval()
+
+        data = torch.rand((5, 224))
+
+        ts_path = os.path.join(tempfile.gettempdir(),
+                            f"tmp_identity_{random.random()}.pt")
+        torch.jit.save(torch.jit.trace(identity_model, [
+                    data, data]), ts_path)
+        print("saved: ", ts_path)
+        ts = torchpipe.pipe({"model": ts_path, "backend": "Torch[TorchScriptTensor]","device_id":1, 'batching_timeout': '5'})
+        input = {"data": [data, data]}
+        ts(input)
+        print(input["result"][1].shape, input["result"][1].device)
+    
+    def test_parallel_batch(self):
+        return
+        identity_model = MultiIdentities().eval()
+
+        data = torch.rand((5, 224))
+        data2 = torch.rand((6, 224))
+
+        ts_path = os.path.join(tempfile.gettempdir(),
+                            f"tmp_identity_{random.random()}.pt")
+        torch.jit.save(torch.jit.trace(identity_model, [
+                    data, data]), ts_path)
+        print("saved: ", ts_path)
+        ts = torchpipe.pipe({"model": ts_path,"max":2, "backend": "Torch[TorchScriptTensor]","device_id":1, 'batching_timeout': '5'})
+        input = [{"data": [data, data]},{"data": [data2, data2]}]
+        ts(input)
+        assert(input[1]["result"][1].shape[0]==6 and input[1]["result"][0].shape[0]==6)
+        print(input[0]["result"][0].shape, input[0]["result"][1].device)
+        assert(input[0]["result"][0].shape[0]==5 and input[0]["result"][0].shape[0]==5)
 
 if __name__ == "__main__":
     pass
@@ -119,7 +152,9 @@ if __name__ == "__main__":
     a = TestBackend()
 
     a.setup_class()
-    a.test_batch(ts_schedule_pipe())
+    a.test_parallel_batch()
+
+    # a.test_batch(ts_schedule_pipe())
     # a.test_batch()
 
     # pytest.main([__file__])

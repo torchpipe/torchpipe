@@ -17,12 +17,17 @@
 #include "ipipe_utils.hpp"
 #include "any2object.hpp"
 #include "object2any.hpp"
+
+#ifdef PYBIND
+#include <pybind11/pybind11.h>
+#include <pybind11/cast.h>
+#endif
+
 // #include "Backend.hpp"
 
 namespace ipipe {
 
 void cast_type_v2(const any& data, py::dict result_dict, std::string key) {
-  if (key == TASK_DATA_KEY) return;  // TASK_DATA_KEY 不变
   try {
     result_dict[py::str(key)] = any2object(data);
   } catch (...) {
@@ -32,12 +37,16 @@ void cast_type_v2(const any& data, py::dict result_dict, std::string key) {
   return;
 }
 
-void dict2py(dict input, pybind11::dict result_dict) {
+void dict2py(dict input, pybind11::dict result_dict, bool keep_data) {
+  if (input == nullptr) return;
   if (result_dict.contains(TASK_RESULT_KEY)) {
     PyDict_DelItemString(result_dict.ptr(), TASK_RESULT_KEY);
   }
 
   for (auto iter = input->begin(); iter != input->end(); ++iter) {
+    if (!keep_data && iter->first == TASK_DATA_KEY) {
+      continue;
+    }
     cast_type_v2(iter->second, result_dict, iter->first);
   }
 
@@ -56,7 +65,7 @@ dict py2dict(pybind11::dict input) {
           "During the process of converting the input[Python dict object] to a C++ object, "
           "unsupported type was discovered."
           " key: " +
-          key + ", value: " + std::string(py::str((item.second))).substr(0, 200);
+          key + ", value: " + std::string(py::str(py::type::of(item.second)));
       // key + ", value: " + std::string(py::str(py::type::of(item.second)));
 
       std::throw_with_nested(std::runtime_error(err_msg));
@@ -66,3 +75,55 @@ dict py2dict(pybind11::dict input) {
 }
 
 }  // namespace ipipe
+
+#ifdef PYBIND
+
+namespace pybind11 {
+namespace detail {
+template <>
+struct type_caster<ipipe::any> {
+ public:
+  PYBIND11_TYPE_CASTER(ipipe::any, _("ipipe::any"));
+
+  // Python -> C++
+  bool load(handle src, bool) {
+    value = ipipe::object2any(src);
+    return true;
+  }
+
+  // C++ -> Python
+  static handle cast(const ipipe::any& src, return_value_policy /* policy */, handle /* parent */) {
+    return ipipe::any2object(src).release();
+  }
+};
+
+template <>
+struct type_caster<ipipe::dict> {
+ public:
+  PYBIND11_TYPE_CASTER(ipipe::dict, _("ipipe::dict"));
+
+  // Python -> C++
+  bool load(handle src, bool) {
+    auto dict = src.cast<py::dict>();
+    auto map = std::make_shared<std::unordered_map<std::string, ipipe::any>>();
+    for (auto item : dict) {
+      (*map)[item.first.cast<std::string>()] = ipipe::object2any(item.second);
+    }
+    value = map;
+    return true;
+  }
+
+  // C++ -> Python
+  static handle cast(const ipipe::dict& src, return_value_policy /* policy */,
+                     handle /* parent */) {
+    py::dict dict;
+    for (const auto& item : *src) {
+      dict[item.first.c_str()] = ipipe::any2object(item.second);
+    }
+    return dict.release();
+  }
+};
+
+}  // namespace detail
+}  // namespace pybind11
+#endif
