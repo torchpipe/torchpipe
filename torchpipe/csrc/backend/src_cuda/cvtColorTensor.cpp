@@ -50,9 +50,9 @@ void cvtColorTensor::forward(dict input_dict) {
   if (input_tensor.scalar_type() != at::kFloat) {
     input_tensor = input_tensor.to(at::kFloat);
   }
-  if (!input_tensor.is_contiguous()) {
-    input_tensor = input_tensor.contiguous();
-  }
+  // if (!input_tensor.is_contiguous()) {
+  //   input_tensor = input_tensor.contiguous();
+  // }
 
   if (is_hwc(input_tensor)) {
     if (color_ != input_color) {

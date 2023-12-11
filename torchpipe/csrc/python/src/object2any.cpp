@@ -42,19 +42,29 @@ any container_cast(py::handle second) {
 
   if (THPVariable_Check(obj)) {
     return py::cast<container<at::Tensor>>(second);
-  } else if (py::isinstance<py::list>((*list_data.begin()))) {
+  } else if (py::isinstance<py::list>(list_data[0])) {
+    py::list inner_list = py::cast<py::list>(list_data[0]);
+    if (0 == py::len(inner_list)) {
+      SPDLOG_DEBUG("inner list is empty.");
+      throw std::runtime_error("inner list is empty.");
+    }
+    if (THPVariable_Check(inner_list[0].ptr())) {
+      return py::cast<container<container<at::Tensor>>>(second);
+    } else if (py::isinstance<py::int_>(inner_list[0])) {
+      return py::cast<container<container<int>>>(second);
+    } else if (py::isinstance<py::float_>(inner_list[0])) {
+      return py::cast<container<container<float>>>(second);
+    } else if (py::isinstance<py::str>(inner_list[0])) {
+      return py::cast<container<container<std::string>>>(second);
+    } else {
+      throw std::runtime_error("inner list: Unsupported type from python to c++.");
+    }
+
     // container<container<at::Tensor>> result;
     // for (auto item : list_data) {
     //   result.push_back(py::cast<container<at::Tensor>>(item));
     // }
     // return result;
-    if (py::isinstance<container<container<at::Tensor>>>(second)) {
-      return py::cast<container<container<at::Tensor>>>(second);
-    } else if (py::isinstance<container<container<int>>>(second)) {
-      return py::cast<container<container<int>>>(second);
-    } else {
-      throw std::runtime_error("Unsupported type from python to c++.");
-    }
 
   } else if (py::isinstance<py::str>((*list_data.begin()))) {
     return py::cast<container<std::string>>(second);
