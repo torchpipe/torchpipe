@@ -120,6 +120,9 @@ IPIPE_KEY = os.getenv("IPIPE_KEY", None)
 if IPIPE_KEY is not None:
     print("IPIPE_KEY setted.")
 
+if cpp_extension.CUDA_HOME is None:
+    raise RuntimeError("`CUDA_HOME` is undefined. Please check if you got CUDA installed or CUDA_HOME exported.")
+
 raw_output = subprocess.check_output(
     [cpp_extension.CUDA_HOME + "/bin/nvcc", "-V"], universal_newlines=True
 )
