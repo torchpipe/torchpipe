@@ -127,8 +127,8 @@ if __name__ == "__main__":
         # print("resnet18 result: ", len(input[TASK_RESULT_KEY]), input[TASK_RESULT_KEY][0].shape)
 
     # run([(img_path, img)])
-    from torchpipe.tool import test_tools
-    test_tools.test_from_raw_jpg(run, os.path.join( "./"))
+    # from torchpipe.tool import test_tools
+    # test_tools.test_from_raw_jpg(run, os.path.join( "./"))
     # c1    2200 b4     1181 b1
     # c2    2122 b4     1650 b1
     # c4    2124 b4     1976 b1
