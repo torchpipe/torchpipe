@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <fstream>
 #ifdef WITH_TENSORRT
 #include "Onnx2TensorrtConverter.hpp"
 #include "base_logging.hpp"
