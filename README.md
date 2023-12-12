@@ -154,7 +154,7 @@ Our ultimate goal is to make high-throughput deployment on the server side as si
 
 Current RoadMap:
 
-- [Examples of large models](https://github.com/torchpipe/LLM.TensorRT.Serve)
+
 - Optimization of the compilation system, divided into modules such as core, pplcv, model/tensorrt, opencv, etc.
 - Optimization of the basic structure, including Python and C++ interaction, exception handling, logging system, compilation system, and cross-process backend optimization.
 - Technical reports
