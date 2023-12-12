@@ -170,5 +170,5 @@ Our codebase is built using multiple opensource contributions, please see [ACKNO
 
 ### 7. Questions & Discussions
 
-- For Chinese: Wechat Group: https://torchpipe.github.io/zh/docs/contribution_guide/communicate
+- Wechat Group: https://torchpipe.github.io/zh/docs/contribution_guide/communicate
 
