@@ -24,6 +24,7 @@
 #include <torch/serialize.h>
 #include <torch/extension.h>
 #include <ATen/ATen.h>
+#include <fstream>
 
 namespace ipipe {
 
