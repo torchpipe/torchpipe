@@ -44,10 +44,6 @@ class TestUtilsModels:
         def resnet18(**kwargs):
             return models.resnet18(**kwargs)
 
-        @register_model
-        def resnet34(**kwargs):
-            return models.resnet34(**kwargs)
-
         register_model_from_timm(model_name="resnet10t")
 
         all_models = list_models()

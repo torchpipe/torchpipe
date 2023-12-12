@@ -47,6 +47,7 @@ include_dirs = [
     os.path.join(torchpipe_dir, "csrc"),
     os.path.join(torchpipe_dir, "../thirdparty/spdlog/include/"),
     "/usr/local/include/",
+    "/usr/local/include/opencv4/"
 ] + [include_dir]
 
 
@@ -128,7 +129,7 @@ def load_filter(
             sources=[os.path.join(tmpdir, f"{name}.cpp")],
             rebuild_if_exist=True,
             is_python_module=is_python_module,
-            extra_include_paths=extra_include_paths,
+            extra_include_paths=extra_include_paths ,
             extra_ldflags=extra_ldflags,
             with_cuda=with_cuda,
             *args,
