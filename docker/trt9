@@ -121,16 +121,13 @@ RUN pip install /app/tensorrt-*-cp38-none-linux_x86_64.whl && rm /app/tensorrt-*
 RUN apt-get update -y && apt-get install git -y && pip --no-cache-dir install cmake 
 WORKDIR /app
 
-# docker build --network=host -f ./trt9.2.base -t base_trt-9 .
+# docker build --network=host -f ./trt9 -t trt-9 .
 
-# docker tag base_trt-9:latest new_name:tag
-# docker tag base_trt-9:latest hub.c.163.com/neteaseis/ai/torchpipe:base_trt-9
+# docker tag trt-9:latest new_name:tag
 
-# docker run --rm   --network=host --gpus=all  --ulimit memlock=-1 --ulimit stack=67108864  --privileged=true  -v `pwd`:/workspace -it base_trt-9  /bin/bash 
+# docker run --rm   --network=host --gpus=all  --ulimit memlock=-1 --ulimit stack=67108864  --privileged=true  -v `pwd`:/workspace -it trt-9  /bin/bash 
  
-# python -c "import torch;torch.zeros(1).cuda()"
-# python setup.py bdist_wheel
+# python setup.py bdist_wheel # torch-1.13.1+cu116 torchvision-0.14.1+cu116
 
-# torch-1.13.1+cu116 torchvision-0.14.1+cu116
+# python -c "import torchpipe;print(torchpipe.__version__)"
 
-# https://hub.docker.com/r/pytorch/pytorch/
