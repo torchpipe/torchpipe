@@ -19,6 +19,10 @@ Production-Grade：Within NetEase over billions of calls supported by Torchpipe 
 <!-- <img alt="last commit" src="https://img.shields.io/github/last-commit/torchpipe/torchpipe.github.io?style=flat-square"> -->
 </div>
 
+
+## update
+- We add an example of yolov8 pipeline serving in [examples/pipeline](examples/pipeline), which is a good example for you to start with.
+
 ## Installation
 
 ```bash
