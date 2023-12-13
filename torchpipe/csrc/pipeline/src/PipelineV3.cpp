@@ -32,6 +32,7 @@
 #include "base_logging.hpp"
 #include "PhysicalView.hpp"
 #include "exception.hpp"
+#include "params.hpp"
 namespace ipipe {
 
 inline bool all_processed(const std::set<std::string>& nodes,
@@ -129,8 +130,9 @@ bool PipelineV3::init(mapmap config) {
     std::unique_ptr<Filter> filter;
 
     if (iter_filter != iter_next.second.end()) {
+      brackets_split(iter_next.second, "filter");
       filters_[iter_next.first] =
-          std::unique_ptr<Filter>(IPIPE_CREATE(Filter, iter_filter->second));
+          std::unique_ptr<Filter>(IPIPE_CREATE(Filter, iter_next.second["filter"]));
     } else {
       filters_[iter_next.first] = std::unique_ptr<Filter>(
           IPIPE_CREATE(Filter, graph_->get_default_filter(iter_next.first)));

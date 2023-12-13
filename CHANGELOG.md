@@ -2,7 +2,8 @@
 
 
 ## v0.3.3 Beta 4 (WIP)
-
+- add an examples of yolov8 pipeline serving in [examples/pipeline](examples/pipeline)
+- add torchpipe.register_backend(AnyPythonBackend, "py_model_1") and torchpipe.register_filter(AnyPythonFilter, "py_filter")
 
 ## v0.3.3 Beta 3 
 
