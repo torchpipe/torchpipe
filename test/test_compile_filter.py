@@ -39,8 +39,14 @@ class TestBackend:
 
          
     def test_force_range(self):
-        pass
-        # model = tp.pipe{}
+        tp.utils.cpp_extension.load_backend(
+            name = 'identity', 
+            sources='void forward(dict data){(*data)["result"] = (*data)["data"];}',
+            sources_header="")
+        model = tp.pipe({"backend":'identity'})
+        input = {"data":2}
+        model(input)
+        assert input["result"] == 2
         
         
 if __name__ == "__main__":
