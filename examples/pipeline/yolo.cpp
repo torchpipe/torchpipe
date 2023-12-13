@@ -223,8 +223,9 @@ class PostProcYoloV8 : public Backend {
     auto net_w = net_w_;
     auto net_h = net_h_;
     at::Tensor img = dict_get<at::Tensor>(input[0], "other");
-    auto img_h = static_cast<float>(img.size(2));
-    auto img_w = static_cast<float>(img.size(3));
+    int offset_size = img.sizes().size() == 4 ? 2 : 0;
+    auto img_h = static_cast<float>(img.size(offset_size));
+    auto img_w = static_cast<float>(img.size(offset_size + 1));
 
     float ratio =
         1.f / std::min(net_w / static_cast<float>(img_w), net_h / static_cast<float>(img_h));
@@ -306,3 +307,24 @@ class PostProcYoloV8 : public Backend {
 // using PostProcYoloV8_45_30 = PostProcYoloV8;
 // IPIPE_REGISTER(PostProcessor<at::Tensor>, PostProcYoloV8_45_30, "PostProcYoloV8_45_30");
 IPIPE_REGISTER(Backend, PostProcYoloV8, "PostProcYoloV8");
+
+namespace ipipe {
+class FilterScore : public Filter {
+ public:
+  status forward(dict data) override {
+    constexpr auto thres = 0.3;
+    auto iter = data->find("score");
+    if (iter == data->end()) {
+      return status::Error;
+    }
+    float score = any_cast<float>(iter->second);
+    if (score < thres) {
+      // if ((float)rand() / RAND_MAX < 0.3) {
+      return status::Run;
+    } else {
+      return status::Skip;
+    }
+  }
+};
+IPIPE_REGISTER(Filter, FilterScore, "filter_score");
+}  // namespace ipipe

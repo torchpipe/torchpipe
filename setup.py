@@ -112,6 +112,10 @@ WITH_TENSORRT = os.getenv("WITH_TENSORRT", "1") == "1"
 
 BUILD_PPLCV = os.getenv("BUILD_PPLCV", "0") == "1"
 PPLCV_INSTALL = os.getenv("PPLCV_INSTALL", "0") == "1"
+
+# if not PPLCV_INSTALL and not BUILD_PPLCV:
+#     BUILD_PPLCV = True
+
 if BUILD_PPLCV:
     if not PPLCV_INSTALL:
         PPLCV_INSTALL = os.path.abspath(os.path.join("build", "install"))

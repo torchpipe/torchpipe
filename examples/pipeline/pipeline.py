@@ -23,20 +23,14 @@ import torch
 import torchpipe as tp
 from torchpipe import pipe, TASK_DATA_KEY, TASK_RESULT_KEY, TASK_BOX_KEY
 
+tp.utils.cpp_extension.load(name="yolo", sources=["./yolo.cpp"])
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
-    "--config", dest="toml", type=str, default="./yolo.toml", help="configuration file"
-)
-parser.add_argument(
-    "--cpp", dest="cpp", type=str, default="./yolo.cpp", help="configuration file"
+    "--config", dest="toml", type=str, default="./pipeline.toml", help="configuration file"
 )
 parser.add_argument("--benchmark", action="store_true")
 args = parser.parse_args()
-
-
-tp.utils.cpp_extension.load(name="yolo", sources=[args.cpp])
-
 
 if __name__ == "__main__":
     img_path = "../../test/assets/norm_jpg/dog.jpg"
@@ -47,6 +41,7 @@ if __name__ == "__main__":
     toml_path = args.toml
     print(f"toml: {toml_path}")
 
+ 
     # 调用
     model = pipe(toml_path)
 
@@ -57,12 +52,15 @@ if __name__ == "__main__":
         model(input)
 
         if save_img:
-            detect_result = input[TASK_RESULT_KEY]
+            print(input.keys())
+            print(input["score_1"], input["result"])
+
+            detect_result = input[TASK_BOX_KEY]
             print(("detect_result: ", detect_result))
 
             img = cv2.imread(img_path)
             for t in range(len(detect_result)):
-                x1, y1, x2, y2 = detect_result[t].tolist()
+                x1, y1, x2, y2= detect_result[t].tolist()
                 img = cv2.rectangle(
                     img, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2
                 )
@@ -76,8 +74,8 @@ if __name__ == "__main__":
         test.test_from_raw_file(
             run,
             os.path.join("../../test/assets/norm_jpg"),
-            num_clients=10,
-            total_number=10000,
+            num_clients=20,
+            total_number=20000,
         )
     else:
         run([(img_path, img)], save_img=True)
