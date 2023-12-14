@@ -2,3 +2,4 @@
 *.onnx
 opencv*
 *.jpg
+*.zip

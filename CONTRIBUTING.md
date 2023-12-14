@@ -22,11 +22,11 @@ Follow the instructions for [installing TorchPipe from source](https://torchpipe
 
 The way to modify the code:
 
-- Submit a merge request to the develop branch.
+- Submit a merge request to the develop/main branch.
 
 Special requirements for C++：
 - All code needs to be exception-safe.
-- Manual program termination is not allowed, but instead replace it with throwing exceptions.
+- Avoid manual program termination, but instead replace it with throwing exceptions.
 
 ## Codebase structure
 
@@ -48,7 +48,7 @@ Special requirements for C++：
 ```bash
 cd test
 pip install -r requirements.txt 
-pytest .
+pytest 
 ```
 
 ## Writing documentation
