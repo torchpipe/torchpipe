@@ -35,7 +35,7 @@ HWCTensorWrapper::HWCTensorWrapper(dict input_dict, int top, int bottom, int lef
   assert(input_tensor.sizes()[1] * c == input_tensor.stride(0));
 }
 
-HWCTensorWrapper::HWCTensorWrapper(dict input_dict, int target_h, int target_w)
+HWCTensorWrapper::HWCTensorWrapper(dict input_dict, int target_h, int target_w, bool set_zero)
     : input(input_dict) {
   input_tensor = dict_get<at::Tensor>(input_dict, TASK_DATA_KEY);
   if (is_cpu_tensor(input_tensor)) {
@@ -59,8 +59,12 @@ HWCTensorWrapper::HWCTensorWrapper(dict input_dict, int target_h, int target_w)
                      .dtype(input_tensor.scalar_type())  // at::kByte
                      .layout(at::kStrided)
                      .requires_grad(false);
+  if (set_zero) {
+    output_tensor = at::zeros({target_h, target_w, c}, options);
+  } else {
+    output_tensor = at::empty({target_h, target_w, c}, options, at::MemoryFormat::Contiguous);
+  }
 
-  output_tensor = at::empty({target_h, target_w, c}, options, at::MemoryFormat::Contiguous);
   assert(output_tensor.stride(0) == target_w * c);
 }
 

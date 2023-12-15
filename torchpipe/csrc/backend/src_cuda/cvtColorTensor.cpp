@@ -42,26 +42,24 @@ bool cvtColorTensor::init(const std::unordered_map<std::string, std::string>& co
 void cvtColorTensor::forward(dict input_dict) {
   std::string input_color;
   TRACE_EXCEPTION(input_color = any_cast<std::string>(input_dict->at("color")));
+  if (input_color == color_) {
+    (*input_dict)[TASK_RESULT_KEY] = (*input_dict)[TASK_DATA_KEY];
+    return;
+  }
   if (input_color != "rgb" && input_color != "bgr") {
     throw std::invalid_argument("input_color should be rgb or bgr, but is " + input_color);
   }
 
   auto input_tensor = dict_get<at::Tensor>(input_dict, TASK_DATA_KEY);
-  if (input_tensor.scalar_type() != at::kFloat) {
-    input_tensor = input_tensor.to(at::kFloat);
-  }
-  // if (!input_tensor.is_contiguous()) {
-  //   input_tensor = input_tensor.contiguous();
+  // if (input_tensor.scalar_type() != at::kFloat) {
+  //   input_tensor = input_tensor.to(at::kFloat);
   // }
 
   if (is_hwc(input_tensor)) {
-    if (color_ != input_color) {
-      input_tensor = at::flip(input_tensor, {2});
-    }
+    input_tensor = at::flip(input_tensor, {2});
+
   } else if (is_nchw(input_tensor)) {
-    if (color_ != input_color) {
-      input_tensor = at::flip(input_tensor, {1});
-    }
+    input_tensor = at::flip(input_tensor, {1});
   } else {
     throw std::invalid_argument("input tensor should be hwc or nchw");
   }
