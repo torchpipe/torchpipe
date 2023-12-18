@@ -113,12 +113,13 @@ WITH_TENSORRT = os.getenv("WITH_TENSORRT", "1") == "1"
 BUILD_PPLCV = os.getenv("BUILD_PPLCV", "0") == "1"
 PPLCV_INSTALL = os.getenv("PPLCV_INSTALL", "0") == "1"
 
-WITH_CVCUDA = os.getenv("WITH_CVCUDA", "0") == "1"
+WITH_CVCUDA = os.getenv("WITH_CVCUDA", "-1") == "1"
 CVCUDA_INSTALL = os.getenv("CVCUDA_INSTALL", "/opt/nvidia/cvcuda0/")
 
-if os.path.exists(os.path.join(CVCUDA_INSTALL, 'include')):
-    WITH_CVCUDA = True
-elif WITH_CVCUDA:
+if WITH_CVCUDA != "1":
+    WITH_CVCUDA = False
+    CVCUDA_INSTALL = None
+else:
     subprocess.check_output(["python", "thirdparty/get_cvcuda.py"])
     if (os.path.exists(CVCUDA_INSTALL)):
         pass
