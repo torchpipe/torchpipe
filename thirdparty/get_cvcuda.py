@@ -2,12 +2,11 @@ import os
 import subprocess
 import tempfile
 
-
 def download_cvcuda():
 
-    targets = ["nvcv-lib-0.4.0_beta-cuda11-x86_64-linux.tar.xz", "nvcv-dev-0.4.0_beta-cuda11-x86_64-linux.tar.xz"]
+    targets = ["nvcv-lib-0.5.0_beta-cuda11-x86_64-linux.tar.xz", "nvcv-dev-0.5.0_beta-cuda11-x86_64-linux.tar.xz"]
     for target in targets:
-        lib_path = "https://github.com/CVCUDA/CV-CUDA/releases/download/v0.4.0-beta/"+target
+        lib_path = "https://github.com/CVCUDA/CV-CUDA/releases/download/v0.5.0-beta/"+target
         save_path = os.path.join("thirdparty", target)
         if os.path.exists(save_path):
             continue
@@ -19,7 +18,7 @@ def download_cvcuda():
 
 def extract_nvcv():
     # extract lib and dev to / dir if it has the permission, else user's home dir
-    targets = ["nvcv-lib-0.4.0_beta-cuda11-x86_64-linux.tar.xz", "nvcv-dev-0.4.0_beta-cuda11-x86_64-linux.tar.xz"]
+    targets = ["nvcv-lib-0.5.0_beta-cuda11-x86_64-linux.tar.xz", "nvcv-dev-0.5.0_beta-cuda11-x86_64-linux.tar.xz"]
     for target in targets:
         target_dir = "/"
         result = subprocess.run(["tar", "-xvf", f"thirdparty/{target}", "-C", target_dir])

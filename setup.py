@@ -647,7 +647,7 @@ for root, dir_local, names in os.walk(
         install_files.append(os.path.join(root, name))
 
 if __name__ == "__main__":
-    print("install_files: \n", install_files)
+    # print("install_files: \n", install_files)
     print(f"Building wheel {package_name}-{version}")
 
     write_version_file()

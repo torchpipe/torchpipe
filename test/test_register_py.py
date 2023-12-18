@@ -76,4 +76,5 @@ if __name__ == "__main__":
     # test_all_files(file_dir = "../examples/ocr_poly_v2/test_img/", num_clients=10)
     a = TestBackend()
     a.setup_class()
+    a.test_register_py()
     a.test_register_filter()

@@ -151,6 +151,11 @@ uint32_t Python::max() const {
   return 1;
 }
 
+Python::~Python() {
+  py::gil_scoped_acquire gil_lock;
+  py_backend_ = py::none();
+}
+
 IPIPE_REGISTER(Backend, Python, "Python");
 
 bool PyFilter::init(const std::unordered_map<std::string, std::string>& config_param,
@@ -191,6 +196,10 @@ Filter::status PyFilter::forward(ipipe::dict input_dict) {
   }
 
   return py::cast<Filter::status>(final_status);
+}
+PyFilter::~PyFilter() {
+  py::gil_scoped_acquire gil_lock;
+  py_backend_ = py::none();
 }
 
 IPIPE_REGISTER(Filter, PyFilter, "Python");
