@@ -114,18 +114,27 @@ BUILD_PPLCV = os.getenv("BUILD_PPLCV", "0") == "1"
 PPLCV_INSTALL = os.getenv("PPLCV_INSTALL", "0") == "1"
 
 WITH_CVCUDA = os.getenv("WITH_CVCUDA", "-1") == "1"
-CVCUDA_INSTALL = os.getenv("CVCUDA_INSTALL", "/opt/nvidia/cvcuda0/")
+FORCE_CVCUDA_DIR = os.getenv("FORCE_CVCUDA_DIR", None)
 
-if not WITH_CVCUDA :
+CVCUDA_INSTALL=None
+
+if not WITH_CVCUDA and not FORCE_CVCUDA_DIR :
     CVCUDA_INSTALL = None
 else:
-    subprocess.check_output(["python", "thirdparty/get_cvcuda.py"])
-    if (os.path.exists(CVCUDA_INSTALL)):
-        pass
-    elif os.path.exists(os.path.join(os.path.expanduser("~"), "opt/nvidia/cvcuda0/")):
-        CVCUDA_INSTALL = os.path.join(os.path.expanduser("~"), "opt/nvidia/cvcuda0/")
+    WITH_CVCUDA = True
+
+    if FORCE_CVCUDA_DIR:
+        CVCUDA_INSTALL = FORCE_CVCUDA_DIR
     else:
-        raise RuntimeError("CVCUDA_INSTALL not found.")
+        target_dir = os.path.join(os.path.expanduser("~"), ".cache/nvcv/")
+        CVCUDA_INSTALL = os.path.join(target_dir, "opt/nvidia/cvcuda0/")
+        properties = torch.cuda.get_device_properties(torch.device("cuda"))
+        if properties.major < 7:
+            raise RuntimeError("CVCUDA only support cuda >= 7.0")
+
+        subprocess.check_output(["python", "thirdparty/get_cvcuda.py"])
+        if not os.path.exists(CVCUDA_INSTALL):
+            raise RuntimeError(f"WITH_CVCUDA: {CVCUDA_INSTALL} not found.")
 # if not PPLCV_INSTALL and not BUILD_PPLCV:
 #     BUILD_PPLCV = True
 
