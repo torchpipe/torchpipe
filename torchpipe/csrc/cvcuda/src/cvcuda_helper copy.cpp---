@@ -1,0 +1,230 @@
+#include <ATen/ATen.h>
+#include <nvcv/Tensor.hpp>
+#include <nvcv/DataType.hpp>
+#include <nvcv/TensorData.h>
+#include "torch_utils.hpp"
+#include <memory>
+namespace ipipe {
+// https://github.com/Tabrizian/pytorch/blob/5c5f53ef6645016794b2e0c9a267ccb095995ea5/aten/src/ATen/DLConvertor.cpp
+namespace cvcuda {
+at::ScalarType DataTypetoScalarType(const nvcv::DataType &dataType) {
+  auto lines = dataType.numChannels();
+  if (lines != 1) throw std::logic_error("ATen does not support lanes != 1");
+  std::array<int32_t, 4> bpc = dataType.bitsPerChannel();
+
+  auto bits = bpc[0];
+  switch (dataType.dataKind()) {
+    case nvcv::DataKind::UNSIGNED:
+      switch (bits) {
+        case 8:
+          return at::ScalarType::Byte;
+        default:
+          throw std::logic_error("Unsupported UNSIGNED bits " + std::to_string(bits));
+      }
+    case nvcv::DataKind::SIGNED:
+      switch (bits) {
+        case 8:
+          return at::ScalarType::Char;
+          break;
+        case 16:
+          return at::ScalarType::Short;
+          break;
+        case 32:
+          return at::ScalarType::Int;
+          break;
+        case 64:
+          return at::ScalarType::Long;
+          break;
+        default:
+          throw std::logic_error("Unsupported kInt bits " + std::to_string(bits));
+      }
+    case nvcv::DataKind::FLOAT:
+      switch (bits) {
+        case 16:
+          return at::ScalarType::Half;
+          break;
+        case 32:
+          return at::ScalarType::Float;
+          break;
+        case 64:
+          return at::ScalarType::Double;
+          break;
+        default:
+          throw std::logic_error("Unsupported kFloat bits " + std::to_string(bits));
+      }
+    default:
+      throw std::logic_error("Data kind not supported, must be UNSIGNED, SIGNED, FLOAT");
+  }
+}
+
+nvcv::DataType ScalarTypetoDataType(at::ScalarType stype) {
+  nvcv::PackingParams pp;
+  pp.byteOrder = nvcv::ByteOrder::MSB;
+
+  int lanes = 1;
+  pp.swizzle = nvcv::Swizzle::S_X000;
+
+  int bits = stype.element_size() * 8;
+  pp.bits[0] = bits;
+  pp.bits[1] = 0;
+  pp.bits[2] = 0;
+  pp.bits[3] = 0;
+  nvcv::Packing packing = nvcv::MakePacking(pp);
+
+  nvcv::DataKind kind;
+  switch (t.scalar_type()) {
+    case at::ScalarType::Float:
+    case at::ScalarType::Double:
+    case at::ScalarType::Half:
+      kind = nvcv::DataKind::FLOAT;
+      break;
+    case at::ScalarType::Byte:
+      kind = nvcv::DataKind::UNSIGNED;
+      break;
+    case at::ScalarType::Char:
+    case at::ScalarType::Int:
+    case at::ScalarType::Long:
+    case at::ScalarType::Short:
+    case at::ScalarType::Bool:
+      kind = nvcv::DataKind::SIGNED;
+      break;
+
+    case at::ScalarType::BFloat16:
+      throw std::logic_error("BFloat16 is not supported by nvcv");
+    case at::ScalarType::QInt8:
+      throw std::logic_error("QInt8 is not supported by nvcv");
+    case at::ScalarType::QUInt8:
+      throw std::logic_error("QUInt8 is not supported by nvcv");
+    case at::ScalarType::QInt32:
+      throw std::logic_error("QInt32 is not supported by nvcv");
+    case at::ScalarType::ComplexHalf:
+      throw std::logic_error("ComplexHalf is not supported by nvcv");
+    case at::ScalarType::ComplexFloat:
+      throw std::logic_error("ComplexFloat is not supported by nvcv");
+    case at::ScalarType::ComplexDouble:
+      throw std::logic_error("ComplexDouble is not supported by nvcv");
+    case at::ScalarType::Undefined:
+      throw std::logic_error("Undefined is not a valid ScalarType");
+    case at::ScalarType::NumOptions:
+      throw std::logic_error("NumOptions is not a valid ScalarType");
+  }
+  return nvcv::DataType(kind, packing);
+}
+
+struct ATenTensor {
+  at::Tensor handle;
+  //   nvcv::Tensor tensor;
+};
+
+struct NvcvTensor {
+  nvcv::Tensor tensor;
+};
+
+void deleter(void *ctx, const NVCVTensorData *data) { delete static_cast<ATenTensor *>(ctx); }
+}  // namespace cvcuda
+nvcv::Tensor torch2nvcv(at::Tensor data) {
+  data = img_hwc_guard(data);
+  if (!data.is_contiguous()) {
+    data = data.contiguous();  // todo: unnecessary?
+  }
+  int h = data.size(0);
+  int w = data.size(1);
+  int c = data.size(2);
+
+  NVCVTensorBufferStrided inBuf;
+  inBuf.strides[2] = data.element_size();
+  inBuf.strides[1] = c * inBuf.strides[2];
+  inBuf.strides[0] = w * inBuf.strides[1];
+  inBuf.basePtr = reinterpret_cast<NVCVByte *>(data.data_ptr());
+
+  std::unique_ptr<cvcuda::ATenTensor> ctx(new cvcuda::ATenTensor());
+  ctx->handle = data;
+
+  NVCVTensorData inData;
+  inData.dtype = ipipe::cvcuda::torchtype2nvcv(data.scalar_type());
+  inData.layout = NVCV_TENSOR_HWC;
+  inData.rank = 3;
+  std::memcpy(inData.shape, data.sizes().data(), sizeof(int64_t) * 3);
+
+  inData.bufferType = NVCV_TENSOR_BUFFER_STRIDED_CUDA;
+  inData.buffer.strided = inBuf;
+
+  NVCVTensorHandle handle;
+  nvcv::detail::CheckThrow(nvcvTensorWrapDataConstruct(
+      &inData, ipipe::cvcuda::deleter, static_cast<void *>(ctx.release()), &handle));
+  // inData is copied indeed
+  return nvcv::Tensor(std::move(handle));
+}
+
+// https://github.com/tatsu-i/TradeAI/blob/2156aad9bf3e9a1330d072510194c677b8a6d39f/docker/redisai/src/libtorch_c/torch_c.cpp#L165
+
+at::Tensor nvcv2torch(const nvcv::TensorDataStrided &tensorData) {
+  if (!tensorData.IsCompatible<nvcv::TensorDataStridedCuda>()) {
+    throw std::runtime_error("nvcv2torch: Unsupported tensorData");
+  }
+
+  at::ScalarType stype = DataTypetoScalarType(tensorData.dtype());
+  // torch::Device device(device_type, src->ctx.device_id);
+  torch::Device device(at::kCUDA, -1);
+
+  std::vector<int64_t> strides(tensorData.rank());
+  for (const std::size_t i = 0; i < tensorData.rank(); ++i) {
+    strides[i] = tensorData.cdata().buffer.strided.strides[i] / tensorData.dtype().strideBytes();
+  }
+
+  std::unique_ptr<nvcv::TensorDataStrided> ptr(new nvcv::TensorDataStrided(tensorData));
+
+  auto deleter = [ptr = std::move(ptr)](void *in) { ptr.reset(); };
+  // torch::DeviceType device = device_type;
+  return torch::from_blob(
+      src.basePtr(), at::IntArrayRef(tensorData.shape().shape().begin(), tensorData.rank()),
+      at::IntArrayRef(strides.data(), strides.size()), deleter, torch::device(device).dtype(stype));
+}
+
+nvcv::TensorDataStrided torch2nvcv(at::Tensor data) {
+  NVCVTensorData tensorData = {};
+
+  // dtype ------------
+  tensorData.dtype = ScalarTypetoDataType(data.scalar_type());
+
+  // layout ------------
+  // if (layout) {
+  //   tensorData.layout = *layout;
+  // }
+
+  // rank ------------
+  int rank = data.dim();
+  {
+    // TODO: Add 0D support
+
+    if (rank < 1 || rank > NVCV_TENSOR_MAX_RANK) {
+      throw std::invalid_argument("illegal rank");
+    }
+    tensorData.rank = rank;
+  }
+
+  // shape ------------
+  std::copy_n(const_cast<int64_t *>(data.sizes().data()), rank, tensorData.shape);
+
+  // buffer type ------------
+  if (data.is_cuda()) {
+    tensorData.bufferType = NVCV_TENSOR_BUFFER_STRIDED_CUDA;
+  } else {
+    throw std::runtime_error("Only CUDA-accessible tensors are supported for now");
+  }
+
+  NVCVTensorBufferStrided &dataStrided = tensorData.buffer.strided;
+
+  // stride ------------
+  int elemStrideBytes = data.element_size();
+  int64_t *stride = const_cast<int64_t *>(data.strides().data());
+  for (int d = 0; d < rank; ++d) {
+    dataStrided.strides[d] = stride[d] * elemStrideBytes;
+  }
+
+  // Memory buffer ------------
+  dataStrided.basePtr = reinterpret_cast<NVCVByte *>(data.data_ptr()) + data.byte_offset;
+
+  return tensorData;
+}
+}  // namespace ipipe

@@ -67,10 +67,35 @@ class TestBackend:
         assert (torch.equal(input_dict[TASK_RESULT_KEY], torch.flip(
             self.cpu_hwc, dims=(2,)).clone()))
 
+    def test_nvcvt(self):
+        config = {'cvt':
+                  {'backend': "S[Tensor2NvTensor,CvtColorNvTensor,NvTensor2Tensor,SyncTensor]", "color": "rgb"}}
+
+        model = pipe(config)
+
+        input_dict = {TASK_DATA_KEY: self.nchw, "color": "bgr"}
+        model(input_dict)
+        assert (torch.equal(input_dict[TASK_RESULT_KEY], torch.flip(
+            self.nchw, dims=(1,)).clone()))
+        # assert (not input_dict[TASK_RESULT_KEY].is_contiguous())
+
+        # input_dict = {TASK_DATA_KEY: self.nchw, "color": "rgb"}
+        # model(input_dict)
+        # assert (torch.equal(input_dict[TASK_RESULT_KEY], self.nchw.clone()))
+
+        # input_dict = {TASK_DATA_KEY: self.hwc, "color": "bgr"}
+        # model(input_dict)
+        # assert (torch.equal(input_dict[TASK_RESULT_KEY], torch.flip(
+        #     self.hwc, dims=(2,)).clone()))
+
+        # input_dict = {TASK_DATA_KEY: self.cpu_hwc, "color": "bgr"}
+        # model(input_dict)
+        # assert (torch.equal(input_dict[TASK_RESULT_KEY], torch.flip(
+        #     self.cpu_hwc, dims=(2,)).clone()))
 
 if __name__ == "__main__":
     import time
-    # time.sleep(10)
+    # time.sleep(5)
     a = TestBackend()
     a.setup_class()
-    a.test_cvt()
+    a.test_nvcvt()

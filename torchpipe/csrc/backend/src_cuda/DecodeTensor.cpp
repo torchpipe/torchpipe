@@ -28,20 +28,9 @@
 #include "ipipe_utils.hpp"
 #include "Backend.hpp"
 #include <c10/cuda/CUDACachingAllocator.h>
+#include "torch_allocator.hpp"
 namespace ipipe {
 
-namespace {
-int dev_malloc(void** p, size_t s) {
-  *p = at::cuda::CUDACachingAllocator::raw_alloc(s);
-  return 0;
-}
-
-int dev_free(void* p) {
-  assert(p != nullptr);
-  at::cuda::CUDACachingAllocator::raw_delete(p);
-  return 0;
-}
-}  // namespace
 bool check_nvjpeg_result(nvjpegStatus_t _e) {
   if (_e == NVJPEG_STATUS_SUCCESS) {
     return true;
@@ -202,6 +191,7 @@ void DecodeTensor::forward(const std::vector<dict>& input_dicts) {
     if (decode(data, handle, state, tensor, color_, data_format_)) {
       input[TASK_RESULT_KEY] = tensor;
       input["color"] = color_;
+      input["data_format"] = data_format_;
     } else {
       SPDLOG_DEBUG("decode failed");
     }

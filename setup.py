@@ -116,8 +116,7 @@ PPLCV_INSTALL = os.getenv("PPLCV_INSTALL", "0") == "1"
 WITH_CVCUDA = os.getenv("WITH_CVCUDA", "-1") == "1"
 CVCUDA_INSTALL = os.getenv("CVCUDA_INSTALL", "/opt/nvidia/cvcuda0/")
 
-if WITH_CVCUDA != "1":
-    WITH_CVCUDA = False
+if not WITH_CVCUDA :
     CVCUDA_INSTALL = None
 else:
     subprocess.check_output(["python", "thirdparty/get_cvcuda.py"])

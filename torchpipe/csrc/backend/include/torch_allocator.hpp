@@ -18,6 +18,9 @@
 #include <unordered_map>
 #include <ATen/ATen.h>
 #include <mutex>
+
+#include <c10/cuda/CUDACachingAllocator.h>
+
 namespace ipipe {
 class TorchAllocator : public nvinfer1::IGpuAllocator {
  public:
@@ -32,4 +35,15 @@ class TorchAllocator : public nvinfer1::IGpuAllocator {
   std::unordered_map<void*, at::Tensor> data_;
   std::mutex mutex_;
 };
+
+int static inline dev_malloc(void** p, size_t s) {
+  *p = at::cuda::CUDACachingAllocator::raw_alloc(s);
+  return 0;
+}
+
+int static inline dev_free(void* p) {
+  assert(p != nullptr);
+  at::cuda::CUDACachingAllocator::raw_delete(p);
+  return 0;
+}
 }  // namespace ipipe
