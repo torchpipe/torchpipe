@@ -49,6 +49,7 @@ class Python : public Backend {
    */
   virtual void forward(const std::vector<dict>& input_dicts) override;
   virtual uint32_t max() const override;
+  ~Python();
 
  private:
   std::unique_ptr<Params> params_;
@@ -64,6 +65,7 @@ class PyFilter : public Filter {
                     dict /*dict_config*/) override;
 
   virtual Filter::status forward(dict input) override;
+  ~PyFilter();
 
  private:
   std::unique_ptr<Params> params_;

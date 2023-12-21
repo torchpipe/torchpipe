@@ -112,6 +112,32 @@ WITH_TENSORRT = os.getenv("WITH_TENSORRT", "1") == "1"
 
 BUILD_PPLCV = os.getenv("BUILD_PPLCV", "0") == "1"
 PPLCV_INSTALL = os.getenv("PPLCV_INSTALL", "0") == "1"
+
+WITH_CVCUDA = os.getenv("WITH_CVCUDA", "-1") == "1"
+FORCE_CVCUDA_DIR = os.getenv("FORCE_CVCUDA_DIR", None)
+
+CVCUDA_INSTALL=None
+
+if not WITH_CVCUDA and not FORCE_CVCUDA_DIR :
+    CVCUDA_INSTALL = None
+else:
+    WITH_CVCUDA = True
+
+    if FORCE_CVCUDA_DIR:
+        CVCUDA_INSTALL = FORCE_CVCUDA_DIR
+    else:
+        target_dir = os.path.join(os.path.expanduser("~"), ".cache/nvcv/")
+        CVCUDA_INSTALL = os.path.join(target_dir, "opt/nvidia/cvcuda0/")
+        properties = torch.cuda.get_device_properties(torch.device("cuda"))
+        if properties.major < 7:
+            raise RuntimeError("CVCUDA only support cuda >= 7.0")
+
+        subprocess.check_output(["python", "thirdparty/get_cvcuda.py"])
+        if not os.path.exists(CVCUDA_INSTALL):
+            raise RuntimeError(f"WITH_CVCUDA: {CVCUDA_INSTALL} not found.")
+# if not PPLCV_INSTALL and not BUILD_PPLCV:
+#     BUILD_PPLCV = True
+
 if BUILD_PPLCV:
     if not PPLCV_INSTALL:
         PPLCV_INSTALL = os.path.abspath(os.path.join("build", "install"))
@@ -288,6 +314,26 @@ def get_extensions():
         source_cpu += glob.glob(os.path.join(extensions_dir,
                                 "ppl.cv", "src", "*.cpp"))
 
+    third_includes = [os.path.join(extensions_dir, "../..", "thirdparty/")]
+
+    thirdpart_lib_dirs = []
+    thirdpart_libs = []
+    extra_link_args=[]
+
+    if WITH_CVCUDA:
+        source_cpu += glob.glob(os.path.join(extensions_dir,
+                                "cvcuda", "src", "*.cpp"))
+        assert(os.path.exists(CVCUDA_INSTALL))
+        third_includes += [os.path.join(CVCUDA_INSTALL, "include")]
+
+        cvcuda_libdir = os.path.join(CVCUDA_INSTALL, "lib/x86_64-linux-gnu/")
+        thirdpart_lib_dirs += [cvcuda_libdir]
+        thirdpart_libs += ["cvcuda", 'nvcv_types']
+        # 添加/opt/nvidia/cvcuda0/lib/x86_64-linux-gnu/ 作为动态库搜索路径
+        extra_link_args += [f'-Wl,-rpath={cvcuda_libdir}']
+
+        
+
     source_cpu += glob.glob(
         os.path.join(extensions_dir, "thirdpart", "pillow-resize", "*.cpp")
     )
@@ -329,7 +375,6 @@ def get_extensions():
     else:
         extra_compile_args = {"cxx": ["-Wno-unused-parameter", "-std=c++14"]}
 
-    extra_link_args = []
     assert torch.cuda.is_available()
     if (torch.cuda.is_available()) or os.getenv("FORCE_CUDA", "0") == "1":
         extension = CUDAExtension
@@ -407,7 +452,7 @@ def get_extensions():
 
     image_src += sources
     opencv_includes = []
-    thirdpart_lib_dirs = []
+    
     if WITH_OPENCV:
         defualt_opencv_include = "/usr/local/include/opencv4/"
         if not os.path.exists(defualt_opencv_include):
@@ -436,8 +481,8 @@ def get_extensions():
             )
         thirdpart_lib_dirs.append(opencv_lib_dir)
 
-    third_include = os.path.join(extensions_dir, "../..", "thirdparty/")
-    third_includes = [
+    
+    third_includes += [
         os.path.join(extensions_dir, "../..", "thirdparty/dep_sort"),
         os.path.join(extensions_dir, "../..", "thirdparty/digraph/dglib"),
         os.path.join(extensions_dir, "../..", "thirdparty/toml/"),
@@ -447,7 +492,7 @@ def get_extensions():
 
     include_dirs = (
         opencv_includes
-        + ["/usr/local/include/", extensions_dir, third_include]
+        + ["/usr/local/include/", extensions_dir]
         + third_includes
         + [
             os.path.join(extensions_dir, x, "include")
@@ -504,7 +549,7 @@ def get_extensions():
             "opencv_imgproc",
             "opencv_highgui",
         ]
-    thirdpart_libs = []
+    
 
     if PPLCV_INSTALL:
         if not BUILD_PPLCV:
@@ -611,7 +656,7 @@ for root, dir_local, names in os.walk(
         install_files.append(os.path.join(root, name))
 
 if __name__ == "__main__":
-    print("install_files: \n", install_files)
+    # print("install_files: \n", install_files)
     print(f"Building wheel {package_name}-{version}")
 
     write_version_file()

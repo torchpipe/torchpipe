@@ -290,6 +290,24 @@ at::Tensor img_1chw_guard(at::Tensor in) {
   }
 }
 
+at::Tensor img_nchw_guard(at::Tensor in) {
+  const auto& in_size = in.sizes();
+
+  if (in_size.size() == 3 && (in_size[2] == 1 || in_size[2] == 3 || in_size[2] == 4) &&
+      (in_size[0] * in_size[1] != 0)) {  // hwc
+    return in.permute({2, 0, 1}).unsqueeze(0);
+  } else if (in_size.size() == 4 && (in_size[1] == 1 || in_size[1] == 3 || in_size[1] == 4) &&
+             (in_size[2] * in_size[3] != 0)) {  // nchw
+    return in;
+  } else {
+    std::stringstream out;
+    out << "Only support nchw or hwc, with c == 1, 3, 4; But the shape of input Tensor is ";
+    out << in_size;
+    SPDLOG_ERROR(out.str());
+    throw std::out_of_range(out.str());
+  }
+}
+
 at::Tensor img_1hwc_guard(at::Tensor in) {
   const auto& in_size = in.sizes();
 
@@ -314,6 +332,38 @@ bool is_1chw(at::Tensor in) {
   if (in_size.size() == 4 && (in_size[1] == 1 || in_size[1] == 3 || in_size[1] == 4) &&
       in_size[0] == 1 && (in_size[2] * in_size[3] != 0)) {  // 1chw
     return true;
+  }
+  return false;
+}
+
+bool is_contiguous_wrt_nchw(at::Tensor in) {
+  if (is_nchw(in)) {
+    if (in.is_contiguous())
+      return true;
+    else
+      return false;
+  } else if (is_hwc(in)) {
+    auto tmp = in.permute({2, 0, 1});
+    if (tmp.is_contiguous())
+      return true;
+    else
+      return false;
+  }
+  return false;
+}
+
+bool is_contiguous_wrt_hwc(at::Tensor in) {
+  if (is_hwc(in)) {
+    if (in.is_contiguous())
+      return true;
+    else
+      return false;
+  } else if (is_1chw(in)) {
+    auto tmp = in.permute({0, 2, 3, 1});
+    if (tmp.is_contiguous())
+      return true;
+    else
+      return false;
   }
   return false;
 }

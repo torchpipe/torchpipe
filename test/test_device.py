@@ -39,6 +39,8 @@ class TestBackend:
                         dtype=torch.float32, pin_memory=True),
         ]
 
+    # 只有一个设备时跳过
+    @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="only one device")
     def test_switch_device(self):
         config = {"backend": f"Torch[ Identity]", "device_id": "1"}
         CUDA_VISIBLE_DEVICES = os.environ.get("CUDA_VISIBLE_DEVICES", None)

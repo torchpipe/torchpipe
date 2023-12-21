@@ -169,7 +169,8 @@ bool Sequential::init(const std::unordered_map<std::string, std::string>& config
 
 void Sequential::forward(const std::vector<dict>& input_dicts) {
   DictHelper dicts_guard(input_dicts);
-  dicts_guard.keep(TASK_DATA_KEY);
+  dicts_guard.keep(TASK_DATA_KEY);  // to keey the storage of TASK_DATA_KEY. This tensor is created
+                                    // in another stream
   std::set<std::size_t> break_index;
   for (std::size_t i = 0; i < engines_.size(); ++i) {
     // filters

@@ -17,7 +17,7 @@ import time
 import torchpipe
 # import torchpipe.utils.test
 from typing import List,Dict,Any
-
+import pytest
 input = list(range(0, 10000))
 result = {}
 
@@ -30,7 +30,7 @@ class AnyPythonBackend:
         data[0]["result"] = data[0]["data"] + self.add
 
 class AnyPythonFilter:
-    def init(self, config_param: Dict[str, str], dict_config) -> None:
+    def init(self, config_param: Dict[str, str]) -> None:
         print("config_param",config_param)
         self.add = int(config_param["config"])
 
@@ -59,7 +59,14 @@ class TestBackend:
         assert input["result"] == 3
 
     def test_register_filter(self):
-        pass
+        self.model_trt = torchpipe.pipe(
+            {"a":{"filter": "Python[py_filter]","config":1},"b":{}})
+        with pytest.raises(RuntimeError):
+            input = {"data":2,'node_name':'a'}
+            self.model_trt([input])
+        input = {"data":1,'node_name':'a'}
+        self.model_trt([input])
+        assert input["result"] == 1
 
         
  
@@ -70,3 +77,4 @@ if __name__ == "__main__":
     a = TestBackend()
     a.setup_class()
     a.test_register_py()
+    a.test_register_filter()

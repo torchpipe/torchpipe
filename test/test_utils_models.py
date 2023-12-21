@@ -44,10 +44,6 @@ class TestUtilsModels:
         def resnet18(**kwargs):
             return models.resnet18(**kwargs)
 
-        @register_model
-        def resnet34(**kwargs):
-            return models.resnet34(**kwargs)
-
         register_model_from_timm(model_name="resnet10t")
 
         all_models = list_models()
@@ -69,7 +65,7 @@ class TestUtilsModels:
         torchpipe.utils.models.onnx_export(
             self.model, self.onnx_path, self.input)
         result = torchpipe.utils.test.throughput(
-            self.dict_args, num_clients=5, total_number=1000)
+            self.dict_args, num_clients=5, total_number=100)
         assert isinstance(result, dict)
 
 

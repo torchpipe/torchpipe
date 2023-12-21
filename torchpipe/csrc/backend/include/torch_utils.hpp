@@ -50,6 +50,7 @@ at::Tensor tensor2nchw(at::Tensor, int& n, int& c, int& h, int& w);
  * @return at::Tensor(1chw)
  */
 at::Tensor img_1chw_guard(at::Tensor input);
+at::Tensor img_nchw_guard(at::Tensor input);
 at::Tensor img_1hwc_guard(at::Tensor input);
 
 bool is_hwc(at::Tensor in);
@@ -76,6 +77,8 @@ at::Tensor tensor_permute(at::Tensor input, const std::vector<int>& min_shape,
 void save(std::string name, at::Tensor input);
 
 at::Tensor load_tensor(std::string name);
+bool is_contiguous_wrt_hwc(at::Tensor in);
+bool is_contiguous_wrt_nchw(at::Tensor in);
 
 static inline at::Tensor torch_allocate(int64_t size) {
   // auto options = at::TensorOptions()

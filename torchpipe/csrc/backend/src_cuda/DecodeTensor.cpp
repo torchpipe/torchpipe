@@ -27,6 +27,8 @@
 #include "exception.hpp"
 #include "ipipe_utils.hpp"
 #include "Backend.hpp"
+#include <c10/cuda/CUDACachingAllocator.h>
+#include "torch_allocator.hpp"
 namespace ipipe {
 
 bool check_nvjpeg_result(nvjpegStatus_t _e) {
@@ -47,10 +49,12 @@ bool DecodeTensor::init(const std::unordered_map<std::string, std::string>& conf
   TRACE_EXCEPTION(data_format_ = params_->at("data_format"));
   IPIPE_ASSERT(data_format_ == "nchw" || data_format_ == "hwc");
 
+  auto tmp = at::empty({1, 1}, at::TensorOptions().device(at::kCUDA, -1));
+  nvjpegDevAllocator_t dev_allocator = {&dev_malloc, &dev_free};
+
   nvjpegBackend_t backend = NVJPEG_BACKEND_DEFAULT;
 
-  if (!check_nvjpeg_result(
-          nvjpegCreateEx(backend, nullptr, nullptr, NVJPEG_FLAGS_DEFAULT, &handle)))
+  if (!check_nvjpeg_result(nvjpegCreateEx(backend, &dev_allocator, nullptr, backend, &handle)))
     return false;
   if (!check_nvjpeg_result(nvjpegJpegStateCreate(handle, &state))) return false;
 
@@ -187,6 +191,7 @@ void DecodeTensor::forward(const std::vector<dict>& input_dicts) {
     if (decode(data, handle, state, tensor, color_, data_format_)) {
       input[TASK_RESULT_KEY] = tensor;
       input["color"] = color_;
+      input["data_format"] = data_format_;
     } else {
       SPDLOG_DEBUG("decode failed");
     }

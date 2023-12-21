@@ -5,10 +5,11 @@ English | [简体中文](README_zh.md)
 
 <div align="center">
 <h1 align="center">TorchPipe</h1>
-A Minimalist High-Throughput Deep Learning Model Deployment Framework
+Serving inside Pytorch with Multiple Threads
+<!-- A Minimalist High-Throughput Deep Learning Model Deployment Framework
 
-Production-Grade：Within NetEase about billions of calls supported by Torchpipe everyday.
-<h6 align="center">Ensemble Pipeline Serving for  <a href="https://pytorch.org/">Pytorch</a> Frontend</h6>
+Production-Grade：Within NetEase over billions of calls supported by Torchpipe everyday.
+<h6 align="center">Ensemble Pipeline Serving for  <a href="https://pytorch.org/">Pytorch</a> Frontend</h6> -->
 
 
 <!-- <img alt="license" src="https://img.shields.io/github/license/alibaba/async_simple?style=flat-square"> -->
@@ -18,6 +19,10 @@ Production-Grade：Within NetEase about billions of calls supported by Torchpipe
 <!-- <img alt="feature" src="https://img.shields.io/badge/pytorch-Serving-orange?style=flat-square"> -->
 <!-- <img alt="last commit" src="https://img.shields.io/github/last-commit/torchpipe/torchpipe.github.io?style=flat-square"> -->
 </div>
+
+
+## update
+- We add an example of yolov8 pipeline serving in [examples/pipeline](examples/pipeline), which is a good example for you to start with.
 
 ## Installation
 
@@ -57,9 +62,9 @@ docker run --rm --gpus=all --ipc=host  --network=host -v `pwd`:/workspace  --shm
 
 
 ## Multi-Instance High-Throughput Serving
-Torchpipe is a multi-instance pipeline parallel library that acts as a bridge between lower-level acceleration libraries (such as TensorRT, OpenCV, ppl.cv) and RPC frameworks (like Thrift, gRPC), ensuring a strict decoupling from them. It offers a thread-safe function interface for the PyTorch frontend at a higher level, while empowering users with fine-grained backend extension capabilities at a lower level.
+Torchpipe is a multi-instance pipeline parallel library that acts as a bridge between lower-level acceleration libraries (such as TensorRT, OpenCV, CVCUDA) and RPC frameworks (like Thrift, gRPC), ensuring a strict decoupling from them. It offers a thread-safe function interface for the PyTorch frontend at a higher level, while empowering users with fine-grained backend extension capabilities at a lower level.
 
-<img alt="teaser" src="./docs/teaser.png">
+<!-- <img alt="teaser" src="./docs/teaser.png"> -->
 
 
 ## Minimalist Configuration
@@ -170,5 +175,5 @@ Our codebase is built using multiple opensource contributions, please see [ACKNO
 
 ### 7. Questions & Discussions
 
-- For Chinese: Wechat Group: https://torchpipe.github.io/zh/docs/contribution_guide/communicate
+- Wechat Group: https://torchpipe.github.io/zh/docs/contribution_guide/communicate
 

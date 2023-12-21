@@ -47,6 +47,7 @@ include_dirs = [
     os.path.join(torchpipe_dir, "csrc"),
     os.path.join(torchpipe_dir, "../thirdparty/spdlog/include/"),
     "/usr/local/include/",
+    "/usr/local/include/opencv4/"
 ] + [include_dir]
 
 
@@ -99,7 +100,7 @@ def load_filter(
         #include <torch/extension.h>
         #include "filter.hpp"
         #include "reflect.h"
-        {sources_header}
+        {sources_header};
         //using Filter = ipipe::Filter;
         //using status = Filter::status;
         namespace ipipe{{
@@ -128,7 +129,68 @@ def load_filter(
             sources=[os.path.join(tmpdir, f"{name}.cpp")],
             rebuild_if_exist=True,
             is_python_module=is_python_module,
-            extra_include_paths=extra_include_paths,
+            extra_include_paths=extra_include_paths ,
+            extra_ldflags=extra_ldflags,
+            with_cuda=with_cuda,
+            *args,
+            **kwargs,
+        )
+        # 调用import_module_from_library函数导入
+        return _import_module_from_library(name, tmpdir, is_python_module)
+    
+
+def load_backend(
+    name="",
+    sources = "",
+    sources_header="",
+    is_python_module=False,
+    extra_include_paths=[],
+    extra_ldflags=[],
+    with_cuda=True,
+    *args,
+    **kwargs,
+):
+    if len(name) == 0:
+        import random
+        name = str(random.random())
+    cls_name = name.replace(".","")
+    # 通过tempfile获得临时文件夹
+    if True:
+        # 将源文件写入临时文件夹
+        file_context_start = f'''
+        #include <torch/extension.h>
+        #include "Backend.hpp"
+        #include "reflect.h"
+        {sources_header};
+        //using Backend = ipipe::Backend;
+
+        namespace ipipe{{
+        namespace {{
+        class Backend{cls_name} : public SingleBackend {{
+            public:
+            {sources}
+        }};
+        }}
+        IPIPE_REGISTER(Backend, Backend{cls_name}, "{name}");
+        }}
+        
+        '''
+        from torch.utils.cpp_extension import _get_build_directory
+
+        target_exten_dir = _get_build_directory(name, False)
+        tmpdir = target_exten_dir
+
+        with open(os.path.join(tmpdir, f"{name}.cpp"), "w") as f:
+            f.write(file_context_start)
+            print(f"write source file to {tmpdir}/{name}.cpp")
+            print(file_context_start)
+        # 调用load函数编译
+        load(
+            name=name,
+            sources=[os.path.join(tmpdir, f"{name}.cpp")],
+            rebuild_if_exist=True,
+            is_python_module=is_python_module,
+            extra_include_paths=extra_include_paths ,
             extra_ldflags=extra_ldflags,
             with_cuda=with_cuda,
             *args,

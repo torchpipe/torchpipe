@@ -29,6 +29,7 @@
 #include <torch/python.h>
 #include "Backend.hpp"
 #include "filter.hpp"
+#include "base_logging.hpp"
 
 namespace ipipe {
 
@@ -37,10 +38,12 @@ class RegisterPython {
   void registe(const std::string& name, py::object obj) {
     std::lock_guard<std::mutex> tmp(lock_);
     objects_[name] = obj;
+    SPDLOG_INFO("Register Python backend: {}", name);
   }
   void registe_filter(const std::string& name, py::object obj) {
     std::lock_guard<std::mutex> tmp(lock_);
     filters_[name] = obj;
+    SPDLOG_INFO("Register Python filter: {}", name);
   }
   py::object create(const std::string& name) {
     std::lock_guard<std::mutex> tmp(lock_);
@@ -48,7 +51,7 @@ class RegisterPython {
     if (iter == objects_.end()) {
       throw std::runtime_error("Register of Python: " + name + " not found");
     }
-    return objects_[name];
+    return objects_[name]();
   }
   py::object create_filter(const std::string& name) {
     std::lock_guard<std::mutex> tmp(lock_);
@@ -56,7 +59,7 @@ class RegisterPython {
     if (iter == filters_.end()) {
       throw std::runtime_error("Register of Python filter: " + name + " not found");
     }
-    return iter->second;
+    return iter->second();
   }
 
  private:
@@ -101,7 +104,7 @@ bool Python::init(const std::unordered_map<std::string, std::string>& config_par
   // TRACE_EXCEPTION(max_ = std::stoi(params_->at("max")));
 
   py::gil_scoped_acquire gil_lock;
-  TRACE_EXCEPTION(py_backend_ = create_py(params_->at("Python::backend"))());
+  TRACE_EXCEPTION(py_backend_ = create_py(params_->at("Python::backend")));
   IPIPE_ASSERT(!py_backend_.is(py::none()));
   if (!py_backend_.attr("init")(config_param)) {
     SPDLOG_ERROR(params_->at("Python::backend") + " init failed");
@@ -148,6 +151,11 @@ uint32_t Python::max() const {
   return 1;
 }
 
+Python::~Python() {
+  py::gil_scoped_acquire gil_lock;
+  py_backend_ = py::none();
+}
+
 IPIPE_REGISTER(Backend, Python, "Python");
 
 bool PyFilter::init(const std::unordered_map<std::string, std::string>& config_param,
@@ -159,11 +167,11 @@ bool PyFilter::init(const std::unordered_map<std::string, std::string>& config_p
   }
 
   py::gil_scoped_acquire gil_lock;
-  TRACE_EXCEPTION(py_backend_ = create_py(params_->at("Python::backend"))());
+  TRACE_EXCEPTION(py_backend_ = create_py_filter(params_->at("Python::backend")));
   IPIPE_ASSERT(!py_backend_.is(py::none()));
   pybind11::dict result_dict;
-  dict2py(dict_config, result_dict, true);
-  if (!py_backend_.attr("init")(config_param, result_dict)) {
+  // dict2py(dict_config, result_dict, true);
+  if (!py_backend_.attr("init")(config_param)) {
     SPDLOG_ERROR(params_->at("Python::backend") + " init failed");
     return false;
   }
@@ -189,7 +197,11 @@ Filter::status PyFilter::forward(ipipe::dict input_dict) {
 
   return py::cast<Filter::status>(final_status);
 }
+PyFilter::~PyFilter() {
+  py::gil_scoped_acquire gil_lock;
+  py_backend_ = py::none();
+}
 
-IPIPE_REGISTER(Filter, PyFilter, "PyFilter");
+IPIPE_REGISTER(Filter, PyFilter, "Python");
 
 }  // namespace ipipe
