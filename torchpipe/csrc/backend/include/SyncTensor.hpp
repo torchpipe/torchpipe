@@ -37,23 +37,27 @@ class SyncTensor : public Backend {
  public:
   /**
    * @brief
-   * 初始化，判断是否正在使用默认流；如果是，而且在独立线程模式时，将绑定新的cuda流到当前线程，用于gpu异步执行。(从
-   * Torch 更名而来)
+   * Initialization, determines whether the default stream is being used; if so, and in independent
+   * thread mode, it will bind a new CUDA stream to the current thread for GPU asynchronous
+   * execution. (Renamed from Torch)
    *
-   * @param _independent_thread_index 参数非空时，代表独立线程模式，
-   * 此时可认为init和forward位于同一个独立的线程中运行。检查cuda流是否是默认流，如果不是，我们绑定线程到新的流，并置bNeedSync_为true，
-   * 否则什么都不做。
-   * @param SyncTensor::backend 默认 Identity. 他所转发执行的后端。
-   * @note 用法： SyncTensor[A], Sequential[A,B,C,SyncTensor] 或者
-   * Sequential[A,B,SyncTensor[C]].
-   * 对于串行单元， 比如 Sequential[SyncTensor[A],SyncTensor[B]],
-   * 会倒序初始化, 正序前向： SyncTensor[B].init -> SyncTensor[A].init -> SyncTensor[A].forward
-   * -> SyncTensor[B].forward；  SyncTensor[A] 在
-   * 初始化时已经不是默认流，则它不用设置新的流， forward时也不用负责流的同步,
-   * 此时如果 SyncTensor[B] 设置了新的流，则由 SyncTensor[B] 负责流的同步;
+   * @param _independent_thread_index When the parameter is not null, it represents independent
+   * thread mode, at this time it can be assumed that init and forward are running in the same
+   * independent thread. Check if the CUDA stream is the default stream, if not, we bind the thread
+   * to a new stream and set bNeedSync_ to true, otherwise do nothing.
+   * @param SyncTensor::backend Default is Identity. The backend it forwards execution to.
+   * @note Usage: SyncTensor[A], Sequential[A,B,C,SyncTensor] or Sequential[A,B,SyncTensor[C]].
+   * For serial units, such as Sequential[SyncTensor[A],SyncTensor[B]],
+   * it will initialize in reverse order and forward in order: SyncTensor[B].init ->
+   * SyncTensor[A].init -> SyncTensor[A].forward
+   * -> SyncTensor[B].forward;  SyncTensor[A] is not the default stream at initialization,
+   * so it does not need to set a new stream, and it does not need to be responsible for stream
+   * synchronization during forward, at this time if SyncTensor[B] has set a new stream, then
+   * SyncTensor[B] is responsible for stream synchronization;
    *
-   *  @ref Sequential 等容器可确保其子后端初始化的顺序和前向的顺序相反，
-   * 因此即使在复合情况下，也能获得正确的流同步时机。
+   *  @ref Sequential and other containers can ensure that the initialization order of their child
+   * backends is opposite to the forward order, therefore, even in complex situations, the correct
+   * stream synchronization timing can be obtained.
    */
   virtual bool init(const std::unordered_map<std::string, std::string>&, dict) override;
 

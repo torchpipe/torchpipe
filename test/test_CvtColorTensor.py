@@ -67,6 +67,7 @@ class TestBackend:
         assert (torch.equal(input_dict[TASK_RESULT_KEY], torch.flip(
             self.cpu_hwc, dims=(2,)).clone()))
 
+    @pytest.mark.skipif(not torchpipe.libipipe.is_registered('CvtColorNvTensor'), reason="CvtColorNvTensor backend is not registered")
     def test_nvcvt(self):
         config = {'cvt':
                   {'backend': "S[Tensor2NvTensor,CvtColorNvTensor,NvTensor2Tensor,SyncTensor]", "color": "rgb"}}

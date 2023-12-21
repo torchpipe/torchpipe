@@ -29,14 +29,14 @@ void CvtColorNvTensor::forward(dict input_dict) {
   nvcv::Tensor data = dict_get<nvcv::Tensor>(input_dict, TASK_DATA_KEY);
   IPIPE_ASSERT(data.layout() == nvcv::TENSOR_HWC);
 
-  nvcv::Tensor rgbTensor(data.shape(), data.dtype(), nvcv::MemAlignment{}.rowAddr(1).baseAddr(0),
-                         nvcv_torch_allocator());
+  nvcv::Tensor resultTensor(data.shape(), data.dtype(), nvcv::MemAlignment{}.rowAddr(1).baseAddr(0),
+                            nvcv_torch_allocator());
 
   cudaStream_t stream = at::cuda::getCurrentCUDAStream();
-  cvtColorOp_(stream, data, rgbTensor, NVCV_COLOR_BGR2RGB);
+  cvtColorOp_(stream, data, resultTensor, NVCV_COLOR_BGR2RGB);
 
   (*input_dict)["color"] = color_;
-  (*input_dict)[TASK_RESULT_KEY] = rgbTensor;
+  (*input_dict)[TASK_RESULT_KEY] = resultTensor;
 }
 IPIPE_REGISTER(Backend, CvtColorNvTensor, "CvtColorNvTensor,cvtColorNvTensor");
 
