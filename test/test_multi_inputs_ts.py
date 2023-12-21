@@ -112,6 +112,7 @@ class TestBackend:
         assert (torch.allclose(
             3*inputs_all[0]["result"][0], inputs_all[1]["result"][1]))
 
+    @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="only one device")
     def test_batch(self):
         identity_model = MultiIdentities().eval()
 

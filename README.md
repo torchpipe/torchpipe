@@ -5,10 +5,11 @@ English | [简体中文](README_zh.md)
 
 <div align="center">
 <h1 align="center">TorchPipe</h1>
-A Minimalist High-Throughput Deep Learning Model Deployment Framework
+Serving inside Pytorch with Multiple Threads
+<!-- A Minimalist High-Throughput Deep Learning Model Deployment Framework
 
 Production-Grade：Within NetEase over billions of calls supported by Torchpipe everyday.
-<h6 align="center">Ensemble Pipeline Serving for  <a href="https://pytorch.org/">Pytorch</a> Frontend</h6>
+<h6 align="center">Ensemble Pipeline Serving for  <a href="https://pytorch.org/">Pytorch</a> Frontend</h6> -->
 
 
 <!-- <img alt="license" src="https://img.shields.io/github/license/alibaba/async_simple?style=flat-square"> -->
