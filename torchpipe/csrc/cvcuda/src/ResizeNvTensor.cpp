@@ -40,6 +40,6 @@ void ResizeNvTensor::forward(dict input_dict) {
 
   (*input_dict)[TASK_RESULT_KEY] = resultTensor;
 }
-IPIPE_REGISTER(Backend, ResizeNvTensor, "ResizeNvTensor,ResizeNvTensor");
+IPIPE_REGISTER(Backend, ResizeNvTensor, "ResizeNvTensor");
 
 }  // namespace ipipe
