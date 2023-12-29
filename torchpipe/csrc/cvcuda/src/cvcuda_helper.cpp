@@ -8,6 +8,7 @@
 #include <ATen/dlpack.h>
 #include <nvcv/alloc/Allocator.hpp>
 #include <c10/cuda/CUDACachingAllocator.h>
+#include "base_logging.hpp"
 
 #include <memory>
 namespace ipipe {
@@ -253,17 +254,21 @@ at::Tensor fromNvcvTensor(const nvcv::Tensor& src) {
   return at::fromDLPack(&src_tensor);
 }
 nvcv::Allocator nvcv_torch_allocator() {
-  nvcv::CustomAllocator myAlloc{
-      nvcv::CustomCudaMemAllocator{[](int64_t size, int32_t bufAlign) {
-                                     void* ptr = nullptr;
-                                     // cudaMalloc(&ptr, size);
-                                     ptr = at::cuda::CUDACachingAllocator::raw_alloc(size);
-                                     return ptr;
-                                   },
-                                   [](void* ptr, int64_t bufLen, int32_t bufAlign) {
-                                     // cudaFree(ptr);
-                                     at::cuda::CUDACachingAllocator::raw_delete(ptr);
-                                   }}};
+  nvcv::CustomAllocator myAlloc{nvcv::CustomCudaMemAllocator{
+      [](int64_t size, int32_t bufAlign) {
+        void* ptr = nullptr;
+        // cudaMalloc(&ptr, size);
+
+        ptr = at::cuda::CUDACachingAllocator::raw_alloc(size);
+        if (reinterpret_cast<ptrdiff_t>(ptr) % bufAlign) {
+          SPDLOG_WARN("The torch allocator cannot align the address to the alignment {}", bufAlign);
+        }
+        return ptr;
+      },
+      [](void* ptr, int64_t bufLen, int32_t bufAlign) {
+        // cudaFree(ptr);
+        at::cuda::CUDACachingAllocator::raw_delete(ptr);
+      }}};
   return myAlloc;
 }
 

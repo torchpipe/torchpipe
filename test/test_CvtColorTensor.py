@@ -67,6 +67,7 @@ class TestBackend:
         assert (torch.equal(input_dict[TASK_RESULT_KEY], torch.flip(
             self.cpu_hwc, dims=(2,)).clone()))
 
+    @pytest.mark.skipif(not torchpipe.libipipe.is_registered('CvtColorNvTensor'), reason="CvtColorNvTensor backend is not registered")
     def test_nvcvt(self):
         config = {'cvt':
                   {'backend': "S[Tensor2NvTensor,CvtColorNvTensor,NvTensor2Tensor,SyncTensor]", "color": "rgb"}}
@@ -75,23 +76,37 @@ class TestBackend:
 
         input_dict = {TASK_DATA_KEY: self.nchw, "color": "bgr"}
         model(input_dict)
+        assert(input_dict[TASK_RESULT_KEY].stride() == (999,3,1))
         assert (torch.equal(input_dict[TASK_RESULT_KEY], torch.flip(
-            self.nchw, dims=(1,)).clone()))
-        # assert (not input_dict[TASK_RESULT_KEY].is_contiguous())
+            self.nchw, dims=(1,)).permute((0,2,3,1)).squeeze(0)))
+        
+        assert ( input_dict[TASK_RESULT_KEY].is_contiguous())
 
-        # input_dict = {TASK_DATA_KEY: self.nchw, "color": "rgb"}
-        # model(input_dict)
-        # assert (torch.equal(input_dict[TASK_RESULT_KEY], self.nchw.clone()))
 
-        # input_dict = {TASK_DATA_KEY: self.hwc, "color": "bgr"}
-        # model(input_dict)
-        # assert (torch.equal(input_dict[TASK_RESULT_KEY], torch.flip(
-        #     self.hwc, dims=(2,)).clone()))
+        input_dict = {TASK_DATA_KEY: self.nchw.to(torch.uint8), "color": "bgr"}
+        model(input_dict)
+        assert (torch.equal(input_dict[TASK_RESULT_KEY], torch.flip(
+            self.nchw.to(torch.uint8), dims=(1,)).permute((0,2,3,1)).squeeze(0)))
 
-        # input_dict = {TASK_DATA_KEY: self.cpu_hwc, "color": "bgr"}
-        # model(input_dict)
-        # assert (torch.equal(input_dict[TASK_RESULT_KEY], torch.flip(
-        #     self.cpu_hwc, dims=(2,)).clone()))
+
+        input_dict = {TASK_DATA_KEY: self.nchw, "color": "rgb"}
+        model(input_dict)
+        assert (torch.equal(input_dict[TASK_RESULT_KEY], self.nchw.permute((0,2,3,1)).squeeze(0)))
+
+        input_dict = {TASK_DATA_KEY: self.hwc, "color": "bgr"}
+        model(input_dict)
+        assert (torch.equal(input_dict[TASK_RESULT_KEY], torch.flip(
+            self.hwc, dims=(2,))))
+
+        input_dict = {TASK_DATA_KEY: self.hwc, "color": "rgb"}
+        model(input_dict)
+        assert (torch.equal(input_dict[TASK_RESULT_KEY], self.hwc))
+        assert(input_dict[TASK_RESULT_KEY].is_contiguous())
+
+        input_dict = {TASK_DATA_KEY: self.cpu_hwc, "color": "bgr"}
+        with pytest.raises(RuntimeError):
+            model(input_dict)
+ 
 
 if __name__ == "__main__":
     import time
