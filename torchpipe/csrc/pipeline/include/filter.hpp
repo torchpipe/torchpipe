@@ -21,7 +21,7 @@ namespace ipipe {
 
 class Filter {
  public:
-  enum struct status { Run, Skip, SerialSkip, SubGraphSkip, Break, Error };
+  enum struct status { Run, Continue = Run, Skip, SerialSkip, SubGraphSkip, Break, Error };
 
   virtual bool init(const std::unordered_map<std::string, std::string>& /*config*/,
                     dict /*dict_config*/) {
