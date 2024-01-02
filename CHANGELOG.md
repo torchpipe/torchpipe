@@ -1,7 +1,10 @@
 # Changelog
 
+## v0.4.0 Beta 1 (WIP)
+- Fixing parsing issues when there are extra  dots in the trt's name.(thx yx)
+- Make IPIPE_KEY default avaliable
 
-## v0.3.3 Beta 4 (WIP)
+## v0.3.3 Beta 4 
 - add an examples of yolov8 pipeline serving in [examples/pipeline](examples/pipeline)
 - add register_backend register_filter
 - add load_backend, load_filter
