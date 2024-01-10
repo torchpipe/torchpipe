@@ -15,5 +15,5 @@
 from . import models
 from . import test
 from .cpp_extension import load
-
-__all__ = ["models", "test", "load"]
+from .GraphVisualizer import Visualization as Visual
+__all__ = ["models", "test", "load", "Visual"]

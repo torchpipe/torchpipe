@@ -3,7 +3,7 @@ batching_timeout = 1
 instance_num =1
 
 [jpg_decoder]
-backend = "Torch[ Sequential[DecodeTensor,ResizeTensor,cvtColorTensor] ]" 
+backend = "Torch[ Sequential[DecodeTensor,ResizeTensor,CvtColorTensor] ]" 
 resize_h = 232
 resize_w = 232 
 color = "rgb"

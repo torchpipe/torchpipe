@@ -413,3 +413,92 @@ class GraphVisualizer:
                 show_tips=False,
                 quiet=True,
             )
+
+
+import networkx
+class Visualization:
+    
+    def __init__(self, configs):
+        self.dag = networkx.MultiDiGraph()
+                     
+
+        for key, value in configs.items():
+            self.dag.add_node(key, size=20)
+            
+            if "next" in value.keys():
+                nexts = value["next"]
+                if isinstance(nexts, str):
+                    nexts = nexts.split(",")
+                    nexts = [x.strip() for x in nexts]
+                for i in nexts:
+                    self.dag.add_edge(key, i, src_key=configs[key], dst_key=configs[i])
+
+        # different subgraph(start from different root) with different group 
+        # 1. get root nodes with indegree 0
+        roots = set()
+        for node in self.dag.nodes:
+            self.dag.nodes[node]["title"] = "\n".join(f"{key}: {value}" for key, value in configs[node].items())
+            if self.dag.in_degree(node) == 0:
+                roots.add(node)
+        # 2. set group
+        for i, root in enumerate(roots):
+            for sub in networkx.algorithms.traversal.bfs_tree(self.dag, root):
+                self.dag.nodes[sub]["group"] = i
+
+
+
+
+            
+
+        # import gradio as gr
+        # from pyvis.network import Network
+        # import networkx as nx
+        # nx_graph = nx.cycle_graph(10)
+        # nx_graph.nodes[1]['title'] = 'Number 1'
+        # nx_graph.nodes[1]['group'] = 1
+        # nx_graph.nodes[3]['title'] = 'I belong to a different group!'
+        # nx_graph.nodes[3]['group'] = 10
+        # nx_graph.add_node(20, size=20, title='couple', group=2)
+        # nx_graph.add_node(21, size=15, title='couple', group=2)
+        # nx_graph.add_edge(20, 21, weight=5)
+        # nx_graph.add_node(25, size=25, label='lonely', title='lonely node', group=3)
+
+        # self.dag = nx_graph
+
+
+
+    def save_html(self, save_name):
+        from pyvis.network import Network
+
+        net = Network(notebook=True, cdn_resources="in_line", directed=True)
+        net.from_nx(self.dag)
+        net.show(save_name)
+
+
+    def launch(self):
+        from pyvis.network import Network
+        def get_html():
+            net = Network(directed=True)
+            net.from_nx(self.dag)
+            html = net.generate_html()
+            #need to remove ' from HTML
+            html = html.replace("'", "\"")
+            
+            return f"""<iframe style="width: 100%; height: 600px;margin:0 auto" name="result" allow="midi; geolocation; microphone; camera; 
+            display-capture; encrypted-media;" sandbox="allow-modals allow-forms 
+            allow-scripts allow-same-origin allow-popups 
+            allow-top-navigation-by-user-activation allow-downloads" allowfullscreen="" 
+            allowpaymentrequest="" frameborder="0" srcdoc='{html}'></iframe>"""
+
+            return html
+
+        gr = lazy_import_gradio()
+        demo = gr.Interface(
+            get_html,
+            inputs=None,
+            outputs='html',
+            title="pyvis_in_gradio",
+            allow_flagging='never'
+        )
+
+        demo.launch()

@@ -173,7 +173,3 @@ Potential research directions that have not been completed:
 ### Acknowledgements
 Our codebase is built using multiple opensource contributions, please see [ACKNOWLEDGEMENTS](./ACKNOWLEDGEMENTS.md) for more details.
 
-### 7. Questions & Discussions
-
-- Wechat Group: https://torchpipe.github.io/zh/docs/contribution_guide/communicate
-
