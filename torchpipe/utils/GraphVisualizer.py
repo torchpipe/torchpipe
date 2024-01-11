@@ -39,20 +39,23 @@ import networkx
 class Visualization:
     
     def __init__(self, configs):
+
         self.default_value = ""
         if isinstance(configs, str):
             assert os.path.exists(configs), f"{configs} not exists!"
             with open(configs, "r") as f:
                 self.default_value = f.read()
+                # self.init_value = self.default_value
         else:
+            self.default_value = configs
             self.parse_configs(configs)
 
     def parse_configs(self, configs):
-        self.dag = networkx.MultiDiGraph()
+        dag = networkx.MultiDiGraph()
                     
 
         for key, value in configs.items():
-            self.dag.add_node(key, size=20)
+            dag.add_node(key, size=20)
             
             if "next" in value.keys():
                 nexts = value["next"]
@@ -60,39 +63,26 @@ class Visualization:
                     nexts = nexts.split(",")
                     nexts = [x.strip() for x in nexts]
                 for i in nexts:
-                    self.dag.add_edge(key, i, src_key=configs[key], dst_key=configs[i])
+                    dag.add_edge(key, i, src_key=configs[key], dst_key=configs[i])
 
         # different subgraph(start from different root) with different group 
         # 1. get root nodes with indegree 0
         roots = set()
-        for node in self.dag.nodes:
-            self.dag.nodes[node]["title"] = "\n".join(f"{key}: {value}" for key, value in configs[node].items())
-            if self.dag.in_degree(node) == 0:
+        for node in dag.nodes:
+            dag.nodes[node]["title"] = "\n".join(f"{key}: {value}" for key, value in configs[node].items())
+            if dag.in_degree(node) == 0:
                 roots.add(node)
         # 2. set group
         for i, root in enumerate(roots):
-            for sub in networkx.algorithms.traversal.bfs_tree(self.dag, root):
-                self.dag.nodes[sub]["group"] = i
+            for sub in networkx.algorithms.traversal.bfs_tree(dag, root):
+                dag.nodes[sub]["group"] = i
 
 
-
+        return dag
 
             
 
-        # import gradio as gr
-        # from pyvis.network import Network
-        # import networkx as nx
-        # nx_graph = nx.cycle_graph(10)
-        # nx_graph.nodes[1]['title'] = 'Number 1'
-        # nx_graph.nodes[1]['group'] = 1
-        # nx_graph.nodes[3]['title'] = 'I belong to a different group!'
-        # nx_graph.nodes[3]['group'] = 10
-        # nx_graph.add_node(20, size=20, title='couple', group=2)
-        # nx_graph.add_node(21, size=15, title='couple', group=2)
-        # nx_graph.add_edge(20, 21, weight=5)
-        # nx_graph.add_node(25, size=25, label='lonely', title='lonely node', group=3)
-
-        # self.dag = nx_graph
+  
 
 
 
@@ -106,11 +96,18 @@ class Visualization:
 
     def launch(self):
         from pyvis.network import Network
-        def get_html(toml=None):
+        def get_html(toml=''):
             net = Network(directed=True)
 
-            html=''
-            if toml is not None and toml:
+            dag = None
+
+            error_html=''
+            if isinstance(toml, dict):
+                try:
+                    dag = self.parse_configs(toml)
+                except Exception as e:
+                    error_html = str(e)
+            elif toml is not None:
                 try:
                     import torchpipe
                     import tempfile
@@ -121,13 +118,13 @@ class Visualization:
                         save_name = os.path.join(tmpdir, "tmp.toml")
                         with open(save_name, "w") as f:
                             f.write(toml)
-                        self.parse_configs(torchpipe.parse_toml(save_name))
+                        dag = self.parse_configs(torchpipe.parse_toml(save_name))
 
                 except Exception as e:
-                    html = str(e)
-            if not html:
-                print(self.dag)
-                net.from_nx(self.dag)
+                    error_html = str(e)
+            if not error_html:
+                print(dag)
+                net.from_nx(dag)
                 html = net.generate_html()
                 #need to remove ' from HTML
             
@@ -150,10 +147,10 @@ class Visualization:
 
                 title = "Error!"
  
-                html = html_template.format(title=title, content=html)
+                error_html = html_template.format(title=title, content=error_html)
 
  
-                return html
+                return error_html
 
         gr = lazy_import_gradio()
         # text = gr.Textbox(value=self.default_value, lines=2, scale=3, max_lines=200)
@@ -164,31 +161,14 @@ next = "preprocessor"\n
 \n
 [preprocessor]\n
 """
-        # demo = gr.Interface(
-        #     get_html,
-        #     inputs=text,
-        #     outputs='html',
-        #     title="torchpipe graph",
-        #     allow_flagging='never',
-        #     examples=[[exmp_text]],
-        #     live=True
-        # )
-        # with gr.Blocks() as demo:
-        #     h = gr.HTML(value=get_html(''))
-        #     text = gr.Textbox(value=self.default_value, lines=2, scale=3, max_lines=200)
-        #     btn = gr.Button(value="Submit")
-        #     btn.click(get_html, inputs=[text], outputs=[h])
 
-        #     gr.Examples(
-        #         examples=[[exmp_text]],
-        #         inputs=text,
-        #         outputs='html',
-        #         fn=get_html,
-        #         cache_examples=False,
-        #     )
         with gr.Blocks() as demo:
-            h = gr.HTML(value=get_html(''))
-            text = gr.Textbox(value=self.default_value, lines=2, scale=3, max_lines=200)
+
+            h = gr.HTML(value=get_html(self.default_value))
+            
+            default_value = self.default_value if isinstance(self.default_value,str)  else ""
+            text = gr.Textbox(value=default_value, lines=2, scale=3, max_lines=200)
+            self.default_value = ""
             # btn = gr.Button(value="Submit")
             # btn.click(get_html, inputs=[text], outputs=[h])
 
@@ -199,7 +179,7 @@ next = "preprocessor"\n
                 title="torchpipe graph",
                 allow_flagging='never',
                 examples=[[exmp_text]],
-                live=False
+                live=True
             )
             
             # gr.Examples(
