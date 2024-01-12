@@ -1,5 +1,6 @@
 # Changelog
 
+
 ## v0.4.0 
 - Fixing parsing issues when there are extra  dots in the trt's name.(thx yx)
 - Make IPIPE_KEY default avaliable
@@ -10,6 +11,7 @@
 - add register_backend register_filter
 - add load_backend, load_filter
 - add base dockerfile docker/trt9
+
 - add gil lock for the Destructor of Python backend, to avoid the possible core dump when multiple Python backend instances are destroyed at the same time.
 
 ## v0.3.3 Beta 3 

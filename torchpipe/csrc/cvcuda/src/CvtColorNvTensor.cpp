@@ -37,6 +37,7 @@ void CvtColorNvTensor::forward(dict input_dict) {
 
   (*input_dict)["color"] = color_;
   (*input_dict)[TASK_RESULT_KEY] = resultTensor;
+
 }
 IPIPE_REGISTER(Backend, CvtColorNvTensor, "CvtColorNvTensor,cvtColorNvTensor");
 

@@ -51,6 +51,7 @@ IPIPE_LOCAL std::string get_ipipe_key() {
 #endif
 
 constexpr auto ipipe_version = "0.x.x";
+
 template <typename T, std::size_t N>
 constexpr uint32_t array_sum(T (&array)[N]) {
   uint32_t sum = 0;
