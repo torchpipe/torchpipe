@@ -649,8 +649,8 @@ def test_from_raw_jpg(
         # img = cv2.imencode('.jpg', img, [int(cv2.IMWRITE_JPEG_QUALITY), 95])[
         #     1].tobytes()
         # img=pre_resize(img)
-        if local_max_pic_loaded > 0 and len(tran_list) > local_max_pic_loaded:
-            continue
+        if local_max_pic_loaded > 0 and len(tran_list) >= local_max_pic_loaded:
+            break
 
         img = None
 

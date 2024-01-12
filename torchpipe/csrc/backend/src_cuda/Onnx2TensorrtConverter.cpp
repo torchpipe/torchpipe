@@ -214,9 +214,9 @@ bool Onnx2TensorrtConverter::init(const std::unordered_map<std::string, std::str
     SPDLOG_WARN("initLibNvInferPlugins failed");
   }
   std::string engine_plan;
-  if (model_type == ".trt" || model_type == ".trt.encrypt") {
+  if (endswith(model_type, ".trt") || endswith(model_type, ".trt.encrypt")) {
     engine_ = loadCudaBackend(model, model_type, engine_plan);
-  } else if (model_type == ".trt.buffer") {
+  } else if (endswith(model_type, ".trt.buffer")) {
     engine_plan = model;
 
     engine_ = loadEngineFromBuffer(engine_plan);
@@ -254,6 +254,7 @@ bool Onnx2TensorrtConverter::init(const std::unordered_map<std::string, std::str
     engine_ =
         onnx2trt(model, model_type, mins_, maxs_, engine_plan, onnxp, config_param, means, stds);
   } else {
+    throw std::runtime_error("invalid model type: " + model_type);
   }
   if (!engine_) {
     return false;

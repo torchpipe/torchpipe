@@ -85,7 +85,10 @@ if dir_name == os.path.join(os.path.realpath(os.getcwd()), "torchpipe"):
 
 
 # from torchpipe.tool import vis as vis
+from  torchpipe.utils import Visual 
 
+def show(config):
+    return Visual(config).launch()
 __all__ = [
     "Interpreter",
     "parse_toml",
@@ -100,6 +103,7 @@ __all__ = [
     # "any",
     "infer_shape",
     "supported_opset",
+    "show"
 ]
 
 

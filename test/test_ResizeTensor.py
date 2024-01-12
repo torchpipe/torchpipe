@@ -36,7 +36,7 @@ class TestBackend:
         import torchvision.models as models
         resnet18 = models.resnet18(pretrained=True).eval().cuda()
 
-        jpg_path = "assets/encode_jpeg/grace_hopper_517x606.jpg"
+        self.jpg_path = "assets/encode_jpeg/grace_hopper_517x606.jpg"
         self.gray = "./assets/image/gray.jpg"
 
         # self.img = cv2.imread(jpg_path)
@@ -47,11 +47,17 @@ class TestBackend:
         assert (input_dict["color"] in [b"rgb", b"bgr"])
 
         assert (input_dict["color"] == b"rgb")
-        input_dict[TASK_RESULT_KEY] = input_dict[TASK_RESULT_KEY][:,
-                                                                  [2, 1, 0], :, :]
-        assert (len(input_dict[TASK_RESULT_KEY].squeeze(0)) == 3)
-        input_dict[TASK_RESULT_KEY] = input_dict[TASK_RESULT_KEY].squeeze(
-            0).permute(1, 2, 0)
+
+        # import pdb; pdb.set_trace()
+        if len(input_dict[TASK_RESULT_KEY].shape) == 4:
+            input_dict[TASK_RESULT_KEY] = input_dict[TASK_RESULT_KEY][:,
+                                                                    [2, 1, 0], :, :]
+            assert (len(input_dict[TASK_RESULT_KEY].squeeze(0)) == 3)
+            input_dict[TASK_RESULT_KEY] = input_dict[TASK_RESULT_KEY].squeeze(
+                0).permute(1, 2, 0)
+        else:
+            input_dict[TASK_RESULT_KEY] = input_dict[TASK_RESULT_KEY][:, :, [2, 1, 0]]                                                             
+        
         assert (input_dict[TASK_RESULT_KEY].shape == (11, 9999, 3))
         if target:
             z = (target - input_dict[TASK_RESULT_KEY].float())
@@ -84,10 +90,21 @@ class TestBackend:
 
         self.decode_run(input_dict, None, model)
 
+    @pytest.mark.skipif(not torchpipe.libipipe.is_registered('ResizeNvTensor'), reason="ResizeNvTensor is not registered")
+    def test_NvResize(self):
+        config = {"backend": "S[S[DecodeTensor,Tensor2NvTensor,ResizeNvTensor,NvTensor2Tensor],(or)S[DecodeMat,ResizeMat,Mat2Tensor,SyncTensor],SyncTensor]",
+                  "resize_h": "11", "resize_w": "9999"}
+        model = pipe(config)
+        with open(self.jpg_path, "rb") as f:
+            raw_jpg = f.read()
+
+        input_dict = {TASK_DATA_KEY: raw_jpg}
+
+        self.decode_run(input_dict, None, model)
 
 if __name__ == "__main__":
     import time
     # time.sleep(10)
     a = TestBackend()
     a.setup_class()
-    a.test_gray()
+    a.test_NvResize()

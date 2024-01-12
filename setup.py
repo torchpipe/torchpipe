@@ -143,7 +143,12 @@ if BUILD_PPLCV:
         PPLCV_INSTALL = os.path.abspath(os.path.join("build", "install"))
 
 IPIPE_KEY = os.getenv("IPIPE_KEY", None)
-if IPIPE_KEY is not None:
+if IPIPE_KEY is None:
+    import random
+    import time
+    IPIPE_KEY = str(random.randint(0, 1000000000) + time.time())
+    print("WARN: random IPIPE_KEY used.")
+else:
     print("IPIPE_KEY setted.")
 
 if cpp_extension.CUDA_HOME is None:

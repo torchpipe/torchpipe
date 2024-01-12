@@ -36,7 +36,18 @@ bool check_dynamic_batchsize(nvinfer1::INetworkDefinition* network) {
           break;
         }
       }
-      if (need_skip) continue;
+
+      if (need_skip) {
+        continue;
+      } else {
+        int total = 1;
+        for (std::size_t i = 0; i < out.nbDims; ++i) {
+          total *= out.d[i];
+        }
+        if (total == 1) {
+          continue;
+        }
+      }
 
       IPIPE_ASSERT(out.nbDims >= 1);
       if (out.d[0] != -1) {
