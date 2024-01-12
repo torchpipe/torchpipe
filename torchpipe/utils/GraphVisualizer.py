@@ -35,7 +35,7 @@ def lazy_import_gradio():
         _gradio = gradio
     return _gradio
 
-import networkx
+#import networkx
 class Visualization:
     
     def __init__(self, configs):
@@ -51,6 +51,7 @@ class Visualization:
             self.parse_configs(configs)
 
     def parse_configs(self, configs):
+        import networkx
         dag = networkx.MultiDiGraph()
                     
 
