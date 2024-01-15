@@ -337,8 +337,8 @@ def get_extensions():
         # 添加/opt/nvidia/cvcuda0/lib/x86_64-linux-gnu/ 作为动态库搜索路径
         extra_link_args += [f'-Wl,-rpath={cvcuda_libdir}']
 
-        real_path_libcvcuda = os.path.realpath(os.path.join(CVCUDA_INSTALL, "libcvcuda.so"))
-        real_path_libnvcv_types = os.path.realpath(os.path.join(CVCUDA_INSTALL, "libnvcv_types.so"))
+        real_path_libcvcuda = os.path.realpath(os.path.join(cvcuda_libdir, "libcvcuda.so"))
+        real_path_libnvcv_types = os.path.realpath(os.path.join(cvcuda_libdir, "libnvcv_types.so"))
         assert(os.path.exists(real_path_libcvcuda))
         install_files.append(real_path_libcvcuda)
         install_files.append(real_path_libnvcv_types)
@@ -681,6 +681,7 @@ if __name__ == "__main__":
     setup_requires = ["torch"]
     if PPLCV_INSTALL:
         setup_requires += ["cmake"]
+    ext = get_extensions()
     setup(
         # Metadata
         name=package_name,
@@ -694,12 +695,6 @@ if __name__ == "__main__":
         # Package info
         packages=find_packages(exclude=("test",)),
         package_data={
-            package_name: [
-                "*.dll",
-                "*.dylib",
-                "*.so",
-                "prototype/datasets/_builtin/*.categories",
-            ],
             "torchpipe": install_files,
         },
         zip_safe=False,
@@ -708,7 +703,7 @@ if __name__ == "__main__":
         extras_require={
             # "scipy": ["scipy"],
         },
-        ext_modules=get_extensions(),
+        ext_modules=ext,
         python_requires=">=3.7,<=3.12",
         cmdclass={
             "build_ext": CMakeBuild,

@@ -2,3 +2,4 @@ recursive-include ipipe  *.so
 recursive-include ipipe *.hpp *.h 
 recursive-include thirdparty/spdlog/include/ *.hpp *.h 
 include torchpipe/csrc/core/include/torchpipe/extension.h
+recursive-include build libcvcuda.so*
