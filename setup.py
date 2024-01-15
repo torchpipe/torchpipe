@@ -337,6 +337,12 @@ def get_extensions():
         # 添加/opt/nvidia/cvcuda0/lib/x86_64-linux-gnu/ 作为动态库搜索路径
         extra_link_args += [f'-Wl,-rpath={cvcuda_libdir}']
 
+        real_path_libcvcuda = os.path.realpath(os.path.join(CVCUDA_INSTALL, "libcvcuda.so"))
+        real_path_libnvcv_types = os.path.realpath(os.path.join(CVCUDA_INSTALL, "libnvcv_types.so"))
+        assert(os.path.exists(real_path_libcvcuda))
+        install_files.append(real_path_libcvcuda)
+        install_files.append(real_path_libnvcv_types)
+
         
 
     source_cpu += glob.glob(
@@ -659,12 +665,7 @@ for root, dir_local, names in os.walk(
 ):
     for name in names:
         install_files.append(os.path.join(root, name))
-if WITH_CVCUDA:
-    real_path_libcvcuda = os.path.realpath(os.path.join(install_files, "libcvcuda.so"))
-    real_path_libnvcv_types = os.path.realpath(os.path.join(install_files, "libnvcv_types.so"))
-    assert(os.path.exists(real_path_libcvcuda))
-    install_files.append(real_path_libcvcuda)
-    install_files.append(real_path_libnvcv_types)
+
     
 if __name__ == "__main__":
     # print("install_files: \n", install_files)
