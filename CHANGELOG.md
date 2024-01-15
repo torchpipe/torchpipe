@@ -1,7 +1,11 @@
 # Changelog
 
+## v0.4.1 Beta 1 (WIP)
+- Fixing parsing issues when there are extra  dots in the trt's name.(thx yx)
+- Make IPIPE_KEY default avaliable
+- improved gradio visualization
 
-## v0.4.0 
+## v0.4.0 (2024.1.12)
 - Fixing parsing issues when there are extra  dots in the trt's name.(thx yx)
 - Make IPIPE_KEY default avaliable
 - improved gradio visualization

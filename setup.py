@@ -659,7 +659,13 @@ for root, dir_local, names in os.walk(
 ):
     for name in names:
         install_files.append(os.path.join(root, name))
-
+if WITH_CVCUDA:
+    real_path_libcvcuda = os.path.realpath(os.path.join(install_files, "libcvcuda.so"))
+    real_path_libnvcv_types = os.path.realpath(os.path.join(install_files, "libnvcv_types.so"))
+    assert(os.path.exists(real_path_libcvcuda))
+    install_files.append(real_path_libcvcuda)
+    install_files.append(real_path_libnvcv_types)
+    
 if __name__ == "__main__":
     # print("install_files: \n", install_files)
     print(f"Building wheel {package_name}-{version}")
