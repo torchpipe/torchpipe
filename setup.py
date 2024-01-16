@@ -129,10 +129,13 @@ else:
         target_dir = os.path.join(os.path.expanduser("~"), ".cache/nvcv/")
         CVCUDA_INSTALL = os.path.join(target_dir, "opt/nvidia/cvcuda0/")
         properties = torch.cuda.get_device_properties(torch.device("cuda"))
-        if properties.major < 7:
-            raise RuntimeError("CVCUDA only support cuda >= 7.0")
-
-        subprocess.check_output(["python", "thirdparty/get_cvcuda.py"])
+        if properties.major < 6:
+            raise RuntimeError("CVCUDA only support cuda >= 6.1")
+        elif properties.major == 6:
+            print("Warning: You are using CV-CUDA with architecture sm6.1, which is not officially supported. We will utilize a self-compiled CVCUDA library.")
+            subprocess.check_output(["python", "thirdparty/get_cvcuda.py", "--sm61"])
+        else:
+            subprocess.check_output(["python", "thirdparty/get_cvcuda.py"])
         if not os.path.exists(CVCUDA_INSTALL):
             raise RuntimeError(f"WITH_CVCUDA: {CVCUDA_INSTALL} not found.")
 # if not PPLCV_INSTALL and not BUILD_PPLCV:
