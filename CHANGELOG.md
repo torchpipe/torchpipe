@@ -1,12 +1,16 @@
 # Changelog
 
-## v0.4.1 Beta 2 (WIP)
+
+## v0.4.2 Beta 1 (WIP)
+
+
+## v0.4.1 Beta 2 (2024.1.17)
 - [FIX]: Older versions of TensorRT may fail to compile due to the absence of the 'deallocate' interface in IGpuAllocator.
 - [FIX]: Compilation failure for old versions of PyTorch due to incompatible dlpack.
 
 ## v0.4.1 Beta 1
 - CVCUDA can be used on Pascal GPUs now
-- pack libcvcuda.so into the whl
+
 
 ## v0.4.0 (2024.1.12)
 - Fixing parsing issues when there are extra  dots in the trt's name.(thx yx)

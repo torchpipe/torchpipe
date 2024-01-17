@@ -126,8 +126,8 @@ WORKDIR /app
 # docker tag trt-9:latest new_name:tag
 
 # docker run --rm   --network=host --gpus=all  --ulimit memlock=-1 --ulimit stack=67108864  --privileged=true  -v `pwd`:/workspace -it trt-9  /bin/bash 
- 
-# python setup.py bdist_wheel # torch-1.13.1+cu116 torchvision-0.14.1+cu116
-
+# WITH_CVCUDA=1 BUILD_PPLCV=1 python setup.py bdist_wheel 
 # python -c "import torchpipe;print(torchpipe.__version__)"
+# # docker commit  0f1f8c6b6f8f trt-9:latest
+
 
