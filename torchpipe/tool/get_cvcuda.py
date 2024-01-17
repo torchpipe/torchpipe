@@ -28,7 +28,12 @@ def extract_nvcv():
     target_dir = os.path.join(os.path.expanduser("~"), ".cache/nvcv/")
     # extract lib and dev to / dir if it has the permission, else user's home dir
     targets = ["nvcv-lib-0.5.0_beta-cuda11-x86_64-linux.tar.xz", "nvcv-dev-0.5.0_beta-cuda11-x86_64-linux.tar.xz"]
+
+    result_dir = os.path.join(target_dir, "opt/nvidia/cvcuda0/lib/x86_64-linux-gnu/")
     for target in targets:
+        if os.path.exists(os.path.join(result_dir, target)):
+            print(f"using existing file: {os.path.join(result_dir, target)}")
+            continue
         result = subprocess.run(["tar", "-xvf", os.path.join(target_dir, target), "-C", target_dir])
 
         if result.returncode != 0:

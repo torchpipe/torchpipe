@@ -1,9 +1,8 @@
 # Changelog
 
 ## v0.4.1 Beta 1 (WIP)
-- Fixing parsing issues when there are extra  dots in the trt's name.(thx yx)
-- Make IPIPE_KEY default avaliable
-- improved gradio visualization
+- CVCUDA can be used on Pascal GPUs now
+- pack libcvcuda.so into the whl
 
 ## v0.4.0 (2024.1.12)
 - Fixing parsing issues when there are extra  dots in the trt's name.(thx yx)

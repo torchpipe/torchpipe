@@ -133,9 +133,9 @@ else:
             raise RuntimeError("CVCUDA only support cuda >= 6.1")
         elif properties.major == 6:
             print("Warning: You are using CV-CUDA with architecture sm6.1, which is not officially supported. We will utilize a self-compiled CVCUDA library.")
-            subprocess.check_output(["python", "thirdparty/get_cvcuda.py", "--sm61"])
+            subprocess.check_output(["python", "torchpipe/tool/get_cvcuda.py", "--sm61"])
         else:
-            subprocess.check_output(["python", "thirdparty/get_cvcuda.py"])
+            subprocess.check_output(["python", "torchpipe/tool/get_cvcuda.py"])
         if not os.path.exists(CVCUDA_INSTALL):
             raise RuntimeError(f"WITH_CVCUDA: {CVCUDA_INSTALL} not found.")
 # if not PPLCV_INSTALL and not BUILD_PPLCV:
@@ -685,6 +685,16 @@ if __name__ == "__main__":
     if PPLCV_INSTALL:
         setup_requires += ["cmake"]
     ext = get_extensions()
+
+    # data_files = []
+    # if WITH_CVCUDA:
+    #     assert CVCUDA_INSTALL is not None
+    #     cvcuda_libdir = os.path.join(CVCUDA_INSTALL, "lib/x86_64-linux-gnu/")
+    #     files = ["libcvcuda.so.0.5.0", "libnvcv_types.so.0.5.0",
+    #              "libcvcuda.so.0", "libnvcv_types.so.0",
+    #              "libcvcuda.so", "libnvcv_types.so"]
+    #     data_files = [os.path.join(cvcuda_libdir, x) for x in files]   
+    #     print(data_files)
     setup(
         # Metadata
         name=package_name,

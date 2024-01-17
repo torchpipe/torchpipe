@@ -36,6 +36,22 @@ assert (
     __torch_version__, torch.__version__
 )
 
+try:
+    from torchpipe.libipipe import Interpreter
+except ImportError as e:
+    str_error = str(e)
+    if not "libcvcuda.so" in str_error:
+        raise e
+    print(f"import error(`{str_error}`), try to get libcvcuda: ")
+    import subprocess
+    cur_dir = os.path.dirname(os.path.realpath(__file__))
+    subprocess.check_output(["python", os.path.join(cur_dir,"./tool/get_cvcuda.py"), "--sm61"])
+    dynamic_path = os.path.join(os.path.expanduser("~"),"./.cache/nvcv/opt/nvidia/cvcuda0/lib/x86_64-linux-gnu/")
+
+    import ctypes
+    nvcv_types = ctypes.cdll.LoadLibrary(os.path.join(dynamic_path, "libnvcv_types.so"))
+    cvcuda = ctypes.cdll.LoadLibrary(os.path.join(dynamic_path, "libcvcuda.so"))
+
 
 
 
