@@ -57,7 +57,7 @@ class TestUtilsModels:
             model,
             input,
             onnx_path,
-            opset_version=17,
+            opset_version=11,
             input_names=["hidden", "seq_len"],  # 输入名
             output_names=["output", "output2"],  # 输出名
             dynamic_axes=dynamic_axes,

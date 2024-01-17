@@ -10,6 +10,14 @@
 #include <c10/cuda/CUDACachingAllocator.h>
 #include "base_logging.hpp"
 
+#ifndef DLPACK_VERSION
+#ifdef DLPACK_MAJOR_VERSION
+#define DLPACK_VERSION (DLPACK_MAJOR_VERSION * 100 + DLPACK_MINOR_VERSION * 1)
+#else
+#define DLPACK_VERSION 0
+#endif
+#endif
+
 #include <memory>
 namespace ipipe {
 namespace {
@@ -131,9 +139,13 @@ NVCVTensorData FillNVCVTensorData(const DLTensor& tensor,
   // shape ------------
   std::copy_n(tensor.shape, tensor.ndim, tensorData.shape);
 
+#if DLPACK_VERSION > 40
   // buffer type ------------
   if ((kDLCUDAHost == tensor.device.device_type || kDLCUDA == tensor.device.device_type ||
        kDLCUDAManaged == tensor.device.device_type)) {
+#else
+  if ((kDLGPU == tensor.device.device_type)) {
+#endif
     tensorData.bufferType = NVCV_TENSOR_BUFFER_STRIDED_CUDA;
   } else {
     throw std::runtime_error("Only CUDA-accessible tensors are supported for now");
@@ -213,8 +225,12 @@ at::Tensor fromNvcvTensor(const nvcv::Tensor& src) {
 
     // Set up device
     if (tensorData.IsCompatible<nvcv::TensorDataStridedCuda>()) {
-      // TODO: detect correct device_type from memory buffer
+// TODO: detect correct device_type from memory buffer
+#if DLPACK_VERSION > 40
       tensor.device.device_type = kDLCUDA;
+#else
+      tensor.device.device_type = kDLGPU;
+#endif
       // TODO: detect correct device_id from memory buffer (if possible)
       tensor.device.device_id = 0;
     } else {

@@ -29,7 +29,7 @@ class TorchAllocator : public nvinfer1::IGpuAllocator {
   void* allocate(uint64_t size, uint64_t alignment, uint32_t flags) noexcept override;
 
   void free(void* const memory) noexcept override;
-  bool deallocate(void* const memory) noexcept override;
+  bool deallocate(void* const memory) noexcept;  // override;
 
  private:
   std::unordered_map<void*, at::Tensor> data_;

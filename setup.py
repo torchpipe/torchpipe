@@ -485,8 +485,10 @@ def get_extensions():
         ):
             default_opencv_lib_dir = "/usr/lib/x86_64-linux-gnu/"
         opencv_lib_dir = os.getenv("OPENCV_LIB_DIR", default_opencv_lib_dir)
-        if sys.executable.find("conda") != -1:
-            extra_link_args += ["-static-libstdc++"]
+        
+        # if compilation failed, you may try;
+        # if sys.executable.find("conda") != -1:
+        #     extra_link_args += ["-static-libstdc++"]
 
         core_lib = os.path.join(opencv_lib_dir, "libopencv_core.so")
         if not os.path.exists(core_lib):
