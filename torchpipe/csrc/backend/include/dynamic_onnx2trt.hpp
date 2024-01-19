@@ -36,6 +36,7 @@ struct OnnxParams {
   std::string timecache;
   uint32_t max_workspace_size;
   std::string allocator;
+  std::string log_level;
 };
 
 std::shared_ptr<CudaEngineWithRuntime> onnx2trt(

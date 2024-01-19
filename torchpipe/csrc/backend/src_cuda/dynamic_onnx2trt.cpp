@@ -56,6 +56,18 @@ nvinfer1::Dims shape_tensor_to_dim(std::vector<int> input) {
   return out;
 }
 
+nvinfer1::ILogger::Severity trt_get_log_level(std::string level) {
+  if (level == "info")
+    return nvinfer1::ILogger::Severity::kINFO;
+  else if (level == "error")
+    return nvinfer1::ILogger::Severity::kERROR;
+  else if (level == "verbose")
+    return nvinfer1::ILogger::Severity::kVERBOSE;
+  else
+    return nvinfer1::ILogger::Severity::kWARNING;
+  throw std::invalid_argument("log_level must be one of info, error, verbose, warning");
+}
+
 nvinfer1::Dims vtodim(std::vector<int> input, const nvinfer1::Dims& net_input) {
   nvinfer1::Dims out = net_input;
   // out.nbDims = input.size();
@@ -362,7 +374,7 @@ std::shared_ptr<CudaEngineWithRuntime> onnx2trt(
   if (endswith(model_type, ".onnx")) {
     // SPDLOG_INFO("start parsing {}", onnxModelPath);
     b_parsed = parser->parseFromFile(onnxModelPath.c_str(),
-                                     static_cast<int>(nvinfer1::ILogger::Severity::kINFO));
+                                     static_cast<int>(trt_get_log_level(precision.log_level)));
   } else if (endswith(model_type, ".onnx.encrypt")) {
     std::vector<char> onnx_data_result;
     bool succ = aes_256_decrypt_from_path(onnxModelPath, onnx_data_result);

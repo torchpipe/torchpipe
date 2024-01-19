@@ -43,7 +43,8 @@ bool Onnx2TensorrtConverter::init(const std::unordered_map<std::string, std::str
                                                 {"preprocessor", ""},
                                                 {"model_type", ""},
                                                 {"max_workspace_size", "1024"},
-                                                {"allocator", "torch"}},
+                                                {"allocator", "torch"},
+                                                {"log_level", "info"}},
                                                {}, {}, {}));
 
   if (!params_->init(config_param)) return false;
@@ -250,6 +251,7 @@ bool Onnx2TensorrtConverter::init(const std::unordered_map<std::string, std::str
         std::set<std::string>(precision_output_fp32.begin(), precision_output_fp32.end());
     onnxp.precision_output_fp16 =
         std::set<std::string>(precision_output_fp16.begin(), precision_output_fp16.end());
+    onnxp.log_level = params_->at("log_level");
 
     engine_ =
         onnx2trt(model, model_type, mins_, maxs_, engine_plan, onnxp, config_param, means, stds);
