@@ -44,7 +44,7 @@ bool Onnx2TensorrtConverter::init(const std::unordered_map<std::string, std::str
                                                 {"model_type", ""},
                                                 {"max_workspace_size", "1024"},
                                                 {"allocator", "torch"},
-                                                {"log_level", "info"}},
+                                                {"log_level", "verbose"}},
                                                {}, {}, {}));
 
   if (!params_->init(config_param)) return false;
