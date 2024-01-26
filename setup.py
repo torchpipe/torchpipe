@@ -109,6 +109,8 @@ elif sha != "Unknown":
 WITH_OPENCV = os.getenv("WITH_OPENCV", "1") == "1"
 WITH_TORCH = os.getenv("WITH_TORCH", "1") == "1"
 WITH_TENSORRT = os.getenv("WITH_TENSORRT", "1") == "1"
+WITH_OPENVINO = os.getenv("WITH_OPENVINO", "0") == "1"
+assert(WITH_OPENVINO != WITH_TENSORRT)
 
 BUILD_PPLCV = os.getenv("BUILD_PPLCV", "0") == "1"
 PPLCV_INSTALL = os.getenv("PPLCV_INSTALL", "0") == "1"
@@ -422,6 +424,8 @@ def get_extensions():
         extra_compile_args["cxx"] += [("-DWITH_OPENCV")]
     if WITH_TENSORRT:
         extra_compile_args["cxx"] += [("-DWITH_TENSORRT")]
+    if WITH_OPENVINO:
+        extra_compile_args["cxx"] += [("-DWITH_OPENVINO")]
     if IPIPE_KEY:
         extra_compile_args["cxx"] += [(f"-DIPIPE_KEY={IPIPE_KEY}")]
     if PPLCV_INSTALL:

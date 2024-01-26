@@ -82,6 +82,7 @@ def load_filter(
     name="",
     sources = "",
     sources_header="",
+    rebuild_if_exist=False,
     is_python_module=False,
     extra_include_paths=[],
     extra_ldflags=[],
@@ -127,7 +128,7 @@ def load_filter(
         load(
             name=name,
             sources=[os.path.join(tmpdir, f"{name}.cpp")],
-            rebuild_if_exist=True,
+            rebuild_if_exist=rebuild_if_exist,
             is_python_module=is_python_module,
             extra_include_paths=extra_include_paths ,
             extra_ldflags=extra_ldflags,
@@ -143,6 +144,7 @@ def load_backend(
     name="",
     sources = "",
     sources_header="",
+    rebuild_if_exist=False,
     is_python_module=False,
     extra_include_paths=[],
     extra_ldflags=[],
@@ -188,7 +190,7 @@ def load_backend(
         load(
             name=name,
             sources=[os.path.join(tmpdir, f"{name}.cpp")],
-            rebuild_if_exist=True,
+            rebuild_if_exist=rebuild_if_exist,
             is_python_module=is_python_module,
             extra_include_paths=extra_include_paths ,
             extra_ldflags=extra_ldflags,
@@ -205,7 +207,7 @@ def load_backend(
 def load(
     name="",
     sources=[],
-    rebuild_if_exist=True,
+    rebuild_if_exist=False,
     is_python_module=False,
     extra_include_paths=[],
     extra_ldflags=[],
