@@ -126,6 +126,10 @@ torchpie目前处于一个快速迭代阶段，我们非常需要你的帮助。
 
 
 ### 相关链接
+- [大模型时代的阿里妈妈内容风控基础服务体系建设](https://zhuanlan.zhihu.com/p/672391648?utm_id=0)
+- [美团视觉GPU推理服务部署架构优化实践](https://tech.meituan.com/2023/02/09/inference-optimization-on-gpu-by-meituan-vision.html)
+- [多媒体AI推理服务加速利器high_service](https://zhuanlan.zhihu.com/p/581756705)
+- [GPU推理服务性能优化之路 ｜ 得物技术](https://tech.dewu.com/article?id=36)
 - [torchpipe: 知乎介绍](https://zhuanlan.zhihu.com/p/664095419)
 - [RayServe](https://docs.ray.io/en/latest/serve/index.html)
 - [Triton Inference Server](https://github.com/triton-inference-server/server)

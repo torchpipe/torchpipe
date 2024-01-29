@@ -71,6 +71,10 @@ Torchpipe is a multi-instance pipeline parallel library that acts as a bridge be
 
 The configuration of AI pipelines can be a complex and error-prone task, often requiring deep technical expertise. TorchPipe is designed to be intuitive and user-friendly, allowing even those with limited technical background in AI deployment to configure and optimize their AI pipelines efficiently. This enables users to define complex pipeline behaviors without getting bogged down in intricate coding details.
 
+
+<details>
+    <summary>YOLO-X Example</summary>
+
 The following example shows the configuration for detection using YOLO-X. By default, it supports cross-request batching and node-level pipeline parallelism, under a product-ready environment.
 
 ```toml
@@ -99,7 +103,7 @@ model = "./yolox_tiny.onnx"
 net_h=416
 net_w=416
 ```
-
+</details>
 <!-- ## Notes
 -  Use the latest tag and corresponding release.
 -  The main branch is used for releasing version updates, while the develop branch is used for code submission and daily development. -->
