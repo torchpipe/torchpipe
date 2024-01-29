@@ -37,6 +37,7 @@ class Mat2Tensor : public SingleBackend {
 
  private:
   std::unique_ptr<Params> params_;
+  std::string data_format_;
 };
 
 /**

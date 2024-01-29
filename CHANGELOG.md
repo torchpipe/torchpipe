@@ -5,6 +5,7 @@
 - [Compile] Make rebuild_if_exist default to False
 - 去除对opencv的依赖（WIP）
 - openvino backend （WIP）
+- Mat2Tensor support data_format now
 
 ## v0.4.1 Beta 2 (2024.1.17)
 - [FIX]: Older versions of TensorRT may fail to compile due to the absence of the 'deallocate' interface in IGpuAllocator.

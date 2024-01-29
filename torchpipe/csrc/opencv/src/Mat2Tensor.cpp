@@ -21,13 +21,16 @@
 #include "torch_mat_utils.hpp"
 #include "Backend.hpp"
 #include "torch_utils.hpp"
+#include "exception.hpp"
 namespace ipipe {
 
 bool Mat2Tensor::init(const std::unordered_map<std::string, std::string>& config_param,
                       dict dict_config) {
-  params_ =
-      std::unique_ptr<Params>(new Params({{"device", "gpu"}, {}, {"node_name", ""}}, {}, {}, {}));
+  params_ = std::unique_ptr<Params>(
+      new Params({{"device", "gpu"}, {"data_format", "nchw"}, {"node_name", ""}}, {}, {}, {}));
   if (!params_->init(config_param)) return false;
+  TRACE_EXCEPTION(data_format_ = params_->at("data_format"));
+  IPIPE_ASSERT(data_format_ == "nchw" || data_format_ == "hwc");
   SPDLOG_INFO("Mat2Tensor: device = {}. You can also use Mat2GpuTensor or Mat2CpuTensor.",
               params_->at("device"));
   if (torch_is_using_default_stream()) {
@@ -48,20 +51,25 @@ void Mat2Tensor::forward(dict input_dict) {
     if (iter->second.type() == typeid(cv::Mat)) {
       cv::Mat data = any_cast<cv::Mat>(iter->second);
       if (params_->at("device") == "cpu") {
-        input[TASK_RESULT_KEY] = cvMat2TorchCPU(data, true);
-      } else
-        input[TASK_RESULT_KEY] = cvMat2TorchGPU(data);
+        input[TASK_RESULT_KEY] = cvMat2TorchCPU(data, true, data_format_);
+        input["data_format"] = data_format_;
+      } else {
+        input["data_format"] = data_format_;
+        input[TASK_RESULT_KEY] = cvMat2TorchGPU(data, data_format_);
+      }
+
     } else if (iter->second.type() == typeid(std::vector<cv::Mat>)) {
       const std::vector<cv::Mat>& data = any_cast<std::vector<cv::Mat>>(iter->second);
       std::vector<at::Tensor> result;
       for (const auto& d : data) {
         if (params_->at("device") == "cpu") {
-          result.emplace_back(cvMat2TorchCPU(d, true));
+          result.emplace_back(cvMat2TorchCPU(d, true, data_format_));
         } else
-          result.emplace_back(cvMat2TorchGPU(d));
+          result.emplace_back(cvMat2TorchGPU(d, data_format_));
       }
 
       input[TASK_RESULT_KEY] = result;
+      input["data_format"] = data_format_;
     } else {
       SPDLOG_ERROR("unknown type: {}", iter->second.type().name());
       throw std::runtime_error("unknown type: " + std::string(iter->second.type().name()));

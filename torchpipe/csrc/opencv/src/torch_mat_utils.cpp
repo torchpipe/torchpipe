@@ -85,7 +85,7 @@ void imwrite(std::string name, any tensor) {
 // cudaStreamCreateWithPriority(&m_stream, cudaStreamNonBlocking,
 //                              greatestPriority);getStreamFromExternal
 
-at::Tensor cvMat2TorchGPU(cv::Mat da) {
+at::Tensor cvMat2TorchGPU(cv::Mat da, std::string data_format) {
   if (!da.isContinuous()) {
     da = da.clone();
   }
@@ -94,8 +94,10 @@ at::Tensor cvMat2TorchGPU(cv::Mat da) {
 
   auto image_tensor = at::from_blob(da.data, {da.rows, da.cols, da.channels()},
                                     elesize == 1 ? at::kByte : at::kFloat);
-  image_tensor = image_tensor.cuda().permute({2, 0, 1}).unsqueeze(0);
-
+  if (data_format == "nchw")
+    image_tensor = image_tensor.cuda().permute({2, 0, 1}).unsqueeze(0);
+  else
+    image_tensor = image_tensor.cuda();
   return image_tensor;
 }
 
@@ -122,14 +124,15 @@ at::Tensor cvMat2TorchGPUV2(cv::Mat da) {
   return image_tensor;
 }
 
-at::Tensor cvMat2TorchCPU(cv::Mat da, bool deepcopy) {  // todo deepcopy
+at::Tensor cvMat2TorchCPU(cv::Mat da, bool deepcopy, std::string data_format) {  // todo deepcopy
   if (!da.isContinuous()) {
     da = da.clone();
   }
 
   auto image_tensor = at::from_blob(da.data, {da.rows, da.cols, da.channels()},
                                     da.elemSize1() == 1 ? at::kByte : at::kFloat);
-  image_tensor = image_tensor.permute({2, 0, 1}).unsqueeze(0);
+  if (data_format == "nchw") image_tensor = image_tensor.permute({2, 0, 1}).unsqueeze(0);
+
   if (deepcopy) {
     image_tensor = image_tensor.clone();
   }

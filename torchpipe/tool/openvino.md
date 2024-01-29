@@ -6,7 +6,12 @@
 img_name=openvino/ubuntu22_dev:latest
 docker run --rm  -u 0 --runtime=nvidia --ipc=host    --network=host -v `pwd`:/workspace  --shm-size 1G  --ulimit memlock=-1 --ulimit stack=67108864  --privileged=true  -w/workspace -it $img_name /bin/bash
 
-apt-get update && aptget install -y wget
+
+docker run  -u 0  -it --gpus all --ipc=host   --shm-size 1G  --ulimit memlock=-1 --ulimit stack=67108864 -p 8015:22 -v `pwd`:/workspace  -w/workspace  --name="debug_ov"  --cap-add=SYS_PTRACE $img_name  bash
+ 
+
+
+apt-get update && apt-get install -y wget vim htop gdb
 wget https://huggingface.co/OWG/resnet-50/resolve/main/onnx/model_cls.onnx -O resnet50.onnx
 benchmark_app -hint throughput -d 'CPU' -m resnet50.onnx  -shape pixel_values[1,3,224,224] 
 

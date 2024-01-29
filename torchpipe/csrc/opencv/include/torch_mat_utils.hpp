@@ -25,8 +25,8 @@ namespace ipipe {
 cv::Mat torchTensortoCVMat(at::Tensor tensor, bool deepcopy = false);
 cv::Mat torchTensortoCVMatV2(at::Tensor tensor, bool deepcopy = false);
 
-at::Tensor cvMat2TorchGPU(cv::Mat tensor);
-at::Tensor cvMat2TorchCPU(cv::Mat tensor, bool deepcopy = false);
+at::Tensor cvMat2TorchGPU(cv::Mat tensor, std::string data_format = "nchw");
+at::Tensor cvMat2TorchCPU(cv::Mat tensor, bool deepcopy = false, std::string data_format = "nchw");
 
 void imwrite(std::string name, at::Tensor tensor);
 
