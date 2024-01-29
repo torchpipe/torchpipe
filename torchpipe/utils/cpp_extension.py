@@ -1,4 +1,4 @@
-# Copyright 2021-2023 NetEase.
+# Copyright 2021-2024 NetEase.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -50,6 +50,7 @@ include_dirs = [
     "/usr/local/include/opencv4/"
 ] + [include_dir]
 
+DEFAULT_REBUILD_IF_EXIST = os.environ.get("DEBUG", "0") == "1"
 
 lib_dir = ""
 lib_path = ""
@@ -82,7 +83,7 @@ def load_filter(
     name="",
     sources = "",
     sources_header="",
-    rebuild_if_exist=False,
+    rebuild_if_exist=DEFAULT_REBUILD_IF_EXIST,
     is_python_module=False,
     extra_include_paths=[],
     extra_ldflags=[],
@@ -144,7 +145,7 @@ def load_backend(
     name="",
     sources = "",
     sources_header="",
-    rebuild_if_exist=False,
+    rebuild_if_exist=DEFAULT_REBUILD_IF_EXIST,
     is_python_module=False,
     extra_include_paths=[],
     extra_ldflags=[],
@@ -207,7 +208,7 @@ def load_backend(
 def load(
     name="",
     sources=[],
-    rebuild_if_exist=False,
+    rebuild_if_exist=DEFAULT_REBUILD_IF_EXIST,
     is_python_module=False,
     extra_include_paths=[],
     extra_ldflags=[],

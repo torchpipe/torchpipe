@@ -21,7 +21,7 @@ def is_licensed(file):
 
 def write_cpp_license_header(filename):
     print(f"write {filename}")
-    comment = """// Copyright 2021-2023 NetEase.
+    comment = """// Copyright 2021-2024 NetEase.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -50,7 +50,7 @@ def write_cpp_license_header(filename):
 
 def write_py_license_header(filename):
     print(f"write {filename}")
-    comment = """# Copyright 2021-2023 NetEase.
+    comment = """# Copyright 2021-2024 NetEase.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
