@@ -1,6 +1,7 @@
 # Changelog
 
-## v0.4.2 Beta 1 (WIP)
+## v0.4.2 Beta 2 (WIP)
+- 解决openvino的编译问题
 - 去除对opencv的依赖（WIP）
 - openvino backend （WIP）
 

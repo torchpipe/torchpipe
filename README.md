@@ -26,6 +26,11 @@
 torchpipe是 介于底层加速库（如tensorrt，opencv，CVCUDA, ppl.cv）以及 RPC（如thrift, gRPC）之间并与他们严格解耦的多实例流水线并行库；对外提供面向pytorch前端的线程安全函数接口，对内提供面向用户的细粒度后端扩展。
 
 
+他是Triton Inference Server的一个代替选择，主要功能类似于其[共享显存]，[Ensemble], [BLS]机制。业界共同面临着一些类似问题：           
+- [美团视觉GPU推理服务部署架构优化实践](https://tech.meituan.com/2023/02/09/inference-optimization-on-gpu-by-meituan-vision.html)
+- [多媒体AI推理服务加速利器high_service](https://zhuanlan.zhihu.com/p/581756705)
+- [大模型时代的阿里妈妈内容风控基础服务体系建设](https://zhuanlan.zhihu.com/p/672391648?utm_id=0)
+- [GPU推理服务性能优化之路 ｜ 得物技术](https://tech.dewu.com/article?id=36)
 
 Torchpipe is a multi-instance pipeline parallel library that acts as a bridge between lower-level acceleration libraries (such as TensorRT, OpenCV, ppl.cv) and RPC frameworks (like Thrift, gRPC), ensuring a strict decoupling from them. It offers a thread-safe function interface for the PyTorch frontend at a higher level, while empowering users with fine-grained backend extension capabilities at a lower level.
 
@@ -126,10 +131,6 @@ torchpie目前处于一个快速迭代阶段，我们非常需要你的帮助。
 
 
 ### 相关链接
-- [大模型时代的阿里妈妈内容风控基础服务体系建设](https://zhuanlan.zhihu.com/p/672391648?utm_id=0)
-- [美团视觉GPU推理服务部署架构优化实践](https://tech.meituan.com/2023/02/09/inference-optimization-on-gpu-by-meituan-vision.html)
-- [多媒体AI推理服务加速利器high_service](https://zhuanlan.zhihu.com/p/581756705)
-- [GPU推理服务性能优化之路 ｜ 得物技术](https://tech.dewu.com/article?id=36)
 - [torchpipe: 知乎介绍](https://zhuanlan.zhihu.com/p/664095419)
 - [RayServe](https://docs.ray.io/en/latest/serve/index.html)
 - [Triton Inference Server](https://github.com/triton-inference-server/server)
