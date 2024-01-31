@@ -21,6 +21,7 @@ IS_WINDOWS = platform.system() == "Windows"
 IS_DARWIN = platform.system() == "Darwin"
 IS_LINUX = platform.system() == "Linux"
 
+from torchpipe import WITH_CUDA
 
 def make_relative_rpath_args(path):
     if IS_DARWIN:
@@ -87,7 +88,7 @@ def load_filter(
     is_python_module=False,
     extra_include_paths=[],
     extra_ldflags=[],
-    with_cuda=True,
+    with_cuda=WITH_CUDA,
     *args,
     **kwargs,
 ):
@@ -212,7 +213,7 @@ def load(
     is_python_module=False,
     extra_include_paths=[],
     extra_ldflags=[],
-    with_cuda=True,
+    with_cuda=WITH_CUDA,
     *args,
     **kwargs,
 ):

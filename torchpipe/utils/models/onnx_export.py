@@ -43,10 +43,13 @@ def onnx_export(
         )
     if opset is None:
         import torchpipe
-        opset = torchpipe.supported_opset()
-        # if torch.__version__ > "1.8.1":
-        #     opset = 17
-    assert opset > 10 and opset < 100
+        try:
+            opset = torchpipe.supported_opset()
+            assert opset > 10 and opset < 100
+        except Exception as e:
+            opset = None
+
+    
     if input is None:
         dummy_input = torch.randn(*(1, 3, 224, 224), device="cpu")
 

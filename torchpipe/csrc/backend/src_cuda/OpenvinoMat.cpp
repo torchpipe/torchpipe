@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #ifdef WITH_OPENVINO
+
 #include <ATen/ATen.h>
 #include <fstream>
 #include <memory>
@@ -22,15 +23,14 @@
 #include "base_logging.hpp"
 #include "Backend.hpp"
 #include "dict.hpp"
-#include "hw_batching.hpp"
+// #include "hw_batching.hpp"
 
-#include "prepost.hpp"
 #include "reflect.h"
 #include "time_utils.hpp"
 #include "torch_utils.hpp"
 #include "base_logging.hpp"
 #include "exception.hpp"
-
+#include "OpenvinoMat.hpp"
 #include <openvino/openvino.hpp>
 
 // https://github.com/NVIDIA/Torch-TensorRT/blob/3a98a8b198a071e622c43283caea7416fe8a8a1a/core/runtime/register_trt_op.cpp
@@ -39,9 +39,10 @@
 namespace ipipe {
 
 struct ModelInstances {
-  ov::CompiledModel model;
-  std::vector<ov::InferRequest> ireqs(nireq);
+  ov::CompiledModel compiled_model;
+  std::vector<ov::InferRequest> ireqs;
 };
+
 bool OpenvinoMat::init(const std::unordered_map<std::string, std::string>& config_param,
                        dict dict_config) {
   params_ = std::unique_ptr<Params>(new Params({{"postprocessor", "split"},

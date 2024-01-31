@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifdef WITH_OPENCV
-
 #include "Serialize.hpp"
 #include <string>
 #include <unordered_map>
@@ -22,10 +20,13 @@
 // #include <variant>
 // #endif
 #include <cstddef>
-
+#include <cstring>
 // #if __cplusplus > 201703L
 // #endif
+
+#ifdef WITH_OPENCV
 #include <opencv2/core.hpp>
+#endif
 
 /** supported types:
  * std::vector<char>  0
@@ -47,7 +48,7 @@ struct alignas(uint32_t) DictHeader {
 namespace ipipe {
 
 template <class T>
-bool get_data(const any& data, uchar index, std::vector<char>& result) {
+bool get_data(const any& data, unsigned char index, std::vector<char>& result) {
   const auto* true_data = any_cast<T>(&data);
   if (!true_data) return false;
   result.resize(true_data->size() + 4);
@@ -57,7 +58,7 @@ bool get_data(const any& data, uchar index, std::vector<char>& result) {
 }
 
 template <class T>
-bool get_data(const std::string& data, uchar index, std::vector<char>& result) {
+bool get_data(const std::string& data, unsigned char index, std::vector<char>& result) {
   result.resize(data.size() + 4);
   result[3] = index;
   std::memcpy(result.data() + 4, data.data(), data.size());
@@ -71,7 +72,9 @@ bool serialize(const any& data, std::vector<char>& result) {
     return get_data<std::vector<unsigned char>>(data, 1, result);
   } else if (data.type() == typeid(std::string)) {
     return get_data<std::string>(data, 2, result);
-  } else if (data.type() == typeid(cv::Mat)) {
+  }
+#ifdef WITH_OPENCV
+  else if (data.type() == typeid(cv::Mat)) {
     cv::Mat d = *any_cast<cv::Mat>(&data);
     if (!d.isContinuous()) d = d.clone();
     // IPIPE_ASSERT(d);
@@ -86,7 +89,9 @@ bool serialize(const any& data, std::vector<char>& result) {
                 d.rows * d.cols * d.channels() * d.elemSize1());
     return true;
 
-  } else {
+  }
+#endif
+  else {
     return false;
   }
 }
@@ -112,6 +117,7 @@ any deserialize(const char* start, uint32_t len, bool& success) {
       len -= 4;
       success = true;
       return std::string(start + 4, len);
+#ifdef WITH_OPENCV
     case 3: {
       IPIPE_ASSERT(len >= 4 + 4 * sizeof(uint32_t));
       len -= 4 + 4 * sizeof(uint32_t);
@@ -127,6 +133,7 @@ any deserialize(const char* start, uint32_t len, bool& success) {
       }
       break;
     }
+#endif
 
     default:
       throw std::runtime_error("deserialize failed");
@@ -254,4 +261,3 @@ dict deserialize(const std::vector<char>& data) {
   return result;
 }
 }  // namespace ipipe
-#endif

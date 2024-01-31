@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifdef WITH_TORCH
 #include "torch_mat_utils.hpp"
 #include "torch_utils.hpp"
 
@@ -21,7 +20,9 @@
 #include <atomic>
 #include <chrono>
 #include <thread>
+#ifdef WITH_CUDA
 #include "c10/cuda/CUDAStream.h"
+#endif
 #include "time_utils.hpp"
 #include "base_logging.hpp"
 #include <torch/serialize.h>
@@ -85,6 +86,9 @@ void imwrite(std::string name, any tensor) {
 // cudaStreamCreateWithPriority(&m_stream, cudaStreamNonBlocking,
 //                              greatestPriority);getStreamFromExternal
 
+
+
+#ifdef WITH_CUDA
 at::Tensor cvMat2TorchGPU(cv::Mat da, std::string data_format) {
   if (!da.isContinuous()) {
     da = da.clone();
@@ -100,6 +104,7 @@ at::Tensor cvMat2TorchGPU(cv::Mat da, std::string data_format) {
     image_tensor = image_tensor.cuda();
   return image_tensor;
 }
+
 
 at::Tensor cvMat2TorchGPUV2(cv::Mat da) {
   if (!da.isContinuous()) {
@@ -123,6 +128,7 @@ at::Tensor cvMat2TorchGPUV2(cv::Mat da) {
 
   return image_tensor;
 }
+#endif
 
 at::Tensor cvMat2TorchCPU(cv::Mat da, bool deepcopy, std::string data_format) {  // todo deepcopy
   if (!da.isContinuous()) {
@@ -191,4 +197,4 @@ class TestRun {
 
 }  // namespace ipipe
 
-#endif
+ 

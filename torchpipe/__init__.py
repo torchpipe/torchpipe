@@ -67,10 +67,11 @@ from torchpipe.libipipe import (
     # any,
     register_backend,
     register_filter,
-    infer_shape,
-    supported_opset,
+    WITH_CUDA,
     Status
 )
+if WITH_CUDA:
+    from torchpipe.libipipe import  infer_shape, supported_opset
 from torchpipe.libipipe import Event
 from torchpipe.libipipe import encrypt
 
@@ -117,10 +118,11 @@ __all__ = [
     "TASK_EVENT_KEY",
     "encrypt",
     # "any",
-    "infer_shape",
-    "supported_opset",
     "show"
 ]
+
+if WITH_CUDA:
+    __all__.extend(["infer_shape","supported_opset"])
 
 
 __all__.extend(["Event"])

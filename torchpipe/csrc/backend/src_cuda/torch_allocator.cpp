@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
+#ifdef WITH_TENSORRT
 #include "NvInferVersion.h"
 #if (NV_TENSORRT_MAJOR >= 9 || (NV_TENSORRT_MAJOR >= 8 && NV_TENSORRT_MINOR >= 6))
 #include <ATen/ATen.h>
@@ -60,4 +60,5 @@ bool TorchAllocator::deallocate(void* const memory) noexcept {
 
 }  // namespace ipipe
 
+#endif
 #endif

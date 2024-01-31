@@ -205,8 +205,10 @@ std::once_flag Interpreter::once_flag_;
 #ifdef PYBIND  // pyhton binding
 void encrypt_file_to_file(std::string file_path, std::string out_file_path, std::string key);
 
+#ifdef WITH_TENSORRT
 void init_infer_shape(py::module& m);
 void supported_opset(py::module& m);
+#endif
 std::vector<std::string> list_backends(std::string backend) {
   return IPIPE_ALL_NAMES(ipipe::Backend);
 }
@@ -242,6 +244,19 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   m.attr("TASK_INFO_KEY") = py::cast(TASK_INFO_KEY);
   m.attr("TASK_EVENT_KEY") = py::cast(TASK_EVENT_KEY);
   m.attr("TASK_NODE_NAME_KEY") = py::cast(TASK_NODE_NAME_KEY);
+
+#ifdef WITH_TENSORRT
+  m.attr("WITH_TENSORRT") = py::cast(true);
+#else
+  m.attr("WITH_TENSORRT") = py::cast(false);
+#endif
+
+#ifdef WITH_CUDA
+  m.attr("WITH_CUDA") = py::cast(true);
+#else
+  m.attr("WITH_CUDA") = py::cast(false);
+#endif
+
   m.def("parse_toml", &parse_toml, py::call_guard<py::gil_scoped_release>(), py::arg("path_toml"));
   m.def("encrypt", &encrypt_file_to_file, py::call_guard<py::gil_scoped_release>(),
         py::arg("file_path"), py::arg("out_file_path"), py::arg("key"));
@@ -373,9 +388,10 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
                     Returns:
                         float.
                 )docdelimiter");
-
+#ifdef WITH_TENSORRT
   init_infer_shape(m);
   supported_opset(m);
+#endif
 }
 #endif
 

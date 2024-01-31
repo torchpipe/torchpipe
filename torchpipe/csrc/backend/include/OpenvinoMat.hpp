@@ -17,8 +17,8 @@
 #include "Backend.hpp"
 #include "params.hpp"
 #include "prepost.hpp"
-struct ModelInstances;
 namespace ipipe {
+struct ModelInstances;
 
 class OpenvinoMat : public Backend {
  public:

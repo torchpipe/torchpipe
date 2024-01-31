@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
+#ifdef WITH_CUDA
 #include "cuda_utils.hpp"
 #include <c10/cuda/CUDAGuard.h>
 #include <cuda_runtime.h>
@@ -28,3 +28,5 @@ std::string get_sm() {
   return std::to_string(prop.major) + "." + std::to_string(prop.minor);
 }
 }  // namespace ipipe
+
+#endif

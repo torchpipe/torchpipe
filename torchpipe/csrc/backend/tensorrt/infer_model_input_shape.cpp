@@ -59,6 +59,7 @@ int supported_opset() {
 };
 
 #ifdef PYBIND
+#ifdef WITH_TENSORRT
 namespace py = pybind11;
 // 通过pybind11将infer_onnx_shape函数暴露到python中，注意其参数
 void init_infer_shape(py::module& m) {
@@ -70,5 +71,5 @@ void supported_opset(py::module& m) {
         py::call_guard<py::gil_scoped_release>());
 }
 #endif
-
+#endif
 }  // namespace ipipe

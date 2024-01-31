@@ -18,7 +18,9 @@
 #include <atomic>
 #include <chrono>
 #include <thread>
+#ifdef WITH_CUDA
 #include "c10/cuda/CUDAStream.h"
+#endif
 #include "time_utils.hpp"
 #include "base_logging.hpp"
 #include <torch/serialize.h>
@@ -53,6 +55,7 @@ at::Tensor load_tensor(std::string save_name) {
   return data_loaded;
 }
 
+#ifdef WITH_CUDA
 bool torch_not_use_default_stream(bool high_prio) {
   if (c10::cuda::getCurrentCUDAStream() == c10::cuda::getDefaultCUDAStream()) {
     c10::cuda::setCurrentCUDAStream(
@@ -81,6 +84,18 @@ bool torch_is_using_default_stream() {
   }
   return false;
 }
+
+// https://discuss.pytorch.org/t/asynchronous-copy-in-c-when-input-has-been-destructed/186515
+at::Tensor to_current_device(at::Tensor input) {
+  if (input.device() == at::kCPU) return input.cuda();
+  if (input.device().index() == at::cuda::current_device()) return input;
+  at::TensorOptions options;
+  // input.is_pinned()
+  return input.to(at::TensorOptions().device(at::kCUDA, -1), false, false,
+                  input.suggest_memory_format());  // 这里为异步操作, pytorch 自身cache pinned
+                                                   // memory， 不怕析构
+}
+#endif
 
 bool is_cpu_tensor(at::Tensor input) {
 #ifndef TORCH_VERSION_MAJOR
@@ -127,16 +142,7 @@ at::Tensor switch_device(at::Tensor input) {
                                                   // memory， 不怕析构
 }
 
-// https://discuss.pytorch.org/t/asynchronous-copy-in-c-when-input-has-been-destructed/186515
-at::Tensor to_current_device(at::Tensor input) {
-  if (input.device() == at::kCPU) return input.cuda();
-  if (input.device().index() == at::cuda::current_device()) return input;
-  at::TensorOptions options;
-  // input.is_pinned()
-  return input.to(at::TensorOptions().device(at::kCUDA, -1), false, false,
-                  input.suggest_memory_format());  // 这里为异步操作, pytorch 自身cache pinned
-                                                   // memory， 不怕析构
-}
+
 
 //  测试 cudaMemcpyAsync 是同步还是异步（非pinnedmemory）
 // 结论 此时 cudaMemcpyAsync 和 cudaMemcpy 差不多

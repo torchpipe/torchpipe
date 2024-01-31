@@ -14,7 +14,7 @@
 
 #include <ATen/ATen.h>
 
-#include "c10/cuda/CUDAStream.h"
+// #include "c10/cuda/CUDAStream.h"
 #include "prepost.hpp"
 #include "torch_utils.hpp"
 

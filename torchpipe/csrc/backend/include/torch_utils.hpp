@@ -21,9 +21,13 @@
 
 namespace ipipe {
 
+#ifdef WITH_CUDA
 bool torch_not_use_default_stream(bool high_prio = false);
 bool torch_not_use_default_stream(int device_id, bool high_prio = false);
 bool torch_is_using_default_stream();
+at::Tensor to_current_device(at::Tensor input);
+
+#endif
 
 at::Tensor get_tensor_from_any(any input);
 
@@ -38,7 +42,6 @@ static inline at::TensorOptions get_tensor_option(c10::ScalarType dtype) {
 }
 
 at::Tensor switch_device(at::Tensor input);
-at::Tensor to_current_device(at::Tensor input);
 at::Tensor async2cpu(at::Tensor input);
 
 at::Tensor tensor2nchw(at::Tensor, int& n, int& c, int& h, int& w);

@@ -116,7 +116,7 @@ class IPIPE_EXPORT ClassRegistryBase {
     typename ClassMap::const_iterator it = getter_map_.find(class_name);
 
     if (it == getter_map_.end()) {
-      printlog_and_throw("DoGetObject `" + class_name + "` failed.");
+      printlog_and_throw("The backend `" + class_name + "` is not registered.");
 
       return nullptr;
     }

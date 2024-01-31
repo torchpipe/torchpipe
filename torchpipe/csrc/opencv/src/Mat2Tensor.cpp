@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifdef WITH_TORCH
 #include <opencv2/core.hpp>
 #include "Mat2Tensor.hpp"
 #include <thread>
@@ -144,4 +143,3 @@ void Tensor2Mat::forward(dict input_dict) {
 IPIPE_REGISTER(Backend, Tensor2Mat, "Tensor2Mat");
 
 }  // namespace ipipe
-#endif
