@@ -201,6 +201,7 @@ if WITH_CUDA:
             avaliable["8.9"] = True
             avaliable["8.6"] = True
             avaliable["8.0"] = True
+            assert BUILD_PPLCV is False, "ppl.cv not support cuda 12"
         elif int(build_cuda_version[0]) == 11:
             avaliable["8.9"] = avaliable["8.9"] or int(__cuda_version__.split(".")[1])>=8
             avaliable["8.6"] = avaliable["8.6"] or int(__cuda_version__.split(".")[1])>=1
