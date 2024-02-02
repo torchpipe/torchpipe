@@ -26,6 +26,12 @@
 #include "event.hpp"
 #include "tensor_type_caster.hpp"
 
+#ifdef WITH_OPENCV
+#include "opencv2/core.hpp"
+#include "cvnp/cvnp.h"
+using cvnp::nparray_to_mat;
+#endif
+
 namespace py = pybind11;
 
 namespace ipipe {
@@ -171,8 +177,13 @@ any object2any(pybind11::handle data) {
   else if (py::isinstance<py::tuple>(data)) {
     return container_cast<std::vector, py::tuple>(data);
   } else if (py::isinstance<py::array>(data)) {
+#ifdef WITH_OPENCV
+    py::array tmp = py::cast<py::array>(data);
+    return nparray_to_mat(tmp);
+#else
     IPIPE_THROW(
         "array is not convertable to c++. You may use torch.from_numpy(...) to prepare data. ");
+#endif
   }
   IPIPE_THROW("It is not able to convert " + std::string(py::str(py::type::of(data))) +
               " from python to c++.");

@@ -341,11 +341,14 @@ def get_extensions():
         source_cpu += glob.glob(
             os.path.join(extensions_dir, "thirdpart", "pillow-resize", "*.cpp")
         )
+        source_cpu += glob.glob(
+            os.path.join(this_dir, "thirdparty/cvnp/cvnp", "*.cpp")
+        )
     if PPLCV_INSTALL:
         source_cpu += glob.glob(os.path.join(extensions_dir,
                                 "ppl.cv", "src", "*.cpp"))
 
-    third_includes = [os.path.join(extensions_dir, "../..", "thirdparty/")]
+    third_includes = [os.path.join(this_dir, "thirdparty/")]
 
     thirdpart_lib_dirs = []
     thirdpart_libs = []
@@ -370,7 +373,12 @@ def get_extensions():
         install_files.append(real_path_libnvcv_types)
 
         
-
+    if WITH_OPENVINO:
+        source_cpu += glob.glob(os.path.join(
+        extensions_dir, "openvino", "src", "*.cpp"))
+        
+        third_includes += [os.path.join(extensions_dir, "openvino/include")]
+        
     
 
     source_cuda = glob.glob(os.path.join(
@@ -544,6 +552,7 @@ def get_extensions():
         os.path.join(extensions_dir, "../..", "thirdparty/toml/"),
         os.path.join(extensions_dir, "../..", "thirdparty/AES/src"),
         os.path.join(extensions_dir, "../..", "thirdparty/spdlog/include/"),
+        os.path.join(extensions_dir, "../..", "thirdparty/cvnp"),
     ]
 
     include_dirs = (

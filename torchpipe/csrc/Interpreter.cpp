@@ -159,6 +159,26 @@ void Interpreter::env_init(const std::unordered_map<std::string, std::string>& c
 }
 
 #ifdef PYBIND
+
+void Interpreter::forward(py::list py_inputs) {
+  std::vector<dict> inputs;
+
+  for (std::size_t i = 0; i < py::len(py_inputs); ++i) {
+    IPIPE_ASSERT(py::isinstance<py::dict>(py_inputs[i]));
+    inputs.push_back(py2dict(py_inputs[i]));
+  }
+
+  {
+    py::gil_scoped_release gil_lock;
+    forward(inputs);
+  }
+
+  for (std::size_t i = 0; i < py::len(py_inputs); ++i) {
+    dict2py(inputs[i], py_inputs[i]);
+  }
+
+  return;
+}
 void Interpreter::forward(py::dict py_input) {
   dict input = py2dict(py_input);
 
@@ -192,6 +212,9 @@ void Interpreter::forward(const std::vector<dict>& input_dicts) {
   for (const auto& da : input_dicts) {
     auto iter = da->find(TASK_DATA_KEY);
     if (iter == da->end()) {
+      for (auto z : *da) {
+        SPDLOG_INFO("key: {}", z.first);
+      }
       throw std::out_of_range("TASK_DATA_KEY (data) not exists");
     }
     da->erase(TASK_RESULT_KEY);
@@ -209,9 +232,7 @@ void encrypt_file_to_file(std::string file_path, std::string out_file_path, std:
 void init_infer_shape(py::module& m);
 void supported_opset(py::module& m);
 #endif
-std::vector<std::string> list_backends(std::string backend) {
-  return IPIPE_ALL_NAMES(ipipe::Backend);
-}
+std::vector<std::string> list_backends() { return IPIPE_ALL_NAMES(ipipe::Backend); }
 bool is_registered(std::string backend) {
   static std::vector<std::string> all_backens = IPIPE_ALL_NAMES(ipipe::Backend);
   return std::find(all_backens.begin(), all_backens.end(), backend) != all_backens.end();
@@ -255,6 +276,11 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   m.attr("WITH_CUDA") = py::cast(true);
 #else
   m.attr("WITH_CUDA") = py::cast(false);
+#endif
+#ifdef WITH_OPENVINO
+  m.attr("WITH_OPENVINO") = py::cast(true);
+#else
+  m.attr("WITH_OPENVINO") = py::cast(false);
 #endif
 
   m.def("parse_toml", &parse_toml, py::call_guard<py::gil_scoped_release>(), py::arg("path_toml"));

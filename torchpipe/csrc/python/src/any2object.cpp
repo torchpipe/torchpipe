@@ -13,7 +13,6 @@
 // limitations under the License.
 
 #include "any2object.hpp"
-#include "mat2numpy.hpp"
 #include "ipipe_common.hpp"
 #include "ipipe_utils.hpp"
 #include "dict.hpp"
@@ -27,7 +26,11 @@
 
 #ifdef WITH_OPENCV
 #include "opencv2/core.hpp"
+#include "cvnp/cvnp.h"
+using cvnp::mat_to_nparray;
 #endif
+
+#include "vector2numpy.hpp"
 
 namespace py = pybind11;
 
@@ -38,7 +41,7 @@ bool cast_mat(const TypeInfo& info, const std::string& key, py::dict& result, co
   if (typeid(cv::Mat) == info) {
     const cv::Mat* m = any_cast<cv::Mat>(&data);
     if (!m) return false;
-    result[py::str(key)] = mat2numpy(*m);
+    result[py::str(key)] = mat_to_nparray(*m);
 
     return true;
   }
@@ -104,7 +107,7 @@ py::object cast_other(const any& data) {
 #ifdef WITH_OPENCV
   else if (type == typeid(cv::Mat)) {
     cv::Mat tm = any_cast<cv::Mat>(data);
-    return mat2numpy(tm);
+    return mat_to_nparray(tm);
   }
 #endif
   else if (type == typeid(at::Tensor)) {
@@ -285,7 +288,7 @@ py::object cast_other_str_dict(const any& data) {
     IPIPE_ASSERT(pdata);
     py::dict result;
     for (const auto& item : *pdata) {
-      result[py::str(item.first)] = (mat2numpy(item.second));
+      result[py::str(item.first)] = (mat_to_nparray(item.second));
     }
     return result;
   }
@@ -327,7 +330,7 @@ py::object cast_other_list(const any& data) {
     IPIPE_ASSERT(pdata);
     py::list result;
     for (const auto& item : *pdata) {
-      result.append(mat2numpy(item));
+      result.append(mat_to_nparray(item));
     }
     return result;
   }

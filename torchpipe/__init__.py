@@ -68,7 +68,9 @@ from torchpipe.libipipe import (
     register_backend,
     register_filter,
     WITH_CUDA,
-    Status
+    WITH_OPENVINO,
+    Status,
+    list_backends
 )
 if WITH_CUDA:
     from torchpipe.libipipe import  infer_shape, supported_opset

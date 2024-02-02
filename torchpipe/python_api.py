@@ -88,6 +88,7 @@ class pipe:
             data.update(kwargs)
             self.Interpreter(data)
         else:
+            raise RuntimeError(f"invalid input: {type(data)}")
             data = {}
             data.update(kwargs)
             self.Interpreter(data)

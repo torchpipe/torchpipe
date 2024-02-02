@@ -1,9 +1,10 @@
 # Changelog
 
 ## v0.4.2 Beta 2 (WIP)
-- 解决openvino的编译问题
-- 去除对opencv的依赖（WIP）
-- openvino backend （WIP）
+- Fix build issues with OpenVINO 
+- Add conversion from numpy to cv::Mat
+- Implementation of OpenVINO backend 
+- More clear error message when the input type for forward propagation does not meet requirements
 
 ## v0.4.2 Beta 1 
 - [Compile] Make rebuild_if_exist default to False

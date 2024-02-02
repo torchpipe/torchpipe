@@ -1,4 +1,5 @@
 mkdir -p /opt/intel
+mkdir -p ~/.cache
 
 cur=$(pwd)
 
@@ -13,12 +14,14 @@ fi
 
 
 if [ ! -d "/opt/intel/openvino_2023" ]; then
-    ln -s /opt/intel/openvino_2023.3.0 
+    ln -s /opt/intel/openvino_2023.3.0 /opt/intel/openvino_2023
 fi
 
 python3 -m pip install -r /opt/intel/openvino_2023/python/requirements.txt
 
-apt-get update -y && apt-get install libtbb2 -y
+if ! dpkg -s libtbb2 >/dev/null 2>&1; then
+    apt-get update -y && apt-get install libtbb2 -y
+fi
 
 source /opt/intel/openvino_2023/setupvars.sh
 

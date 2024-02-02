@@ -53,24 +53,7 @@ class Interpreter : public Backend {
 
 #ifdef PYBIND  // python API
 
-  void forward(py::list py_inputs) {
-    std::vector<dict> inputs;
-
-    for (std::size_t i = 0; i < py::len(py_inputs); ++i) {
-      inputs.push_back(py2dict(py_inputs[i]));
-    }
-
-    {
-      py::gil_scoped_release gil_lock;
-      forward(inputs);
-    }
-
-    for (std::size_t i = 0; i < py::len(py_inputs); ++i) {
-      dict2py(inputs[i], py_inputs[i]);
-    }
-
-    return;
-  }
+  void forward(py::list py_inputs);
 
   void forward(py::dict py_input);
   ~Interpreter() {

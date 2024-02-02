@@ -18,7 +18,7 @@ from __future__ import annotations
 # from curses import flash
 import torch
 from timeit import default_timer as timer
-import cv2
+# import cv2
 import sys
 import random
 import os
@@ -111,16 +111,16 @@ class LocalResult:
         self.latency = []
 
 
-def pre_resize(im, max_size=640.0):
-    h, w, _ = im.shape
-    if max(h, w) <= max_size:
-        return im
-    ratio = max_size / max(h, w)
+# def pre_resize(im, max_size=640.0):
+#     h, w, _ = im.shape
+#     if max(h, w) <= max_size:
+#         return im
+#     ratio = max_size / max(h, w)
 
-    resized_w = int(ratio * w)
-    resized_h = int(ratio * h)
-    im = cv2.resize(im, dsize=(resized_w, resized_h))
-    return im
+#     resized_w = int(ratio * w)
+#     resized_h = int(ratio * h)
+#     im = cv2.resize(im, dsize=(resized_w, resized_h))
+#     return im
 
 
 class InferThreadData(threading.Thread):

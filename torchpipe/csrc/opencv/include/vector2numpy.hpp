@@ -23,10 +23,8 @@
 // pybind11/pybind11.h
 namespace py = pybind11;
 namespace ipipe {
-#ifdef WITH_OPENCV
 
-py::array mat2numpy(const cv::Mat& m);
-#endif
+
 
 template <class T, typename std::enable_if<((std::is_arithmetic<T>::value)), int>::type = 0>
 py::array_t<T> list2numpy(const std::vector<T>& data) {
