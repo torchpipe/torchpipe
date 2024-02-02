@@ -26,7 +26,7 @@
 torchpipe是 介于底层加速库（如tensorrt，opencv，CVCUDA, ppl.cv）以及 RPC（如thrift, gRPC）之间并与他们严格解耦的多实例流水线并行库；对外提供面向pytorch前端的线程安全函数接口，对内提供面向用户的细粒度后端扩展。
 
 
-他是Triton Inference Server的一个代替选择，主要功能类似于其[共享显存]，[Ensemble], [BLS]机制。业界共同面临着一些类似问题：           
+torchpipe是 [Triton Inference Server](https://github.com/triton-inference-server/server) 的一个代替选择，主要功能类似于其[共享显存](https://docs.nvidia.com/deeplearning/triton-inference-server/user-guide/docs/protocol/extension_shared_memory.html)，[Ensemble](https://github.com/triton-inference-server/server/blob/main/docs/user_guide/architecture.md#ensemble-models), [BLS](https://github.com/triton-inference-server/python_backend#business-logic-scripting)机制，希望解决工业界共同面临着的一些类似问题：           
 - [美团视觉GPU推理服务部署架构优化实践](https://tech.meituan.com/2023/02/09/inference-optimization-on-gpu-by-meituan-vision.html)
 - [多媒体AI推理服务加速利器high_service](https://zhuanlan.zhihu.com/p/581756705)
 - [大模型时代的阿里妈妈内容风控基础服务体系建设](https://zhuanlan.zhihu.com/p/672391648?utm_id=0)
