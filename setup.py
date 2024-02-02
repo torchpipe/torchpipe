@@ -188,6 +188,9 @@ if WITH_CUDA:
     output = raw_output.split()
     build_driver_version = output[output.index("Driver") + 2].strip().split(".")
 
+    if int(build_cuda_version[0]) >= 12:
+        assert BUILD_PPLCV is False, "ppl.cv not support cuda 12"
+        
     # https://www.cnblogs.com/phillee/p/12049208.html
     if os.getenv("TORCH_CUDA_ARCH_LIST") is None:
 
@@ -201,11 +204,12 @@ if WITH_CUDA:
             avaliable["8.9"] = True
             avaliable["8.6"] = True
             avaliable["8.0"] = True
-            assert BUILD_PPLCV is False, "ppl.cv not support cuda 12"
         elif int(build_cuda_version[0]) == 11:
             avaliable["8.9"] = avaliable["8.9"] or int(__cuda_version__.split(".")[1])>=8
             avaliable["8.6"] = avaliable["8.6"] or int(__cuda_version__.split(".")[1])>=1
             avaliable["8.0"] = avaliable["8.0"] or int(__cuda_version__.split(".")[1])>=0
+        else:
+            raise RuntimeError(f"Unsupported cuda version: {build_cuda_version}")
 
         if avaliable["8.9"]:
             os.environ["TORCH_CUDA_ARCH_LIST"] = "6.0;6.1;7.0;7.5;8.0;8.6;8.9;9.0+PTX"
