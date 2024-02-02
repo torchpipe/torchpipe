@@ -11,3 +11,6 @@
 [submodule "thirdparty/ppl.cv"]
 	path = thirdparty/ppl.cv
 	url = https://github.com/openppl-public/ppl.cv.git
+[submodule "thirdparty/cvnp"]
+	path = thirdparty/cvnp
+	url = https://github.com/pthom/cvnp.git
