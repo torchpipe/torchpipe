@@ -8,7 +8,7 @@ English | [简体中文](README.md)
 Serving inside Pytorch with Multiple Threads
 <!-- A Minimalist High-Throughput Deep Learning Model Deployment Framework
 
-Production-Grade：Within NetEase over billions of calls supported by Torchpipe everyday.
+
 <h6 align="center">Ensemble Pipeline Serving for  <a href="https://pytorch.org/">Pytorch</a> Frontend</h6> -->
 
 
@@ -20,6 +20,12 @@ Production-Grade：Within NetEase over billions of calls supported by Torchpipe 
 <!-- <img alt="last commit" src="https://img.shields.io/github/last-commit/torchpipe/torchpipe.github.io?style=flat-square"> -->
 </div>
 
+
+
+
+Torchpipe is an alternative choice for [Triton Inference Server]((https://github.com/triton-inference-server/server)), mainly featuring similar functionalities such as [Shared-momory](https://docs.nvidia.com/deeplearning/triton-inference-server/user-guide/docs/protocol/extension_shared_memory.html)，[Ensemble](https://github.com/triton-inference-server/server/blob/main/docs/user_guide/architecture.md#ensemble-models), [BLS](https://github.com/triton-inference-server/python_backend#business-logic-scripting) mechanism. It aims to address common problems faced by the industry.
+
+Production-Grade：Within NetEase over billions of calls supported by Torchpipe everyday.
 
 ## update
 - We add an example of yolov8 pipeline serving in [examples/pipeline](examples/pipeline), which is a good example for you to start with.

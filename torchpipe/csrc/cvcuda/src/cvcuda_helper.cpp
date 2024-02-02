@@ -9,6 +9,7 @@
 #include <nvcv/alloc/Allocator.hpp>
 #include <c10/cuda/CUDACachingAllocator.h>
 #include "base_logging.hpp"
+#include <optional>
 
 #ifndef DLPACK_VERSION
 #ifdef DLPACK_MAJOR_VERSION
