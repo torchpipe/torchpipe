@@ -51,7 +51,7 @@ torchpipe是 [Triton Inference Server](https://github.com/triton-inference-serve
 ```
 # prepare env
 export img_name=nvcr.io/nvidia/pytorch:22.12-py3 
-# or build docker image by yourself: 
+# or build docker image by yourself (recommend, for tensorrt 9.2): 
 # docker build --network=host -f ./docker/trt9 -t trt-9 thirdparty/
 # export img_name=trt-9
 
