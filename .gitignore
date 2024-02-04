@@ -13,6 +13,7 @@ examples/Experimental/no3_graph/dog_result.jpg
 thirdparty/TensorRT*
 thirdparty/TensorRT-7.2.3.4.CentOS-7.9.x86_64-gnu.cuda-10.2.cudnn8.1.tar.gz
 thirdparty/TensorRT-*.tar.gz
+tensorrt-*.tar.gz
 thirdparty/opencv-4.5.4.zip
 thirdparty/opencv-4.5.4
 thirdparty/cudnn-10.2-linux-x64-v8.2.1.32.tgz
@@ -176,3 +177,5 @@ nvcv*
 rag_dag.html
 
 .eggs/
+
+
