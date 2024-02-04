@@ -51,6 +51,25 @@ Torchpipe is a multi-instance pipeline parallel library that acts as a bridge be
 
 
 ###  1. 安装 
+```
+# prepare env
+docker build --network=host -f ./docker/trt9 -t trt-9 thirdparty/
+# or use nvcr.io/nvidia/pytorch:22.12-py3 directly
+```
+
+```
+# install torchpipe
+git clone https://github.com/torchpipe/torchpipe.git
+cd torchpipe/ && git submodule update --init --recursive
+
+
+docker run --rm --gpus=all --ipc=host  --network=host -v `pwd`:/workspace  --shm-size 1G  --ulimit memlock=-1 --ulimit stack=67108864  --privileged=true  -w/workspace -it trt-9 /bin/bash
+
+
+python setup.py install
+
+cd examples/resnet18 && python resnet18.py
+```
 
 参见 [安装文档](https://torchpipe.github.io/zh/docs/installation)
 

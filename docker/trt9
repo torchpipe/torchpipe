@@ -88,8 +88,14 @@ RUN cd opencv-4.5.4/ && sed -i '1a add_definitions(-D_GLIBCXX_USE_CXX11_ABI=0)' 
 
 # Please manually download the TensorRT installation package from https://github.com/NVIDIA/TensorRT/tree/release/9.2.
 # Here, we use tensorrt-9.2.0.5.linux.x86_64-gnu.cuda-11.8.tar.gz as an example.
-RUN if [ ! -f ./tensorrt-9.2.0.5.linux.x86_64-gnu.cuda-11.8.tar.gz ]; then wget https://developer.nvidia.com/downloads/compute/machine-learning/tensorrt/9.2.0/tensorrt-9.2.0.5.linux.x86_64-gnu.cuda-11.8.tar.gz; fi
-ADD ./tensorrt-9.2.0.5.linux.x86_64-gnu.cuda-11.8.tar.gz /app/ 
+# Check if the file exists in the local directory
+RUN if [ ! -f ./tensorrt-9.2.0.5.linux.x86_64-gnu.cuda-11.8.tar.gz ]; then \
+    # If not, download the file to the /app directory
+    wget -P /app/ https://developer.nvidia.com/downloads/compute/machine-learning/tensorrt/9.2.0/tensorrt-9.2.0.5.linux.x86_64-gnu.cuda-11.8.tar.gz; \
+else \
+    # If the file exists, copy it to the /app directory
+    cp ./tensorrt-9.2.0.5.linux.x86_64-gnu.cuda-11.8.tar.gz /app/; \
+fi
 
 RUN rm -rf /app/TensorRT-9.2.0.5/data && \
      rm -rf /app/TensorRT-9.2.0.5/targets/x86_64-linux-gnu/lib/*.a 
