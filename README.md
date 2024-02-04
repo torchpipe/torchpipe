@@ -32,9 +32,6 @@ torchpipe是 [Triton Inference Server](https://github.com/triton-inference-serve
 - [大模型时代的阿里妈妈内容风控基础服务体系建设](https://zhuanlan.zhihu.com/p/672391648?utm_id=0)
 - [GPU推理服务性能优化之路 ｜ 得物技术](https://tech.dewu.com/article?id=36)
 
-Torchpipe is a multi-instance pipeline parallel library that acts as a bridge between lower-level acceleration libraries (such as TensorRT, OpenCV, ppl.cv) and RPC frameworks (like Thrift, gRPC), ensuring a strict decoupling from them. It offers a thread-safe function interface for the PyTorch frontend at a higher level, while empowering users with fine-grained backend extension capabilities at a lower level.
-
-
 
 生产级别：在网易智企内部，每天有海量调用由Torchpipe支持。
 
@@ -53,8 +50,11 @@ Torchpipe is a multi-instance pipeline parallel library that acts as a bridge be
 ###  1. 安装 
 ```
 # prepare env
-docker build --network=host -f ./docker/trt9 -t trt-9 thirdparty/
-# or use nvcr.io/nvidia/pytorch:22.12-py3 directly
+export img_name=nvcr.io/nvidia/pytorch:22.12-py3 
+# or build docker image by yourself: 
+# docker build --network=host -f ./docker/trt9 -t trt-9 thirdparty/
+# export img_name=trt-9
+
 ```
 
 ```
@@ -62,8 +62,7 @@ docker build --network=host -f ./docker/trt9 -t trt-9 thirdparty/
 git clone https://github.com/torchpipe/torchpipe.git
 cd torchpipe/ && git submodule update --init --recursive
 
-
-docker run --rm --gpus=all --ipc=host  --network=host -v `pwd`:/workspace  --shm-size 1G  --ulimit memlock=-1 --ulimit stack=67108864  --privileged=true  -w/workspace -it trt-9 /bin/bash
+docker run --rm --gpus=all --ipc=host  --network=host -v `pwd`:/workspace  --shm-size 1G  --ulimit memlock=-1 --ulimit stack=67108864  --privileged=true  -w/workspace -it $img_name /bin/bash
 
 
 python setup.py install
@@ -71,7 +70,7 @@ python setup.py install
 cd examples/resnet18 && python resnet18.py
 ```
 
-参见 [安装文档](https://torchpipe.github.io/zh/docs/installation)
+详见 [安装文档](https://torchpipe.github.io/zh/docs/installation)
 
 
 ### 2. 获取恰当的模型文件(目前支持 onnx, trt engine等) 
