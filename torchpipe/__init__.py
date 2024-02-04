@@ -126,5 +126,5 @@ __all__ = [
 if WITH_CUDA:
     __all__.extend(["infer_shape","supported_opset"])
 
-
-__all__.extend(["Event"])
+import torchpipe.libipipe as _C
+__all__.extend(["Event", '_C'])

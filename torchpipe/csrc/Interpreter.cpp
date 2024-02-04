@@ -232,6 +232,10 @@ void encrypt_file_to_file(std::string file_path, std::string out_file_path, std:
 void init_infer_shape(py::module& m);
 void supported_opset(py::module& m);
 #endif
+
+#ifdef WITH_CUDA
+std::string get_sm();
+#endif
 std::vector<std::string> list_backends() { return IPIPE_ALL_NAMES(ipipe::Backend); }
 bool is_registered(std::string backend) {
   static std::vector<std::string> all_backens = IPIPE_ALL_NAMES(ipipe::Backend);
@@ -274,6 +278,7 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
 
 #ifdef WITH_CUDA
   m.attr("WITH_CUDA") = py::cast(true);
+  m.def("get_sm", &get_sm, py::call_guard<py::gil_scoped_release>());
 #else
   m.attr("WITH_CUDA") = py::cast(false);
 #endif
