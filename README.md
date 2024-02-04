@@ -48,22 +48,24 @@ torchpipe是 [Triton Inference Server](https://github.com/triton-inference-serve
 
 
 ###  1. 安装 
+- clone code :
+
+```bash
+git clone https://github.com/torchpipe/torchpipe.git
+cd torchpipe/ && git submodule update --init --recursive
 ```
-# prepare env
+- prepare env
+
+```bash
 export img_name=nvcr.io/nvidia/pytorch:22.12-py3 
 # or build docker image by yourself (recommend, for tensorrt 9.2): 
 # docker build --network=host -f ./docker/trt9 -t trt-9 thirdparty/
 # export img_name=trt-9
-
 ```
 
-```
-# install torchpipe
-git clone https://github.com/torchpipe/torchpipe.git
-cd torchpipe/ && git submodule update --init --recursive
-
+- build torchpipe
+```bash
 docker run --rm --gpus=all --ipc=host  --network=host -v `pwd`:/workspace  --shm-size 1G  --ulimit memlock=-1 --ulimit stack=67108864  --privileged=true  -w/workspace -it $img_name /bin/bash
-
 
 python setup.py install
 
