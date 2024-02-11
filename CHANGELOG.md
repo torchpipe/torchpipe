@@ -4,6 +4,8 @@
 ## v0.4.3 Beta 1 (WIP)
 - Simpler Docker environment
 - Add  `torchpipe.libipipe.get_sm()`(or `torchpipe._C.get_sm()`) to get the GPU architecture
+- Add suppport for tensorrt 9.3
+- make docker image default to tensorrt 9.3
 
 ## v0.4.2 Beta 3 (2024.02.02)
 - Fix build issues with OpenVINO 
