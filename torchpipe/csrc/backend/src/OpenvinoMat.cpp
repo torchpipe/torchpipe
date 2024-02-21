@@ -32,30 +32,14 @@
 #include "exception.hpp"
 #include "OpenvinoMat.hpp"
 
-#include "cnn.hpp"
 #include <opencv2/core.hpp>
-// https://github.com/NVIDIA/Torch-TensorRT/blob/3a98a8b198a071e622c43283caea7416fe8a8a1a/core/runtime/register_trt_op.cpp
 
+// #include "cnn.hpp"
+
+#include "OvConverter.hpp"
+// #include "openvino/openvino.hpp"
 // #define USE_OUT_MEM
 namespace ipipe {
-
-namespace o_v {
-struct ModelInstances {
-  ModelInstances(std::string model_path, ov::Core& core, int instance_num) : core_(core) {
-    CnnConfig config(model_path);
-    config.m_core = core;
-    config.instance_num = instance_num;
-    config.m_deviceName = "CPU";
-    model = std::make_unique<VectorCNN>(config);
-  }
-
-  std::unique_ptr<VectorCNN> model;
-
- private:
-  ov::Core& core_;
-};
-}  // namespace o_v
-using ipipe::o_v::ModelInstances;
 
 bool OpenvinoMat::init(const std::unordered_map<std::string, std::string>& config_param,
                        dict dict_config) {
@@ -81,61 +65,31 @@ bool OpenvinoMat::init(const std::unordered_map<std::string, std::string>& confi
 
   independent_thread_index_ = _independent_thread_index;
   int instance_num = std::stoi(params_->at("instance_num"));
-  if (instance_num <= _independent_thread_index) {
-    SPDLOG_ERROR("instance_num <= _independent_thread_index: " + std::to_string(instance_num) +
-                 " <= " + std::to_string(_independent_thread_index));
-    return false;
-  }
+  IPIPE_ASSERT(instance_num > _independent_thread_index && instance_num > 0);
 
   std::string model = params_->at("model");
   // get engine
   auto& config = *dict_config;
 
-  // core.set_property("CPU", ov::streams::num(ov::streams::AUTO));
-  static ov::Core core;
-  IPIPE_ASSERT(instance_num == 1);
-
   // input_shape_ = instances_->.ov_model.input().get_shape();
   // input_shape_[ov::layout::batch_idx({"NHWC"})] = 1;
-
+  std::shared_ptr<model::OvConverter> ov_model;
   if (config.count("_engine") == 0) {
-    instances_ = std::make_shared<ModelInstances>(model, core, instance_num);
-    // instances_->compiled_model = core.compile_model(
-    //     model, "CPU", ov::hint::performance_mode(ov::hint::PerformanceMode::THROUGHPUT),
-    //     // ov::streams::num(instance_num), ov::inference_num_threads(instance_num),
-    //     ov::hint::num_requests(instance_num), ov::hint::allow_auto_batching(false));
+    ov_model = std::make_shared<model::OvConverter>();
+    IPIPE_ASSERT(ov_model->init(config_param));
 
-    // auto nthreads = instances_->compiled_model.get_property(ov::inference_num_threads);
-    // // IPIPE_ASSERT(nthreads == instance_num);
-
-    // auto nireq = instances_->compiled_model.get_property(ov::optimal_number_of_infer_requests);
-
-    // if (nireq != instance_num) {
-    //   SPDLOG_WARN(
-    //       "optimal number of requests does not match the `instance_num`. It is "
-    //       "recommended to set the number of instances equal to the recommended optimal number of
-    //       " "requests");
-    // }
-
-    config["_engine"] = instances_;
+    config["_engine"] = ov_model;
   } else {
-    instances_ = any_cast<std::shared_ptr<ModelInstances>>(config.at("_engine"));
+    ov_model = any_cast<std::shared_ptr<model::OvConverter>>(config.at("_engine"));
   }
-  IPIPE_ASSERT(instances_);
+  in_names_ = ov_model->get_input_names();
+
+  out_names_ = ov_model->get_output_names();
+  instance_ = ov_model->createInstance();
+  IPIPE_ASSERT(instance_);
 
   assert(config.count("_engine") != 0);
-
-  std::string precision = params_->at("precision");
-  // https://docs.openvino.ai/2023.0/groupov_dev_api_system_conf.html#doxid-group-ov-dev-api-system-conf-1gad1a071adcef91309ca90878afd83f4fe
-  // if (precision == "bf16") {
-  //   IPIPE_ASSERT(ov::with_cpu_x86_bfloat16() || ov::with_cpu_x86_avx512_core_amx_bf16());
-  // } else if (precision == "int8") {
-  //   IPIPE_ASSERT(ov::with_cpu_x86_avx512_core_vnni() || ov::with_cpu_x86_avx512_core_amx_int8());
-  // }
-  // else if (precision == "fp32"){
-  //   IPIPE_ASSERT(ov::with_cpu_x86_avx512f()||ov::with_cpu_x86_avx512_core_amx());
-
-  IPIPE_ASSERT(precision == "fp32");  // todo: support bf16, int8
+  dict_config_ = dict_config;
 
   return true;
 }
@@ -145,10 +99,22 @@ void OpenvinoMat::forward(const std::vector<dict>& input_dicts) {
     input = input.clone();
   }
   IPIPE_ASSERT(input.elemSize1() == 1 || input.elemSize1() == 4);
-  cv::Mat output;
-  instances_->model->Compute(input, &output);
+  std::vector<cv::Mat> outputs;
+  IPIPE_CHECK(in_names_.size() == 1, "only support one input at this time");
+  for (std::size_t i = 0; i < in_names_.size(); ++i) {
+    instance_->set_input(in_names_[i], input);
+  }
+  instance_->forward();
+  for (std::size_t i = 0; i < out_names_.size(); ++i) {
+    cv::Mat output = any_cast<cv::Mat>(instance_->get_output(out_names_[i]));
+    outputs.emplace_back(output);
+  }
 
-  (*input_dicts[0])[TASK_RESULT_KEY] = output;
+  if (outputs.size() == 1) {
+    (*input_dicts[0])[TASK_RESULT_KEY] = outputs[0];
+  } else {
+    (*input_dicts[0])[TASK_RESULT_KEY] = outputs;
+  }
 
   // https://docs.openvino.ai/2022.3/openvino_docs_OV_UG_Preprocessing_Overview.html#doxid-openvino-docs-o-v-u-g-preprocessing-overview
 }

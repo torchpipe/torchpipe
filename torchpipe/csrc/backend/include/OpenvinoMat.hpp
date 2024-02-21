@@ -16,6 +16,7 @@
 
 #include "Backend.hpp"
 #include "params.hpp"
+#include "ModelConverter.hpp"
 
 namespace ipipe {
 
@@ -47,10 +48,15 @@ class OpenvinoMat : public Backend {
  private:
   std::unique_ptr<Params> params_;
 
-  std::unique_ptr<Backend> backend_;
-
-  std::shared_ptr<ipipe::o_v::ModelInstances> instances_;
+  // std::shared_ptr<ipipe::o_v::ModelInstances> instances_;
 
   int independent_thread_index_{0};
+
+  std::unique_ptr<model::ModelInstance> instance_;
+
+  std::vector<std::string> in_names_;
+  std::vector<std::string> out_names_;
+
+  dict dict_config_;
 };
 }  // namespace ipipe

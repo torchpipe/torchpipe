@@ -22,7 +22,7 @@ namespace ipipe {
 #include <memory>
 #include <cxxabi.h>
 std::string local_demangle(const char* name) {
-  int status = -4;
+  int status = -1;
   std::unique_ptr<char, void (*)(void*)> res{abi::__cxa_demangle(name, NULL, NULL, &status),
                                              std::free};
 

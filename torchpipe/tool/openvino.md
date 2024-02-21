@@ -15,10 +15,7 @@ WITH_OPENVINO=1 pip install -e .
 
 wget https://huggingface.co/OWG/resnet-50/resolve/main/onnx/model_cls.onnx -O resnet50.onnx
 benchmark_app -hint throughput -d 'CPU' -m resnet50.onnx  -shape pixel_values[1,3,224,224] 
-
-469.78(Xeon(R) Gold 6242R CPU @ 3.10GH; cpu cores : 20; avx512_vnni)
-52.16(13;  Core(TM) i7-7700K CPU @ 4.20GHz;cpu cores       : 4; avx2)
-
+ 
 
 
 https://docs.openvino.ai/2023.3/openvino_docs_performance_benchmarks.html#

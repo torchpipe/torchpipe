@@ -113,7 +113,7 @@ bool Sequential::init(const std::unordered_map<std::string, std::string>& config
     // }
     uint32_t local_max = engines_.back()->max();
     uint32_t local_min = engines_.back()->min();
-    SPDLOG_DEBUG("{}->max()= {}", new_config.at("backend"), local_max);
+
     // if ((local_max == 1)) {
     //   assert(engines_.back()->min() == 1);
     //   local_max = UINT32_MAX;

@@ -499,7 +499,7 @@ def get_extensions():
                                       "-O3", "-finline-functions"]
         if "nvcc" in extra_compile_args:
             extra_compile_args["cxx"] += [("-DNDEBUG"), "-O3"]
-    extra_compile_args["cxx"] += ["-fPIC"]  # +["-fvisibility=hidden"]
+    extra_compile_args["cxx"] += ["-fPIC", "-Werror=return-type"]  # +["-fvisibility=hidden"]
 
     extra_link_args += ["-Wl,-Bsymbolic-functions"]
 

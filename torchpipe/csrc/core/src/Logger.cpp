@@ -26,6 +26,20 @@
 #include <mutex>
 namespace ipipe {
 
+std::shared_ptr<spdlog::sinks::stdout_color_sink_mt> get_colored_sink() {
+  auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+#if defined _MSC_VER
+  console_sink->set_color(spdlog::level::err, console_sink->RED);
+  console_sink->set_color(spdlog::level::warn, console_sink->YELLOW);
+#else
+  console_sink->set_color(spdlog::level::err, "\033[31m");   // Red for error
+  console_sink->set_color(spdlog::level::warn, "\033[33m");  // Yellow for warning
+  // console_sink->set_color(spdlog::level::info, "\033[37m"); // White for info
+
+#endif
+  return console_sink;
+}
+
 class Logger : public EmptyForwardSingleBackend {
  public:
   virtual bool init(const std::unordered_map<std::string, std::string>& config,
@@ -94,19 +108,16 @@ class Logger : public EmptyForwardSingleBackend {
         }
 
         // print to console
-        spdlog::default_logger()->sinks().push_back(
-            std::make_shared<spdlog::sinks::stdout_color_sink_mt>());
+        spdlog::default_logger()->sinks().push_back(get_colored_sink());
       } else {
         spdlog::default_logger()->sinks().clear();
         // print to console
-        spdlog::default_logger()->sinks().push_back(
-            std::make_shared<spdlog::sinks::stdout_color_sink_mt>());
+        spdlog::default_logger()->sinks().push_back(get_colored_sink());
       }
     } else {
       spdlog::default_logger()->sinks().clear();
       // print to console
-      spdlog::default_logger()->sinks().push_back(
-          std::make_shared<spdlog::sinks::stdout_color_sink_mt>());
+      spdlog::default_logger()->sinks().push_back(get_colored_sink());
     }
 
     iter_logger = config.find("Logger::pattern");
