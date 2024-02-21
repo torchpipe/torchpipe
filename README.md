@@ -59,7 +59,7 @@ cd torchpipe/ && git submodule update --init --recursive
 ```bash
 export img_name=nvcr.io/nvidia/pytorch:22.12-py3 
 # or build docker image by yourself (recommend, for tensorrt 9.3): 
-# docker build --network=host -f ./docker/trt9 -t trt-9 thirdparty/
+# docker build --network=host -f ./docker/Dockerfile -t trt-9 thirdparty/
 # export img_name=trt-9
 ```
 

@@ -1,11 +1,14 @@
 # Changelog
 
-
-## v0.4.3 Beta 1 (WIP)
-- Simpler Docker environment
-- Add  `torchpipe.libipipe.get_sm()`(or `torchpipe._C.get_sm()`) to get the GPU architecture
+## v0.4.3 Beta 2 (WIP)
 - Add suppport for tensorrt 9.3
 - make docker image default to tensorrt 9.3
+- Openvino: instance_num/multiple outputs/more tests
+
+## v0.4.3 Beta 1 
+- Simpler Docker environment
+- Add  `torchpipe.libipipe.get_sm()`(or `torchpipe._C.get_sm()`) to get the GPU architecture
+
 
 ## v0.4.2 Beta 3 (2024.02.02)
 - Fix build issues with OpenVINO 
@@ -83,7 +86,6 @@ assert 8 == self.model_trt.min()
 
 ## v0.3.2 Release Candidate (2023.09.05)
 
- 
 - Unit tests in test_engine.py may fail due to the use of random weights when creating resnet18. This issue has been fixed
 - The dependency on the ONNX Python library introduced in previous version has been removed
 
@@ -100,4 +102,4 @@ assert 8 == self.model_trt.min()
 - Fixed a bug that caused infinite looping during initialization and crashed the program when using `SyncTensor[Sequential[…,SyncTensor]]`
 - fix the issue of check_dynamic_batchsize failing for some Unsqueeze layers during initialization(0.3.0b4-0.3.2b1).
 
-
+## v0.0.1
