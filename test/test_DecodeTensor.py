@@ -73,10 +73,15 @@ class TestBackend:
 
         self.decode_run(input_dict, None, model)
 
+    def test_create(self):
+        model = pipe({"backend":"CreateTensor", 'shape':"1,2,33,4"})
+        input = {"data":''}
+        model(input)
+        assert(input['result'].shape == (1,2,33,4))
 
 if __name__ == "__main__":
     import time
     # time.sleep(10)
     a = TestBackend()
     a.setup_class()
-    a.test_gray()
+    a.test_create()

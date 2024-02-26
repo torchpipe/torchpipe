@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "cvtColorTensor.hpp"
+#include "CvtColorTensor.hpp"
 
 #include <ATen/ATen.h>
 

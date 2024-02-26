@@ -124,6 +124,17 @@ std::vector<std::string> str_split_brackets_match(std::string strtem, char a, ch
 std::vector<float> strs2number(const std::string& data, char a = ',');
 std::vector<int> str2int(const std::string& data, char in = ',');
 
+template <typename T>
+std::vector<T> str2number(const std::string& data, char in = ',') {
+  if (data.empty()) return {};
+  auto strs = str_split(data, in);
+  std::vector<T> result;
+  for (const auto& str_ : strs) {
+    result.push_back(static_cast<T>(std::stod(str_)));
+  }
+  return result;
+}
+
 std::set<int> str2set(const std::string& data, char in = ',');
 std::vector<std::set<int>> str2set(const std::string& data, char a, char b);
 

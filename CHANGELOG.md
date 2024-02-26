@@ -4,6 +4,7 @@
 - Add suppport for tensorrt 9.3
 - make docker image default to tensorrt 9.3
 - Openvino: instance_num/multiple outputs/more tests
+- Add CreateTensor
 
 ## v0.4.3 Beta 1 
 - Simpler Docker environment
