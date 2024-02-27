@@ -136,7 +136,7 @@ WORKDIR /app
 # docker build --network=host -f ./docker/Dockerfile -t trt-9 thirdparty/
 
 # docker run --rm   --network=host --gpus=all  --ulimit memlock=-1 --ulimit stack=67108864  --privileged=true  -v `pwd`:/workspace --name="tmp" -it trt-9  /bin/bash 
-# WITH_CVCUDA=1 BUILD_PPLCV=1 python setup.py install 
+# cd /workspace/ && WITH_CVCUDA=1 BUILD_PPLCV=1 python setup.py install 
 # python -c "import torchpipe;print(torchpipe.__version__);print(torchpipe._C.get_sm())"
 # # docker commit  tmp xxxx:latest
 
