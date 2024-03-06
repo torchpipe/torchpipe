@@ -26,15 +26,38 @@
 torchpipe是 介于底层加速库（如tensorrt，opencv，CVCUDA, ppl.cv）以及 RPC（如thrift, gRPC）之间并与他们严格解耦的多实例流水线并行库；对外提供面向pytorch前端的线程安全函数接口，对内提供面向用户的细粒度后端扩展。
 
 
-torchpipe是 [Triton Inference Server](https://github.com/triton-inference-server/server) 的一个代替选择，主要功能类似于其[共享显存](https://docs.nvidia.com/deeplearning/triton-inference-server/user-guide/docs/protocol/extension_shared_memory.html)，[Ensemble](https://github.com/triton-inference-server/server/blob/main/docs/user_guide/architecture.md#ensemble-models), [BLS](https://github.com/triton-inference-server/python_backend#business-logic-scripting)机制，希望解决工业界共同面临着的一些类似问题：           
-- [美团视觉GPU推理服务部署架构优化实践](https://tech.meituan.com/2023/02/09/inference-optimization-on-gpu-by-meituan-vision.html)
-- [多媒体AI推理服务加速利器high_service](https://zhuanlan.zhihu.com/p/581756705)
-- [大模型时代的阿里妈妈内容风控基础服务体系建设](https://zhuanlan.zhihu.com/p/672391648?utm_id=0)
-- [GPU推理服务性能优化之路 ｜ 得物技术](https://tech.dewu.com/article?id=36)
-
+torchpipe是 [Triton Inference Server](https://github.com/triton-inference-server/server) 的一个代替选择，主要功能类似于其[共享显存](https://docs.nvidia.com/deeplearning/triton-inference-server/user-guide/docs/protocol/extension_shared_memory.html)，[Ensemble](https://github.com/triton-inference-server/server/blob/main/docs/user_guide/architecture.md#ensemble-models), [BLS](https://github.com/triton-inference-server/python_backend#business-logic-scripting)机制。
 
 生产级别：在网易智企内部，每天有海量调用由Torchpipe支持。
 
+## **注意事项**
+
+- torchpipe 常规情况下GPU运算是同步的，也就是经过torchpipe处理的torch.Tensor默认是已经执行完毕的结果；而torch默认是[异步](https://torchpipe.github.io/docs/preliminaries/pytorch_libtorch)的。
+**以下是不合法的**
+```
+# input_tensor = ...
+# model = tp.pipe(...)
+tensor = torch.cat([input_tensor],dim=0) # 这里的tensor是异步的
+in = {'data':tensor}
+model(in)
+```
+修改建议
+```
+with torch.cuda.stream(torch.cuda.Stream()):
+    # ...
+    tensor = torch.cat([input_tensor],dim=0) 
+    torch.cuda.current_stream().synchronize() # 《= 仅保留此句亦可
+    # .cuda() .cpu() 自带对当前流的同步操作
+
+in = {'data':tensor}
+model(in)
+```
+
+- test_tools支持多客户端测速。建议选择以下两种方式测试高并发下的一致性：
+    - 少量输入（比如10张图片），在线校验每张图片输出结果相同
+    - 大量输入（比如10000张图片），离线保存结果，校验多次一致性
+
+tensorrt在max_batch_size=4时，很多时候输入1张和4张时结果有差异，这是正常的。但是此时固定输入只有有限种类（一般为2）结果
 
 <!-- ## 注意事项 
 - 版本说明：推荐使用最新tag以及对应release
