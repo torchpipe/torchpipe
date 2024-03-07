@@ -10,7 +10,7 @@
 	url = https://github.com/ToruNiina/toml11.git
 [submodule "thirdparty/ppl.cv"]
 	path = thirdparty/ppl.cv
-	url = https://github.com/openppl-public/ppl.cv.git
+	url = https://github.com/tp-nan/ppl.cv.git
 [submodule "thirdparty/cvnp"]
 	path = thirdparty/cvnp
 	url = https://github.com/pthom/cvnp.git
