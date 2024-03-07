@@ -43,17 +43,16 @@ model(in)
 ```
 修改建议
 ```
-with torch.cuda.stream(torch.cuda.Stream()):
     # ...
     tensor = torch.cat([input_tensor],dim=0) 
-    torch.cuda.current_stream().synchronize() # 《= 仅保留此句亦可
+    torch.cuda.current_stream().synchronize() 
     # .cuda() .cpu() 自带对当前流的同步操作
 
 in = {'data':tensor}
 model(in)
 ```
 
-- test_tools支持多客户端测速。建议选择以下两种方式测试高并发下的一致性：
+- [test_tools](https://github.com/torchpipe/torchpipe/blob/main/torchpipe/utils/test/test_tools.py)支持多客户端测速。建议选择以下两种方式测试高并发下的一致性：
     - 少量输入（比如10张图片），在线校验每张图片输出结果相同
     - 大量输入（比如10000张图片），离线保存结果，校验多次一致性
 
