@@ -32,26 +32,6 @@ torchpipe是 [Triton Inference Server](https://github.com/triton-inference-serve
 
 ## **注意事项**
 
-- torchpipe 常规情况下GPU运算是同步的，也就是经过torchpipe处理的torch.Tensor默认是已经执行完毕的结果；而torch默认是[异步](https://torchpipe.github.io/docs/preliminaries/pytorch_libtorch)的。
-**以下是不合法的**
-```
-# input_tensor = ...
-# model = tp.pipe(...)
-tensor = torch.cat([input_tensor],dim=0) # 这里的tensor是异步的
-in = {'data':tensor}
-model(in)
-```
-修改建议
-```
-    # ...
-    tensor = torch.cat([input_tensor],dim=0) 
-    torch.cuda.current_stream().synchronize() 
-    # .cuda() .cpu() 自带对当前流的同步操作
-
-in = {'data':tensor}
-model(in)
-```
-
 - 建议选择以下两种方式测试多客户端同时发送请求下结果的一致性：
     - 少量输入（比如10张图片），在线校验每张图片输出结果相同
     - 大量输入（比如10000张图片），离线保存结果，校验多次一致性
