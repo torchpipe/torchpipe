@@ -34,10 +34,13 @@ bool SyncTensor::init(const std::unordered_map<std::string, std::string>& config
       {{"_independent_thread_index", ""}, {"SyncTensor::backend", "Identity"}}, {}, {}, {}));
 
   if (!params_->init(config_param)) return false;
-
+  
   if (!params_->at("_independent_thread_index").empty()) {
     auto device_id_int = -1;  // std::stoi(device_id);
-    bNeedSync_ = torch_not_use_default_stream(device_id_int, true);
+    int independent_thread_index = std::stoi(params_->at("_independent_thread_index"));
+    assert(independent_thread_index >= 0);
+
+    bNeedSync_ = torch_not_use_default_stream(device_id_int, independent_thread_index < 32);
     SPDLOG_DEBUG("SyncTensor: sync enabled={}", bNeedSync_);
   }
 
