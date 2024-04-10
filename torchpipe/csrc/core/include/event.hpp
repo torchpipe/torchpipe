@@ -79,6 +79,17 @@ class SimpleEvents {
     }
   }
 
+  bool WaitFor(uint32_t timeout_ms) {
+    std::unique_lock<std::mutex> lk(mut);
+
+    bool done = data_cond.wait_for(lk, std::chrono::milliseconds(timeout_ms),
+                                   [this] { return (num_task == ref_count) || eptr_; });  //
+    if (eptr_) {
+      std::rethrow_exception(eptr_);
+    }
+    return done;
+  }
+
   /**
    * @brief 通知一个监听者。
    * @remark 具体步骤为：
