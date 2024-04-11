@@ -86,6 +86,7 @@ class TensorrtTensor : public Backend {
 
   std::shared_ptr<CudaEngineWithRuntime> engine_;
   std::unique_ptr<Backend> backend_;
+  std::unique_ptr<Backend> net_out_parser_;
   unique_ptr_destroy<nvinfer1::IExecutionContext> context_ = nullptr;  // 资源所有权
   std::vector<std::vector<int>> mins_;
   std::vector<std::vector<int>> maxs_;

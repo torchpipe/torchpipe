@@ -94,6 +94,8 @@ py::object cast_arithmetic(const any& data) {
     return py_cast<char>(data);
   } else if (type == typeid(unsigned char)) {
     return py_cast<unsigned char>(data);
+  } else if (type == typeid(long)) {
+    return py_cast<long>(data);
   }
   IPIPE_THROW(std::string("can not treat '") + local_demangle(data.type().name()) +
               "'as arithmetic type .");

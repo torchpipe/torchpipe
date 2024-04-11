@@ -64,23 +64,35 @@ class CpuTensor : public SingleBackend {
    */
   virtual void forward(dict input_dict) override {
     auto& input = *input_dict;
-    if (input[TASK_DATA_KEY].type() != typeid(at::Tensor)) {
-      SPDLOG_ERROR("GpuTensor: at::Tensor needed; error input type: " +
+
+    if (input[TASK_DATA_KEY].type() == typeid(at::Tensor)) {
+      at::Tensor input_tensor = any_cast<at::Tensor>(input[TASK_DATA_KEY]);
+      if (!input_tensor.is_cuda()) {
+        SPDLOG_ERROR("input_tensor should be gpu tensor");
+        throw std::runtime_error("input_tensor should be gpu tensor");
+      }
+
+      input[TASK_RESULT_KEY] = input_tensor.cpu();
+    } else if (input[TASK_DATA_KEY].type() == typeid(std::vector<at::Tensor>)) {
+      std::vector<at::Tensor> input_tensor =
+          any_cast<std::vector<at::Tensor>>(input[TASK_DATA_KEY]);
+      for (auto& item : input_tensor) {
+        if (item.is_cuda()) {
+          item = item.cpu();
+        } else {
+          SPDLOG_ERROR("input_tensor should be gpu tensor");
+          throw std::runtime_error("input_tensor should be gpu tensor");
+        }
+      }
+      input[TASK_RESULT_KEY] = input_tensor;
+    } else {
+      SPDLOG_ERROR("CpuTensor: at::Tensor/std::vector<at::Tensor> needed; error input type: " +
                    std::string(input[TASK_DATA_KEY].type().name()));
-      throw std::runtime_error("GpuTensor: at::Tensor needed; error input type: " +
-                               std::string(input[TASK_DATA_KEY].type().name()));
+      throw std::runtime_error(
+          "CpuTensor: at::Tensor/std::vector<at::Tensor> needed; error input type: " +
+          std::string(input[TASK_DATA_KEY].type().name()));
     }
-    auto input_tensor = any_cast<at::Tensor>(input[TASK_DATA_KEY]);
-
-    if (!input_tensor.is_cuda()) {
-      SPDLOG_ERROR("input_tensor should be gpu tensor");
-      throw std::runtime_error("input_tensor should be gpu tensor");
-    }
-
-    input[TASK_RESULT_KEY] = input_tensor.cpu();
   }
-
- private:
 };
 
 IPIPE_REGISTER(Backend, CpuTensor, "CpuTensor");
@@ -115,4 +127,70 @@ class FloatTensor : public SingleBackend {
 
 IPIPE_REGISTER(Backend, FloatTensor, "FloatTensor");
 
+class NCHWTensor : public SingleBackend {
+ public:
+  /**
+   */
+
+  /**
+   * @brief to float
+   * @param TASK_RESULT_KEY input[TASK_RESULT_KEY] = input[TASK_DATA_KEY].float()
+   */
+  virtual void forward(dict input_dict) override {
+    auto& input = *input_dict;
+    if (input[TASK_DATA_KEY].type() != typeid(at::Tensor)) {
+      SPDLOG_ERROR("FloatTensor: at::Tensor needed; error input type: " +
+                   std::string(input[TASK_DATA_KEY].type().name()));
+      throw std::runtime_error("FloatTensor: at::Tensor needed; error input type: " +
+                               std::string(input[TASK_DATA_KEY].type().name()));
+    }
+    auto input_tensor = any_cast<at::Tensor>(input[TASK_DATA_KEY]);
+
+    auto tensor = tensor2nchw(input_tensor);
+    // if (tensor.scale_type() != at::kFloat) {
+    //   tensor = tensor.float();
+    // }
+    // if (!tensor.is_contiguous()) {
+    //   tensor = tensor.contiguous();
+    // }
+    input[TASK_RESULT_KEY] = tensor;
+  }
+};
+
+IPIPE_REGISTER(Backend, NCHWTensor, "NCHWTensor");
+
+/**
+ * @brief to nchw
+ */
+class FloatNCHWTensor : public SingleBackend {
+ public:
+  /**
+   */
+
+  /**
+   * @brief to float
+   * @param TASK_RESULT_KEY input[TASK_RESULT_KEY] = input[TASK_DATA_KEY].float()
+   */
+  virtual void forward(dict input_dict) override {
+    auto& input = *input_dict;
+    if (input[TASK_DATA_KEY].type() != typeid(at::Tensor)) {
+      SPDLOG_ERROR("FloatTensor: at::Tensor needed; error input type: " +
+                   std::string(input[TASK_DATA_KEY].type().name()));
+      throw std::runtime_error("FloatTensor: at::Tensor needed; error input type: " +
+                               std::string(input[TASK_DATA_KEY].type().name()));
+    }
+    auto input_tensor = any_cast<at::Tensor>(input[TASK_DATA_KEY]);
+
+    auto tensor = tensor2nchw(input_tensor);
+    if (tensor.scalar_type() != at::kFloat) {
+      tensor = tensor.to(at::kFloat);
+    }
+    if (!tensor.is_contiguous()) {
+      tensor = tensor.contiguous();
+    }
+    input[TASK_RESULT_KEY] = tensor;
+  }
+};
+
+IPIPE_REGISTER(Backend, FloatNCHWTensor, "FloatNCHWTensor");
 }  // namespace ipipe

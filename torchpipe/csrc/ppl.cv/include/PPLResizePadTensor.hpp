@@ -19,7 +19,9 @@ class PPLResizePadTensor : public SingleBackend {
 
  private:
   std::unique_ptr<Params> params_;
-  int resize_h_;
-  int resize_w_;
+  // int resize_h_;
+  // int resize_w_;
+  int max_h_;
+  int max_w_;
 };
 }  // namespace ipipe
