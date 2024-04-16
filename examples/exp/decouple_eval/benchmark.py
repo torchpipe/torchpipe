@@ -87,14 +87,16 @@ def export_onnx(onnx_save_path, model_name):
     # resnet101 = tp.utils.models.create_model(name).eval()
     if model_name in timm.list_models():
         model = timm.create_model(model_name, pretrained=False, exportable=True).eval()
+    elif "faster_vit" in model_name:
+        assert timm.__version__ == "0.9.6"
+        import fastervit
+
+        # timm==0.9.6
+
+        model = fastervit.create_model(model_name, pretrained=False).eval()
     else:
-        if "faster_vit" in model_name:
-            assert timm.__version__ == "0.9.6"
-            import fastervit
-
-            # timm==0.9.6
-
-            model = fastervit.create_model(model_name, pretrained=False).eval()
+        print(f"skip export {model_name}")
+        return
     x = torch.randn(1, 3, 224, 224)
     onnx_save_path = f"./{model_name}.onnx"
     tp.utils.models.onnx_export(model, onnx_save_path, x)
