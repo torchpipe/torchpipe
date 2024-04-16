@@ -169,14 +169,6 @@ if __name__ == "__main__":
     config = get_config(args)
     print(config)
 
-    if args.model == "triton_resnet_ensemble":
-        import triton_utils
-
-        clients = triton_utils.get_clients(args.model, args.client)
-        run = [x.forward for x in clients]
-    else:
-        nodes = tp.pipe(config)
-
     def run(img):
         for img_path, img_bytes in img:
             input = {"data": img_bytes, "node_name": "jpg_decoder"}
@@ -195,6 +187,14 @@ if __name__ == "__main__":
             if "result" not in input.keys():
                 print("error : no result")
                 return
+
+    if args.model == "triton_resnet_ensemble":
+        import triton_utils
+
+        clients = triton_utils.get_clients(args.model, args.client)
+        run = [x.forward for x in clients]
+    else:
+        nodes = tp.pipe(config)
 
     if args.model == "empty":
         print("args.model is empty. test preprocess only")
