@@ -61,7 +61,7 @@ ensemble_scheduling {
         value: "preprocessed_image"
       }
       output_map {
-        key: "output"
+        key: "output_1"
         value: "OUTPUT"
       }
     }
