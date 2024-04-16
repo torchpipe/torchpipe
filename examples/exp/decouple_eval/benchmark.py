@@ -202,7 +202,7 @@ if __name__ == "__main__":
 
     # run([(img_path, img)])
 
-    from torchpipe.utils.test import test_from_raw_file
+    from test_tools import test_from_raw_file
 
     total_number = args.total_number
     if args.client == 1:
