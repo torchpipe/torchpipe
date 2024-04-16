@@ -89,9 +89,9 @@ def export_onnx(onnx_save_path, model_name):
         model = timm.create_model(model_name, pretrained=False, exportable=True).eval()
     else:
         if "faster_vit" in model_name:
+            assert timm.__version__ == "0.9.6"
             import fastervit
 
-            assert timm.__version__ == "0.9.6"
             # timm==0.9.6
 
             model = fastervit.create_model(model_name, pretrained=False).eval()
@@ -143,6 +143,7 @@ def get_config(args):
             "model": f"./{model_name}.onnx",
             "std": "58.395, 57.120, 57.375",
             "model::cache": f"./{model_name}_{args.max}.trt",
+            "net_out_parser": "CpuTensor",
         },
         "global": {"batching_timeout": args.timeout, "instance_num": "2"},
     }
@@ -176,7 +177,7 @@ if __name__ == "__main__":
             if "result" not in input.keys():
                 print("error : no result")
                 return
-            z = input["result"].cpu()
+            # z = input["result"].cpu()
 
     def only_preprocess(img):
         for img_path, img_bytes in img:
@@ -190,6 +191,11 @@ if __name__ == "__main__":
     if args.model == "empty":
         print("args.model is empty. test preprocess only")
         run = only_preprocess
+    elif args.model == "triton_resnet_ensemble":
+        import triton_utils
+
+        clients = triton_utils.get_clients(args.model, args.client)
+        run = [x.forward for x in clients]
     # run([(img_path, img)])
 
     from torchpipe.utils.test import test_from_raw_file
