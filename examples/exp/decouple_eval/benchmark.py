@@ -169,7 +169,13 @@ if __name__ == "__main__":
     config = get_config(args)
     print(config)
 
-    nodes = tp.pipe(config)
+    if args.model == "triton_resnet_ensemble":
+        import triton_utils
+
+        clients = triton_utils.get_clients(args.model, args.client)
+        run = [x.forward for x in clients]
+    else:
+        nodes = tp.pipe(config)
 
     def run(img):
         for img_path, img_bytes in img:
@@ -193,11 +199,7 @@ if __name__ == "__main__":
     if args.model == "empty":
         print("args.model is empty. test preprocess only")
         run = only_preprocess
-    elif args.model == "triton_resnet_ensemble":
-        import triton_utils
 
-        clients = triton_utils.get_clients(args.model, args.client)
-        run = [x.forward for x in clients]
     # run([(img_path, img)])
 
     from torchpipe.utils.test import test_from_raw_file
