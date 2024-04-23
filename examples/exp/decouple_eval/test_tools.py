@@ -16,8 +16,9 @@
 from __future__ import annotations
 
 # from curses import flash
-import torch
+# import torch
 from timeit import default_timer as timer
+
 # import cv2
 import sys
 import random
@@ -31,17 +32,17 @@ import numpy as np
 # from ..device_tools import install_package
 
 from typing import List, Union, Callable, Tuple
+
 # from .Sampler import Sampler, RandomSampler, preload, SequentialSampler, FileSampler
 
-from typing import (
-    List,
-    Tuple
-)
+from typing import List, Tuple
 import random, os
+
 
 class Sampler:
     def __init__(self):
         pass
+
     def __call__(self, start_index: int) -> None:
         raise NotImplementedError
 
@@ -54,9 +55,9 @@ class RandomSampler(Sampler):
         super().__init__()
         self.data_source = data_source
         self.batch_size = batch_size
-        assert(batch_size>0)
-        
-        assert(0 < len(data_source))
+        assert batch_size > 0
+
+        assert 0 < len(data_source)
         for i in range(batch_size):
             if len(data_source) < batch_size:
                 data_source.append(data_source[i])
@@ -71,15 +72,16 @@ class RandomSampler(Sampler):
     def batchsize(self):
         return self.batch_size
 
+
 class SequentialSampler(Sampler):
     def __init__(self, data: List, batch_size=1):
         super().__init__()
         self.data = data
         self.batch_size = batch_size
-        assert(len(data) >= batch_size)
+        assert len(data) >= batch_size
 
     def __call__(self, start_index: int) -> None:
-        data = self.data[start_index: start_index+self.batch_size]
+        data = self.data[start_index : start_index + self.batch_size]
         self.forward(data)
 
     def batchsize(self):
@@ -88,19 +90,20 @@ class SequentialSampler(Sampler):
     def forward(self, data: List):
         raise RuntimeError("Requires users to implement this function")
 
+
 class LoopSampler(Sampler):
     def __init__(self, data: List, batch_size=1):
         super().__init__()
         self.data = data
         self.batch_size = batch_size
-        assert(len(data) >= batch_size)
+        assert len(data) >= batch_size
         self.length = len(data) - batch_size + 1
         for i in range(batch_size):
             self.data.append(data[i])
 
     def __call__(self, start_index: int) -> None:
-        start_index = start_index%(self.length)
-        data = self.data[start_index: start_index+self.batch_size]
+        start_index = start_index % (self.length)
+        data = self.data[start_index : start_index + self.batch_size]
         self.forward(data)
 
     def batchsize(self):
@@ -126,10 +129,11 @@ class FileSampler(LoopSampler):
         raise RuntimeError("Requires users to implement this function")
 
 
-def preload(file_dir, num_preload = 1000, recursive=True, ext=[".jpg", '.JPG', '.jpeg', '.JPEG']) -> List[Tuple[str, bytes]]:
+def preload(
+    file_dir, num_preload=1000, recursive=True, ext=[".jpg", ".JPG", ".jpeg", ".JPEG"]
+) -> List[Tuple[str, bytes]]:
     if not os.path.exists(file_dir):
-        raise RuntimeError(file_dir+" not exists")
-
+        raise RuntimeError(file_dir + " not exists")
 
     list_images = []
     result = []
@@ -139,23 +143,24 @@ def preload(file_dir, num_preload = 1000, recursive=True, ext=[".jpg", '.JPG', '
                 if os.path.splitext(filename)[-1] in ext:
                     list_images.append(os.path.join(root, filename))
     else:
-        list_images = [x for x in os.listdir(file_dir) if os.path.splitext(x)[-1] in ext]
+        list_images = [
+            x for x in os.listdir(file_dir) if os.path.splitext(x)[-1] in ext
+        ]
         list_images = [os.path.join(file_dir, x) for x in list_images]
 
-    for file_path in  list_images:
+    for file_path in list_images:
         if num_preload <= 0:
-            file_bytes =None
+            file_bytes = None
         else:
-            with open(file_path, 'rb') as f:
-                file_bytes=f.read()
-        result.append((file_path, file_bytes)) 
+            with open(file_path, "rb") as f:
+                file_bytes = f.read()
+        result.append((file_path, file_bytes))
         if len(result) == num_preload:
             break
     if len(result) == 0:
-        raise RuntimeError("find no vaild files. ext = "+ext)
+        raise RuntimeError("find no vaild files. ext = " + ext)
 
     return result
-
 
 
 version = "20230817"
@@ -209,8 +214,6 @@ version = "20230817"
 
 """
 # 最新版本请访问 torchpipe/tool/test_tools.py
-
-
 
 
 from collections import namedtuple
@@ -451,8 +454,9 @@ class ResourceThread(threading.Thread):
 
         self.gpu = None
 
-        try :
+        try:
             import pynvml
+
             self.gpu = GpuInfo(pid)
         except Exception as e:
             print("gpu info not available: ", e)
@@ -468,6 +472,7 @@ class ResourceThread(threading.Thread):
 
     def run(self):
         import time
+
         scale = 1
         index = 0
         while not self.my_event.wait(timeout=2):
@@ -476,7 +481,7 @@ class ResourceThread(threading.Thread):
             cpu_percent = self.p.cpu_percent()
             mem_percent = self.p.memory_percent()
             if cpu_percent > 0 and mem_percent > 0:
-                if self.gpu and (index%scale==0):
+                if self.gpu and (index % scale == 0):
                     util = self.gpu.get_pid_info()
                     self.result_list.append((cpu_percent, mem_percent, util))
                 else:
@@ -507,7 +512,7 @@ def test(sample: Union[Sampler, List[Sampler]], total_number=10000):
         for thread_ in instance_threads:
             t.submit(thread_.warmup, warm_up_num)
 
-    torch.cuda.synchronize()
+    # torch.cuda.synchronize()
     print("Warm-up finished", flush=True)
 
     resource_result = []
@@ -527,7 +532,7 @@ def test(sample: Union[Sampler, List[Sampler]], total_number=10000):
         i.join()
     resource_event.set()
 
-    torch.cuda.synchronize()
+    # torch.cuda.synchronize()
 
     final_result = test_params.result
 
@@ -544,17 +549,19 @@ def test(sample: Union[Sampler, List[Sampler]], total_number=10000):
     resource_thread.join()
 
     # import pdb; pdb.set_trace()
-    gpu_resource_result=[]
+    gpu_resource_result = []
     try:
-        gpu_resource_result = [x for x in list(zip(*resource_result))[2] if x is not None]
+        gpu_resource_result = [
+            x for x in list(zip(*resource_result))[2] if x is not None
+        ]
     except:
         pass
-    
+
     cpu_resource_result = list(zip(*resource_result))
-    
+
     try:
-        resource_result = np.array(cpu_resource_result)[:2,:].astype(np.float32)
-        cpu_ = int(10 * np.median(resource_result[0,:])) / 10
+        resource_result = np.array(cpu_resource_result)[:2, :].astype(np.float32)
+        cpu_ = int(10 * np.median(resource_result[0, :])) / 10
         if cpu_ < 0.8 * 100:
             cpu_ = 0
     except:
@@ -752,7 +759,7 @@ def test_function(
     return test(forwards, total_number)
 
 
-import torchpipe
+# import torchpipe
 
 
 def parse_arguments(argv):
@@ -764,7 +771,10 @@ def parse_arguments(argv):
         "--host", type=str, help="Host to run service", default="localhost"
     )
     parser.add_argument(
-        "--img_dir", type=str, help=f"img path. 预读取该目录以及子目录下至多1000张图片", default="img/"
+        "--img_dir",
+        type=str,
+        help=f"img path. 预读取该目录以及子目录下至多1000张图片",
+        default="img/",
     )
     parser.add_argument("--batch_size", type=int, help="单次请求的数据量", default=1)
     parser.add_argument("--num_clients", type=int, help="并发请求数", default=10)
