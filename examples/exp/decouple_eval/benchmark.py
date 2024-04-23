@@ -202,6 +202,8 @@ if __name__ == "__main__":
         clients = triton_utils.get_clients(args.model, args.client)
         run = [x.forward for x in clients]
     elif args.model == "triton_resnet":
+        import triton_utils
+
         clients = triton_utils.get_clients_with_preprocess("resnet_trt", args.client)
         run = [x.forward for x in clients]
     else:
