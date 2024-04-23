@@ -19,46 +19,33 @@
 # IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-name: "dali"
-backend: "dali"
+name: "resnet_trt"
+platform: "tensorrt_plan"
 max_batch_size: 8
 input [
   {
-    name: "DALI_INPUT_0"
-    data_type: TYPE_UINT8
-    dims: [ -1 ]
+    name: "input"
+    data_type: TYPE_FP32
+
+    dims: [ 3, 224, 224 ]
+
   }
 ]
-
 output [
   {
-    name: "DALI_OUTPUT_0"
-    data_type: TYPE_FP32
-    dims: [ 3,224, 224  ]
-  }
-]
-
-parameters: [
-  {
-    key: "num_threads"
-    value: { string_value: "12" }
-  }
-]
-
-parameters: [
-  {
-    key: "num_threads"
-    value: { string_value: "4" }
+    name: "output_0"
+    #data_type: TYPE_FP32
+    dims: [ 1000 ]
   }
 ]
 
 dynamic_batching {
-  # preferred_batch_size: [ 16 ]
-  #max_queue_delay_microseconds: 15
+  max_queue_delay_microseconds: 10
 }
-#instance_group [
-#  {
-#    count: 2
-#    kind: KIND_GPU
-#  }
-#]
+
+instance_group [
+  {
+    count: 3
+    kind: KIND_GPU
+  }
+]

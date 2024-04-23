@@ -59,7 +59,7 @@ bool TensorrtTensor::init(const std::unordered_map<std::string, std::string>& co
                                                 {"save_engine", ""},
                                                 {"instance_num", "1"},
                                                 {"force_range", ""},
-                                                {"net_out_parser", ""}},
+                                                {"batch_process", ""}},
                                                {}, {}, {}));
 
 #if NV_TENSORRT_MAJOR < 7
@@ -198,10 +198,10 @@ bool TensorrtTensor::init(const std::unordered_map<std::string, std::string>& co
                  max_);
   }
   IPIPE_ASSERT(min_ >= 1 && max_ >= min_);
-  if (!params_->at("net_out_parser").empty()) {
-    net_out_parser_ =
-        std::unique_ptr<Backend>(IPIPE_CREATE(Backend, params_->at("net_out_parser")));
-    IPIPE_ASSERT(net_out_parser_->init(config_param, dict_config) && net_out_parser_->min() == 1);
+  if (!params_->at("batch_process").empty()) {
+    batch_process_ =
+        std::unique_ptr<Backend>(IPIPE_CREATE(Backend, params_->at("batch_process")));
+    IPIPE_ASSERT(batch_process_->init(config_param, dict_config) && batch_process_->min() == 1);
   }
 
   return true;
@@ -534,10 +534,10 @@ void TensorrtTensor::forward(const std::vector<dict>& raw_inputs) {
   }
   outputs_.swap(outputs_sorted);
 
-  if (net_out_parser_) {
+  if (batch_process_) {
     dict batched = std::make_shared<std::unordered_map<std::string, any>>();
     (*batched)[TASK_DATA_KEY] = outputs_;
-    net_out_parser_->forward({batched});
+    batch_process_->forward({batched});
     TRACE_EXCEPTION(outputs_ = any_cast<std::vector<at::Tensor>>(batched->at(TASK_RESULT_KEY)));
   }
 

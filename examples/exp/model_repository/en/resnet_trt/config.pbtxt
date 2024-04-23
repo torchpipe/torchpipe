@@ -21,7 +21,7 @@
 
 name: "resnet_trt"
 platform: "tensorrt_plan"
-max_batch_size: 16
+max_batch_size: 8
 input [
   {
     name: "input"
@@ -40,7 +40,7 @@ output [
 ]
 
 dynamic_batching {
-  max_queue_delay_microseconds: 25
+  max_queue_delay_microseconds: 15
 }
 
 instance_group [

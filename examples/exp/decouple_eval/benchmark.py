@@ -13,10 +13,12 @@
 # limitations under the License.
 
 
-import torch
-import cv2
+# import torch
+
+# import cv2
 import os
-import torchpipe as tp
+
+# import torchpipe as tp
 
 
 import argparse
@@ -83,6 +85,7 @@ def export_onnx(onnx_save_path, model_name):
     import torch
     import torchvision.models as models
     import timm
+    import torchpipe as tp
 
     # resnet101 = tp.utils.models.create_model(name).eval()
     if model_name in timm.list_models():
@@ -145,7 +148,7 @@ def get_config(args):
             "model": f"./{model_name}.onnx",
             "std": "58.395, 57.120, 57.375",
             "model::cache": f"./{model_name}_{args.max}.trt",
-            "net_out_parser": "CpuTensor",
+            "batch_process": "CpuTensor",
         },
         "global": {"batching_timeout": args.timeout, "instance_num": "2"},
     }
@@ -163,7 +166,12 @@ if __name__ == "__main__":
     # time.sleep(5)
 
     onnx_save_path = f"./{args.model}.onnx"
-    if not os.path.exists(onnx_save_path) and args.model != "empty":
+    if (
+        not os.path.exists(onnx_save_path)
+        and args.model != "empty"
+        and args.model != "triton_resnet_ensemble"
+        and args.model != "triton_resnet"
+    ):
         export_onnx(onnx_save_path, args.model)
 
     config = get_config(args)
@@ -193,7 +201,12 @@ if __name__ == "__main__":
 
         clients = triton_utils.get_clients(args.model, args.client)
         run = [x.forward for x in clients]
+    elif args.model == "triton_resnet":
+        clients = triton_utils.get_clients_with_preprocess("resnet_trt", args.client)
+        run = [x.forward for x in clients]
     else:
+        import torchpipe as tp
+
         nodes = tp.pipe(config)
 
     if args.model == "empty":
