@@ -15,6 +15,58 @@
 # throughput and lantecy test
 from __future__ import annotations
 
+version = "20240424"
+
+"""! @package test-tools
+# update 0.0.1 2022-03-15 整理出基础版本。 by zsy
+# update 0.1.1 2022-03-16 增加一次发送多个请求。 by zsy
+# update 0.1.2 2022-03-18 在一次发送多个请求的情况下修复avg 时间的计算。 by zsy
+# update 0.1.3 2022-03-18 在一次发送多个请求的情况每个数据都随机。 by zsy
+# update 0.1.4 2022-03-18 文档， typo. by zsy
+# update 0.1.5 2022-03-24 整理文档，格式调整， typo, 增加MEAN. 实际上MEAN～=avg，
+#                         但是少了数据选取（choice）和结果打印等时间, 根据avg和MEAN的值的差距推断，这部分影响在千分之三以内；
+#                         可以限制最长边大小，需要手动取消# img=pre_resize(img) 的注释  by zsy
+# update 0.1.6 2022-05-26 增加输出当前进程cpu使用情况和内存使用情况中位数  by zsy
+# update 0.1.7 2022-06-17 可设置pid；pid不存在时提示并退出；cpu利用率过小时，不显示结果（大概率匹配到错误的进程）fix batch_size>1   by zsy wlc
+# update 0.1.8 2022-07-28  直接读取jpg binary， 不在预先解码（文件名后缀需要为 ".jpg", '.JPG', '.jpeg', '.JPEG'）
+# update 2022-09-08  增加callback， 用于接收和处理结果；此时推理函数返回类型需要是list类型；
+#                           当 total_number <=0 时，变为只跑一遍的模式；
+#                           图片数量过少时，不再宕机;   
+# update 2023-01-04  增加 PRELOAD_TYPE: yes no auto;                        
+# update 2023-04-21  重新整理成类，兼容通用自定义场景;                        
+# update 2023-06-02  对齐文档中的新的API，兼容广义场景（API仍处于测试阶段）;                        
+# update 2023-07-25  更改主要API为test_from_raw_file;                        
+# update 2023-08-17  增加测试结果的返回;                        
+# update 2023-11-09  增加gpu使用率中位数输出;                        
+# update 2024-04-24  恢复为单文件，并增加 ProcessAdaptor
+# ##########################################################################################################################
+# 评价服务性的最佳指标是
+# 1. 低于一定时延下的最高吞吐
+# 2. 实时性
+# 线上服务不像移动端， 不太关注实时性
+
+# 时延依赖于并发请求数目， 并发为5时，此时可能有另外5个服务在排队，排队的时间不算做请求时间， 故只有固定并发请求路数（比如固定客户端数目）下， 算时间延迟才准确。 在并发请求路数少时，时间延迟比测算出来的要多。
+
+# 当我们固定并发请求数目时，此时qps和平均时延又是反相关的， 此时的时延和qps都能够比较准确反映性能。
+
+# 另外，第一条接近于满足一定时间延迟要求下， 比较两个服务同时能够响应的并发请求数目（更准确的，是该并发请求数目下的qps， 不过此时如果可以假设两个服务平均时延差不多，则qps可以由并发请求数决定。
+#           但实际上这条假设只是近似成立， 尤其当我们设置的是TP90这类阈值）。这是第二种测量性能的方法， 需要不断增加并发数并判断时延是否超过阈值，然后获得最大并发数以及该并发下的qps。比较动态。
+
+# 总结为，测量低于一定时延下的最高吞吐这一个指标主要有两种方法：
+# A. 选择一个或者一组合适的固定的并发请求路数， 如10*2或者20*1，跑固定数量的图片， 如10000张， 算时延（或者qps）
+# B. 选择一个或者一组合适的时间延迟阈值，测算TP90等时延指标满足此阈值时，服务所能最大支撑的请求数目。
+# ##########################################################################################################################
+
+
+# 建议固定服务端设置，报告以下三种情况的 qps TP50 TP90 TP99：
+# – 10并发请求下 每次数据量1
+# – 10并发请求下 每次数据量4（或者2）
+# – 40（或者20）并发请求下 每次数据量1 (需要修改thrift设置)
+# 或者只报告第一种情况
+
+"""
+
+
 # from curses import flash
 # import torch
 from timeit import default_timer as timer
@@ -161,59 +213,6 @@ def preload(
         raise RuntimeError("find no vaild files. ext = " + ext)
 
     return result
-
-
-version = "20230817"
-
-"""! @package test-tools
-# update 0.0.1 2022-03-15 整理出基础版本。 by zsy
-# update 0.1.1 2022-03-16 增加一次发送多个请求。 by zsy
-# update 0.1.2 2022-03-18 在一次发送多个请求的情况下修复avg 时间的计算。 by zsy
-# update 0.1.3 2022-03-18 在一次发送多个请求的情况每个数据都随机。 by zsy
-# update 0.1.4 2022-03-18 文档， typo. by zsy
-# update 0.1.5 2022-03-24 整理文档，格式调整， typo, 增加MEAN. 实际上MEAN～=avg，
-#                         但是少了数据选取（choice）和结果打印等时间, 根据avg和MEAN的值的差距推断，这部分影响在千分之三以内；
-#                         可以限制最长边大小，需要手动取消# img=pre_resize(img) 的注释  by zsy
-# update 0.1.6 2022-05-26 增加输出当前进程cpu使用情况和内存使用情况中位数  by zsy
-# update 0.1.7 2022-06-17 可设置pid；pid不存在时提示并退出；cpu利用率过小时，不显示结果（大概率匹配到错误的进程）fix batch_size>1   by zsy wlc
-# update 0.1.8 2022-07-28  直接读取jpg binary， 不在预先解码（文件名后缀需要为 ".jpg", '.JPG', '.jpeg', '.JPEG'）
-# update 2022-09-08  增加callback， 用于接收和处理结果；此时推理函数返回类型需要是list类型；
-#                           当 total_number <=0 时，变为只跑一遍的模式；
-#                           图片数量过少时，不再宕机;   
-# update 2023-01-04  增加 PRELOAD_TYPE: yes no auto;                        
-# update 2023-04-21  重新整理成类，兼容通用自定义场景;                        
-# update 2023-06-02  对齐文档中的新的API，兼容广义场景（API仍处于测试阶段）;                        
-# update 2023-07-25  更改主要API为test_from_raw_file;                        
-# update 2023-08-17  增加测试结果的返回;                        
-# update 2023-11-09  增加gpu使用率中位数输出;                        
-
-# ##########################################################################################################################
-# 评价服务性的最佳指标是
-# 1. 低于一定时延下的最高吞吐
-# 2. 实时性
-# 线上服务不像移动端， 不太关注实时性
-
-# 时延依赖于并发请求数目， 并发为5时，此时可能有另外5个服务在排队，排队的时间不算做请求时间， 故只有固定并发请求路数（比如固定客户端数目）下， 算时间延迟才准确。 在并发请求路数少时，时间延迟比测算出来的要多。
-
-# 当我们固定并发请求数目时，此时qps和平均时延又是反相关的， 此时的时延和qps都能够比较准确反映性能。
-
-# 另外，第一条接近于满足一定时间延迟要求下， 比较两个服务同时能够响应的并发请求数目（更准确的，是该并发请求数目下的qps， 不过此时如果可以假设两个服务平均时延差不多，则qps可以由并发请求数决定。
-#           但实际上这条假设只是近似成立， 尤其当我们设置的是TP90这类阈值）。这是第二种测量性能的方法， 需要不断增加并发数并判断时延是否超过阈值，然后获得最大并发数以及该并发下的qps。比较动态。
-
-# 总结为，测量低于一定时延下的最高吞吐这一个指标主要有两种方法：
-# A. 选择一个或者一组合适的固定的并发请求路数， 如10*2或者20*1，跑固定数量的图片， 如10000张， 算时延（或者qps）
-# B. 选择一个或者一组合适的时间延迟阈值，测算TP90等时延指标满足此阈值时，服务所能最大支撑的请求数目。
-# ##########################################################################################################################
-
-
-# 建议固定服务端设置，报告以下三种情况的 qps TP50 TP90 TP99：
-# – 10并发请求下 每次数据量1
-# – 10并发请求下 每次数据量4（或者2）
-# – 40（或者20）并发请求下 每次数据量1 (需要修改thrift设置)
-# 或者只报告第一种情况
-
-"""
-# 最新版本请访问 torchpipe/tool/test_tools.py
 
 
 from collections import namedtuple
@@ -421,6 +420,40 @@ class GpuInfo(object):
         # 最后要关闭管理工具
         pass
         # self.pynvml.nvmlShutdown()
+
+
+class ProcessAdaptor:
+    def __init__(self, class_def, args):
+        from multiprocessing import Process, Queue, Event
+
+        self.class_def = class_def
+        self.args = args
+
+        self.queue = Queue()
+        self.event = Event()
+        self.alive = Event()
+
+        self.instance = Process(target=self.run)
+        self.instance.start()
+
+    def forward(self, data):
+        self.queue.put(data)
+        # while not self.queue.empty():
+        self.event.wait()
+        self.event.clear()
+
+    def run(self):
+        self.target = self.class_def(self.args)
+        while not self.alive.is_set():
+            p = self.queue.get(block=True, timeout=100)
+            if p is None:
+                continue
+            self.target.forward(p)
+            self.event.set()
+
+    def __del__(self):
+        self.alive.set()
+        self.instance.join()
 
 
 # note 如果待测试函数有返回值，比如cuda上的tensor，有一定概率会copy到cpu并打印出来（初始概率下约打印10次，后续如果打印对象太大，则相应递减概率，但通常对性能影响小于千分之三
@@ -858,3 +891,53 @@ if __name__ == "__main__":
         batch_size=args.batch_size,
         total_number=total_number,
     )
+
+
+class ProcessAdaptor:
+    def __init__(self, class_def, args):
+        from multiprocessing import Process, Queue, Event
+
+        self.class_def = class_def
+        self.args = args
+
+        self.queue = Queue()
+        self.event = Event()
+        self.instance = Process(target=self.run)
+        self.alive = Event()
+
+        self.instance.start()
+
+    def forward(self, data):
+        self.queue.put(data)
+        # while not self.queue.empty():
+        self.event.wait()
+        self.event.clear()
+
+    def run(self):
+        self.target = self.class_def(self.args)
+        while not self.alive.is_set():
+            try:
+                p = self.queue.get(block=True, timeout=2)
+                if p is None:
+                    continue
+            except:
+                continue
+            self.target.forward(p)
+            self.event.set()
+
+    def close(self):
+        self.alive.set()
+        self.instance.join()
+
+    @staticmethod
+    def close_all(clients):
+
+        from concurrent.futures import ThreadPoolExecutor
+
+        def close_client(client):
+            if hasattr(client, "close"):
+                client.close()
+
+        # Assuming clients is a list of your client objects
+        with ThreadPoolExecutor() as executor:
+            executor.map(close_client, clients)

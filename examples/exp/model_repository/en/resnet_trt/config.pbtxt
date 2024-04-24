@@ -21,7 +21,7 @@
 
 name: "resnet_trt"
 platform: "tensorrt_plan"
-max_batch_size: 8
+max_batch_size: 4
 input [
   {
     name: "input"
@@ -40,12 +40,12 @@ output [
 ]
 
 dynamic_batching {
-  max_queue_delay_microseconds: 15
+  max_queue_delay_microseconds: 5000
 }
 
 instance_group [
   {
-    count: 3
+    count: 4
     kind: KIND_GPU
   }
 ]

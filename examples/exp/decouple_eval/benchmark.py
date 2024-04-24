@@ -36,6 +36,9 @@ parser.add_argument(
     "--client", dest="client", type=int, default=40, help="number of clients"
 )
 parser.add_argument(
+    "--save", dest="save", type=str, default="", help="save result to pickle"
+)
+parser.add_argument(
     "--trt_instance_num",
     dest="trt_instance_num",
     type=int,
@@ -60,7 +63,7 @@ parser.add_argument(
     "--total_number",
     dest="total_number",
     type=int,
-    default=20000,
+    default=0,
     help="number of clients",
 )
 parser.add_argument(
@@ -174,9 +177,6 @@ if __name__ == "__main__":
     ):
         export_onnx(onnx_save_path, args.model)
 
-    config = get_config(args)
-    print(config)
-
     def run(img):
         for img_path, img_bytes in img:
             input = {"data": img_bytes, "node_name": "jpg_decoder"}
@@ -196,6 +196,7 @@ if __name__ == "__main__":
                 print("error : no result")
                 return
 
+    clients = []
     if args.model == "triton_resnet_ensemble":
         import triton_utils
 
@@ -207,6 +208,8 @@ if __name__ == "__main__":
         clients = triton_utils.get_clients_with_preprocess("resnet_trt", args.client)
         run = [x.forward for x in clients]
     else:
+        config = get_config(args)
+        print(config)
         import torchpipe as tp
 
         nodes = tp.pipe(config)
@@ -220,8 +223,12 @@ if __name__ == "__main__":
     from test_tools import test_from_raw_file
 
     total_number = args.total_number
-    if args.client == 1:
-        total_number = 1000
+    if total_number == 0:
+        if args.client == 1:
+            total_number = 5000
+        else:
+            total_number = 10000
+
     result = test_from_raw_file(
         run,
         os.path.join("../..", "test/assets/encode_jpeg/"),
@@ -244,3 +251,13 @@ if __name__ == "__main__":
     print("\n\n")
     print({args.client: new_result})
     print("\n\n")
+
+    from test_tools import ProcessAdaptor
+
+    ProcessAdaptor.close_all(clients)
+
+    if args.save:
+        import pickle
+
+        with open(args.save, "wb") as f:
+            pickle.dump({args.client: new_result}, f)
