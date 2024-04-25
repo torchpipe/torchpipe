@@ -8,6 +8,8 @@ from tritonclient.grpc import InferenceServerClient, InferRequestedOutput, Infer
 
 
 MODEL_NAME = "ensemble_dali_resnet"
+RETURN_A = os.environ.get("RETURN_A", "0") == "1"
+RETURN_B = os.environ.get("RETURN_B", "0") == "1"
 
 
 class TritonInfer:
@@ -167,7 +169,12 @@ class TritonWithPreprocess:
         inputs = [InferInput(self.input_name, img_np.shape, "FP32")]
         # outputs.append(tritongrpcclient.InferRequestedOutput(self.output_name))
 
+        if RETURN_A:
+            return 0, 0
         inputs[0].set_data_from_numpy(img_np)
+
+        if RETURN_B:
+            return 0, 0
 
         triton_results = self.triton_client.infer(
             model_name=self.model_name, inputs=inputs, outputs=self.outputs

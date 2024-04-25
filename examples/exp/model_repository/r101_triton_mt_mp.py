@@ -19,7 +19,7 @@ def run_multi_process_cmd():
         # generate a temp file with '.pkl' extension
         fi = tempfile.mkstemp(suffix=".pkl")[1]
         total_number = 5000 if i == 1 else 20000
-        cmd = f" cd /workspace/examples/exp && USE_PROCESS=1 python3 decouple_eval/benchmark.py   --model triton_resnet  --total_number {total_number}  --client {i} --save {fi}"
+        cmd = f"USE_PROCESS=1 python3 decouple_eval/benchmark.py   --model triton_resnet  --total_number {total_number}  --client {i} --save {fi}"
 
         os.system(cmd)
         files.append(fi)
@@ -32,18 +32,18 @@ def run_multi_thread_cmd():
         # generate a temp file with '.pkl' extension
         fi = tempfile.mkstemp(suffix=".pkl")[1]
         total_number = 5000 if i == 1 else 20000
-        cmd = f" cd /workspace/examples/exp &&python3 decouple_eval/benchmark.py --model triton_resnet  --total_number {total_number}  --client {i} --save {fi}"
+        cmd = f"python3 decouple_eval/benchmark.py --model triton_resnet  --total_number {total_number}  --client {i} --save {fi}"
 
         os.system(cmd)
         files.append(fi)
     return files
 
 
-target = [run_multi_process_cmd, run_multi_thread_cmd]
+target = [run_multi_thread_cmd, run_multi_process_cmd]
 results = []
 for func in target:
     files = func()
     results.append(read_result(files))
 
 for k, v in zip(target, results):
-    print(k, v)
+    print(k.__name__, v)

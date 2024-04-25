@@ -39,7 +39,7 @@ def run_cpu_preprocess_cmd():
     return files
 
 
-target = [run_gpu_preprocess_cmd, run_cpu_preprocess_cmd]
+target = [run_cpu_preprocess_cmd, run_gpu_preprocess_cmd]
 results = []
 for func in target:
     files = func()
