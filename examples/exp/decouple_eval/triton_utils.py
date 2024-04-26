@@ -15,14 +15,15 @@ RETURN_D = os.environ.get("RETURN_D", "0") == "1"
 
 
 class TritonInfer:
-    def __init__(self):
+    def __init__(self,model_name):
 
         # import torchpipe as tp
 
         self.input_name = "INPUT"
         self.output_name = "OUTPUT"
 
-        self.model_name = "ensemble_dali_resnet"
+        self.model_name = model_name# "ensemble_dali_resnet"
+        print("self.model_name  ", self.model_name)
         self.url = os.environ.get("TRITON_SERVER_URL", "localhost:8001")
         self.triton_client = InferenceServerClient(url=self.url)
         self.outputs = [InferRequestedOutput(self.output_name)]
@@ -31,16 +32,17 @@ class TritonInfer:
         img_path, img_bytes = img[0]
         img_np = np.frombuffer(img_bytes, dtype=np.uint8)[None, :]
         # print(len(img_np))
+        try:
+            inputs = [InferInput(self.input_name, img_np.shape, "UINT8")]
+            # outputs.append(tritongrpcclient.InferRequestedOutput(self.output_name))
 
-        inputs = [InferInput(self.input_name, img_np.shape, "UINT8")]
-        # outputs.append(tritongrpcclient.InferRequestedOutput(self.output_name))
+            inputs[0].set_data_from_numpy(img_np)
 
-        inputs[0].set_data_from_numpy(img_np)
-
-        triton_results = self.triton_client.infer(
-            model_name=self.model_name, inputs=inputs, outputs=self.outputs
-        )
-
+            triton_results = self.triton_client.infer(
+                model_name=self.model_name, inputs=inputs, outputs=self.outputs
+            )
+        except Exception as e:
+            print(e)
         arr = triton_results.as_numpy(self.output_name)
         # print(arr.shape)
         max_value = np.max(arr)
@@ -196,7 +198,7 @@ class TritonWithPreprocess:
 
 
 def get_clients(model_name, num_clients):
-    return [TritonInfer() for x in range(num_clients)]
+    return [TritonInfer(model_name) for x in range(num_clients)]
 
 
 def get_clients_with_preprocess(model_name, num_clients):

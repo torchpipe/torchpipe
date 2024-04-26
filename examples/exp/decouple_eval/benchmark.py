@@ -172,8 +172,8 @@ if __name__ == "__main__":
     if (
         not os.path.exists(onnx_save_path)
         and args.model != "empty"
-        and args.model != "triton_resnet_ensemble"
-        and args.model != "triton_resnet"
+        and "triton" not in args.model
+        and 'ensemble' not in args.model
     ):
         export_onnx(onnx_save_path, args.model)
 
@@ -197,7 +197,7 @@ if __name__ == "__main__":
                 return
 
     clients = []
-    if args.model == "triton_resnet_ensemble":
+    if "ensemble" in args.model or args.model == "triton_resnet_ensemble":
         import triton_utils
 
         clients = triton_utils.get_clients(args.model, args.client)

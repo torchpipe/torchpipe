@@ -50,7 +50,7 @@ def preprocess(img_bytes):
     img_np = ((img[:, :, ::-1].astype(np.float32) - mean) / std).transpose((2, 0, 1))[
         None, ...
     ]
-
+    return img_np
 
 class TritonPythonModel:
     """Your Python model must use the same class name. Every Python model
@@ -84,7 +84,7 @@ class TritonPythonModel:
         self.output0_dtype = pb_utils.triton_string_to_numpy(
             output0_config["data_type"]
         )
-
+        print(self.output0_dtype)
     def execute(self, requests):
         """`execute` MUST be implemented in every Python model. `execute`
         function receives a list of pb_utils.InferenceRequest as the only
@@ -108,7 +108,6 @@ class TritonPythonModel:
         """
 
         output0_dtype = self.output0_dtype
-
         responses = []
 
         # Every Python backend must iterate over everyone of the requests
