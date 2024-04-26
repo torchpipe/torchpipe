@@ -2,7 +2,27 @@ import os
 import tempfile, pickle
 
 
-num_clients = [1, 5, 10, 20, 30, 40]
+import argparse
+
+parser = argparse.ArgumentParser()
+
+parser.add_argument(
+    "--cmd",
+    dest="cmd",
+    type=str,
+    default="",
+    help="basic cmd",
+)
+parser.add_argument(
+    "--num_clients",
+    dest="num_clients",
+    type=str,
+    default="1, 5, 10, 20, 30, 40",
+    help="basic num_clients",
+)
+args = parser.parse_args()
+
+num_clients = [int(x.strip()) for x in args.num_clients.split(", ")]
 
 
 def read_result(files):
@@ -39,7 +59,26 @@ def run_cpu_preprocess_cmd():
     return files
 
 
+def run_cmd(cmd):
+    def func():
+        files = []
+        for i in num_clients:
+            # generate a temp file with '.pkl' extension
+            fi = tempfile.mkstemp(suffix=".pkl")[1]
+            total_number = 5000 if i == 1 else 20000
+            cmd_new = f"{cmd} --total_number {total_number}  --client {i} --save {fi}"
+
+            os.system(cmd_new)
+            files.append(fi)
+        return files
+
+    func.__name__ = cmd.strip().split(" ")[-1]
+    return func
+
+
 target = [run_cpu_preprocess_cmd, run_gpu_preprocess_cmd]
+if args.cmd:
+    targets = [run_cmd(args.cmd)]
 results = []
 for func in target:
     files = func()
