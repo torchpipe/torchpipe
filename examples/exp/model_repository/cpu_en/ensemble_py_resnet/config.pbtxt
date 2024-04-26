@@ -21,7 +21,7 @@
 
 # https://github.com/triton-inference-server/dali_backend/tree/main/docs/examples/inception_ensemble/model_repository/inception_graphdef
 
-name: "ensemble_dali_resnet"
+name: "ensemble_py_resnet"
 platform: "ensemble"
 max_batch_size: 4
 input [

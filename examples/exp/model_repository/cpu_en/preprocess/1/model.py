@@ -28,7 +28,7 @@ import io
 import json
 
 import numpy as np
-import torchvision.transforms as transforms
+#import torchvision.transforms as transforms
 
 # triton_python_backend_utils is available in every Triton Python model. You
 # need to use this module to create inference requests and responses. It also
