@@ -67,7 +67,7 @@ def run_cmd(cmd):
             fi = tempfile.mkstemp(suffix=".pkl")[1]
             total_number = 5000 if i == 1 else 20000
             cmd_new = f"{cmd} --total_number {total_number}  --client {i} --save {fi}"
-
+            print("cmd: ", cmd_new)
             os.system(cmd_new)
             files.append(fi)
         return files
@@ -76,13 +76,13 @@ def run_cmd(cmd):
     return func
 
 
-target = [run_cpu_preprocess_cmd, run_gpu_preprocess_cmd]
+targets = [run_cpu_preprocess_cmd, run_gpu_preprocess_cmd]
 if args.cmd:
     targets = [run_cmd(args.cmd)]
 results = []
-for func in target:
+for func in targets:
     files = func()
     results.append(read_result(files))
 
-for k, v in zip(target, results):
-    print(k, v)
+for k, v in zip(targets, results):
+    print(k.__name__ + " = ", v)
