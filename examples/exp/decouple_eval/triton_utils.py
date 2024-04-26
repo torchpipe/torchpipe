@@ -92,7 +92,7 @@ class TritonWithPreprocess_:
         return max_value, max_index
 
 
-class ProcessInstance:
+class ProcessAdaptor:
     def __init__(self, class_def, args):
         from multiprocessing import Process, Queue, Event
 
@@ -207,6 +207,6 @@ def get_clients_with_preprocess(model_name, num_clients):
         return [TritonWithPreprocess(model_name) for x in range(num_clients)]
     else:
         return [
-            ProcessInstance(TritonWithPreprocess, model_name)
+            ProcessAdaptor(TritonWithPreprocess, model_name)
             for x in range(num_clients)
         ]

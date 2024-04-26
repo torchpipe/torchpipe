@@ -431,9 +431,9 @@ class ProcessAdaptor:
 
         self.queue = Queue()
         self.event = Event()
+        self.instance = Process(target=self.run)
         self.alive = Event()
 
-        self.instance = Process(target=self.run)
         self.instance.start()
 
     def forward(self, data):
@@ -445,15 +445,32 @@ class ProcessAdaptor:
     def run(self):
         self.target = self.class_def(self.args)
         while not self.alive.is_set():
-            p = self.queue.get(block=True, timeout=100)
-            if p is None:
+            try:
+                p = self.queue.get(block=True, timeout=2)
+                if p is None:
+                    continue
+            except:
                 continue
             self.target.forward(p)
             self.event.set()
 
-    def __del__(self):
+    def close(self):
         self.alive.set()
         self.instance.join()
+
+    @staticmethod
+    def close_all(clients):
+
+        from concurrent.futures import ThreadPoolExecutor
+
+        def close_client(client):
+            if hasattr(client, "close"):
+                client.close()
+                print("client closed")
+
+        # Assuming clients is a list of your client objects
+        with ThreadPoolExecutor() as executor:
+            executor.map(close_client, clients)
 
 
 # note 如果待测试函数有返回值，比如cuda上的tensor，有一定概率会copy到cpu并打印出来（初始概率下约打印10次，后续如果打印对象太大，则相应递减概率，但通常对性能影响小于千分之三
