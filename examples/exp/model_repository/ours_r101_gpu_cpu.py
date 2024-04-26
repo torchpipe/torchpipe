@@ -22,7 +22,7 @@ parser.add_argument(
 )
 args = parser.parse_args()
 
-num_clients = [int(x.strip()) for x in args.num_clients.split(", ")]
+num_clients = [int(x.strip()) for x in args.num_clients.split(",")]
 
 
 def read_result(files):
