@@ -4,6 +4,19 @@ import tempfile, pickle
 
 num_clients = [1, 5, 10, 20, 30, 40]
 
+import argparse
+
+parser = argparse.ArgumentParser()
+
+parser.add_argument(
+    "--cmd",
+    dest="cmd",
+    type=str,
+    default="",
+    help="basic cmd",
+)
+args = parser.parse_args()
+
 
 def read_result(files):
     result = []
@@ -39,11 +52,30 @@ def run_multi_thread_cmd():
     return files
 
 
-target = [run_multi_thread_cmd, run_multi_process_cmd]
+def run_cmd(cmd):
+    def func():
+        files = []
+        for i in num_clients:
+            # generate a temp file with '.pkl' extension
+            fi = tempfile.mkstemp(suffix=".pkl")[1]
+            total_number = 5000 if i == 1 else 20000
+            cmd_new = f"{cmd} --total_number {total_number}  --client {i} --save {fi}"
+
+            os.system(cmd_new)
+            files.append(fi)
+        return files
+
+    func.__name__ = cmd.strip().split(" ")[-1]
+    return func
+
+
+targets = [run_multi_thread_cmd, run_multi_process_cmd]
+if args.cmd:
+    targets = [run_cmd(args.cmd)]
 results = []
-for func in target:
+for func in targets:
     files = func()
     results.append(read_result(files))
 
-for k, v in zip(target, results):
+for k, v in zip(targets, results):
     print(k.__name__, v)
