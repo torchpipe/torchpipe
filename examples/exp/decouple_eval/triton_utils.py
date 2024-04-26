@@ -10,6 +10,8 @@ from tritonclient.grpc import InferenceServerClient, InferRequestedOutput, Infer
 MODEL_NAME = "ensemble_dali_resnet"
 RETURN_A = os.environ.get("RETURN_A", "0") == "1"
 RETURN_B = os.environ.get("RETURN_B", "0") == "1"
+RETURN_C = os.environ.get("RETURN_C", "0") == "1"
+RETURN_D = os.environ.get("RETURN_D", "0") == "1"
 
 
 class TritonInfer:
@@ -179,8 +181,13 @@ class TritonWithPreprocess:
         triton_results = self.triton_client.infer(
             model_name=self.model_name, inputs=inputs, outputs=self.outputs
         )
+        if RETURN_C:
+            return 0, 0
 
         arr = triton_results.as_numpy(self.output_name)
+
+        if RETURN_D:
+            return 0, 0
         # print(arr.shape)
         max_value = np.max(arr)
         max_index = np.argmax(arr)
