@@ -152,7 +152,7 @@ def get_config(args):
             "model::cache": f"./{model_name}_{args.max}.trt",
             "batch_process": "CpuTensor",
         },
-        "global": {"batching_timeout": args.timeout, "instance_num": "2"},
+        "global": {"batching_timeout": args.timeout},
     }
     if model_name == "empty":
         del config[model_name]
