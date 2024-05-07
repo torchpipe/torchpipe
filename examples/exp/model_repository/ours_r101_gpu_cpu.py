@@ -85,4 +85,4 @@ for func in targets:
     results.append(read_result(files))
 
 for k, v in zip(targets, results):
-    print(k.__name__ + " = ", v[0])
+    print(k.__name__ + " = ", v)

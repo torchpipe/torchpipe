@@ -260,4 +260,4 @@ if __name__ == "__main__":
         import pickle
 
         with open(args.save, "wb") as f:
-            pickle.dump({args.client: new_result, "config": config}, f)
+            pickle.dump({args.client: new_result}, f)
