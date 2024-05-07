@@ -124,12 +124,11 @@ def get_gpu_preprocess_cfg(preprocess_instances):
     if preprocess_instances == 0:
         preprocess_instances = 11
     return {
-        "backend": "S[DecodeTensor,PPLResizeTensor,CvtColorTensor,SyncTensor]",
+        "backend": "S[DecodeTensor,ResizeTensor,CvtColorTensor,SyncTensor]",
         "resize_h": "224",
         "resize_w": "224",
         "instance_num": preprocess_instances,
         "color": "rgb",
-        "data_format": "hwc",
     }
 
 
