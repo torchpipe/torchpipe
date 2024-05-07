@@ -167,7 +167,7 @@ if __name__ == "__main__":
     import time
 
     # time.sleep(5)
-
+    config = {}
     onnx_save_path = f"./{args.model}.onnx"
     if (
         not os.path.exists(onnx_save_path)
@@ -260,4 +260,4 @@ if __name__ == "__main__":
         import pickle
 
         with open(args.save, "wb") as f:
-            pickle.dump(({args.client: new_result}, config), f)
+            pickle.dump({args.client: new_result, "config": config}, f)

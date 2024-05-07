@@ -86,9 +86,3 @@ for func in targets:
 
 for k, v in zip(targets, results):
     print(k.__name__ + " = ", v[0])
-
-    loc = 0
-    for i, v in v[1].items():
-        for j, v_j in i.items():
-            loc += 1
-    print(f"LoC = {loc}")
