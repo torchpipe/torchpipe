@@ -17,7 +17,7 @@ parser.add_argument(
     "--num_clients",
     dest="num_clients",
     type=str,
-    default="1, 5, 10, 20, 30, 40",
+    default="1, 5, 10, 20, 30",
     help="basic num_clients",
 )
 args = parser.parse_args()
@@ -52,7 +52,7 @@ def run_cpu_preprocess_cmd():
         # generate a temp file with '.pkl' extension
         fi = tempfile.mkstemp(suffix=".pkl")[1]
         total_number = 5000 if i == 1 else 20000
-        cmd = f" cd /workspace/examples/exp &&python3 decouple_eval/benchmark.py --model resnet101  --preprocess-instances 7 --max 8 --trt_instance_num 2 --timeout 2  --total_number {total_number}  --client {i} --save {fi}"
+        cmd = f" cd /workspace/examples/exp &&python3 decouple_eval/benchmark.py --model resnet101  --preprocess-instances 8 --max 8 --trt_instance_num 2 --timeout 2  --total_number {total_number}  --client {i} --save {fi}"
 
         os.system(cmd)
         files.append(fi)
@@ -85,4 +85,10 @@ for func in targets:
     results.append(read_result(files))
 
 for k, v in zip(targets, results):
-    print(k.__name__ + " = ", v)
+    print(k.__name__ + " = ", v[0])
+
+    loc = 0
+    for i, v in v[1].items():
+        for j, v_j in i.items():
+            loc += 1
+    print(f"LoC = {loc}")

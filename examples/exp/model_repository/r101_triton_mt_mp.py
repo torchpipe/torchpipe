@@ -2,7 +2,7 @@ import os
 import tempfile, pickle
 
 
-num_clients = [1, 5, 10, 20, 30, 40]
+num_clients = [1, 5, 10, 20, 30]
 
 import argparse
 
@@ -78,4 +78,4 @@ for func in targets:
     results.append(read_result(files))
 
 for k, v in zip(targets, results):
-    print(k.__name__+" = ", v)
+    print(k.__name__ + " = ", v)

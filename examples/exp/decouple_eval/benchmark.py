@@ -173,7 +173,7 @@ if __name__ == "__main__":
         not os.path.exists(onnx_save_path)
         and args.model != "empty"
         and "triton" not in args.model
-        and 'ensemble' not in args.model
+        and "ensemble" not in args.model
     ):
         export_onnx(onnx_save_path, args.model)
 
@@ -260,4 +260,4 @@ if __name__ == "__main__":
         import pickle
 
         with open(args.save, "wb") as f:
-            pickle.dump({args.client: new_result}, f)
+            pickle.dump(({args.client: new_result}, config), f)
