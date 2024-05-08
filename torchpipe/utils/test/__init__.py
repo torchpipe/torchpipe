@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from .test_tools import test, test_from_raw_file, test_function
-from .Sampler import (
+from .test_tools import (
     Sampler,
     RandomSampler,
     preload,
@@ -31,7 +31,6 @@ def throughput(*args, **kwargs):
 test_functions = test_function
 __all__ = [
     "FileSampler",
-    "Sampler",
     "RandomSampler",
     "SequentialSampler",
     "preload",
