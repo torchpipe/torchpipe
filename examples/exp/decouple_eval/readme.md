@@ -50,7 +50,7 @@ python decouple_eval/benchmark.py --model resnet18 --preprocess-instances 30
 
 ```bash
 # resnet101_GPUPreprocess 
-python decouple_eval/benchmark.py  --model resnet101 --preprocess gpu --preprocess-instances 11 --total_number 40000
+python decouple_eval/benchmark.py  --model resnet101 --preprocess gpu --preprocess-instances 11 --total_number 10000
 # {40: {'QPS': 3802.07, 'TP50': 10.32, 'TP99': 13.93, 'GPU Usage': 100.0}}
  
 # resnet101_CPUPreprocess 
@@ -94,6 +94,46 @@ python decouple_eval/benchmark.py  --model faster_vit_1_224 --preprocess cpu --p
 
 
 
+# Predictability
+
+```bash
+python decouple_eval/benchmark.py  --model resnet101 --preprocess cpu --preprocess-instances 14 --total_number 40000  --client 80
+{1: {'QPS': 144.51, 'TP50': 5.29, 'TP99': 10.43, 'GPU Usage': 36.0}}
+{10: {'QPS': 1312.82, 'TP50': 7.01, 'TP99': 10.6, 'GPU Usage': 57.0}}
+{40: {'QPS': 2949.58, 'TP50': 13.36, 'TP99': 19.17, 'GPU Usage': 99.0}}
+{80: {'QPS': 2913.99, 'TP50': 26.92, 'TP99': 38.13, 'GPU Usage': 100.0}}
+
+python decouple_eval/benchmark.py  --model resnet101 --preprocess cpu --max 1 --trt_instance_num 40 --timeout 0 --preprocess-instances 14 --total_number 10000 --client 80
+{1: {'QPS': 229.05, 'TP50': 4.35, 'TP99': 4.51, 'GPU Usage': 22.0}}
+{10: {'QPS': 1297.24, 'TP50': 7.53, 'TP99': 10.5, 'GPU Usage': 98.0}}
+{40: {'QPS': 1303.3, 'TP50': 30.27, 'TP99': 43.24, 'GPU Usage': 98.0}}
+{80: {'QPS': 1244.96, 'TP50': 60.96, 'TP99': 207.66, 'GPU Usage': 97.0}}
+
+python decouple_eval/benchmark.py  --model resnet101 --preprocess cpu --max 40 --trt_instance_num 1 --timeout 10 --preprocess-instances 14 --total_number 10000 --client 80
+{1: {'QPS': 101.65, 'TP50': 7.57, 'TP99': 17.75, 'GPU Usage': 56.0}}
+{10: {'QPS': 524.0, 'TP50': 19.06, 'TP99': 19.45, 'GPU Usage': 30.5}}
+{40: {'QPS': 1840.08, 'TP50': 21.57, 'TP99': 23.46, 'GPU Usage': 54.0}}
+{80: {'QPS': 3036.11, 'TP50': 25.97, 'TP99': 33.33, 'GPU Usage': 95.0}}
+
+```
+
+
+
+```bash
+export MODEL=resnet50
+
+
+python decouple_eval/benchmark.py  --model $MODEL --preprocess cpu --max 1 --trt_instance_num 40 --timeout 0 --preprocess-instances 22 --total_number 10000 --client 80
+
+
+python decouple_eval/benchmark.py  --model $MODEL --preprocess cpu --preprocess-instances 22 --total_number 40000  --client 80
+
+
+python decouple_eval/benchmark.py  --model $MODEL --preprocess cpu --max 40 --trt_instance_num 1 --timeout 10 --preprocess-instances 22 --total_number 10000 --client 80
+
+
+```
+
 # yolox
 
 ```bash
@@ -126,4 +166,4 @@ python pipeline.py --benchmark
 ```
 
 
- 
+

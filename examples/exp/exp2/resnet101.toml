@@ -8,7 +8,7 @@ resize_h = 224
 resize_w = 224
 
 color = "rgb"
-instance_num = 11
+instance_num = 24
 
 # Schedule'parameter
 next = "resnet101"

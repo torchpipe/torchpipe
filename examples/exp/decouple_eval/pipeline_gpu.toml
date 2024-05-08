@@ -1,6 +1,5 @@
-batching_timeout = 5 #默认的凑batch的超时时间
+batching_timeout = 5 
 instance_num = 8 
-#### main graph ####
 [jpg_decoder]
 backend = "Sequential[DecodeTensor,(result2other)CvtColorTensor,PPLResizePadTensor,SyncTensor]"
 color = "bgr"
@@ -8,7 +7,6 @@ data_format = "hwc"
 instance_num = 4
 max_h = 416
 max_w = 416
-
 next = "detect"
 
 [detect]
@@ -19,10 +17,8 @@ max = 4
 
 model = "../../../examples/yolox/yolox_tiny.onnx"
 "model::cache" = "./yolox_tiny_4.trt"
-# postprocessor = "BatchingPostProcYolox_45_30"
-net_out_parser = "CpuTensor"
+batch_process = "CpuTensor"
 next = "post_det"
-# postprocessor = "cpu"
 [post_det]
 backend = "PostProcYolox" 
 instance_num = 8 
@@ -37,7 +33,6 @@ backend = "MapReduce"
 jump = "cls_preprocess"
 
 merge = "score_r,score_vit,result,r18_result"
-# merge = "result"
 split = "TASK_BOX_KEY"
 
 instance_num = 8
@@ -52,38 +47,33 @@ color = "rgb"
 instance_num = 4
 resize_h = 224
 resize_w = 224
-# save_dir="./"
 
 next = "r18,vit"
 
 #### branch 1 ####
-# SoftmaxArgMaxTensor
 [r18]
 backend = "S[TensorrtTensor,SyncTensor,ToScore]"
-# backend = "Identity" 
 batching_timeout = 10 
 instance_num = 2 
 max = 8 
 mean = "123.675, 116.28, 103.53" # 255*"0.485, 0.456, 0.406"
 model = "./resnet18.onnx" 
 "model::cache" = "./resnet18_8.trt" 
-# postprocessor = "SoftmaxArgMax" 
-net_out_parser = "CpuTensor" 
+batch_process = "CpuTensor" 
 std = "58.395, 57.120, 57.375" # 255*"0.229, 0.224, 0.225"
 
 next = "r50"
 
 [r50]
-# backend = "Identity"
 filter = "filter_score"
 
 backend = "S[TensorrtTensor,SyncTensor,ToScore]" 
+batch_process = "CpuTensor" 
 max = 4 
-mean = "123.675, 116.28, 103.53" # 255*"0.485, 0.456, 0.406"
+mean = "123.675, 116.28, 103.53" 
 model = "././resnet50.onnx" 
 "model::cache" = "./resnet50_4.trt" 
-net_out_parser = "CpuTensor" 
-std = "58.395, 57.120, 57.375" # 255*"0.229, 0.224, 0.225"
+std = "58.395, 57.120, 57.375" 
 
 next = "subgraph_final"
 
@@ -93,21 +83,17 @@ next = "subgraph_final"
 backend = "S[TensorrtTensor,SyncTensor,ToScore]"
 # backend = "Identity"
 
-# vit need larger batchsize 
 batching_timeout = 15
 max = "16;16;16"
-# backend handle batched output. Used by TensorrtTensor
-net_out_parser = "CpuTensor"
-
+batch_process = "CpuTensor"
 instance_num = 3 
-mean = "123.675, 116.28, 103.53" # 255*"0.485, 0.456, 0.406"
+mean = "123.675, 116.28, 103.53" 
 min = "16;16;1" 
 model = "././fastervit_0_224_224.onnx" 
 "model::cache" = "./fastervit_0_224_224_16.trt" 
 next = "subgraph_final" 
 "precision::fp32" = "Softmax" 
-std = "58.395, 57.120, 57.375" # 255*"0.229, 0.224, 0.225"
+std = "58.395, 57.120, 57.375" 
 
 [subgraph_final]
 map = "r50[score:score_r,result:r18_result],vit[score:score_vit,result:data]"
-# map = "r50[result:data]"
