@@ -16,7 +16,6 @@
 namespace ipipe {
 bool PPLResizeCenterPadTensor::init(const std::unordered_map<std::string, std::string>& config,
                                     dict dict_config) {
-  throw std::runtime_error("not implemented");
   params_ = std::unique_ptr<Params>(new Params({{"resize_h", "0"}, {"resize_w", "0"}}, {}, {}, {}));
   if (!params_->init(config)) return false;
 

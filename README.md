@@ -161,4 +161,3 @@ torchpie目前处于一个快速迭代阶段，我们非常需要你的帮助。
 
 
 
-[Discord](https://discord.gg/hgFwkznP)
