@@ -38,7 +38,8 @@ import torch
 
 if StrictVersion(torch.__version__.split("+")[0]) < "1.10.0a0":
     raise RuntimeError(
-        f"torch's version should >= 1.10.0a0, but get {torch.__version__}")
+        f"torch's version should >= 1.10.0a0, but get {torch.__version__}"
+    )
 
 if sys.version_info < (3, 7, 0):
     raise RuntimeError("TorchPipe requires Python 3.7.0 or later.")
@@ -56,8 +57,7 @@ if True:
 
     target = ["-g ", "-Wstrict-prototypes", "-Wdeprecated-declarations"]
     (opt,) = get_config_vars("OPT")
-    os.environ["OPT"] = " ".join(
-        flag for flag in opt.split() if flag not in target)
+    os.environ["OPT"] = " ".join(flag for flag in opt.split() if flag not in target)
     cfg_vars = distutils.sysconfig.get_config_vars()
 
     for key, value in cfg_vars.items():
@@ -111,15 +111,19 @@ WITH_OPENCV = os.getenv("WITH_OPENCV", "1") == "1"
 WITH_OPENVINO = os.getenv("WITH_OPENVINO", "0") == "1"
 if WITH_OPENVINO:
     if "WITH_TENSORRT" in os.environ and os.environ["WITH_TENSORRT"] == "1":
-        raise RuntimeError("WITH_OPENVINO and WITH_TENSORRT can not be set at the same time.")
+        raise RuntimeError(
+            "WITH_OPENVINO and WITH_TENSORRT can not be set at the same time."
+        )
     WITH_TENSORRT = False
 
     WITH_CUDA = False
     if not WITH_OPENCV:
         raise RuntimeError("WITH_OPENVINO requires WITH_OPENCV=1")
     if not "INTEL_OPENVINO_DIR" in os.environ:
-        raise RuntimeError("WITH_OPENVINO requires INTEL_OPENVINO_DIR env. Prepare by: " 
-                           "\n[source torchpipe/tool/ov.sh]")
+        raise RuntimeError(
+            "WITH_OPENVINO requires INTEL_OPENVINO_DIR env. Prepare by: "
+            "\n[source torchpipe/tool/ov.sh]"
+        )
     INTEL_OPENVINO_DIR = os.environ["INTEL_OPENVINO_DIR"]
     # check abi to b 1
     if not torch._C._GLIBCXX_USE_CXX11_ABI:
@@ -127,17 +131,20 @@ if WITH_OPENVINO:
 else:
     WITH_TENSORRT = os.getenv("WITH_TENSORRT", "1") == "1"
 
-assert(WITH_OPENVINO != WITH_TENSORRT)
+assert WITH_OPENVINO != WITH_TENSORRT
 
 BUILD_PPLCV = os.getenv("BUILD_PPLCV", "0") == "1"
 PPLCV_INSTALL = os.getenv("PPLCV_INSTALL", "0") == "1"
 
+# pip install --extra-index-url https://pypi.nvidia.com --upgrade nvidia-dali-cuda110
+WITH_DALI = os.getenv("WITH_DALI", "-1") == "1"
+
 WITH_CVCUDA = os.getenv("WITH_CVCUDA", "-1") == "1"
 FORCE_CVCUDA_DIR = os.getenv("FORCE_CVCUDA_DIR", None)
 
-CVCUDA_INSTALL=None
+CVCUDA_INSTALL = None
 
-if not WITH_CVCUDA and not FORCE_CVCUDA_DIR :
+if not WITH_CVCUDA and not FORCE_CVCUDA_DIR:
     CVCUDA_INSTALL = None
 else:
     WITH_CVCUDA = True
@@ -151,8 +158,12 @@ else:
         if properties.major < 6:
             raise RuntimeError("CVCUDA only support cuda >= 6.1")
         elif properties.major == 6:
-            print("Warning: You are using CV-CUDA with architecture sm6.1, which is not officially supported. We will utilize a self-compiled CVCUDA library.")
-            subprocess.check_output(["python", "torchpipe/tool/get_cvcuda.py", "--sm61"])
+            print(
+                "Warning: You are using CV-CUDA with architecture sm6.1, which is not officially supported. We will utilize a self-compiled CVCUDA library."
+            )
+            subprocess.check_output(
+                ["python", "torchpipe/tool/get_cvcuda.py", "--sm61"]
+            )
         else:
             subprocess.check_output(["python", "torchpipe/tool/get_cvcuda.py"])
         if not os.path.exists(CVCUDA_INSTALL):
@@ -168,6 +179,7 @@ IPIPE_KEY = os.getenv("IPIPE_KEY", None)
 if IPIPE_KEY is None:
     import random
     import time
+
     IPIPE_KEY = str(random.randint(0, 1000000000) + time.time())
     print("WARN: random IPIPE_KEY used.")
 else:
@@ -175,7 +187,9 @@ else:
 
 if WITH_CUDA:
     if cpp_extension.CUDA_HOME is None:
-        raise RuntimeError("`CUDA_HOME` is undefined. Please check if you got CUDA installed or CUDA_HOME exported.")
+        raise RuntimeError(
+            "`CUDA_HOME` is undefined. Please check if you got CUDA installed or CUDA_HOME exported."
+        )
 
     raw_output = subprocess.check_output(
         [cpp_extension.CUDA_HOME + "/bin/nvcc", "-V"], universal_newlines=True
@@ -190,7 +204,7 @@ if WITH_CUDA:
 
     if int(build_cuda_version[0]) >= 12:
         assert BUILD_PPLCV is False, "ppl.cv not support cuda 12"
-        
+
     # https://www.cnblogs.com/phillee/p/12049208.html
     if os.getenv("TORCH_CUDA_ARCH_LIST") is None:
 
@@ -205,9 +219,15 @@ if WITH_CUDA:
             avaliable["8.6"] = True
             avaliable["8.0"] = True
         elif int(build_cuda_version[0]) == 11:
-            avaliable["8.9"] = avaliable["8.9"] or int(__cuda_version__.split(".")[1])>=8
-            avaliable["8.6"] = avaliable["8.6"] or int(__cuda_version__.split(".")[1])>=1
-            avaliable["8.0"] = avaliable["8.0"] or int(__cuda_version__.split(".")[1])>=0
+            avaliable["8.9"] = (
+                avaliable["8.9"] or int(__cuda_version__.split(".")[1]) >= 8
+            )
+            avaliable["8.6"] = (
+                avaliable["8.6"] or int(__cuda_version__.split(".")[1]) >= 1
+            )
+            avaliable["8.0"] = (
+                avaliable["8.0"] or int(__cuda_version__.split(".")[1]) >= 0
+            )
         else:
             raise RuntimeError(f"Unsupported cuda version: {build_cuda_version}")
 
@@ -233,10 +253,10 @@ class CMakeBuild(BuildExtension.with_options(no_python_abi_suffix=True)):
         super().__init__(*args, **kwargs)
 
     def run(self):
-        cmake_extensions = [
-            e for e in self.extensions if isinstance(e, CMakeExtension)]
+        cmake_extensions = [e for e in self.extensions if isinstance(e, CMakeExtension)]
         self.extensions = [
-            e for e in self.extensions if not isinstance(e, CMakeExtension)]
+            e for e in self.extensions if not isinstance(e, CMakeExtension)
+        ]
 
         for ext in cmake_extensions:
             self.build_cmake_extension(ext)
@@ -244,56 +264,60 @@ class CMakeBuild(BuildExtension.with_options(no_python_abi_suffix=True)):
 
     def build_cmake_extension(self, ext: CMakeExtension) -> None:
         try:
-            out = subprocess.check_output(['cmake', '--version'])
+            out = subprocess.check_output(["cmake", "--version"])
         except OSError:
             raise RuntimeError(
-                "CMake must be installed to build the following extensions: " +
-                ", ".join(e.name for e in self.extensions))
+                "CMake must be installed to build the following extensions: "
+                + ", ".join(e.name for e in self.extensions)
+            )
 
         build_directory = os.path.abspath(self.build_temp)
         if not os.path.exists(build_directory):
             os.makedirs(build_directory)
 
         cmake_args = [
-            '-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=' + build_directory,
+            "-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=" + build_directory,
             # '-DPYTHON_EXECUTABLE=' + sys.executable
         ]
 
         install_dir = PPLCV_INSTALL
 
-        cmake_args += ['-DCMAKE_BUILD_TYPE=Release', "-DPPLCV_USE_CUDA=ON",
-                       f"-DCMAKE_INSTALL_PREFIX={install_dir}",]
+        cmake_args += [
+            "-DCMAKE_BUILD_TYPE=Release",
+            "-DPPLCV_USE_CUDA=ON",
+            f"-DCMAKE_INSTALL_PREFIX={install_dir}",
+        ]
 
-        build_args = ['-j8', "--config", "Release"]
+        build_args = ["-j8", "--config", "Release"]
 
         self.build_args = build_args
 
         env = os.environ.copy()
-        env['CXXFLAGS'] = '{} -DVERSION_INFO=\\"{}\\"'.format(
-            env.get('CXXFLAGS', ''),
-            self.distribution.get_version())
+        env["CXXFLAGS"] = '{} -DVERSION_INFO=\\"{}\\"'.format(
+            env.get("CXXFLAGS", ""), self.distribution.get_version()
+        )
 
         unsupport_arch = [35, 37, 50, 53]
         cuda_cmake = os.path.join(ext.cmakelist_dir, "cmake/cuda.cmake")
         if os.path.exists(cuda_cmake):
             for arch in unsupport_arch:
                 subprocess.check_call(
-                    [f"sed -i '/arch=compute_{arch},code=sm_{arch}/d' {cuda_cmake}"], shell=True)
+                    [f"sed -i '/arch=compute_{arch},code=sm_{arch}/d' {cuda_cmake}"],
+                    shell=True,
+                )
 
-        subprocess.check_call(['cmake', ext.cmakelist_dir] + cmake_args,
-                              cwd=self.build_temp, env=env)
+        subprocess.check_call(
+            ["cmake", ext.cmakelist_dir] + cmake_args, cwd=self.build_temp, env=env
+        )
 
-        cmake_cmd = ['cmake', '--build', '.'] + self.build_args
-        subprocess.check_call(cmake_cmd,
-                              cwd=self.build_temp)
+        cmake_cmd = ["cmake", "--build", "."] + self.build_args
+        subprocess.check_call(cmake_cmd, cwd=self.build_temp)
 
-        cmake_cmd = ['cmake',  '--build', '.',
-                     "--target", "install"] + self.build_args
+        cmake_cmd = ["cmake", "--build", ".", "--target", "install"] + self.build_args
 
-        subprocess.check_call(cmake_cmd,
-                              cwd=self.build_temp)
+        subprocess.check_call(cmake_cmd, cwd=self.build_temp)
 
-    #  cmake -DCMAKE_BUILD_TYPE=Release  -DPPLCV_USE_CUDA=ON -DCMAKE_INSTALL_PREFIX=/tmp/ppl.cv/cuda-build/install .. && cmake --build . -j 8 --config Release && cmake --build . --target install -j 8 --config Release
+        #  cmake -DCMAKE_BUILD_TYPE=Release  -DPPLCV_USE_CUDA=ON -DCMAKE_INSTALL_PREFIX=/tmp/ppl.cv/cuda-build/install .. && cmake --build . -j 8 --config Release && cmake --build . --target install -j 8 --config Release
 
         for ext in self.extensions:
             self.move_output(ext)
@@ -341,53 +365,68 @@ def get_extensions():
     )
 
     if WITH_OPENCV:
-        source_cpu += glob.glob(os.path.join(extensions_dir,
-                                "opencv", "src", "*.cpp"))
+        source_cpu += glob.glob(os.path.join(extensions_dir, "opencv", "src", "*.cpp"))
         source_cpu += glob.glob(
             os.path.join(extensions_dir, "thirdpart", "pillow-resize", "*.cpp")
         )
-        source_cpu += glob.glob(
-            os.path.join(this_dir, "thirdparty/cvnp/cvnp", "*.cpp")
-        )
+        source_cpu += glob.glob(os.path.join(this_dir, "thirdparty/cvnp/cvnp", "*.cpp"))
     if PPLCV_INSTALL:
-        source_cpu += glob.glob(os.path.join(extensions_dir,
-                                "ppl.cv", "src", "*.cpp"))
+        source_cpu += glob.glob(os.path.join(extensions_dir, "ppl.cv", "src", "*.cpp"))
 
     third_includes = [os.path.join(this_dir, "thirdparty/")]
 
     thirdpart_lib_dirs = []
     thirdpart_libs = []
-    extra_link_args=[]
+    extra_link_args = []
+
+    if WITH_DALI:
+        import importlib
+
+        try:
+            spec = importlib.util.find_spec("nvidia.dali")
+            assert spec is not None
+        except Exception as e:
+            print(e)
+            print(
+                "install dali with: pip install --extra-index-url https://pypi.nvidia.com --upgrade nvidia-dali-cuda110"
+            )
+            exit(-1)
+        module_path = spec.submodule_search_locations[0]
+
+        third_includes.append(os.path.join(module_path, "include"))
+        thirdpart_libs += ["dali", "dali_core", "dali_kernels", "dali_operators"]
+        thirdpart_lib_dirs += [module_path]
+        source_cpu += glob.glob(os.path.join(extensions_dir, "dali", "*.cpp"))
 
     if WITH_CVCUDA:
-        source_cpu += glob.glob(os.path.join(extensions_dir,
-                                "cvcuda", "src", "*.cpp"))
-        assert(os.path.exists(CVCUDA_INSTALL))
+        source_cpu += glob.glob(os.path.join(extensions_dir, "cvcuda", "src", "*.cpp"))
+        assert os.path.exists(CVCUDA_INSTALL)
         third_includes += [os.path.join(CVCUDA_INSTALL, "include")]
 
         cvcuda_libdir = os.path.join(CVCUDA_INSTALL, "lib/x86_64-linux-gnu/")
         thirdpart_lib_dirs += [cvcuda_libdir]
-        thirdpart_libs += ["cvcuda", 'nvcv_types']
+        thirdpart_libs += ["cvcuda", "nvcv_types"]
         # 添加/opt/nvidia/cvcuda0/lib/x86_64-linux-gnu/ 作为动态库搜索路径
-        extra_link_args += [f'-Wl,-rpath={cvcuda_libdir}']
+        extra_link_args += [f"-Wl,-rpath={cvcuda_libdir}"]
 
-        real_path_libcvcuda = os.path.realpath(os.path.join(cvcuda_libdir, "libcvcuda.so"))
-        real_path_libnvcv_types = os.path.realpath(os.path.join(cvcuda_libdir, "libnvcv_types.so"))
-        assert(os.path.exists(real_path_libcvcuda))
+        real_path_libcvcuda = os.path.realpath(
+            os.path.join(cvcuda_libdir, "libcvcuda.so")
+        )
+        real_path_libnvcv_types = os.path.realpath(
+            os.path.join(cvcuda_libdir, "libnvcv_types.so")
+        )
+        assert os.path.exists(real_path_libcvcuda)
         install_files.append(real_path_libcvcuda)
         install_files.append(real_path_libnvcv_types)
 
-        
     if WITH_OPENVINO:
-        source_cpu += glob.glob(os.path.join(
-        extensions_dir, "openvino", "src", "*.cpp"))
-        
-        third_includes += [os.path.join(extensions_dir, "openvino/include")]
-        
-    
+        source_cpu += glob.glob(
+            os.path.join(extensions_dir, "openvino", "src", "*.cpp")
+        )
 
-    source_cuda = glob.glob(os.path.join(
-        extensions_dir, "backend", "src_cuda", "*.cu"))
+        third_includes += [os.path.join(extensions_dir, "openvino/include")]
+
+    source_cuda = glob.glob(os.path.join(extensions_dir, "backend", "src_cuda", "*.cu"))
 
     source_cuda += glob.glob(
         os.path.join(extensions_dir, "backend", "src_cuda", "*.cpp")
@@ -412,7 +451,6 @@ def get_extensions():
         source_cpu = [x for x in source_cpu if "Mat" not in x]
 
     sources = main_file + source_cpu
-    
 
     compile_cpp_tests = os.getenv("WITH_CPP_MODELS_TEST", "0") == "1"
     if compile_cpp_tests:
@@ -428,10 +466,7 @@ def get_extensions():
 
     define_macros = [("PYBIND", None)]
 
-    
-    extra_compile_args = {
-            "cxx": ["-Wno-unused-parameter", "-std=c++17"]
-        } 
+    extra_compile_args = {"cxx": ["-Wno-unused-parameter", "-std=c++17"]}
 
     # if int(build_cuda_version[0]) >= 11:
     #     extra_compile_args = {
@@ -442,7 +477,7 @@ def get_extensions():
 
     sources += source_cuda
     if WITH_CUDA:
-        assert(torch.cuda.is_available())
+        assert torch.cuda.is_available()
         extension = CUDAExtension
 
         define_macros += [("WITH_CUDA", None)]
@@ -457,10 +492,7 @@ def get_extensions():
         extra_compile_args["nvcc"] += ["-std=c++17"]
     else:
         extension = CppExtension
-        sources = [x for x in sources if "Tensor" not in x and
-                     "Torch.cpp" not in x ]
-
- 
+        sources = [x for x in sources if "Tensor" not in x and "Torch.cpp" not in x]
 
     debug_mode = os.getenv("DEBUG", "0") == "1"
 
@@ -477,6 +509,8 @@ def get_extensions():
         extra_compile_args["cxx"] += [(f"-DIPIPE_KEY={IPIPE_KEY}")]
     if PPLCV_INSTALL:
         extra_compile_args["cxx"] += [("-DWITH_PPLCV")]
+    if WITH_DALI:
+        extra_compile_args["cxx"] += [("-DWITH_DALI")]
     if WITH_CUDA:
         extra_compile_args["cxx"] += [("-DWITH_CUDA")]
     if os.environ.get("PYTORCH_NO_CUDA_MEMORY_CACHING", "0") == "1":
@@ -495,11 +529,13 @@ def get_extensions():
             extra_compile_args["nvcc"].append("-O0")
             extra_compile_args["nvcc"].append("-g")
     else:
-        extra_compile_args["cxx"] += [("-DNDEBUG"),
-                                      "-O3", "-finline-functions"]
+        extra_compile_args["cxx"] += [("-DNDEBUG"), "-O3", "-finline-functions"]
         if "nvcc" in extra_compile_args:
             extra_compile_args["cxx"] += [("-DNDEBUG"), "-O3"]
-    extra_compile_args["cxx"] += ["-fPIC", "-Werror=return-type"]  # +["-fvisibility=hidden"]
+    extra_compile_args["cxx"] += [
+        "-fPIC",
+        "-Werror=return-type",
+    ]  # +["-fvisibility=hidden"]
 
     extra_link_args += ["-Wl,-Bsymbolic-functions"]
 
@@ -519,7 +555,7 @@ def get_extensions():
 
     image_src += sources
     opencv_includes = []
-    
+
     if WITH_OPENCV:
         defualt_opencv_include = "/usr/local/include/opencv4/"
         if not os.path.exists(defualt_opencv_include):
@@ -538,7 +574,7 @@ def get_extensions():
         ):
             default_opencv_lib_dir = "/usr/lib/x86_64-linux-gnu/"
         opencv_lib_dir = os.getenv("OPENCV_LIB_DIR", default_opencv_lib_dir)
-        
+
         # if compilation failed, you may try;
         # if sys.executable.find("conda") != -1:
         #     extra_link_args += ["-static-libstdc++"]
@@ -550,7 +586,6 @@ def get_extensions():
             )
         thirdpart_lib_dirs.append(opencv_lib_dir)
 
-    
     third_includes += [
         os.path.join(extensions_dir, "../..", "thirdparty/dep_sort"),
         os.path.join(extensions_dir, "../..", "thirdparty/digraph/dglib"),
@@ -568,8 +603,7 @@ def get_extensions():
             os.path.join(extensions_dir, x, "include")
             for x in os.listdir(extensions_dir)
         ]
-        + [os.path.join(extensions_dir, x, "src")
-           for x in os.listdir(extensions_dir)]
+        + [os.path.join(extensions_dir, x, "src") for x in os.listdir(extensions_dir)]
         + [
             os.path.join(extensions_dir, x, "src_cuda")
             for x in os.listdir(extensions_dir)
@@ -588,8 +622,6 @@ def get_extensions():
     image_include = [extensions_dir]
     image_library = []
     image_link_flags = []
-
-
 
     nvjpeg_found = (
         extension is CUDAExtension
@@ -610,19 +642,17 @@ def get_extensions():
     #     link_fs = ["-lstdc++fs"]
     print("extra_compile_args: ", extra_compile_args)
 
-    
-    
     if WITH_OPENVINO:
-        ov_home = os.path.join(INTEL_OPENVINO_DIR,"runtime")
+        ov_home = os.path.join(INTEL_OPENVINO_DIR, "runtime")
         openvino_include_dir = os.path.join(ov_home, "include")
         include_dirs.append(openvino_include_dir)
 
         openvino_lib_dir = os.path.join(ov_home, "lib/intel64")
         thirdpart_lib_dirs.append(openvino_lib_dir)
-        extra_link_args += [f'-Wl,-rpath={openvino_lib_dir}']
+        extra_link_args += [f"-Wl,-rpath={openvino_lib_dir}"]
 
         # tmp = [os.path.basename(x).replace("lib",'') for x in tmp]
-        thirdpart_libs += ['openvino']
+        thirdpart_libs += ["openvino"]
 
     if PPLCV_INSTALL:
         if not BUILD_PPLCV:
@@ -632,20 +662,16 @@ def get_extensions():
         pplcv_lib_dir = os.path.join(PPLCV_INSTALL, "lib")
         thirdpart_lib_dirs.append(pplcv_lib_dir)
         #
-        extra_link_args.append(f'-Wl,-rpath={pplcv_lib_dir}')
-        extra_link_args.append('-Wl,-Bsymbolic')
-        extra_link_args.append(os.path.join(
-            pplcv_lib_dir, "libpplcv_static.a"))
-        extra_link_args.append(os.path.join(
-            pplcv_lib_dir, "libpplcommon_static.a"))
+        extra_link_args.append(f"-Wl,-rpath={pplcv_lib_dir}")
+        extra_link_args.append("-Wl,-Bsymbolic")
+        extra_link_args.append(os.path.join(pplcv_lib_dir, "libpplcv_static.a"))
+        extra_link_args.append(os.path.join(pplcv_lib_dir, "libpplcommon_static.a"))
 
     # ------------------- torchpipe extra extensions ------------------------
     pipe_include = os.environ.get("TORCHPIPE_INCLUDE", None)
     pipe_library = os.environ.get("TORCHPIPE_LIBRARY", None)
-    pipe_include = pipe_include.split(
-        os.pathsep) if pipe_include is not None else []
-    pipe_library = pipe_library.split(
-        os.pathsep) if pipe_library is not None else []
+    pipe_include = pipe_include.split(os.pathsep) if pipe_include is not None else []
+    pipe_library = pipe_library.split(os.pathsep) if pipe_library is not None else []
     include_dirs += pipe_include
     library_dirs = pipe_library
     if WITH_CUDA:
@@ -664,19 +690,20 @@ def get_extensions():
         ]
     ext_modules = []
     if PPLCV_INSTALL:
-        ext_modules.append(CMakeExtension("ppl.cv", "thirdparty/ppl.cv/") )
+        ext_modules.append(CMakeExtension("ppl.cv", "thirdparty/ppl.cv/"))
 
-    ext_modules.append(extension(
-        "torchpipe.libipipe",
-        sorted(sources),
-        include_dirs=include_dirs,
-        define_macros=define_macros + image_macros,
-        extra_compile_args=extra_compile_args,
-        extra_link_args=extra_link_args,  # "-lstdc++fs"
-        library_dirs=["./lib", "/usr/local/lib/"] + thirdpart_lib_dirs,
-        libraries=thirdpart_libs
-        + extra_lib,
-    ))
+    ext_modules.append(
+        extension(
+            "torchpipe.libipipe",
+            sorted(sources),
+            include_dirs=include_dirs,
+            define_macros=define_macros + image_macros,
+            extra_compile_args=extra_compile_args,
+            extra_link_args=extra_link_args,  # "-lstdc++fs"
+            library_dirs=["./lib", "/usr/local/lib/"] + thirdpart_lib_dirs,
+            libraries=thirdpart_libs + extra_lib,
+        )
+    )
 
     return ext_modules
 
@@ -715,8 +742,7 @@ def get_include_dirs():
     return res
 
 
-install_files = [os.path.abspath(
-    "torchpipe/csrc/core/include/torchpipe/extension.h")]
+install_files = [os.path.abspath("torchpipe/csrc/core/include/torchpipe/extension.h")]
 inc_ = get_include_dirs()
 for i in inc_:
     files = os.listdir(i)
@@ -735,7 +761,7 @@ for root, dir_local, names in os.walk(
     for name in names:
         install_files.append(os.path.join(root, name))
 
-    
+
 if __name__ == "__main__":
     # print("install_files: \n", install_files)
     print(f"Building wheel {package_name}-{version}")
@@ -759,7 +785,7 @@ if __name__ == "__main__":
     #     files = ["libcvcuda.so.0.5.0", "libnvcv_types.so.0.5.0",
     #              "libcvcuda.so.0", "libnvcv_types.so.0",
     #              "libcvcuda.so", "libnvcv_types.so"]
-    #     data_files = [os.path.join(cvcuda_libdir, x) for x in files]   
+    #     data_files = [os.path.join(cvcuda_libdir, x) for x in files]
     #     print(data_files)
     setup(
         # Metadata

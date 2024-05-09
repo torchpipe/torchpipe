@@ -44,8 +44,8 @@ static inline at::TensorOptions get_tensor_option(c10::ScalarType dtype) {
 at::Tensor switch_device(at::Tensor input);
 at::Tensor async2cpu(at::Tensor input);
 
-at::Tensor tensor2nchw(at::Tensor, int& n, int& c, int& h, int& w);
-
+// at::Tensor tensor2nchw(at::Tensor, int& n, int& c, int& h, int& w);
+at::Tensor tensor2nchw(at::Tensor in);
 /**
  * @brief change hwc or 1chw to 1chw and check c==1 or 3, 4
  *

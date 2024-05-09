@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.4.4 (2024.05.08)
+- add c++2py for long long type;
+- add PPLResizePadTensor; CpuTensor,NCHWTensor;
+- add ProcessAdaptor for test_tools 
+- add batch_process for TensorrtTensor
+- BUG FIX: MapReduce and PipelineV3 may cause resource deadlock under specific extreme conditions.
+
+
+
 ## v0.4.3 (2024.02.27)
 - Add suppport for tensorrt 9.3
 - make docker image default to tensorrt 9.3

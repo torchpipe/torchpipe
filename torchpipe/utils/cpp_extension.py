@@ -23,6 +23,7 @@ IS_LINUX = platform.system() == "Linux"
 
 from torchpipe import WITH_CUDA
 
+
 def make_relative_rpath_args(path):
     if IS_DARWIN:
         return ["-Wl,-rpath,@loader_path/" + path]
@@ -48,10 +49,8 @@ include_dirs = [
     os.path.join(torchpipe_dir, "csrc"),
     os.path.join(torchpipe_dir, "../thirdparty/spdlog/include/"),
     "/usr/local/include/",
-    "/usr/local/include/opencv4/"
+    "/usr/local/include/opencv4/",
 ] + [include_dir]
-
-DEFAULT_REBUILD_IF_EXIST = os.environ.get("DEBUG", "0") == "1"
 
 lib_dir = ""
 lib_path = ""
@@ -80,11 +79,12 @@ def _import_module_from_library(module_name, path, is_python_module):
     else:
         torch.ops.load_library(filepath)
 
+
 def load_filter(
     name="",
-    sources = "",
+    sources="",
     sources_header="",
-    rebuild_if_exist=DEFAULT_REBUILD_IF_EXIST,
+    rebuild_if_exist=os.environ.get("REBUILD_IF_EXIST", "1") == "1",
     is_python_module=False,
     extra_include_paths=[],
     extra_ldflags=[],
@@ -94,12 +94,13 @@ def load_filter(
 ):
     if len(name) == 0:
         import random
+
         name = str(random.random())
-    cls_name = name.replace(".","")
+    cls_name = name.replace(".", "")
     # 通过tempfile获得临时文件夹
     if True:
         # 将源文件写入临时文件夹
-        file_context_start = f'''
+        file_context_start = f"""
         #include <torch/extension.h>
         #include "filter.hpp"
         #include "reflect.h"
@@ -116,7 +117,7 @@ def load_filter(
         IPIPE_REGISTER(Filter, Filter{cls_name}, "{name}");
         }}
         
-        '''
+        """
         from torch.utils.cpp_extension import _get_build_directory
 
         target_exten_dir = _get_build_directory(name, False)
@@ -132,7 +133,7 @@ def load_filter(
             sources=[os.path.join(tmpdir, f"{name}.cpp")],
             rebuild_if_exist=rebuild_if_exist,
             is_python_module=is_python_module,
-            extra_include_paths=extra_include_paths ,
+            extra_include_paths=extra_include_paths,
             extra_ldflags=extra_ldflags,
             with_cuda=with_cuda,
             *args,
@@ -140,13 +141,13 @@ def load_filter(
         )
         # 调用import_module_from_library函数导入
         return _import_module_from_library(name, tmpdir, is_python_module)
-    
+
 
 def load_backend(
     name="",
-    sources = "",
+    sources="",
     sources_header="",
-    rebuild_if_exist=DEFAULT_REBUILD_IF_EXIST,
+    rebuild_if_exist=os.environ.get("REBUILD_IF_EXIST", "1") == "1",
     is_python_module=False,
     extra_include_paths=[],
     extra_ldflags=[],
@@ -156,12 +157,13 @@ def load_backend(
 ):
     if len(name) == 0:
         import random
+
         name = str(random.random())
-    cls_name = name.replace(".","")
+    cls_name = name.replace(".", "")
     # 通过tempfile获得临时文件夹
     if True:
         # 将源文件写入临时文件夹
-        file_context_start = f'''
+        file_context_start = f"""
         #include <torch/extension.h>
         #include "Backend.hpp"
         #include "reflect.h"
@@ -178,7 +180,7 @@ def load_backend(
         IPIPE_REGISTER(Backend, Backend{cls_name}, "{name}");
         }}
         
-        '''
+        """
         from torch.utils.cpp_extension import _get_build_directory
 
         target_exten_dir = _get_build_directory(name, False)
@@ -194,7 +196,7 @@ def load_backend(
             sources=[os.path.join(tmpdir, f"{name}.cpp")],
             rebuild_if_exist=rebuild_if_exist,
             is_python_module=is_python_module,
-            extra_include_paths=extra_include_paths ,
+            extra_include_paths=extra_include_paths,
             extra_ldflags=extra_ldflags,
             with_cuda=with_cuda,
             *args,
@@ -202,14 +204,14 @@ def load_backend(
         )
         # 调用import_module_from_library函数导入
         return _import_module_from_library(name, tmpdir, is_python_module)
-    
+
     # call load to compile filter
-    
+
 
 def load(
     name="",
     sources=[],
-    rebuild_if_exist=DEFAULT_REBUILD_IF_EXIST,
+    rebuild_if_exist=os.environ.get("REBUILD_IF_EXIST", "1") == "1",
     is_python_module=False,
     extra_include_paths=[],
     extra_ldflags=[],

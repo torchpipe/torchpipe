@@ -43,19 +43,23 @@ def onnx_export(
         )
     if opset is None:
         import torchpipe
+
         try:
             opset = torchpipe.supported_opset()
+            print(f"export onnx with opset {opset}")
             assert opset > 10 and opset < 100
         except Exception as e:
-            opset = None
+            print("get opset failed: ", e)
+            opset = 17
 
-    
     if input is None:
         dummy_input = torch.randn(*(1, 3, 224, 224), device="cpu")
 
-    elif (isinstance(input, tuple) and isinstance(input[0], int)) or isinstance(input, dict):
+    elif (isinstance(input, tuple) and isinstance(input[0], int)) or isinstance(
+        input, dict
+    ):
         dummy_input = torch.randn(*input, device="cpu")
-    elif (isinstance(input, tuple) and isinstance(input[0], torch.Tensor)):
+    elif isinstance(input, tuple) and isinstance(input[0], torch.Tensor):
         raise ValueError("multiple input not support now")
         dummy_input = input
     elif isinstance(input, torch.Tensor):
@@ -159,8 +163,7 @@ if __name__ == "__main__":
     tmp_dir = "/tmp"
     model_name = "resnet50"
 
-    m = timm.create_model(model_name, pretrained=True,
-                          exportable=True, num_classes=3)
+    m = timm.create_model(model_name, pretrained=True, exportable=True, num_classes=3)
     m.eval()
     onnx_path = os.path.join(tmp_dir, f"{model_name}.onnx")
     export_onnx(m, onnx_path)

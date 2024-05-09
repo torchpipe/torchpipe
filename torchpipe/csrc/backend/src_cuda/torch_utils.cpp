@@ -142,8 +142,6 @@ at::Tensor switch_device(at::Tensor input) {
                                                   // memory， 不怕析构
 }
 
-
-
 //  测试 cudaMemcpyAsync 是同步还是异步（非pinnedmemory）
 // 结论 此时 cudaMemcpyAsync 和 cudaMemcpy 差不多
 class TestRun {
@@ -456,7 +454,7 @@ at::Tensor tensor_permute(at::Tensor input, const std::vector<int>& min_shape,
       ss << "please check it.";
       throw std::runtime_error("input shape and network shape not match. " + ss.str());
     }
-    SPDLOG_DEBUG("implicit batch mode deprecated.");
+    // SPDLOG_DEBUG("implicit batch mode deprecated.");
     input = input.permute(permute_vector);
   }
   return input;

@@ -58,7 +58,8 @@ bool TensorrtTensor::init(const std::unordered_map<std::string, std::string>& co
                                                 {"TensorrtTensor::backend", ""},
                                                 {"save_engine", ""},
                                                 {"instance_num", "1"},
-                                                {"force_range", ""}},
+                                                {"force_range", ""},
+                                                {"batch_process", ""}},
                                                {}, {}, {}));
 
 #if NV_TENSORRT_MAJOR < 7
@@ -197,6 +198,11 @@ bool TensorrtTensor::init(const std::unordered_map<std::string, std::string>& co
                  max_);
   }
   IPIPE_ASSERT(min_ >= 1 && max_ >= min_);
+  if (!params_->at("batch_process").empty()) {
+    batch_process_ =
+        std::unique_ptr<Backend>(IPIPE_CREATE(Backend, params_->at("batch_process")));
+    IPIPE_ASSERT(batch_process_->init(config_param, dict_config) && batch_process_->min() == 1);
+  }
 
   return true;
 }
@@ -527,6 +533,13 @@ void TensorrtTensor::forward(const std::vector<dict>& raw_inputs) {
     outputs_sorted[new_location_ouputs_[i]] = outputs_[i];
   }
   outputs_.swap(outputs_sorted);
+
+  if (batch_process_) {
+    dict batched = std::make_shared<std::unordered_map<std::string, any>>();
+    (*batched)[TASK_DATA_KEY] = outputs_;
+    batch_process_->forward({batched});
+    TRACE_EXCEPTION(outputs_ = any_cast<std::vector<at::Tensor>>(batched->at(TASK_RESULT_KEY)));
+  }
 
   postprocessor_->forward(outputs_, raw_inputs, inputs_);
 
