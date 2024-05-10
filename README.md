@@ -54,6 +54,10 @@ Then start the container and if your machine supports [a higher version of the i
 img_name=nvcr.io/nvidia/pytorch:23.05-py3  # for tensort8.6.1, LayerNorm
 # img_name=nvcr.io/nvidia/pytorch:22.12-py3  # For driver version lower than 510
 docker run --rm --gpus=all --ipc=host  --network=host -v `pwd`:/workspace  --shm-size 1G  --ulimit memlock=-1 --ulimit stack=67108864  --privileged=true  -w/workspace -it $img_name /bin/bash
+
+python setup.py install
+
+cd examples/resnet18 && python resnet18.py
 ```
 
 > NOTE: If you are using a transformer-ish model, it is strongly recommended to use TensorRT >= 8.6.1 (`nvcr.io/nvidia/pytorch:23.05-py3`) for supporting opset 17 for `LayerNormalization` and opset 18 `GroupNormalization`.
