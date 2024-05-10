@@ -1,84 +1,100 @@
 
-[English](./README_en.md) | 简体中文
 
-
+English | [简体中文](README_zh.md)
 
 
 <div align="center">
-<h1 align="center">torchpipe</h1>
-<h6 align="center"><a href="https://pytorch.org/">Pytorch</a> 内的多线程流水线并行库</h6>
+<h1 align="center">TorchPipe</h1>
+Serving inside Pytorch with Multiple Threads
+<!-- A Minimalist High-Throughput Deep Learning Model Deployment Framework
+
+
+<h6 align="center">Ensemble Pipeline Serving for  <a href="https://pytorch.org/">Pytorch</a> Frontend</h6> -->
+
 
 <!-- <img alt="license" src="https://img.shields.io/github/license/alibaba/async_simple?style=flat-square"> -->
+[![Documentation](https://img.shields.io/badge/torchpipe-Docs-brightgreen.svg)](https://torchpipe.github.io)
 <!-- <img alt="license" src="https://img.shields.io/github/license/alibaba/async_simple?style=flat-square">  -->
-<!-- [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)  -->
-[![Documentation](https://img.shields.io/badge/torchpipe-Docs-brightgreen.svg)](https://torchpipe.github.io/zh/)
 <!-- <img alt="language" src="https://img.shields.io/github/languages/top/torchpipe/torchpipe.github.io?style=flat-square"> -->
 <!-- <img alt="feature" src="https://img.shields.io/badge/pytorch-Serving-orange?style=flat-square"> -->
 <!-- <img alt="last commit" src="https://img.shields.io/github/last-commit/torchpipe/torchpipe.github.io?style=flat-square"> -->
 </div>
 
-<!-- [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)  -->
 
 
 
+Torchpipe is an alternative choice for [Triton Inference Server]((https://github.com/triton-inference-server/server)), mainly featuring similar functionalities such as [Shared-momory](https://docs.nvidia.com/deeplearning/triton-inference-server/user-guide/docs/protocol/extension_shared_memory.html)，[Ensemble](https://github.com/triton-inference-server/server/blob/main/docs/user_guide/architecture.md#ensemble-models), [BLS](https://github.com/triton-inference-server/python_backend#business-logic-scripting) mechanism. It aims to address common problems faced by the industry.
 
+Production-Grade：Within NetEase over billions of calls supported by Torchpipe everyday.
 
-torchpipe是 介于底层加速库（如tensorrt，opencv，CVCUDA, ppl.cv）以及 RPC（如thrift, gRPC）之间并与他们严格解耦的多实例流水线并行库；对外提供面向pytorch前端的线程安全函数接口，对内提供面向用户的细粒度后端扩展。
-
-
-torchpipe是 [Triton Inference Server](https://github.com/triton-inference-server/server) 的一个代替选择，主要功能类似于其[共享显存](https://docs.nvidia.com/deeplearning/triton-inference-server/user-guide/docs/protocol/extension_shared_memory.html)，[Ensemble](https://github.com/triton-inference-server/server/blob/main/docs/user_guide/architecture.md#ensemble-models), [BLS](https://github.com/triton-inference-server/python_backend#business-logic-scripting)机制。
-
-生产级别：在网易智企内部，每天有海量调用由Torchpipe支持。
-
-## **注意事项**
-
-- 建议选择以下两种方式测试多客户端同时发送请求下结果的一致性：
-    - 少量输入（比如10张图片），在线校验每张图片输出结果相同
-    - 大量输入（比如10000张图片），离线保存结果，校验多次一致性
-
-tensorrt在max_batch_size=4时，很多时候输入1张和4张时结果有差异，这是正常的。但是此时固定输入只有有限种类（一般为2）结果
-
-<!-- ## 注意事项 
-- 版本说明：推荐使用最新tag以及对应release
-- main分支用于发布版本更新，develop分支用于提交代码和日常开发； -->
  
+
+## Installation
+
+
+
+
+<details>
+    <summary>Using NGC Docker Image</summary>
+
+
+### Using NGC Docker Image
+The easiest way is to choose NGC mirror for source code compilation (official mirror may still be able to run low version drivers through Forward Compatibility or Minor Version Compatibility).
+
+
+- Minimum support `nvcr.io/nvidia/pytorch:21.07-py3` (Starting from 0.3.2rc3)
+- Maximum support `nvcr.io/nvidia/pytorch:23.08-py3`
+
+
+First, clone the code:
+```bash
+$ git clone https://github.com/torchpipe/torchpipe.git
+$ cd torchpipe/ && git submodule update --init --recursive
+```
+
+Then start the container and if your machine supports [a higher version of the image](https://catalog.ngc.nvidia.com/orgs/nvidia/containers/pytorch/tags), you can use the updated version of the Pytorch image.
+```bash
+img_name=nvcr.io/nvidia/pytorch:23.05-py3  # for tensort8.6.1, LayerNorm
+# img_name=nvcr.io/nvidia/pytorch:22.12-py3  # For driver version lower than 510
+docker run --rm --gpus=all --ipc=host  --network=host -v `pwd`:/workspace  --shm-size 1G  --ulimit memlock=-1 --ulimit stack=67108864  --privileged=true  -w/workspace -it $img_name /bin/bash
+```
+
+> NOTE: If you are using a transformer-ish model, it is strongly recommended to use TensorRT >= 8.6.1 (`nvcr.io/nvidia/pytorch:23.05-py3`) for supporting opset 17 for `LayerNormalization` and opset 18 `GroupNormalization`.
+
+</details>
+
+<details>
+    <summary>From Dockerfile</summary>
+    ```bash
+# build docker image by yourself (recommend, for tensorrt 9.3): 
+docker build --network=host -f ./docker/Dockerfile -t trt-9 thirdparty/
+export img_name=trt-9
+```
+</details>
+
+
+## Multi-Instance High-Throughput Serving
+Torchpipe is a multi-instance pipeline parallel library that acts as a bridge between lower-level acceleration libraries (such as TensorRT, OpenCV, CVCUDA) and RPC frameworks (like Thrift, gRPC), ensuring a strict decoupling from them. It offers a thread-safe function interface for the PyTorch frontend at a higher level, while empowering users with fine-grained backend extension capabilities at a lower level.
+
+<!-- <img alt="teaser" src="./docs/teaser.png"> -->
+
+
+## Minimalist Configuration
+
+The configuration of AI pipelines can be a complex and error-prone task, often requiring deep technical expertise. TorchPipe is designed to be intuitive and user-friendly, allowing even those with limited technical background in AI deployment to configure and optimize their AI pipelines efficiently. This enables users to define complex pipeline behaviors without getting bogged down in intricate coding details.
+
+
+<!-- ## Notes
+-  Use the latest tag and corresponding release.
+-  The main branch is used for releasing version updates, while the develop branch is used for code submission and daily development. -->
+
 <!-- end elevator-pitch -->
 
-## 快速开始
+## Quick Start
 
 <!-- start quickstart -->
 
-
-###  1. 安装 
-- clone code :
-
-```bash
-git clone https://github.com/torchpipe/torchpipe.git
-cd torchpipe/ && git submodule update --init --recursive
-```
-- prepare env
-
-```bash
-export img_name=nvcr.io/nvidia/pytorch:22.12-py3 
-# or build docker image by yourself (recommend, for tensorrt 9.3): 
-# docker build --network=host -f ./docker/Dockerfile -t trt-9 thirdparty/
-# export img_name=trt-9
-```
-
-- build torchpipe
-```bash
-docker run --rm --gpus=all --ipc=host  --network=host -v `pwd`:/workspace  --shm-size 1G  --ulimit memlock=-1 --ulimit stack=67108864  --privileged=true  -w/workspace -it $img_name /bin/bash
-
-python setup.py install
-
-cd examples/resnet18 && python resnet18.py
-```
-
-详见 [安装文档](https://torchpipe.github.io/zh/docs/installation)
-
-
-### 2. 获取恰当的模型文件(目前支持 onnx, trt engine等) 
-
+### 1. Get appropriate model file (currently supports ONNX, TensorRT engine, etc.).
 
 ```python
 import torchvision.models as models
@@ -96,68 +112,82 @@ torch.onnx.export(resnet18, data_bchw, model_path,
 # os.system(f"onnxsim {model_path} {model_path}")
 ```
  
-### 3. 现在你可以并发调用单模型了
+### 2. Now you can perform concurrent calls to a single model.
 
 ```python
 import torch, torchpipe
 model = torchpipe.pipe({'model': model_path,
-                        'backend': "Sequential[cvtColorTensor,TensorrtTensor,SyncTensor]", # 后端引擎， 可见后端API参考文档。
-                        'instance_num': 2, 'batching_timeout': '5', # 实例数和超时时间
-                        'max': 4, # 模型优化范围最大值，也可以为 '4x3x224x224'
-                        'mean': '123.675, 116.28, 103.53',#255*"0.485, 0.456, 0.406"，
-                        'std': '58.395, 57.120, 57.375', # 将融合进tensorrt网络中
-                        'color': 'rgb'}) # cvtColorTensor后端的参数： 目标颜色空间顺序
+                        'backend': "Sequential[cvtColorTensor,TensorrtTensor,SyncTensor]", # Backend engine, see backend API reference documentation
+                        'instance_num': 2, 'batching_timeout': '5', # Number of instances and timeout time
+                        'max': 4, # Maximum value of the model optimization range, which can also be '4x3x224x224'
+                        'mean': '123.675, 116.28, 103.53', # 255*"0.485, 0.456, 0.406"
+                        'std': '58.395, 57.120, 57.375', # Fusion into TensorRT network
+                        'color': 'rgb'}) # Parameters for cvtColorTensor backend: target color space order
 data = torch.zeros((1, 3, 224, 224)) # or torch.from_numpy(...)
 input = {"data": data, 'color': 'bgr'}
-model(input)  # 可多线程并行调用
-# 使用 "result" 作为数据输出标识；当然，其他键值也可自定义写入
-print(input["result"].shape)  # 失败则此键值一定不存在，即使输入时已经存在。
+model(input)  # Can be called in parallel with multiple threads
+# Use "result" as the data output identifier; of course, other key values ​​can also be custom written
+print(input["result"].shape)  # If failed, this key value must not exist, even if it already exists when input.
 ```
 
-> 纯c++ API 可通过 [libtorch+cmake] 或者 [pybind11]的方式获得.
+> c++ API is also possible through [libtorch+cmake] or [pybind11].
+
 
 <!-- end quickstart -->
-### 4. 我们的核心功能为多个节点间的一系列流水线设施。
-
-> 更多信息，访问 [Torchpipe的文档](https://torchpipe.github.io/zh/docs/Inter-node) 。
 
 
+<details>
+    <summary>YOLO-X Example</summary>
+
+The following example shows the configuration for detection using YOLO-X. By default, it supports cross-request batching and node-level pipeline parallelism, under a product-ready environment.
+
+```toml
+batching_timeout = 5  # Waiting timeout for cross-request batching 
+precision = "fp16" 
+
+[jpg_decoder]
+backend = "Sequential[DecodeMat,cvtColorMat,ResizePadMat,Mat2Tensor,SyncTensor]"
+color = "bgr"
+instance_num = 5
+max_h = 416
+max_w = 416
+
+# the next node to go after this node
+next = "detect"
+
+[detect]
+backend = "Sequential[TensorrtTensor,PostProcYolox,SyncTensor]" 
+batching_timeout = 5 # Waiting timeout for cross-request batching 
+instance_num = 2 
+max = 4  # maximum batchsize
+model = "./yolox_tiny.onnx"
+"model::cache" = "./yolox_tiny.trt"
+
+# params for user-defined backend PostProcYolox:
+net_h=416
+net_w=416
+```
+</details>
+
+## Roadmap
+
+TorchPipe is currently in a rapid iteration phase, and we greatly appreciate your help.  Feel free to provide feedback through issues or merge requests. Check out our [Contribution Guidelines](./CONTRIBUTING.md).
+
+Our ultimate goal is to make high-throughput deployment on the server side as simple as possible. To achieve this, we actively iterate and are willing to collaborate with other projects with similar goals.
+
+Current RoadMap:
 
 
-### 5. RoadMap
+- Optimization of the compilation system, divided into modules such as core, pplcv, model/tensorrt, opencv, etc.
+- Optimization of the basic structure, including Python and C++ interaction, exception handling, logging system, compilation system, and cross-process backend optimization.
+- Technical reports
 
+Potential research directions that have not been completed:
 
+- Single-node scheduling and multi-node scheduling backends, which have no essential difference from the computing backend, need to be decoupled more towards users. We want to optimize this part as part of the user API.
+- Debugging tools for multi-node scheduling. Since stack simulation design is used in multi-node scheduling, it is relatively easy to design node-level debugging tools.
+- Load balancing.
 
-torchpie目前处于一个快速迭代阶段，我们非常需要你的帮助。欢迎通过issues或者merge requests等方式进行反馈。[贡献指南](https://torchpipe.github.io/zh/docs/contribution)。 
-
-
-我们的最终目标是让服务端高吞吐部署尽可能简单。为了实现这一目标，我们将积极自我迭代，也愿意参与有相近目标的其他项目。
-
-
-近期 RoadMap
-- 公开的基础镜像和pypi(manylinux)
-- 优化编译系统，分为core,pplcv,model/tensorrt,opencv等模块
-- 基础结构优化。包含python与c++交互，异常，日志系统，跨进程后端的优化；
-- 技术报告
-
-
-潜在未完成的研究方向
-
-- 单节点调度和多节点调度后端，他们与计算后端无本质差异，需要更多面向用户进行解耦，我们想要将这部分优化为用户API的一部分；
-- 针对多节点的调试工具。由于在多节点调度中，使用了模拟栈设计，比较容易设计节点级别的调试工具；
-- 负载均衡
-
-### 6. 致谢
-我们的代码库使用或者修改后使用了多个开源库，请查看[致谢](./ACKNOWLEDGEMENTS.md)了解更多详细信息。
-
-
-
-### 相关链接
-- [torchpipe: 知乎介绍](https://zhuanlan.zhihu.com/p/664095419)
-- [RayServe](https://docs.ray.io/en/latest/serve/index.html)
-- [Triton Inference Server](https://github.com/triton-inference-server/server)
-- [nndeploy](https://github.com/Alwaysssssss/nndeploy)
-- [CV-CUDA](https://github.com/CVCUDA/CV-CUDA)
-
-
+### Acknowledgements
+Our codebase is built using multiple opensource contributions, please see [ACKNOWLEDGEMENTS](./ACKNOWLEDGEMENTS.md) for more details.
 
