@@ -65,7 +65,8 @@ docker run --rm --gpus=all --ipc=host  --network=host -v `pwd`:/workspace  --shm
 
 <details>
     <summary>From Dockerfile</summary>
-    ```bash
+
+```bash
 # build docker image by yourself (recommend, for tensorrt 9.3): 
 docker build --network=host -f ./docker/Dockerfile -t trt-9 thirdparty/
 export img_name=trt-9
