@@ -27,7 +27,7 @@ bool PPLResizeTensor::init(const std::unordered_map<std::string, std::string>& c
 void PPLResizeTensor::forward(dict input_dict) {
   try_update(input_dict, "resize_h", resize_h_);
   try_update(input_dict, "resize_w", resize_w_);
-  IPIPE_ASSERT(resize_h_ > 0 && resize_w_ > 0 && resize_h_ * resize_w_ < 1024 * 1024);
+  IPIPE_ASSERT(resize_h_ > 0 && resize_w_ > 0 && resize_h_ * resize_w_ <= 4096 * 4096);
 
   HWCTensorWrapper ppl(input_dict, resize_h_, resize_w_);
   auto& input_tensor = ppl.input_tensor;
