@@ -17,7 +17,7 @@
 #include "NvInferPlugin.h"
 #include "NvOnnxParser.h"
 
-#if NV_TENSORRT_MAJOR < 10
+#if NV_TENSORRT_MAJOR >= 10
 #include "time_utils.hpp"
 #include "tensorrt_utils.hpp"
 #include "ipipe_common.hpp"
@@ -327,14 +327,12 @@ std::shared_ptr<CudaEngineWithRuntime> onnx2trt(
       1U << static_cast<uint32_t>(nvinfer1::NetworkDefinitionCreationFlag::kEXPLICIT_BATCH);
   unique_ptr_destroy<nvinfer1::IBuilder> builder{nvinfer1::createInferBuilder(gLogger_inplace)};
 
-  std::shared_ptr<CudaEngineWithRuntime> en_with_rt = std::make_shared<CudaEngineWithRuntime>();
-
 #ifdef USE_TORCH_ALLOCATOR
   const char* value = std::getenv("PYTORCH_NO_CUDA_MEMORY_CACHING");
-  if (value == nullptr) {
+  std::unique_ptr<TorchAllocator> allocator = std::make_unique<TorchAllocator>();
+  if (value == nullptr && allocator) {
     SPDLOG_INFO("use torch allocator");
-    en_with_rt->allocator = new TorchAllocator();
-    builder->setGpuAllocator(en_with_rt->allocator);
+    builder->setGpuAllocator(allocator.get());
   }
 
 #endif
@@ -609,19 +607,16 @@ std::shared_ptr<CudaEngineWithRuntime> onnx2trt(
     SPDLOG_INFO("Build engine with {} profiles and precision={}...(this can take some time)",
                 profile_num, precision.precision);
     auto time_now = now();
-    auto* engine_ptr = builder->buildEngineWithConfig(*network, *config);
-    IPIPE_ASSERT(engine_ptr);
 
-    en_with_rt->engine = engine_ptr;
+    unique_ptr_destroy<nvinfer1::IHostMemory> p_engine_plan(
+        builder->buildSerializedNetwork(*network, *config));
 
     auto time_pass = time_passed(time_now);
     SPDLOG_INFO("finish building engine within {} seconds", int(time_pass / 1000.0));
-    auto local_engine = en_with_rt->engine;
-    // config = nullptr;
-    if (local_engine) {
-      unique_ptr_destroy<nvinfer1::IHostMemory> p_engine_plan{local_engine->serialize()};
 
+    if (p_engine_plan) {
       engine_plan = std::string((char*)p_engine_plan->data(), p_engine_plan->size());
+      std::shared_ptr<CudaEngineWithRuntime> en_with_rt = loadEngineFromBuffer(engine_plan);
 
       SPDLOG_INFO("Building engine finished. size of engine is {} MB",
                   int(100 * engine_plan.size() / (1024 * 1024)) / 100.0);
@@ -644,5 +639,4 @@ std::shared_ptr<CudaEngineWithRuntime> onnx2trt(
 }
 
 }  // namespace ipipe
-
 #endif

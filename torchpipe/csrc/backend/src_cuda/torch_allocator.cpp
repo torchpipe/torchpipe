@@ -45,7 +45,9 @@ void* TorchAllocator::allocate(uint64_t size, uint64_t alignment, uint32_t flags
   return nullptr;
 }
 
+#if NV_TENSORRT_MAJOR < 10
 void TorchAllocator::free(void* const memory) noexcept { deallocate(memory); }
+#endif
 
 bool TorchAllocator::deallocate(void* const memory) noexcept {
   if (memory == nullptr) return true;

@@ -9,9 +9,11 @@
 #endif
 #include "params.hpp"
 namespace ipipe {
+
+#if NV_TENSORRT_MAJOR < 10
 std::vector<std::vector<int>> infer_shape(std::shared_ptr<CudaEngineWithRuntime> engine) {
   const unsigned n_profiles = engine->engine->getNbOptimizationProfiles();
-  const unsigned n_inputsOutputs = engine->engine->getNbBindings() / n_profiles;
+  const unsigned n_inputsOutputs = engine->engine->getNbIOTensors();
 
   constexpr auto profile_index = 0;
 
@@ -34,6 +36,36 @@ std::vector<std::vector<int>> infer_shape(std::shared_ptr<CudaEngineWithRuntime>
 
   return ret;
 }
+#else
+std::vector<std::vector<int>> infer_shape(std::shared_ptr<CudaEngineWithRuntime> engine) {
+  const unsigned n_profiles = engine->engine->getNbOptimizationProfiles();
+  const unsigned n_inputsOutputs = engine->engine->getNbIOTensors();
+
+  constexpr auto profile_index = 0;
+
+  std::vector<std::vector<int>> ret;
+  for (unsigned i = 0; i < n_profiles; i++) {
+    for (unsigned j = 0; j < n_inputsOutputs; j++) {
+      const auto index = i * n_inputsOutputs + j;
+      const auto name = engine->engine->getIOTensorName(j);
+      const auto tensorType = engine->engine->getTensorIOMode(name);
+
+      if (tensorType == nvinfer1::TensorIOMode::kINPUT) {
+        // 获取tensorrt引擎的输入维度
+        // const auto dims = engine->engine->getBindingDimensions(index);
+        nvinfer1::Dims dims = engine->engine->getTensorShape(name);
+        std::vector<int> shape;
+        for (int k = 0; k < dims.nbDims; k++) {
+          shape.push_back(dims.d[k]);
+        }
+        ret.push_back(shape);
+      }
+    }
+  }
+
+  return ret;
+}
+#endif
 
 std::vector<std::vector<int>> infer_trt_shape(std::string trt_path) {
   std::string engine_plan;
