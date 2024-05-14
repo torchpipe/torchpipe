@@ -52,7 +52,7 @@ class TensorrtTensor : public Backend {
   /**
    * @brief
    * @param TASK_DATA_KEY
-   * 输入数据。网络为单输入输出时，类型为at::Tensor/torch.Tensor,
+   * 输入数据。网络为单输入输出时，类型为torch::Tensor/torch.Tensor,
    * 网络为多输入输出时， 类型为vector/List. 字典序排列.
    * @param[out] TASK_RESULT_KEY 输出类型参照输入类型。 gpu上连续, @ref
    * postprocessor 可修改此类型。网络多输出时按照名称的字典序排列。
@@ -93,16 +93,16 @@ class TensorrtTensor : public Backend {
   int max_{1};
   int min_{1};
 
-  std::vector<at::Tensor> inputs_;
-  std::vector<at::Tensor> outputs_;
+  std::vector<torch::Tensor> inputs_;
+  std::vector<torch::Tensor> outputs_;
   std::vector<void *> binding_;
 
   std::vector<bool> change_shape_;
 
   int profile_index_{0};
 
-  std::unique_ptr<PostProcessor<at::Tensor>> postprocessor_;
-  std::unique_ptr<PreProcessor<at::Tensor>> preprocessor_;
+  std::unique_ptr<PostProcessor<torch::Tensor>> postprocessor_;
+  std::unique_ptr<PreProcessor<torch::Tensor>> preprocessor_;
 
   std::map<std::string, int> sorted_index_inputs_;
   std::map<std::string, int> sorted_index_ouputs_;

@@ -171,8 +171,8 @@ void DLManagedTensor_deleter(void* ctx, const NVCVTensorData* data) {
 }
 
 }  // namespace
-nvcv::Tensor toNvcvTensor(const at::Tensor& src, std::string data_format) {
-  DLManagedTensor* dlMTensor = at::toDLPack(src);
+nvcv::Tensor toNvcvTensor(const torch::Tensor& src, std::string data_format) {
+  DLManagedTensor* dlMTensor = torch::toDLPack(src);
 
   std::optional<nvcv::TensorLayout> layout;
   if (data_format == "hwc") {
@@ -201,7 +201,7 @@ struct NvcvDLMTensor {
   DLManagedTensor tensor;
 };
 
-at::Tensor fromNvcvTensor(const nvcv::Tensor& src) {
+torch::Tensor fromNvcvTensor(const nvcv::Tensor& src) {
   NvcvDLMTensor* nvcvDLMTensor(new NvcvDLMTensor);
   nvcvDLMTensor->handle = src;
 
@@ -268,7 +268,7 @@ at::Tensor fromNvcvTensor(const nvcv::Tensor& src) {
     src_tensor.deleter(&src_tensor);
     throw;
   }
-  return at::fromDLPack(&src_tensor);
+  return torch::fromDLPack(&src_tensor);
 }
 nvcv::Allocator nvcv_torch_allocator() {
   nvcv::CustomAllocator myAlloc{nvcv::CustomCudaMemAllocator{
@@ -276,7 +276,7 @@ nvcv::Allocator nvcv_torch_allocator() {
         void* ptr = nullptr;
         // cudaMalloc(&ptr, size);
 
-        ptr = at::cuda::CUDACachingAllocator::raw_alloc(size);
+        ptr = torch::cuda::CUDACachingAllocator::raw_alloc(size);
         if (reinterpret_cast<ptrdiff_t>(ptr) % bufAlign) {
           SPDLOG_WARN("The torch allocator cannot align the address to the alignment {}", bufAlign);
         }
@@ -284,7 +284,7 @@ nvcv::Allocator nvcv_torch_allocator() {
       },
       [](void* ptr, int64_t bufLen, int32_t bufAlign) {
         // cudaFree(ptr);
-        at::cuda::CUDACachingAllocator::raw_delete(ptr);
+        torch::cuda::CUDACachingAllocator::raw_delete(ptr);
       }}};
   return myAlloc;
 }

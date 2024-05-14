@@ -14,7 +14,7 @@
 
 #include "ResizeTensor.hpp"
 
-#include <ATen/ATen.h>
+#include <torch/torch.h>
 // #include <cuda.h>
 #include <cuda_runtime.h>
 #include <nppcore.h>
@@ -32,8 +32,8 @@
 #include "exception.hpp"
 
 namespace ipipe {
-at::Tensor nppiresize_topleft(at::Tensor& input, int target_h, int target_w, int pad_value) {
-  if (input.scalar_type() != at::kByte && input.scalar_type() != at::kFloat) {
+torch::Tensor nppiresize_topleft(torch::Tensor& input, int target_h, int target_w, int pad_value) {
+  if (input.scalar_type() != torch::kByte && input.scalar_type() != torch::kFloat) {
     throw std::invalid_argument("error type: need scalar type: kByte or kFloat");
   }
 
@@ -44,12 +44,12 @@ at::Tensor nppiresize_topleft(at::Tensor& input, int target_h, int target_w, int
   auto single_scale = std::max(float(img_w) / float(target_w), float(img_h) / float(target_h));
   int true_w = floor(img_w / single_scale);
   int true_h = img_h / single_scale;
-  auto options = at::TensorOptions()
-                     .device(at::kCUDA, -1)
-                     .dtype(input.scalar_type())  // at::kByte
-                     .layout(at::kStrided)
+  auto options = torch::TensorOptions()
+                     .device(torch::kCUDA, -1)
+                     .dtype(input.scalar_type())  // torch::kByte
+                     .layout(torch::kStrided)
                      .requires_grad(false);
-  auto output_tensor = at::full({target_h, target_w, c}, int(pad_value), options);
+  auto output_tensor = torch::full({target_h, target_w, c}, int(pad_value), options);
   if (!output_tensor.is_contiguous()) {
     output_tensor = output_tensor.contiguous();
   }
@@ -92,7 +92,7 @@ at::Tensor nppiresize_topleft(at::Tensor& input, int target_h, int target_w, int
   NppiRect image_b_roi = {.x = 0, .y = 0, .width = true_w, .height = true_h};
 
   NppStatus result;
-  if (input.scalar_type() != at::kByte) {
+  if (input.scalar_type() != torch::kByte) {
     result = nppiResize_8u_C3R((Npp8u*)image, img_w * 3, image_a_size, image_a_roi, (Npp8u*)output,
                                target_w * 3, image_b_size, image_b_roi, eInterploationMode);
   } else {
@@ -104,20 +104,20 @@ at::Tensor nppiresize_topleft(at::Tensor& input, int target_h, int target_w, int
   if (result != NPP_SUCCESS) {
     std::cout << "nppiresize_topleft Error executing Resize -- code: " << result << " " << target_w
               << " " << img_w << " " << target_h << " " << img_h << std::endl;
-    return at::Tensor();
+    return torch::Tensor();
   }
 
   return output_tensor;
 }
 
-at::Tensor nppiresize(at::Tensor input, int target_h, int target_w) {
+torch::Tensor nppiresize(torch::Tensor input, int target_h, int target_w) {
   int num = input.sizes().size() == 4 ? input.sizes()[0] : 1;
   if (num != 1 || input.size(-1) != 3) {
     throw std::invalid_argument("nppiresize ;: error num or input.size" +
                                 std::to_string(input.size(0)) + std::to_string(input.size(1)) +
                                 std::to_string(input.size(2)) + std::to_string(input.size(-1)));
   }
-  if (input.scalar_type() != at::kByte && input.scalar_type() != at::kFloat) {
+  if (input.scalar_type() != torch::kByte && input.scalar_type() != torch::kFloat) {
     throw std::invalid_argument("error datatype of tensor.  need datatype float or char.");
   }
 
@@ -125,13 +125,13 @@ at::Tensor nppiresize(at::Tensor input, int target_h, int target_w) {
   int img_w = input.sizes()[1];
   int c = input.sizes()[2];
 
-  auto options = at::TensorOptions()
-                     .device(at::kCUDA, -1)
-                     .dtype(input.scalar_type())  // at::kByte
-                     .layout(at::kStrided)
+  auto options = torch::TensorOptions()
+                     .device(torch::kCUDA, -1)
+                     .dtype(input.scalar_type())  // torch::kByte
+                     .layout(torch::kStrided)
                      .requires_grad(false);
 
-  auto output_tensor = at::full({target_h, target_w, c}, 0, options);
+  auto output_tensor = torch::full({target_h, target_w, c}, 0, options);
   auto* output = output_tensor.data_ptr();
 
   if (!input.is_contiguous()) input = input.contiguous();
@@ -150,7 +150,7 @@ at::Tensor nppiresize(at::Tensor input, int target_h, int target_w) {
   NppiSize image_b_size = {.width = target_w, .height = target_h};
   NppiRect image_b_roi = {.x = 0, .y = 0, .width = target_w, .height = target_h};
   NppStatus result;
-  if (input.scalar_type() == at::kByte) {
+  if (input.scalar_type() == torch::kByte) {
     result = nppiResize_8u_C3R((Npp8u*)image, img_w * 3, image_a_size, image_a_roi, (Npp8u*)output,
                                target_w * 3, image_b_size, image_b_roi, eInterploationMode);
 
@@ -187,19 +187,20 @@ bool ResizeTensor::init(const std::unordered_map<std::string, std::string>& conf
 }
 
 void ResizeTensor::forward(dict input_dict) {
-  auto input_tensor = dict_get<at::Tensor>(input_dict, TASK_DATA_KEY);
+  auto input_tensor = dict_get<torch::Tensor>(input_dict, TASK_DATA_KEY);
 
   bool is_hwc_tensor = is_hwc(input_tensor);
 
-  input_tensor = img_1chw_guard(input_tensor).to(at::kFloat);
+  input_tensor = img_1chw_guard(input_tensor).to(torch::kFloat);
   if (!input_tensor.is_contiguous()) input_tensor = input_tensor.contiguous();
 
-  at::Tensor im_resize;
+  torch::Tensor im_resize;
 
   if (input_tensor.size(2) == resize_h_ && input_tensor.size(3) == resize_w_) {
     im_resize = input_tensor;
   } else {
-    im_resize = at::upsample_bilinear2d(input_tensor.to(at::kFloat), {resize_h_, resize_w_}, true);
+    im_resize =
+        torch::upsample_bilinear2d(input_tensor.to(torch::kFloat), {resize_h_, resize_w_}, true);
   }
   if (is_hwc_tensor) {
     im_resize = im_resize.permute({0, 2, 3, 1}).squeeze(0);
@@ -239,10 +240,10 @@ bool ResizeTensorV1::init(const std::unordered_map<std::string, std::string>& co
 // 3.对于cpu上tensor，默认使用at::upsample_bilinear2d，根据输入tensor类型，返回类型一致。
 
 void ResizeTensorV1::forward(dict input_dict) {
-  auto input_tensor = dict_get<at::Tensor>(input_dict, TASK_DATA_KEY);
-  at::Tensor im_resize;
+  auto input_tensor = dict_get<torch::Tensor>(input_dict, TASK_DATA_KEY);
+  torch::Tensor im_resize;
 
-  if (input_tensor.scalar_type() == at::kFloat || (!input_tensor.is_cuda())) {
+  if (input_tensor.scalar_type() == torch::kFloat || (!input_tensor.is_cuda())) {
     input_tensor = img_1chw_guard(input_tensor);
     if (!input_tensor.is_contiguous()) input_tensor = input_tensor.contiguous();
 
@@ -250,14 +251,14 @@ void ResizeTensorV1::forward(dict input_dict) {
       im_resize = input_tensor;
     } else {
       im_resize =
-          at::upsample_bilinear2d(input_tensor.to(at::kFloat), {resize_h_, resize_w_}, true);
+          torch::upsample_bilinear2d(input_tensor.to(torch::kFloat), {resize_h_, resize_w_}, true);
     }
     // 如果输入是kByte，做强制转换！
-    if (input_tensor.scalar_type() == at::kByte) {
-      im_resize = im_resize.to(at::kByte);
+    if (input_tensor.scalar_type() == torch::kByte) {
+      im_resize = im_resize.to(torch::kByte);
     }
 
-  } else if (input_tensor.scalar_type() == at::kByte) {
+  } else if (input_tensor.scalar_type() == torch::kByte) {
     input_tensor = img_hwc_guard(input_tensor);
     if (!input_tensor.is_contiguous()) input_tensor = input_tensor.contiguous();
 

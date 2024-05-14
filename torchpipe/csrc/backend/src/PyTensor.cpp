@@ -22,7 +22,7 @@
 // #include <torch/csrc/deploy/deploy.h>
 #include <fstream>
 #include "reflect.h"
-#include <ATen/ATen.h>
+#include <torch/torch.h>
 // #include <torch/extension.h>
 #include <torch/python.h>
 namespace ipipe {
@@ -52,11 +52,11 @@ class PyTensorWrapper {
 
   ~PyTensorWrapper() { _obj.release(); }
 
-  at::Tensor call(at::Tensor data) {
+  torch::Tensor call(torch::Tensor data) {
     py::gil_scoped_acquire acquire;
     // pybind11::object o = pybind11::cast(data);
     // pybind11::handle h = pybind11::cast(data);
-    return _obj(data).cast<at::Tensor>();
+    return _obj(data).cast<torch::Tensor>();
   }
 
  private:
@@ -86,11 +86,11 @@ bool PyTensor::init(const std::unordered_map<std::string, std::string>& config_p
 void PyTensor::forward(dict input_dict) {
   // params_->check_and_update(input_dict);
   auto& input = *input_dict;
-  if (input[TASK_DATA_KEY].type() != typeid(at::Tensor)) {
+  if (input[TASK_DATA_KEY].type() != typeid(torch::Tensor)) {
     SPDLOG_ERROR("PyTensor: error input type: " + std::string(input[TASK_DATA_KEY].type().name()));
     return;
   }
-  auto data = any_cast<at::Tensor>(input[TASK_DATA_KEY]);
+  auto data = any_cast<torch::Tensor>(input[TASK_DATA_KEY]);
   data = gwrapper.call(data);
   input[TASK_RESULT_KEY] = data;
 

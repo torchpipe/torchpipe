@@ -25,12 +25,12 @@
 #include "base_logging.hpp"
 #include <torch/serialize.h>
 #include <torch/extension.h>
-#include <ATen/ATen.h>
+#include <torch/torch.h>
 #include <fstream>
 
 namespace ipipe {
 
-void save(std::string save_name, at::Tensor input) {
+void save(std::string save_name, torch::Tensor input) {
   std::vector<char> data_for_save = torch::pickle_save(input);
   // save_name
   std::ofstream fout(save_name, std::ios::out | std::ios::binary);
@@ -38,7 +38,7 @@ void save(std::string save_name, at::Tensor input) {
   fout.close();
 }
 
-at::Tensor load_tensor(std::string save_name) {
+torch::Tensor load_tensor(std::string save_name) {
   std::ifstream file(save_name.c_str());
   if (!file.good()) {
     SPDLOG_ERROR("LoadTensor:  `" + save_name + "` not exists.");
@@ -86,18 +86,18 @@ bool torch_is_using_default_stream() {
 }
 
 // https://discuss.pytorch.org/t/asynchronous-copy-in-c-when-input-has-been-destructed/186515
-at::Tensor to_current_device(at::Tensor input) {
-  if (input.device() == at::kCPU) return input.cuda();
-  if (input.device().index() == at::cuda::current_device()) return input;
-  at::TensorOptions options;
+torch::Tensor to_current_device(torch::Tensor input) {
+  if (input.device() == torch::kCPU) return input.cuda();
+  if (input.device().index() == c10::cuda::current_device()) return input;
+  torch::TensorOptions options;
   // input.is_pinned()
-  return input.to(at::TensorOptions().device(at::kCUDA, -1), false, false,
+  return input.to(torch::TensorOptions().device(torch::kCUDA, -1), false, false,
                   input.suggest_memory_format());  // 这里为异步操作, pytorch 自身cache pinned
                                                    // memory， 不怕析构
 }
 #endif
 
-bool is_cpu_tensor(at::Tensor input) {
+bool is_cpu_tensor(torch::Tensor input) {
 #ifndef TORCH_VERSION_MAJOR
   IPIPE_CHECK(0, "TORCH_VERSION_MAJOR not defined");
 #endif
@@ -109,13 +109,13 @@ bool is_cpu_tensor(at::Tensor input) {
 }
 // Check if the given data variable is of CPU type.
 bool is_any_cpu(any data) {
-  if (data.type() == typeid(at::Tensor)) {
-    at::Tensor tensor = any_cast<at::Tensor>(data);
+  if (data.type() == typeid(torch::Tensor)) {
+    torch::Tensor tensor = any_cast<torch::Tensor>(data);
     return is_cpu_tensor(tensor);
   }
 
-  if (data.type() == typeid(std::vector<at::Tensor>)) {
-    std::vector<at::Tensor> tensors = any_cast<std::vector<at::Tensor>>(data);
+  if (data.type() == typeid(std::vector<torch::Tensor>)) {
+    std::vector<torch::Tensor> tensors = any_cast<std::vector<torch::Tensor>>(data);
     return tensors.at(0).is_cpu();
   }
 
@@ -129,17 +129,17 @@ bool is_any_cpu(any data) {
 https://docs.nvidia.com/cuda/cuda-runtime-api/api-sync-behavior.html#api-sync-behavior
 https://discuss.pytorch.org/t/should-we-set-non-blocking-to-true/38234/16
  * @param input
- * @return at::Tensor
+ * @return torch::Tensor
  */
-at::Tensor switch_device(at::Tensor input) {
-  if (input.device() == at::kCUDA) return input.cpu();
-  at::TensorOptions options;
-  assert(input.device() == at::kCPU);
+torch::Tensor switch_device(torch::Tensor input) {
+  if (input.device() == torch::kCUDA) return input.cpu();
+  torch::TensorOptions options;
+  assert(input.device() == torch::kCPU);
 
   if (!input.is_pinned()) return input.cuda();
-  return input.to(at::TensorOptions().device(at::kCUDA, -1), false, false,
-                  at::MemoryFormat::Contiguous);  // 这里为异步操作, pytorch 自身cache pinned
-                                                  // memory， 不怕析构
+  return input.to(torch::TensorOptions().device(torch::kCUDA, -1), false, false,
+                  torch::MemoryFormat::Contiguous);  // 这里为异步操作, pytorch 自身cache pinned
+                                                     // memory， 不怕析构
 }
 
 //  测试 cudaMemcpyAsync 是同步还是异步（非pinnedmemory）
@@ -220,22 +220,22 @@ class TestRun {
 };
 // TestRun tmp;
 
-at::Tensor async2cpu(at::Tensor input) {
-  //  auto options=at::TensorOptions()
-  //   .device(at::kCPU)
-  //   .dtype(featRegion.dtype()) // at::kByte
-  //   .layout(at::kStrided)
+torch::Tensor async2cpu(torch::Tensor input) {
+  //  auto options=torch::TensorOptions()
+  //   .device(torch::kCPU)
+  //   .dtype(featRegion.dtype()) // torch::kByte
+  //   .layout(torch::kStrided)
   //   .requires_grad(false).pinned_memory(false);
-  at::TensorOptions options;
-  if (input.device() == at::kCPU) {
+  torch::TensorOptions options;
+  if (input.device() == torch::kCPU) {
     return input;
   } else
-    options = at::TensorOptions().device(at::kCPU).pinned_memory(true);
+    options = torch::TensorOptions().device(torch::kCPU).pinned_memory(true);
 
-  return input.to(options, true, false, at::MemoryFormat::Contiguous);  // 这里为异步操作
+  return input.to(options, true, false, torch::MemoryFormat::Contiguous);  // 这里为异步操作
 }
 
-bool is_channel(at::Tensor in, unsigned right_index, unsigned wrong_index) {
+bool is_channel(torch::Tensor in, unsigned right_index, unsigned wrong_index) {
   if (right_index > 0 && right_index >= in.sizes().size()) {
     return false;
   } else if (wrong_index > 0 && wrong_index >= in.sizes().size()) {
@@ -247,8 +247,8 @@ bool is_channel(at::Tensor in, unsigned right_index, unsigned wrong_index) {
   }
   return false;
 }
-at::Tensor tensor2nchw(at::Tensor in) {
-  at::Tensor target;
+torch::Tensor tensor2nchw(torch::Tensor in) {
+  torch::Tensor target;
   bool shape_ok = true;
   if (in.sizes().size() == 3) {
     if (is_channel(in, 0, 2)) {  // chw
@@ -276,7 +276,7 @@ at::Tensor tensor2nchw(at::Tensor in) {
   return target;
 }
 
-at::Tensor img_1chw_guard(at::Tensor in) {
+torch::Tensor img_1chw_guard(torch::Tensor in) {
   const auto& in_size = in.sizes();
 
   if (in_size.size() == 3 && (in_size[2] == 1 || in_size[2] == 3 || in_size[2] == 4) &&
@@ -294,7 +294,7 @@ at::Tensor img_1chw_guard(at::Tensor in) {
   }
 }
 
-at::Tensor img_nchw_guard(at::Tensor in) {
+torch::Tensor img_nchw_guard(torch::Tensor in) {
   const auto& in_size = in.sizes();
 
   if (in_size.size() == 3 && (in_size[2] == 1 || in_size[2] == 3 || in_size[2] == 4) &&
@@ -312,7 +312,7 @@ at::Tensor img_nchw_guard(at::Tensor in) {
   }
 }
 
-at::Tensor img_1hwc_guard(at::Tensor in) {
+torch::Tensor img_1hwc_guard(torch::Tensor in) {
   const auto& in_size = in.sizes();
 
   if (in_size.size() == 3 && (in_size[2] == 1 || in_size[2] == 3 || in_size[2] == 4) &&
@@ -330,7 +330,7 @@ at::Tensor img_1hwc_guard(at::Tensor in) {
   }
 }
 
-bool is_1chw(at::Tensor in) {
+bool is_1chw(torch::Tensor in) {
   const auto& in_size = in.sizes();
 
   if (in_size.size() == 4 && (in_size[1] == 1 || in_size[1] == 3 || in_size[1] == 4) &&
@@ -340,7 +340,7 @@ bool is_1chw(at::Tensor in) {
   return false;
 }
 
-bool is_contiguous_wrt_nchw(at::Tensor in) {
+bool is_contiguous_wrt_nchw(torch::Tensor in) {
   if (is_nchw(in)) {
     if (in.is_contiguous())
       return true;
@@ -356,7 +356,7 @@ bool is_contiguous_wrt_nchw(at::Tensor in) {
   return false;
 }
 
-bool is_contiguous_wrt_hwc(at::Tensor in) {
+bool is_contiguous_wrt_hwc(torch::Tensor in) {
   if (is_hwc(in)) {
     if (in.is_contiguous())
       return true;
@@ -372,7 +372,7 @@ bool is_contiguous_wrt_hwc(at::Tensor in) {
   return false;
 }
 
-bool is_nchw(at::Tensor in) {
+bool is_nchw(torch::Tensor in) {
   const auto& in_size = in.sizes();
 
   if (in_size.size() == 4 && (in_size[1] == 1 || in_size[1] == 3 || in_size[1] == 4) &&
@@ -382,7 +382,7 @@ bool is_nchw(at::Tensor in) {
   return false;
 }
 
-bool is_hwc(at::Tensor in) {
+bool is_hwc(torch::Tensor in) {
   const auto& in_size = in.sizes();
 
   if (in_size.size() == 3 && (in_size[2] == 1 || in_size[2] == 3 || in_size[2] == 4) &&
@@ -392,7 +392,7 @@ bool is_hwc(at::Tensor in) {
   return false;
 }
 
-at::Tensor img_hwc_guard(at::Tensor in) {
+torch::Tensor img_hwc_guard(torch::Tensor in) {
   const auto& in_size = in.sizes();
 
   if (in_size.size() == 3 && (in_size[2] == 1 || in_size[2] == 3 || in_size[2] == 4) &&
@@ -410,8 +410,8 @@ at::Tensor img_hwc_guard(at::Tensor in) {
   }
 }
 
-at::Tensor tensor_permute(at::Tensor input, const std::vector<int>& min_shape,
-                          const std::vector<int>& max_shape, bool& need_permute) {
+torch::Tensor tensor_permute(torch::Tensor input, const std::vector<int>& min_shape,
+                             const std::vector<int>& max_shape, bool& need_permute) {
   if (max_shape.size() != min_shape.size()) {
     throw std::runtime_error("max_shape.size() != min_shape.size()");
   }
@@ -460,7 +460,7 @@ at::Tensor tensor_permute(at::Tensor input, const std::vector<int>& min_shape,
   return input;
 }
 
-at::Tensor try_quick_cat(std::vector<at::Tensor> resized_inputs) {
+torch::Tensor try_quick_cat(std::vector<torch::Tensor> resized_inputs) {
   IPIPE_ASSERT(resized_inputs.size() >= 2);
   bool share_same_storage = true;
   bool is_continuous = true;
@@ -485,14 +485,14 @@ at::Tensor try_quick_cat(std::vector<at::Tensor> resized_inputs) {
     last_offset += tensor.numel();
   }
 
-  at::Tensor true_input;
+  torch::Tensor true_input;
   if (share_same_storage && is_continuous) {
     // All tensors share the same storage and they are continuous.
     // You can reuse the storage.
 
     auto sizes = resized_inputs[0].sizes().vec();
     sizes[0] = resized_inputs.size();
-    true_input = at::empty({0}, resized_inputs[0].options())
+    true_input = torch::empty({0}, resized_inputs[0].options())
                      .set_(resized_inputs[0].storage(), resized_inputs[0].storage_offset(), sizes,
                            resized_inputs[0].strides());
     IPIPE_ASSERT(true_input.is_contiguous());
@@ -501,7 +501,7 @@ at::Tensor try_quick_cat(std::vector<at::Tensor> resized_inputs) {
   } else {
     // Tensors do not share the same storage or they are not continuous.
     // You need to concatenate them.
-    true_input = at::cat(resized_inputs, 0);
+    true_input = torch::cat(resized_inputs, 0);
   }
 
   return true_input;

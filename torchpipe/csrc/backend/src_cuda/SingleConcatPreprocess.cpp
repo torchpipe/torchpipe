@@ -14,7 +14,7 @@
 
 #include "SingleConcatPreprocess.hpp"
 
-#include <ATen/ATen.h>
+#include <torch/torch.h>
 
 #include <memory>
 #include <string>
@@ -25,7 +25,6 @@
 #include "reflect.h"
 
 namespace ipipe {
-
 
 bool SingleConcatPreprocess::init(const std::unordered_map<std::string, std::string>& config,
                                   dict dict_config) {
@@ -52,8 +51,8 @@ bool SingleConcatPreprocess::init(const std::unordered_map<std::string, std::str
   return true;
 }
 
-std::vector<at::Tensor> SingleConcatPreprocess::forward(const std::vector<dict>& raw_inputs) {
-  std::vector<at::Tensor> resized_inputs;
+std::vector<torch::Tensor> SingleConcatPreprocess::forward(const std::vector<dict>& raw_inputs) {
+  std::vector<torch::Tensor> resized_inputs;
 
   bool may_need_quick_cat = true;
   for (std::size_t index = 0; index < raw_inputs.size(); ++index) {
@@ -63,18 +62,18 @@ std::vector<at::Tensor> SingleConcatPreprocess::forward(const std::vector<dict>&
       throw std::runtime_error("SingleConcatPreprocess: data not exists.");
     }
 
-    if (iter_data->second.type() != typeid(at::Tensor)) {
+    if (iter_data->second.type() != typeid(torch::Tensor)) {
       throw std::runtime_error(
           "SingleConcatPreprocess: data type must be tensor. your input type is " +
           c10::demangle(iter_data->second.type().name()));
     }
-    at::Tensor net_input = any_cast<at::Tensor>(iter_data->second);
+    torch::Tensor net_input = any_cast<torch::Tensor>(iter_data->second);
 
     if (is_cpu_tensor(net_input)) {
       may_need_quick_cat = false;
       //  注意：前处理在某些特殊情况下在cpu上可能变得特别慢，
       //  所以这里我们将他拷贝到cuda上； 建议overlead computing 和 transform
-      net_input = net_input.to(at::kCUDA, net_input.dtype(), /* non_blocking =*/false, false);
+      net_input = net_input.to(torch::kCUDA, net_input.dtype(), /* non_blocking =*/false, false);
     }
 
     if (!min_value_.empty()) {
@@ -89,12 +88,12 @@ std::vector<at::Tensor> SingleConcatPreprocess::forward(const std::vector<dict>&
   }
   assert(!resized_inputs.empty());
 
-  at::Tensor true_input;
+  torch::Tensor true_input;
   if (resized_inputs.size() > 1) {
     if (may_need_quick_cat)
       true_input = try_quick_cat(resized_inputs);
     else
-      true_input = at::cat(resized_inputs, 0);
+      true_input = torch::cat(resized_inputs, 0);
   } else if (resized_inputs.empty()) {
     throw std::runtime_error("SingleConcatPreprocess: data is empty.");
   } else {
@@ -108,7 +107,7 @@ std::vector<at::Tensor> SingleConcatPreprocess::forward(const std::vector<dict>&
   // }
 
   // // Preallocate output tensor
-  // auto true_input = at::empty({total_size}, resized_inputs[0].options());
+  // auto true_input = torch::empty({total_size}, resized_inputs[0].options());
 
   // // Copy data
   // int64_t offset = 0;
@@ -124,7 +123,7 @@ std::vector<at::Tensor> SingleConcatPreprocess::forward(const std::vector<dict>&
   return {true_input};
 }
 
-IPIPE_REGISTER(PreProcessor<at::Tensor>, SingleConcatPreprocess, "SingleConcatPreprocess");
+IPIPE_REGISTER(PreProcessor<torch::Tensor>, SingleConcatPreprocess, "SingleConcatPreprocess");
 
 }  // namespace ipipe
 

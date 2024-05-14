@@ -14,10 +14,9 @@
 
 #pragma once
 
-#include <ATen/ATen.h>
-
 #include "Backend.hpp"
 #include "dict.hpp"
+#include <torch/torch.h>
 
 namespace ipipe {
 
@@ -25,74 +24,75 @@ namespace ipipe {
 bool torch_not_use_default_stream(bool high_prio = false);
 bool torch_not_use_default_stream(int device_id, bool high_prio = false);
 bool torch_is_using_default_stream();
-at::Tensor to_current_device(at::Tensor input);
+torch::Tensor to_current_device(torch::Tensor input);
 
 #endif
 
-at::Tensor get_tensor_from_any(any input);
+torch::Tensor get_tensor_from_any(any input);
 
 bool is_any_cpu(any input);
-bool is_cpu_tensor(at::Tensor input);
-static inline at::TensorOptions get_tensor_option(c10::ScalarType dtype) {
-  return at::TensorOptions()
-      .device(at::kCUDA, -1)
-      .dtype(dtype)  // at::kByte
-      .layout(at::kStrided)
+bool is_cpu_tensor(torch::Tensor input);
+static inline torch::TensorOptions get_tensor_option(c10::ScalarType dtype) {
+  return torch::TensorOptions()
+      .device(torch::kCUDA, -1)
+      .dtype(dtype)  // torch::kByte
+      .layout(torch::kStrided)
       .requires_grad(false);
 }
 
-at::Tensor switch_device(at::Tensor input);
-at::Tensor async2cpu(at::Tensor input);
+torch::Tensor switch_device(torch::Tensor input);
+torch::Tensor async2cpu(torch::Tensor input);
 
-// at::Tensor tensor2nchw(at::Tensor, int& n, int& c, int& h, int& w);
-at::Tensor tensor2nchw(at::Tensor in);
+// torch::Tensor tensor2nchw(torch::Tensor, int& n, int& c, int& h, int& w);
+torch::Tensor tensor2nchw(torch::Tensor in);
 /**
  * @brief change hwc or 1chw to 1chw and check c==1 or 3, 4
  *
- * @param input at::Tensor(hwc or 1chw)
- * @return at::Tensor(1chw)
+ * @param input torch::Tensor(hwc or 1chw)
+ * @return torch::Tensor(1chw)
  */
-at::Tensor img_1chw_guard(at::Tensor input);
-at::Tensor img_nchw_guard(at::Tensor input);
-at::Tensor img_1hwc_guard(at::Tensor input);
+torch::Tensor img_1chw_guard(torch::Tensor input);
+torch::Tensor img_nchw_guard(torch::Tensor input);
+torch::Tensor img_1hwc_guard(torch::Tensor input);
 
-bool is_hwc(at::Tensor in);
-bool is_1chw(at::Tensor in);
-bool is_nchw(at::Tensor in);
+bool is_hwc(torch::Tensor in);
+bool is_1chw(torch::Tensor in);
+bool is_nchw(torch::Tensor in);
 
 /**
  * @brief change hwc or 1chw to hwc and check c==1 or 3, 4
  *
- * @param input at::Tensor(hwc or 1chw)
- * @return at::Tensor(hwc)
+ * @param input torch::Tensor(hwc or 1chw)
+ * @return torch::Tensor(hwc)
  */
-at::Tensor img_hwc_guard(at::Tensor in);
+torch::Tensor img_hwc_guard(torch::Tensor in);
 
-at::Tensor tensor_permute(at::Tensor input, const std::vector<int>& min_shape,
-                          const std::vector<int>& max_shape, bool& need_permute);
+torch::Tensor tensor_permute(torch::Tensor input, const std::vector<int>& min_shape,
+                             const std::vector<int>& max_shape, bool& need_permute);
 
 /**
- * @brief 保存 at::Tensor 到文件。等价于 ``torch.save(name: str, tensor: torch.Tensor)``
+ * @brief 保存 torch::Tensor 到文件。等价于 ``torch.save(name: str, tensor: torch.Tensor)``
  *
  * @param name 文件路径
  * @param input 输入的tensor
  */
-void save(std::string name, at::Tensor input);
+void save(std::string name, torch::Tensor input);
 
-at::Tensor load_tensor(std::string name);
-bool is_contiguous_wrt_hwc(at::Tensor in);
-bool is_contiguous_wrt_nchw(at::Tensor in);
+torch::Tensor load_tensor(std::string name);
+bool is_contiguous_wrt_hwc(torch::Tensor in);
+bool is_contiguous_wrt_nchw(torch::Tensor in);
 
-static inline at::Tensor torch_allocate(int64_t size) {
-  // auto options = at::TensorOptions()
-  //                    .device(at::kCUDA, -1)
-  //                    .dtype(at::kByte)
-  //                    .layout(at::kStrided)
+static inline torch::Tensor torch_allocate(int64_t size) {
+  // auto options = torch::TensorOptions()
+  //                    .device(torch::kCUDA, -1)
+  //                    .dtype(torch::kByte)
+  //                    .layout(torch::kStrided)
   //                    .requires_grad(false);
-  // return at::empty({size}, options, at::MemoryFormat::Contiguous);
+  // return torch::empty({size}, options, torch::MemoryFormat::Contiguous);
 
-  return at::empty({size}, at::dtype(at::kByte).device(at::kCUDA), at::MemoryFormat::Contiguous);
+  return torch::empty({size}, torch::dtype(torch::kByte).device(torch::kCUDA),
+                      torch::MemoryFormat::Contiguous);
 }
 
-at::Tensor try_quick_cat(std::vector<at::Tensor> resized_inputs);
+torch::Tensor try_quick_cat(std::vector<torch::Tensor> resized_inputs);
 }  // namespace ipipe

@@ -1,6 +1,6 @@
 #include "Tensor2NvTensor.hpp"
 #include "reflect.h"
-#include <ATen/ATen.h>
+#include <torch/torch.h>
 // #include <nvcv/Tensor.hpp>
 // #include <nvcv/DataType.hpp>
 
@@ -14,7 +14,7 @@ bool Tensor2NvTensor::init(const std::unordered_map<std::string, std::string> &,
 
 void Tensor2NvTensor::forward(dict input_dict) {
   auto &input = *input_dict;
-  auto data = dict_get<at::Tensor>(input_dict, TASK_DATA_KEY);
+  auto data = dict_get<torch::Tensor>(input_dict, TASK_DATA_KEY);
   IPIPE_ASSERT(data.is_cuda());
 #if 0
   // CVCUDA only support contiguous tensor at this moment
@@ -46,7 +46,7 @@ void NvTensor2Tensor::forward(dict input_dict) {
 
   auto data = dict_get<nvcv::Tensor>(input_dict, TASK_DATA_KEY);
 
-  at::Tensor result = fromNvcvTensor(data);
+  torch::Tensor result = fromNvcvTensor(data);
   input[TASK_RESULT_KEY] = result;
 }
 

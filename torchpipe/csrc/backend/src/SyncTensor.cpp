@@ -15,7 +15,7 @@
 #include "SyncTensor.hpp"
 #include "Sequential.hpp"
 
-// #include <ATen/ATen.h>
+// #include <torch/torch.h>
 #include "any.hpp"
 #include "Backend.hpp"
 #include "dict.hpp"
@@ -34,7 +34,7 @@ bool SyncTensor::init(const std::unordered_map<std::string, std::string>& config
       {{"_independent_thread_index", ""}, {"SyncTensor::backend", "Identity"}}, {}, {}, {}));
 
   if (!params_->init(config_param)) return false;
-  
+
   if (!params_->at("_independent_thread_index").empty()) {
     auto device_id_int = -1;  // std::stoi(device_id);
     int independent_thread_index = std::stoi(params_->at("_independent_thread_index"));

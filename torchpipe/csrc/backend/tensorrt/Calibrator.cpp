@@ -36,7 +36,7 @@ bool Calibrator::getBatch(void* bindings[], const char* names[], int nbBindings)
     return false;
   }
 
-  std::vector<at::Tensor> input_imgs_;
+  std::vector<torch::Tensor> input_imgs_;
   for (int i = read_batch_index_ * batchsize_; i < (1 + read_batch_index_) * batchsize_; i++) {
     const auto img_index_ = i % files_.size();
     SPDLOG_INFO("load {}. batch_index = {}, file_index = {}", files_[img_index_], read_batch_index_,
@@ -44,15 +44,15 @@ bool Calibrator::getBatch(void* bindings[], const char* names[], int nbBindings)
     auto data = ipipe::load_tensor(files_[img_index_]).cuda();
     input_imgs_.push_back(data);
   }
-  at::Tensor final_tensor;
+  torch::Tensor final_tensor;
   if (input_imgs_.size() == 1) {
     final_tensor = input_imgs_[0];
   } else {
-    final_tensor = at::cat(input_imgs_, 0);
+    final_tensor = torch::cat(input_imgs_, 0);
   }
 
   assert(final_tensor.size(0) == batchsize_);
-  final_tensor = final_tensor.to(at::kCUDA, at::kFloat, false, false);
+  final_tensor = final_tensor.to(torch::kCUDA, torch::kFloat, false, false);
   if (!final_tensor.is_contiguous()) final_tensor = final_tensor.contiguous();
 
   bindings[0] = final_tensor.data_ptr<float>();

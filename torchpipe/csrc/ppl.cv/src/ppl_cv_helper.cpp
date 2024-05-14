@@ -6,7 +6,7 @@ namespace ipipe {
 
 HWCTensorWrapper::HWCTensorWrapper(dict input_dict, int top, int bottom, int left, int right)
     : input(input_dict) {
-  input_tensor = dict_get<at::Tensor>(input_dict, TASK_DATA_KEY);
+  input_tensor = dict_get<torch::Tensor>(input_dict, TASK_DATA_KEY);
   IPIPE_ASSERT(!is_cpu_tensor(input_tensor));
   is_hwc_input = is_hwc(input_tensor);
   input_tensor = img_hwc_guard(input_tensor);
@@ -21,15 +21,15 @@ HWCTensorWrapper::HWCTensorWrapper(dict input_dict, int top, int bottom, int lef
   int c = input_tensor.sizes()[2];
   IPIPE_ASSERT(c == 3);
 
-  auto options = at::TensorOptions()
-                     .device(at::kCUDA, -1)
-                     .dtype(input_tensor.scalar_type())  // at::kByte
-                     .layout(at::kStrided)
+  auto options = torch::TensorOptions()
+                     .device(torch::kCUDA, -1)
+                     .dtype(input_tensor.scalar_type())  // torch::kByte
+                     .layout(torch::kStrided)
                      .requires_grad(false);
 
-  output_tensor =
-      at::empty({top + bottom + input_tensor.sizes()[0], left + right + input_tensor.sizes()[1], c},
-                options, at::MemoryFormat::Contiguous);
+  output_tensor = torch::empty(
+      {top + bottom + input_tensor.sizes()[0], left + right + input_tensor.sizes()[1], c}, options,
+      torch::MemoryFormat::Contiguous);
 
   // assert((img_w + left + right) * c == output_tensor.stride(0));
   assert(input_tensor.sizes()[1] * c == input_tensor.stride(0));
@@ -37,7 +37,7 @@ HWCTensorWrapper::HWCTensorWrapper(dict input_dict, int top, int bottom, int lef
 
 HWCTensorWrapper::HWCTensorWrapper(dict input_dict, int target_h, int target_w, bool set_zero)
     : input(input_dict) {
-  input_tensor = dict_get<at::Tensor>(input_dict, TASK_DATA_KEY);
+  input_tensor = dict_get<torch::Tensor>(input_dict, TASK_DATA_KEY);
   if (is_cpu_tensor(input_tensor)) {
     input_tensor = input_tensor.cuda();
   }
@@ -54,22 +54,22 @@ HWCTensorWrapper::HWCTensorWrapper(dict input_dict, int target_h, int target_w, 
   int c = input_tensor.sizes()[2];
   IPIPE_ASSERT(c == 3);
 
-  auto options = at::TensorOptions()
-                     .device(at::kCUDA, -1)
-                     .dtype(input_tensor.scalar_type())  // at::kByte
-                     .layout(at::kStrided)
+  auto options = torch::TensorOptions()
+                     .device(torch::kCUDA, -1)
+                     .dtype(input_tensor.scalar_type())  // torch::kByte
+                     .layout(torch::kStrided)
                      .requires_grad(false);
   if (set_zero) {
-    output_tensor = at::zeros({target_h, target_w, c}, options);
+    output_tensor = torch::zeros({target_h, target_w, c}, options);
   } else {
-    output_tensor = at::empty({target_h, target_w, c}, options, at::MemoryFormat::Contiguous);
+    output_tensor = torch::empty({target_h, target_w, c}, options, torch::MemoryFormat::Contiguous);
   }
 
   assert(output_tensor.stride(0) == target_w * c);
 }
 
 HWCTensorWrapper::HWCTensorWrapper(dict input_dict) : input(input_dict) {
-  input_tensor = dict_get<at::Tensor>(input_dict, TASK_DATA_KEY);
+  input_tensor = dict_get<torch::Tensor>(input_dict, TASK_DATA_KEY);
   IPIPE_ASSERT(!is_cpu_tensor(input_tensor));
   is_hwc_input = is_hwc(input_tensor);
   input_tensor = img_hwc_guard(input_tensor);
@@ -85,13 +85,13 @@ HWCTensorWrapper::HWCTensorWrapper(dict input_dict) : input(input_dict) {
   int c = input_tensor.sizes()[2];
   IPIPE_ASSERT(c == 3);
 
-  auto options = at::TensorOptions()
-                     .device(at::kCUDA, -1)
-                     .dtype(input_tensor.scalar_type())  // at::kByte
-                     .layout(at::kStrided)
+  auto options = torch::TensorOptions()
+                     .device(torch::kCUDA, -1)
+                     .dtype(input_tensor.scalar_type())  // torch::kByte
+                     .layout(torch::kStrided)
                      .requires_grad(false);
 
-  output_tensor = at::empty({target_h, target_w, c}, options, at::MemoryFormat::Contiguous);
+  output_tensor = torch::empty({target_h, target_w, c}, options, torch::MemoryFormat::Contiguous);
   assert(output_tensor.stride(0) == target_w * c);
 }
 

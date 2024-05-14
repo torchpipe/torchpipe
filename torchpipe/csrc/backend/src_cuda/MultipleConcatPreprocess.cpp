@@ -14,7 +14,7 @@
 
 #include "MultipleConcatPreprocess.hpp"
 
-#include <ATen/ATen.h>
+#include <torch/torch.h>
 
 // #include <fstream>
 #include <memory>
@@ -53,8 +53,8 @@ bool MultipleConcatPreprocess::init(const std::unordered_map<std::string, std::s
   return true;
 }
 
-std::vector<at::Tensor> MultipleConcatPreprocess::forward(const std::vector<dict>& raw_inputs) {
-  std::vector<std::vector<at::Tensor>> resized_inputs;
+std::vector<torch::Tensor> MultipleConcatPreprocess::forward(const std::vector<dict>& raw_inputs) {
+  std::vector<std::vector<torch::Tensor>> resized_inputs;
 
   bool may_need_quick_cat = true;
   for (std::size_t index = 0; index < raw_inputs.size(); ++index) {
@@ -64,11 +64,11 @@ std::vector<at::Tensor> MultipleConcatPreprocess::forward(const std::vector<dict
       throw std::runtime_error("MultipleConcatPreprocess: data not exists.");
     }
 
-    if (iter_data->second.type() != typeid(std::vector<at::Tensor>)) {
+    if (iter_data->second.type() != typeid(std::vector<torch::Tensor>)) {
       throw std::runtime_error(
-          "MultipleConcatPreprocess: data type must be std::vector<at::Tensor>.");
+          "MultipleConcatPreprocess: data type must be std::vector<torch::Tensor>.");
     }
-    std::vector<at::Tensor> net_inputs = any_cast<std::vector<at::Tensor>>(iter_data->second);
+    std::vector<torch::Tensor> net_inputs = any_cast<std::vector<torch::Tensor>>(iter_data->second);
     if (!min_value_.empty() && net_inputs.size() != min_value_.size()) {
       SPDLOG_ERROR("input.size == {}, min_value_.size == {}", net_inputs.size(), min_value_.size());
       throw std::runtime_error("shape not match");
@@ -79,7 +79,7 @@ std::vector<at::Tensor> MultipleConcatPreprocess::forward(const std::vector<dict
       if (is_cpu_tensor(net_input)) {
         may_need_quick_cat = false;
         //  注意：前处理在某些特殊情况下在cpu上可能变得特别慢，
-        net_input = net_input.to(at::kCUDA, net_input.dtype(), /* non_blocking =*/true, false);
+        net_input = net_input.to(torch::kCUDA, net_input.dtype(), /* non_blocking =*/true, false);
       }
 
       assert(net_input.is_cuda());
@@ -109,19 +109,19 @@ std::vector<at::Tensor> MultipleConcatPreprocess::forward(const std::vector<dict
     }
   }
 
-  std::vector<at::Tensor> result;
+  std::vector<torch::Tensor> result;
   std::size_t size_input = 0;
   for (int j = 0; j < num_input; ++j) {
-    std::vector<at::Tensor> data;
+    std::vector<torch::Tensor> data;
     for (const auto& inputs : resized_inputs) {
       data.push_back(inputs[j]);
     }
-    at::Tensor true_input;
+    torch::Tensor true_input;
     if (data.size() > 1) {
       if (may_need_quick_cat) {
         true_input = try_quick_cat(data);
       } else {
-        true_input = at::cat(data, 0);
+        true_input = torch::cat(data, 0);
       }
     } else if (data.empty()) {
       throw std::runtime_error("ConcatPreprocess: data is empty.");
@@ -141,7 +141,7 @@ std::vector<at::Tensor> MultipleConcatPreprocess::forward(const std::vector<dict
   return result;
 }
 
-IPIPE_REGISTER(PreProcessor<at::Tensor>, MultipleConcatPreprocess, "MultipleConcatPreprocess");
+IPIPE_REGISTER(PreProcessor<torch::Tensor>, MultipleConcatPreprocess, "MultipleConcatPreprocess");
 
 }  // namespace ipipe
 

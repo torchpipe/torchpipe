@@ -59,7 +59,7 @@ void Mat2Tensor::forward(dict input_dict) {
 
     } else if (iter->second.type() == typeid(std::vector<cv::Mat>)) {
       const std::vector<cv::Mat>& data = any_cast<std::vector<cv::Mat>>(iter->second);
-      std::vector<at::Tensor> result;
+      std::vector<torch::Tensor> result;
       for (const auto& d : data) {
         if (params_->at("device") == "cpu") {
           result.emplace_back(cvMat2TorchCPU(d, true, data_format_));
@@ -135,7 +135,7 @@ bool Tensor2Mat::init(const std::unordered_map<std::string, std::string>& config
 void Tensor2Mat::forward(dict input_dict) {
   auto& input = *input_dict;
 
-  auto data = dict_get<at::Tensor>(input_dict, TASK_DATA_KEY);
+  auto data = dict_get<torch::Tensor>(input_dict, TASK_DATA_KEY);
   auto result = torchTensortoCVMatV2(data, true);  // true is for 'deepcopy'
   input[TASK_RESULT_KEY] = result;
 }

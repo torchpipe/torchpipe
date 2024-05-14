@@ -22,22 +22,22 @@
 #include "params.hpp"
 #include "reflect.h"
 #include <list>
-#include <ATen/ATen.h>
+#include <torch/torch.h>
 
 namespace ipipe {
 
 struct DataWithNum {
-  DataWithNum(int id_input, const std::vector<at::Tensor>& data_i) : id(id_input), data(data_i) {
+  DataWithNum(int id_input, const std::vector<torch::Tensor>& data_i) : id(id_input), data(data_i) {
     event = std::make_shared<SimpleEvents>();
   }
-  std::vector<at::Tensor> data;
+  std::vector<torch::Tensor> data;
   int id;
 
   std::shared_ptr<SimpleEvents> event;
 };
 struct DataWithNumView {
   DataWithNumView(std::shared_ptr<DataWithNum> data) : data_(data) {}
-  DataWithNumView(int id_input, const std::vector<at::Tensor>& data) {
+  DataWithNumView(int id_input, const std::vector<torch::Tensor>& data) {
     data_ = std::make_shared<DataWithNum>(id_input, data);
     length = data[0].size(0);
   }
@@ -45,7 +45,7 @@ struct DataWithNumView {
   uint32_t start_offset{0};
   uint32_t length;
   std::shared_ptr<DataWithNum> data_;
-  std::vector<at::Tensor> replay;
+  std::vector<torch::Tensor> replay;
 };
 
 class TensorData {
@@ -55,7 +55,7 @@ class TensorData {
   // std::unordered_map<int, std::vector<DataWithNumView>> replay_;
   uint32_t sum_ = 0;
   uint32_t size() { return sum_; }
-  void add(int id, const std::vector<at::Tensor>& data) {
+  void add(int id, const std::vector<torch::Tensor>& data) {
     DataWithNumView data_id(id, data);
     data_.push_back(data_id);
     sum_ += data[0].size(0);
@@ -67,7 +67,8 @@ class TensorData {
     sum_ = 0;
   }
 
-  std::vector<std::vector<at::Tensor>> borrow(int id, uint32_t length) {  // can borrow enough data
+  std::vector<std::vector<torch::Tensor>> borrow(int id,
+                                                 uint32_t length) {  // can borrow enough data
     borrowed_[id] = std::vector<DataWithNumView>();
     std::vector<DataWithNumView>& result = borrowed_[id];
     for (auto iter = data_.begin(); iter != data_.end();) {
@@ -91,12 +92,12 @@ class TensorData {
         break;
       }
     }
-    std::vector<std::vector<at::Tensor>> final_data;
+    std::vector<std::vector<torch::Tensor>> final_data;
     for (const auto& item : result) {
       if (item.length == item.data_->data[0].size(0))
         final_data.push_back(item.data_->data);
       else {
-        std::vector<at::Tensor> single_data;
+        std::vector<torch::Tensor> single_data;
         for (int j = 0; j < item.data_->data.size(); ++j) {
           single_data.push_back(
               item.data_->data[j].slice(0, item.start_offset, item.start_offset + item.length));
@@ -107,14 +108,14 @@ class TensorData {
     return final_data;
   }
 
-  void set_replay(int id, const std::vector<std::vector<at::Tensor>>& replay) {
+  void set_replay(int id, const std::vector<std::vector<torch::Tensor>>& replay) {
     for (std::size_t i = 0; i < replay.size(); ++i) {
       borrowed_[id][i].replay = replay[i];
       borrowed_[id][i].data_->event->notify_all();
     }
   }
-  std::vector<std::vector<at::Tensor>> get_replay(int id) {
-    std::vector<std::vector<at::Tensor>> final_data;
+  std::vector<std::vector<torch::Tensor>> get_replay(int id) {
+    std::vector<std::vector<torch::Tensor>> final_data;
     std::vector<DataWithNumView> result;
     for (auto iter = borrowed_.begin(); iter != borrowed_.end(); ++iter) {
       for (auto iter_inner = iter->second.begin(); iter_inner != iter->second.end(); ++iter_inner) {

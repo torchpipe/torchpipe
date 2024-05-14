@@ -20,7 +20,7 @@
 
 namespace ipipe {
 /**
- * @brief 将 cv::Mat 变为 at::Tensor(1chw);
+ * @brief 将 cv::Mat 变为 torch::Tensor(1chw);
  */
 class Mat2Tensor : public SingleBackend {
  public:
@@ -31,7 +31,7 @@ class Mat2Tensor : public SingleBackend {
 
   /**
    * @param[in] TASK_DATA_KEY cv::Mat
-   * @param[out] TASK_RESULT_KEY at::Tensor， 1chw。
+   * @param[out] TASK_RESULT_KEY torch::Tensor， 1chw。
    */
   virtual void forward(dict) override;
 
@@ -69,13 +69,13 @@ class Any2Mat : public SingleBackend {
 #endif
 
 /**
- * @brief 将 at::Tensor 变为 cv::Mat;
+ * @brief 将 torch::Tensor 变为 cv::Mat;
  */
 class Tensor2Mat : public SingleBackend {
  public:
   virtual bool init(const std::unordered_map<std::string, std::string>&, dict) override;
   /**
-   * @param TASK_DATA_KEY at::Tensor, 支持hwc 和 1hwc(其中 c==3)
+   * @param TASK_DATA_KEY torch::Tensor, 支持hwc 和 1hwc(其中 c==3)
    * @param[out] TASK_RESULT_KEY cv::Mat.
    */
   virtual void forward(dict) override;

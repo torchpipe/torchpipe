@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <ATen/ATen.h>
+#include <torch/torch.h>
 #include <fstream>
 #include "base_logging.hpp"
 #include "reflect.h"
@@ -33,16 +33,16 @@ class SoftmaxArgMaxTensor : public Backend {
    */
   virtual void forward(const std::vector<dict>& input_dicts) override {
     auto& input = *input_dicts[0];
-    if (input[TASK_DATA_KEY].type() != typeid(at::Tensor)) {
-      SPDLOG_ERROR("SoftmaxArgMaxTensor: at::Tensor needed; error input type: " +
+    if (input[TASK_DATA_KEY].type() != typeid(torch::Tensor)) {
+      SPDLOG_ERROR("SoftmaxArgMaxTensor: torch::Tensor needed; error input type: " +
                    std::string(input[TASK_DATA_KEY].type().name()));
-      throw std::runtime_error("SoftmaxArgMaxTensor: at::Tensor needed; error input type: " +
+      throw std::runtime_error("SoftmaxArgMaxTensor: torch::Tensor needed; error input type: " +
                                std::string(input[TASK_DATA_KEY].type().name()));
     }
-    auto input_tensor = any_cast<at::Tensor>(input[TASK_DATA_KEY]);
+    auto input_tensor = any_cast<torch::Tensor>(input[TASK_DATA_KEY]);
 
     // IPIPE_ASSERT(input_tensor.sizes().size() == 2);
-    at::Tensor output = input_tensor.softmax(-1);
+    torch::Tensor output = input_tensor.softmax(-1);
     auto max_values_and_indices = torch::max(output, -1);
 
     torch::Tensor max_values = std::get<0>(max_values_and_indices).cpu();
@@ -74,16 +74,16 @@ class ArgMaxTensor : public Backend {
    */
   virtual void forward(const std::vector<dict>& input_dicts) override {
     auto& input = *input_dicts[0];
-    if (input[TASK_DATA_KEY].type() != typeid(at::Tensor)) {
-      SPDLOG_ERROR("ArgMaxTensor: at::Tensor needed; error input type: " +
+    if (input[TASK_DATA_KEY].type() != typeid(torch::Tensor)) {
+      SPDLOG_ERROR("ArgMaxTensor: torch::Tensor needed; error input type: " +
                    std::string(input[TASK_DATA_KEY].type().name()));
-      throw std::runtime_error("ArgMaxTensor: at::Tensor needed; error input type: " +
+      throw std::runtime_error("ArgMaxTensor: torch::Tensor needed; error input type: " +
                                std::string(input[TASK_DATA_KEY].type().name()));
     }
-    auto input_tensor = any_cast<at::Tensor>(input[TASK_DATA_KEY]);
+    auto input_tensor = any_cast<torch::Tensor>(input[TASK_DATA_KEY]);
 
     // IPIPE_ASSERT(input_tensor.sizes().size() == 2);
-    at::Tensor output = input_tensor.softmax(-1);
+    torch::Tensor output = input_tensor.softmax(-1);
     auto max_values_and_indices = torch::max(output, -1);
 
     torch::Tensor max_values = std::get<0>(max_values_and_indices).cpu();
@@ -115,13 +115,13 @@ class Tensor2Vector : public Backend {
    */
   virtual void forward(const std::vector<dict>& input_dicts) override {
     auto& input = *input_dicts[0];
-    if (input[TASK_DATA_KEY].type() != typeid(at::Tensor)) {
-      SPDLOG_ERROR("Tensor2Vector: at::Tensor needed; error input type: " +
+    if (input[TASK_DATA_KEY].type() != typeid(torch::Tensor)) {
+      SPDLOG_ERROR("Tensor2Vector: torch::Tensor needed; error input type: " +
                    std::string(input[TASK_DATA_KEY].type().name()));
-      throw std::runtime_error("Tensor2Vector: at::Tensor needed; error input type: " +
+      throw std::runtime_error("Tensor2Vector: torch::Tensor needed; error input type: " +
                                std::string(input[TASK_DATA_KEY].type().name()));
     }
-    auto input_tensor = any_cast<at::Tensor>(input[TASK_DATA_KEY]);
+    auto input_tensor = any_cast<torch::Tensor>(input[TASK_DATA_KEY]);
     if (input_tensor.is_cuda()) {
       input_tensor = input_tensor.cpu();
     }
@@ -129,7 +129,7 @@ class Tensor2Vector : public Backend {
       input_tensor = input_tensor.contiguous();
     }
 
-    IPIPE_ASSERT(input_tensor.scalar_type() == at::kFloat);
+    IPIPE_ASSERT(input_tensor.scalar_type() == torch::kFloat);
 
     float* data = input_tensor.data_ptr<float>();
     int numel = input_tensor.numel();

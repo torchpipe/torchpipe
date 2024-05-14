@@ -29,7 +29,7 @@
 #include "torchpipe/extension.h"
 
 // 第三方库头文件
-#include <ATen/ATen.h>
+#include <torch/torch.h>
 // #include "cuda_runtime.h"
 // #include "cuda_runtime_api.h"
 
@@ -81,12 +81,12 @@ class PostProcYolox : public Backend {
   };
   void forward(const std::vector<dict>& data) override {
     IPIPE_ASSERT(data.size() == 1);
-    at::Tensor result = dict_get<at::Tensor>(data[0], TASK_DATA_KEY);
+    torch::Tensor result = dict_get<torch::Tensor>(data[0], TASK_DATA_KEY);
     forward({result}, data);
   }
 
  private:
-  void forward(std::vector<at::Tensor> net_outputs, std::vector<dict> input) {
+  void forward(std::vector<torch::Tensor> net_outputs, std::vector<dict> input) {
     if (net_outputs.empty()) return;
 
     auto final_objs = forward_impl(net_outputs, input);
@@ -121,7 +121,7 @@ class PostProcYolox : public Backend {
     float prob;
   };
 
-  std::vector<std::vector<Object>> forward_impl(std::vector<at::Tensor> net_outputs,
+  std::vector<std::vector<Object>> forward_impl(std::vector<torch::Tensor> net_outputs,
                                                 std::vector<dict> input) {
     if (!is_cpu_tensor(net_outputs[0]))  // cpu tensor to gpu tensor
       net_outputs[0] = net_outputs[0].cpu();
@@ -348,7 +348,7 @@ class PostProcYolox : public Backend {
 };
 
 // using PostProcYolox_45_30 = PostProcYolox;
-// IPIPE_REGISTER(PostProcessor<at::Tensor>, PostProcYolox_45_30, "PostProcYolox_45_30");
+// IPIPE_REGISTER(PostProcessor<torch::Tensor>, PostProcYolox_45_30, "PostProcYolox_45_30");
 IPIPE_REGISTER(Backend, PostProcYolox, "PostProcYolox");
 namespace ipipe {
 class FilterScore : public Filter {

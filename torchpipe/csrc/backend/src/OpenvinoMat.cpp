@@ -14,7 +14,7 @@
 
 #ifdef WITH_OPENVINO
 
-#include <ATen/ATen.h>
+#include <torch/torch.h>
 #include <fstream>
 #include <memory>
 #include <numeric>

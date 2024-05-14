@@ -35,18 +35,18 @@ namespace py = pybind11;
 namespace ipipe {
 
 // https://github.com/pytorch/pytorch/blob/30fb2c4abaaaa966999eab11674f25b18460e609/torch/csrc/cuda/python_nccl.cpp
-// static inline at::Tensor extract_tensor(PyObject* obj) {
+// static inline torch::Tensor extract_tensor(PyObject* obj) {
 //   if (!THPVariable_Check(obj)) {
 //     throw torch::TypeError("expected Tensor (got %s)", Py_TYPE(obj)->tp_name);
 //   }
 //   return THPVariable_Unpack(obj);
 // }
 
-// static inline std::vector<at::Tensor> extract_tensors(PyObject* obj) {
+// static inline std::vector<torch::Tensor> extract_tensors(PyObject* obj) {
 //   auto seq = THPObjectPtr(PySequence_Fast(obj, "expected a sequence"));
 //   if (!seq) throw python_error();
 
-//   std::vector<at::Tensor> list;
+//   std::vector<torch::Tensor> list;
 //   Py_ssize_t length = PySequence_Fast_GET_SIZE(seq.get());
 //   for (Py_ssize_t i = 0; i < length; i++) {
 //     PyObject* item = PySequence_Fast_GET_ITEM(seq.get(), i);

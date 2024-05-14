@@ -13,7 +13,7 @@
 // limitations under the License.
 
 #include "torchpipe/extension.h"
-#include <ATen/ATen.h>
+#include <torch/torch.h>
 #include "opencv2/core.hpp"
 // std::unordered_map<std::string> data_map
 
@@ -22,10 +22,10 @@ struct empty_any_struct {};
 std::unordered_map<std::string, any> get_data_map() {
   std::unordered_map<std::string, any> data;
 
-  at::Tensor Tensor;
+  torch::Tensor Tensor;
   data["std::string"] = std::string();
   data["cv::Mat"] = cv::Mat(1, 2, CV_8UC3);
-  data["at::Tensor"] = Tensor;
+  data["torch::Tensor"] = Tensor;
   data["bool"] = true;
   data["float"] = float(1.23);
   data["double"] = double(1.23);
@@ -46,7 +46,7 @@ std::unordered_map<std::string, any> get_vector_map() {
 
   data["std::string"] = container<std::string>{std::string()};
   data["cv::Mat"] = container<cv::Mat>{cv::Mat(1, 2, CV_8UC3)};
-  data["at::Tensor"] = container<at::Tensor>{at::empty({6})};
+  data["torch::Tensor"] = container<torch::Tensor>{torch::empty({6})};
   // data["bool"] = container<bool>{true};
   data["float"] = container<float>{{float(1.23)}};
   data["double"] = container<double>{{double(1.23)}};
@@ -54,10 +54,10 @@ std::unordered_map<std::string, any> get_vector_map() {
   data["unsigned int"] = container<unsigned int>{{(unsigned int)123}};
   data["char"] = container<char>{{char(1)}};
   data["unsigned char"] = container<unsigned char>{{(unsigned char)1}};
-  std::vector<any> data_any = {any(1), any(std::vector<at::Tensor>({at::empty({6})}))};
+  std::vector<any> data_any = {any(1), any(std::vector<torch::Tensor>({torch::empty({6})}))};
   data["any"] = data_any;
   std::unordered_map<std::string, any> data_any_str_dict{
-      {"int", any(1)}, {"at::Tensor", any(std::vector<at::Tensor>({at::empty({6})}))}};
+      {"int", any(1)}, {"torch::Tensor", any(std::vector<torch::Tensor>({torch::empty({6})}))}};
   data["any_str_dict"] = data_any_str_dict;
   return data;
 }
@@ -68,7 +68,7 @@ std::unordered_map<std::string, any> get_vector2_map() {
 
   // data["std::string"] = container<std::string>{std::string()};
   // data["cv::Mat"] = container<cv::Mat>{cv::Mat(1, 2, CV_8UC3)};
-  // data["at::Tensor"] = container<at::Tensor>{at::empty({6})};
+  // data["torch::Tensor"] = container<torch::Tensor>{torch::empty({6})};
   // data["bool"] = container<bool>{true};
   data["float"] = container<float>{{float(1.23)}};
   data["double"] = container<double>{{double(1.23)}};
@@ -85,7 +85,7 @@ std::unordered_map<std::string, ipipe::any> get_set_map() {
 
   data["std::string"] = std::unordered_set<std::string>{std::string()};
   // data["cv::Mat"] = std::unordered_set<cv::Mat>{cv::Mat(1, 2, CV_8UC3)};
-  // data["at::Tensor"] = std::unordered_set<at::Tensor>{at::empty({6})};
+  // data["torch::Tensor"] = std::unordered_set<torch::Tensor>{torch::empty({6})};
   data["bool"] = std::unordered_set<bool>{true};
   data["float"] = std::unordered_set<float>{float(1.23)};
   data["double"] = std::unordered_set<double>{double(1.23)};
@@ -105,7 +105,7 @@ std::unordered_map<std::string, any> get_str_dict_map() {
 
   data["std::string"] = init_str_dict(std::string());
   data["cv::Mat"] = init_str_dict(cv::Mat(1, 2, CV_8UC3));
-  data["at::Tensor"] = init_str_dict(at::empty({6}));
+  data["torch::Tensor"] = init_str_dict(torch::empty({6}));
   data["bool"] = init_str_dict(true);
   data["float"] = init_str_dict(float(1.23));
   data["double"] = init_str_dict(double(1.23));
@@ -114,11 +114,11 @@ std::unordered_map<std::string, any> get_str_dict_map() {
   data["char"] = init_str_dict(char(1));
   data["unsigned char"] = init_str_dict((unsigned char)1);
 
-  std::vector<any> data_any = {any(1), any(std::vector<at::Tensor>({at::empty({6})}))};
+  std::vector<any> data_any = {any(1), any(std::vector<torch::Tensor>({torch::empty({6})}))};
   data["any"] = data_any;
   std::unordered_map<std::string, any> data_any_str_dict = {
       {"int", any(1)},
-      {"at::Tensor", any(std::vector<at::Tensor>({at::empty({6}), at::empty({6})}))}};
+      {"torch::Tensor", any(std::vector<torch::Tensor>({torch::empty({6}), torch::empty({6})}))}};
   data["any_str_dict"] = data_any_str_dict;
   return data;
 }

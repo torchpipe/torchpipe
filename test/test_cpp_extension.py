@@ -81,8 +81,7 @@ def test_SetPY2CPP():
         key: {value, value} for key, value in data_map.items() if key != "torch.Tensor"
     }
     model(input)
-    input = {key: set()
-             for key, value in data_map.items() if key != "torch.Tensor"}
+    input = {key: set() for key, value in data_map.items() if key != "torch.Tensor"}
     model(input)
 
 
@@ -122,7 +121,7 @@ def test_ListCPP2PY():
     model(input)
     print(input)
     assert type(input["std::string"]) == list
-    assert (input["at::Tensor"][0]) is not None
+    assert (input["torch::Tensor"][0]) is not None
     assert input["any"][0] == 1
     assert type(input["any"][1]) == list
     assert type(input["any"][1][0]) == torch.Tensor
@@ -159,8 +158,8 @@ def test_StrMapCPP2PY():
     print(input)
 
     assert input["any_str_dict"]["int"] == 1
-    assert type(input["any_str_dict"]["at::Tensor"]) == list
-    assert type(input["any_str_dict"]["at::Tensor"][1]) == torch.Tensor
+    assert type(input["any_str_dict"]["torch::Tensor"]) == list
+    assert type(input["any_str_dict"]["torch::Tensor"][1]) == torch.Tensor
 
 
 # def test_StrMapPY2CPP():

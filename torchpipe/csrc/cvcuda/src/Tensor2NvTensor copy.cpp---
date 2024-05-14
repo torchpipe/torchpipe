@@ -1,6 +1,6 @@
 #include "Tensor2NvTensor.hpp"
 #include "reflect.h"
-#include <ATen/ATen.h>
+#include <torch/torch.h>
 #include <nvcv/Tensor.hpp>
 #include <nvcv/DataType.hpp>
 
@@ -8,13 +8,13 @@
 
 namespace {
 
-nvcv::ImageFormat torch2nvcv(at::ScalarType dtype) {
+nvcv::ImageFormat torch2nvcv(torch::ScalarType dtype) {
   switch (dtype) {
-    case at::kByte:
+    case torch::kByte:
       return nvcv::FMT_RGB8;
-    case at::kFloat:
+    case torch::kFloat:
       return nvcv::FMT_RGBf32;
-    case at::kHalf:
+    case torch::kHalf:
       return nvcv::FMT_RGBf16;
     default:
       throw std::runtime_error("torch2nvcv: Unsupported dtype");
@@ -22,13 +22,13 @@ nvcv::ImageFormat torch2nvcv(at::ScalarType dtype) {
 }
 
 struct ATenNvcvTensor {
-  at::Tensor handle;
+  torch::Tensor handle;
   //   nvcv::Tensor tensor;
 };
 
 void deleter(void *ctx, const NVCVTensorData *data) { delete static_cast<ATenNvcvTensor *>(ctx); }
 
-nvcv::Tensor torchTensortoNvcvTensor(at::Tensor data) {
+nvcv::Tensor torchTensortoNvcvTensor(torch::Tensor data) {
   // todo FillNVCVTensorData
   nvcv::Tensor::Requirements inReqs;
   std::unique_ptr<ATenNvcvTensor> ctx(new ATenNvcvTensor());
@@ -93,7 +93,7 @@ bool Tensor2NvTensor::init(const std::unordered_map<std::string, std::string> &,
 void Tensor2NvTensor::forward(dict input_dict) {
   auto &input = *input_dict;
 
-  auto data = dict_get<at::Tensor>(input_dict, TASK_DATA_KEY);
+  auto data = dict_get<torch::Tensor>(input_dict, TASK_DATA_KEY);
   auto result = torchTensortoNvcvTensor(data);  // true is for 'deepcopy'
   input[TASK_RESULT_KEY] = result;
 }

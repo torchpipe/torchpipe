@@ -20,7 +20,7 @@
 
 #include <iostream>
 
-#include <ATen/ATen.h>
+#include <torch/torch.h>
 
 TEST(BackendTest, BackendRemove) {
   auto* backend_instance = IPIPE_CREATE(ipipe::Backend, "Remove");

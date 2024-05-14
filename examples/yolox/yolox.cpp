@@ -28,7 +28,7 @@
 #include "prepost.hpp"
 
 // 第三方库头文件
-#include <ATen/ATen.h>
+#include <torch/torch.h>
 // #include "cuda_runtime.h"
 // #include "cuda_runtime_api.h"
 
@@ -64,19 +64,19 @@ static inline cv_rect<T> operator&(const cv_rect<T>& a, const cv_rect<T>& b) {
 
 // stuff we know about the network and the input/output blobs
 template <int NMS_THRESH = 45, int BBOX_CONF_THRESH = 30>
-class BatchingPostProcYolox : public PostProcessor<at::Tensor> {
+class BatchingPostProcYolox : public PostProcessor<torch::Tensor> {
  public:
-  virtual void forward(std::vector<at::Tensor> net_outputs, std::vector<dict> input,
-                       const std::vector<at::Tensor>& net_inputs) override {
+  virtual void forward(std::vector<torch::Tensor> net_outputs, std::vector<dict> input,
+                       const std::vector<torch::Tensor>& net_inputs) override {
     if (net_outputs.empty()) return;
 
     auto final_objs = forward_impl(net_outputs, input, net_inputs);
 
     for (auto i = 0; i < input.size(); ++i) {
       const std::vector<Object>& objects = final_objs[i];
-      std::vector<at::Tensor> boxes;
+      std::vector<torch::Tensor> boxes;
       for (const auto& obj : objects) {
-        auto box = at::empty({6});
+        auto box = torch::empty({6});
         box[0] = obj.rect.x;
         box[1] = obj.rect.y;
         box[2] = obj.rect.width + obj.rect.x;
@@ -97,9 +97,9 @@ class BatchingPostProcYolox : public PostProcessor<at::Tensor> {
     float prob;
   };
 
-  std::vector<std::vector<Object>> forward_impl(std::vector<at::Tensor> net_outputs,
+  std::vector<std::vector<Object>> forward_impl(std::vector<torch::Tensor> net_outputs,
                                                 std::vector<dict> input,
-                                                const std::vector<at::Tensor>& net_inputs) {
+                                                const std::vector<torch::Tensor>& net_inputs) {
     net_outputs[0] = net_outputs[0].cpu();
 
     const auto& input_shape = net_inputs[0].sizes().vec();
@@ -319,18 +319,18 @@ class BatchingPostProcYolox : public PostProcessor<at::Tensor> {
 
 class BatchingPostProcYolox_custom : public BatchingPostProcYolox<20, 40> {
  public:
-  void forward(std::vector<at::Tensor> net_outputs, std::vector<dict> input,
-               const std::vector<at::Tensor>& net_inputs) override {
+  void forward(std::vector<torch::Tensor> net_outputs, std::vector<dict> input,
+               const std::vector<torch::Tensor>& net_inputs) override {
     if (net_outputs.empty()) return;
 
     auto final_objs = forward_impl(net_outputs, input, net_inputs);
 
     for (auto i = 0; i < input.size(); ++i) {
       const std::vector<Object>& objects = final_objs[i];
-      std::vector<at::Tensor> boxes;
-      std::vector<at::Tensor> boxes_for_crop;
+      std::vector<torch::Tensor> boxes;
+      std::vector<torch::Tensor> boxes_for_crop;
       for (const auto& obj : objects) {
-        auto box = at::empty({6});
+        auto box = torch::empty({6});
         box[0] = obj.rect.x;
         box[1] = obj.rect.y;
         box[2] = obj.rect.width + obj.rect.x;
@@ -339,14 +339,14 @@ class BatchingPostProcYolox_custom : public BatchingPostProcYolox<20, 40> {
         box[5] = obj.prob;
         boxes.emplace_back(box);
 
-        at::Tensor img = any_cast<at::Tensor>((*input[i])[TASK_DATA_KEY]);
+        torch::Tensor img = any_cast<torch::Tensor>((*input[i])[TASK_DATA_KEY]);
         auto img_w = img.size(1);
         auto img_h = img.size(0);
 
         float pad = 1 * std::min(obj.rect.width, obj.rect.height);
         pad = std::min(std::max(pad, 5.f), 40.f);
 
-        auto box_for_crop = at::empty({6});
+        auto box_for_crop = torch::empty({6});
         box_for_crop[0] = std::max(0.f, obj.rect.x - pad);
         box_for_crop[1] = std::max(0.f, obj.rect.y - pad);
         box_for_crop[2] = std::min(obj.rect.width + obj.rect.x + pad, img_w - 1.f);
@@ -362,10 +362,11 @@ class BatchingPostProcYolox_custom : public BatchingPostProcYolox<20, 40> {
 };
 
 using BatchingPostProcYolox_default = BatchingPostProcYolox<>;
-IPIPE_REGISTER(PostProcessor<at::Tensor>, BatchingPostProcYolox_default, "BatchingPostProcYolox");
+IPIPE_REGISTER(PostProcessor<torch::Tensor>, BatchingPostProcYolox_default,
+               "BatchingPostProcYolox");
 
 using BatchingPostProcYolox_45_30 = BatchingPostProcYolox<45, 30>;
-IPIPE_REGISTER(PostProcessor<at::Tensor>, BatchingPostProcYolox_45_30,
+IPIPE_REGISTER(PostProcessor<torch::Tensor>, BatchingPostProcYolox_45_30,
                "BatchingPostProcYolox_45_30");
 
 ///   v2

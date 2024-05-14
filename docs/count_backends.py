@@ -49,8 +49,7 @@ for k, v in result.items():
 # EmptyForwardSingleBackend 3
 
 
-
-# PreProcessor<at::Tensor> 2
-# PostProcessor<at::Tensor> 4
+# PreProcessor<torch::Tensor> 2
+# PostProcessor<torch::Tensor> 4
 
 # Filter 17

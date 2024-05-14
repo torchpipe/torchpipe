@@ -13,7 +13,7 @@
 // limitations under the License.
 
 #include <torch/serialize.h>
-#include <ATen/ATen.h>
+#include <torch/torch.h>
 #include <fstream>
 #include "base_logging.hpp"
 #include "reflect.h"
@@ -71,13 +71,13 @@ class SaveTensor : public SingleBackend {
    */
   virtual void forward(dict input_dict) override {
     auto& input = *input_dict;
-    if (input[TASK_DATA_KEY].type() != typeid(at::Tensor)) {
-      SPDLOG_ERROR("SaveTensor: at::Tensor needed; error input type: " +
+    if (input[TASK_DATA_KEY].type() != typeid(torch::Tensor)) {
+      SPDLOG_ERROR("SaveTensor: torch::Tensor needed; error input type: " +
                    std::string(input[TASK_DATA_KEY].type().name()));
-      throw std::runtime_error("SaveTensor: at::Tensor needed; error input type: " +
+      throw std::runtime_error("SaveTensor: torch::Tensor needed; error input type: " +
                                std::string(input[TASK_DATA_KEY].type().name()));
     }
-    auto input_tensor = any_cast<at::Tensor>(input[TASK_DATA_KEY]);
+    auto input_tensor = any_cast<torch::Tensor>(input[TASK_DATA_KEY]);
 
     const std::string& save_dir = params_->at("save_dir");
 

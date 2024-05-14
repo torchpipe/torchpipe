@@ -17,7 +17,7 @@
 #include "Backend.hpp"
 #include "dict.hpp"
 
-#include <ATen/ATen.h>
+#include <torch/torch.h>
 
 #include "params.hpp"
 #include "prepost.hpp"
@@ -29,7 +29,7 @@ namespace ipipe {
  * 'permute'(if tensor.size(-1) is 1 or 3) one by one. Only support multiple
  * input.
  */
-class MultipleConcatPreprocess : public PreProcessor<at::Tensor> {
+class MultipleConcatPreprocess : public PreProcessor<torch::Tensor> {
  public:
   virtual bool init(const std::unordered_map<std::string, std::string>& /*config*/,
                     dict /*dict_config*/) override;
@@ -38,11 +38,11 @@ class MultipleConcatPreprocess : public PreProcessor<at::Tensor> {
    * Tensor-Group.
    *
    * @param raw_inputs input data. 'data' of raw_inputs should be of type
-   * 'std::vector<at::Tensor>'.
+   * 'std::vector<torch::Tensor>'.
    *
-   * @return std::vector<at::Tensor> concated tensor(s).
+   * @return std::vector<torch::Tensor> concated tensor(s).
    */
-  std::vector<at::Tensor> forward(const std::vector<dict>& raw_inputs);
+  std::vector<torch::Tensor> forward(const std::vector<dict>& raw_inputs);
 
  private:
   std::vector<std::vector<int>> max_value_;

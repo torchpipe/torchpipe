@@ -14,7 +14,7 @@
 
 #pragma once
 
-#include <ATen/ATen.h>
+#include <torch/torch.h>
 
 #include <opencv2/core.hpp>
 
@@ -22,21 +22,21 @@
 #include "dict.hpp"
 
 namespace ipipe {
-cv::Mat torchTensortoCVMat(at::Tensor tensor, bool deepcopy = false);
-cv::Mat torchTensortoCVMatV2(at::Tensor tensor, bool deepcopy = false);
-
+cv::Mat torchTensortoCVMat(torch::Tensor tensor, bool deepcopy = false);
+cv::Mat torchTensortoCVMatV2(torch::Tensor tensor, bool deepcopy = false);
 
 #ifdef WITH_CUDA
-at::Tensor cvMat2TorchGPU(cv::Mat tensor, std::string data_format = "nchw");
+torch::Tensor cvMat2TorchGPU(cv::Mat tensor, std::string data_format = "nchw");
 #endif
 
-at::Tensor cvMat2TorchCPU(cv::Mat tensor, bool deepcopy = false, std::string data_format = "nchw");
+torch::Tensor cvMat2TorchCPU(cv::Mat tensor, bool deepcopy = false,
+                             std::string data_format = "nchw");
 
-void imwrite(std::string name, at::Tensor tensor);
+void imwrite(std::string name, torch::Tensor tensor);
 
 void imwrite(std::string name, any tensor);
 
-at::Tensor get_tensor_from_any(any input);
+torch::Tensor get_tensor_from_any(any input);
 cv::Mat get_mat_from_any(any input);
 
 }  // namespace ipipe

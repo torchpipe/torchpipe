@@ -16,11 +16,11 @@
  */
 
 #pragma once
-#include <ATen/ATen.h>
+#include <torch/torch.h>
 
 namespace ipipe_nvcv {
 
-using TensorDataAccessStridedImagePlanar = at::Tensor;
+using TensorDataAccessStridedImagePlanar = torch::Tensor;
 typedef enum {
   NVCV_INTERP_NEAREST = 0,
   NVCV_INTERP_LINEAR = 1,
@@ -39,26 +39,26 @@ typedef enum {
   NVCV_BORDER_REFLECT101 = 4,
 } NVCVBorderType;
 
-using DataType = at::ScalarType;
-using DataShape = at::IntArrayRef;
+using DataType = torch::ScalarType;
+using DataShape = torch::IntArrayRef;
 inline size_t DataSize(DataType data_type) {
   size_t size = 0;
   switch (data_type) {
-    case at::kByte:
-    case at::kChar:
+    case torch::kByte:
+    case torch::kChar:
       size = 1;
       break;
-    case at::kShort:
-    case at::kHalf:
+    case torch::kShort:
+    case torch::kHalf:
       size = 2;
       break;
-    case at::kInt:
-    case at::kFloat:
+    case torch::kInt:
+    case torch::kFloat:
       size = 4;
       break;
-    case at::kDouble:
+    case torch::kDouble:
       size = 8;
-    case at::kLong:
+    case torch::kLong:
       size = 8;
 
     default:

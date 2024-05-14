@@ -20,18 +20,16 @@
 
 #include <iostream>
 
-#include <ATen/ATen.h>
+#include <torch/torch.h>
 
 TEST(C10ExceptionTest, Basic) {
   auto* backend_instance = IPIPE_CREATE(ipipe::Backend, "C10Exception");
   ASSERT_TRUE(backend_instance != nullptr);
   std::unordered_map<std::string, std::string> config;
   ASSERT_TRUE(backend_instance->init(config, nullptr));
- 
 
   ipipe::dict data = ipipe::make_dict();
   (*data)[ipipe::TASK_DATA_KEY] = int(-1);
- 
-  EXPECT_THROW( backend_instance->forward({data}),  c10::Error);
- 
+
+  EXPECT_THROW(backend_instance->forward({data}), c10::Error);
 }

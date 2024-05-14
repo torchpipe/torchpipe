@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <ATen/ATen.h>
+#include <torch/torch.h>
 #include <fstream>
 #include "base_logging.hpp"
 #include "reflect.h"
@@ -32,13 +32,13 @@ class GpuTensor : public SingleBackend {
    */
   virtual void forward(dict input_dict) override {
     auto& input = *input_dict;
-    if (input[TASK_DATA_KEY].type() != typeid(at::Tensor)) {
-      SPDLOG_ERROR("GpuTensor: at::Tensor needed; error input type: " +
+    if (input[TASK_DATA_KEY].type() != typeid(torch::Tensor)) {
+      SPDLOG_ERROR("GpuTensor: torch::Tensor needed; error input type: " +
                    std::string(input[TASK_DATA_KEY].type().name()));
-      throw std::runtime_error("GpuTensor: at::Tensor needed; error input type: " +
+      throw std::runtime_error("GpuTensor: torch::Tensor needed; error input type: " +
                                std::string(input[TASK_DATA_KEY].type().name()));
     }
-    auto input_tensor = any_cast<at::Tensor>(input[TASK_DATA_KEY]);
+    auto input_tensor = any_cast<torch::Tensor>(input[TASK_DATA_KEY]);
 
     if (!is_cpu_tensor(input_tensor)) {
       SPDLOG_ERROR("input_tensor should be cpu tensor");
@@ -65,17 +65,17 @@ class CpuTensor : public SingleBackend {
   virtual void forward(dict input_dict) override {
     auto& input = *input_dict;
 
-    if (input[TASK_DATA_KEY].type() == typeid(at::Tensor)) {
-      at::Tensor input_tensor = any_cast<at::Tensor>(input[TASK_DATA_KEY]);
+    if (input[TASK_DATA_KEY].type() == typeid(torch::Tensor)) {
+      torch::Tensor input_tensor = any_cast<torch::Tensor>(input[TASK_DATA_KEY]);
       if (!input_tensor.is_cuda()) {
         SPDLOG_ERROR("input_tensor should be gpu tensor");
         throw std::runtime_error("input_tensor should be gpu tensor");
       }
 
       input[TASK_RESULT_KEY] = input_tensor.cpu();
-    } else if (input[TASK_DATA_KEY].type() == typeid(std::vector<at::Tensor>)) {
-      std::vector<at::Tensor> input_tensor =
-          any_cast<std::vector<at::Tensor>>(input[TASK_DATA_KEY]);
+    } else if (input[TASK_DATA_KEY].type() == typeid(std::vector<torch::Tensor>)) {
+      std::vector<torch::Tensor> input_tensor =
+          any_cast<std::vector<torch::Tensor>>(input[TASK_DATA_KEY]);
       for (auto& item : input_tensor) {
         if (item.is_cuda()) {
           item = item.cpu();
@@ -86,10 +86,11 @@ class CpuTensor : public SingleBackend {
       }
       input[TASK_RESULT_KEY] = input_tensor;
     } else {
-      SPDLOG_ERROR("CpuTensor: at::Tensor/std::vector<at::Tensor> needed; error input type: " +
-                   std::string(input[TASK_DATA_KEY].type().name()));
+      SPDLOG_ERROR(
+          "CpuTensor: torch::Tensor/std::vector<torch::Tensor> needed; error input type: " +
+          std::string(input[TASK_DATA_KEY].type().name()));
       throw std::runtime_error(
-          "CpuTensor: at::Tensor/std::vector<at::Tensor> needed; error input type: " +
+          "CpuTensor: torch::Tensor/std::vector<torch::Tensor> needed; error input type: " +
           std::string(input[TASK_DATA_KEY].type().name()));
     }
   }
@@ -111,15 +112,15 @@ class FloatTensor : public SingleBackend {
    */
   virtual void forward(dict input_dict) override {
     auto& input = *input_dict;
-    if (input[TASK_DATA_KEY].type() != typeid(at::Tensor)) {
-      SPDLOG_ERROR("FloatTensor: at::Tensor needed; error input type: " +
+    if (input[TASK_DATA_KEY].type() != typeid(torch::Tensor)) {
+      SPDLOG_ERROR("FloatTensor: torch::Tensor needed; error input type: " +
                    std::string(input[TASK_DATA_KEY].type().name()));
-      throw std::runtime_error("FloatTensor: at::Tensor needed; error input type: " +
+      throw std::runtime_error("FloatTensor: torch::Tensor needed; error input type: " +
                                std::string(input[TASK_DATA_KEY].type().name()));
     }
-    auto input_tensor = any_cast<at::Tensor>(input[TASK_DATA_KEY]);
+    auto input_tensor = any_cast<torch::Tensor>(input[TASK_DATA_KEY]);
 
-    input[TASK_RESULT_KEY] = input_tensor.to(at::kFloat);
+    input[TASK_RESULT_KEY] = input_tensor.to(torch::kFloat);
   }
 
  private:
@@ -138,16 +139,16 @@ class NCHWTensor : public SingleBackend {
    */
   virtual void forward(dict input_dict) override {
     auto& input = *input_dict;
-    if (input[TASK_DATA_KEY].type() != typeid(at::Tensor)) {
-      SPDLOG_ERROR("FloatTensor: at::Tensor needed; error input type: " +
+    if (input[TASK_DATA_KEY].type() != typeid(torch::Tensor)) {
+      SPDLOG_ERROR("FloatTensor: torch::Tensor needed; error input type: " +
                    std::string(input[TASK_DATA_KEY].type().name()));
-      throw std::runtime_error("FloatTensor: at::Tensor needed; error input type: " +
+      throw std::runtime_error("FloatTensor: torch::Tensor needed; error input type: " +
                                std::string(input[TASK_DATA_KEY].type().name()));
     }
-    auto input_tensor = any_cast<at::Tensor>(input[TASK_DATA_KEY]);
+    auto input_tensor = any_cast<torch::Tensor>(input[TASK_DATA_KEY]);
 
     auto tensor = tensor2nchw(input_tensor);
-    // if (tensor.scale_type() != at::kFloat) {
+    // if (tensor.scale_type() != torch::kFloat) {
     //   tensor = tensor.float();
     // }
     // if (!tensor.is_contiguous()) {
@@ -173,17 +174,17 @@ class FloatNCHWTensor : public SingleBackend {
    */
   virtual void forward(dict input_dict) override {
     auto& input = *input_dict;
-    if (input[TASK_DATA_KEY].type() != typeid(at::Tensor)) {
-      SPDLOG_ERROR("FloatTensor: at::Tensor needed; error input type: " +
+    if (input[TASK_DATA_KEY].type() != typeid(torch::Tensor)) {
+      SPDLOG_ERROR("FloatTensor: torch::Tensor needed; error input type: " +
                    std::string(input[TASK_DATA_KEY].type().name()));
-      throw std::runtime_error("FloatTensor: at::Tensor needed; error input type: " +
+      throw std::runtime_error("FloatTensor: torch::Tensor needed; error input type: " +
                                std::string(input[TASK_DATA_KEY].type().name()));
     }
-    auto input_tensor = any_cast<at::Tensor>(input[TASK_DATA_KEY]);
+    auto input_tensor = any_cast<torch::Tensor>(input[TASK_DATA_KEY]);
 
     auto tensor = tensor2nchw(input_tensor);
-    if (tensor.scalar_type() != at::kFloat) {
-      tensor = tensor.to(at::kFloat);
+    if (tensor.scalar_type() != torch::kFloat) {
+      tensor = tensor.to(torch::kFloat);
     }
     if (!tensor.is_contiguous()) {
       tensor = tensor.contiguous();

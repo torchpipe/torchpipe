@@ -17,7 +17,7 @@
 #include "Backend.hpp"
 #include "dict.hpp"
 
-#include <ATen/ATen.h>
+#include <torch/torch.h>
 
 #include "params.hpp"
 #include "prepost.hpp"
@@ -28,7 +28,7 @@ namespace ipipe {
  * @brief preprocess for inference. It runs 'to_cuda', 'unsqueeze', 'cat' and
  * 'permute'(if tensor.size(-1) is 1 or 3) one by one.
  */
-class SingleConcatPreprocess : public PreProcessor<at::Tensor> {
+class SingleConcatPreprocess : public PreProcessor<torch::Tensor> {
  public:
   virtual bool init(const std::unordered_map<std::string, std::string>& /*config*/,
                     dict /*dict_config*/) override;
@@ -37,11 +37,11 @@ class SingleConcatPreprocess : public PreProcessor<at::Tensor> {
    * Tensor-Group.
    *
    * @param raw_inputs input data. 'data' of raw_inputs should be of type
-   * 'at::Tensor'.
+   * 'torch::Tensor'.
    *
-   * @return std::vector<at::Tensor> usually concated tensor(s).
+   * @return std::vector<torch::Tensor> usually concated tensor(s).
    */
-  std::vector<at::Tensor> forward(const std::vector<dict>& raw_inputs);
+  std::vector<torch::Tensor> forward(const std::vector<dict>& raw_inputs);
 
  private:
   std::vector<std::vector<int>> max_value_;

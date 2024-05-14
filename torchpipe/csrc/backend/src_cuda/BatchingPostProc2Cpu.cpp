@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <ATen/ATen.h>
+#include <torch/torch.h>
 
 // #include "c10/cuda/CUDAStream.h"
 #include "prepost.hpp"
@@ -28,10 +28,10 @@ namespace ipipe {
  * @note 这里发生了显式的流同步
  *
  */
-class BatchingPostProc2Cpu : public PostProcessor<at::Tensor> {
+class BatchingPostProc2Cpu : public PostProcessor<torch::Tensor> {
  public:
-  void forward(std::vector<at::Tensor> net_putputs, std::vector<dict> input,
-               const std::vector<at::Tensor>& net_inputs) {
+  void forward(std::vector<torch::Tensor> net_putputs, std::vector<dict> input,
+               const std::vector<torch::Tensor>& net_inputs) {
     for (auto& item : net_putputs) {
       item = item.cpu();  // 这种写法也可以， 不过如果多个输出可能同步多次
       // https://github.com/pytorch/pytorch/blob/e10b762537214ad152724d772b72b17a4448f145/aten/src/ATen/native/cuda/Copy.cu#L231
@@ -42,19 +42,19 @@ class BatchingPostProc2Cpu : public PostProcessor<at::Tensor> {
     //     .synchronize(); // 多个输出可以只同步一次； 如果使用.cpu()
     // 则不需要此句
 
-    PostProcessor<at::Tensor>::forward(net_putputs, input, net_inputs);
+    PostProcessor<torch::Tensor>::forward(net_putputs, input, net_inputs);
   }
 };
 
-IPIPE_REGISTER(PostProcessor<at::Tensor>, BatchingPostProc2Cpu, "cpu");
+IPIPE_REGISTER(PostProcessor<torch::Tensor>, BatchingPostProc2Cpu, "cpu");
 
-class BatchingPostProcMax : public PostProcessor<at::Tensor> {
+class BatchingPostProcMax : public PostProcessor<torch::Tensor> {
  public:
-  void forward(std::vector<at::Tensor> net_putputs, std::vector<dict> input,
-               const std::vector<at::Tensor>& net_inputs) {
+  void forward(std::vector<torch::Tensor> net_putputs, std::vector<dict> input,
+               const std::vector<torch::Tensor>& net_inputs) {
     IPIPE_ASSERT(net_putputs.size() == 1);
     auto item = net_putputs[0].softmax(1);
-    auto result = at::max(item, 1);
+    auto result = torch::max(item, 1);
     auto index = std::get<1>(result);
     auto score = std::get<0>(result);
 
@@ -73,12 +73,12 @@ class BatchingPostProcMax : public PostProcessor<at::Tensor> {
   }
 };
 
-IPIPE_REGISTER(PostProcessor<at::Tensor>, BatchingPostProcMax, "SoftmaxMax");
+IPIPE_REGISTER(PostProcessor<torch::Tensor>, BatchingPostProcMax, "SoftmaxMax");
 
-class BatchingPostProcSoftmaxCpu : public PostProcessor<at::Tensor> {
+class BatchingPostProcSoftmaxCpu : public PostProcessor<torch::Tensor> {
  public:
-  void forward(std::vector<at::Tensor> net_outputs, std::vector<dict> input,
-               const std::vector<at::Tensor>& net_inputs) {
+  void forward(std::vector<torch::Tensor> net_outputs, std::vector<dict> input,
+               const std::vector<torch::Tensor>& net_inputs) {
     for (auto& item : net_outputs) {
       if (item.dim() == 2) {
         item = item.softmax(1).cpu();  // 隐式同步
@@ -87,21 +87,21 @@ class BatchingPostProcSoftmaxCpu : public PostProcessor<at::Tensor> {
     }
     // c10::cuda::getCurrentCUDAStream().synchronize(); // 同步cpu数据
 
-    PostProcessor<at::Tensor>::forward(net_outputs, input, net_inputs);
+    PostProcessor<torch::Tensor>::forward(net_outputs, input, net_inputs);
   }
 };
 
-IPIPE_REGISTER(PostProcessor<at::Tensor>, BatchingPostProcSoftmaxCpu, "softmaxcpu,SoftmaxCpu");
+IPIPE_REGISTER(PostProcessor<torch::Tensor>, BatchingPostProcSoftmaxCpu, "softmaxcpu,SoftmaxCpu");
 
-using PostProcessor_at_Tensor = PostProcessor<at::Tensor>;
-IPIPE_REGISTER(PostProcessor<at::Tensor>, PostProcessor_at_Tensor, "split");
+using PostProcessor_at_Tensor = PostProcessor<torch::Tensor>;
+IPIPE_REGISTER(PostProcessor<torch::Tensor>, PostProcessor_at_Tensor, "split");
 
-class BatchingPostProcSoftmaxArgMax : public PostProcessor<at::Tensor> {
+class BatchingPostProcSoftmaxArgMax : public PostProcessor<torch::Tensor> {
  public:
-  void forward(std::vector<at::Tensor> net_outputs, std::vector<dict> input,
-               const std::vector<at::Tensor>& net_inputs) {
+  void forward(std::vector<torch::Tensor> net_outputs, std::vector<dict> input,
+               const std::vector<torch::Tensor>& net_inputs) {
     IPIPE_ASSERT(net_outputs.size() == 1);
-    at::Tensor output = net_outputs[0].softmax(1);
+    torch::Tensor output = net_outputs[0].softmax(1);
     auto max_values_and_indices = torch::max(output, 1);
 
     torch::Tensor max_values = std::get<0>(max_values_and_indices).cpu();
@@ -118,6 +118,6 @@ class BatchingPostProcSoftmaxArgMax : public PostProcessor<at::Tensor> {
   }
 };
 
-IPIPE_REGISTER(PostProcessor<at::Tensor>, BatchingPostProcSoftmaxArgMax, "SoftmaxArgMax");
+IPIPE_REGISTER(PostProcessor<torch::Tensor>, BatchingPostProcSoftmaxArgMax, "SoftmaxArgMax");
 
 }  // namespace ipipe

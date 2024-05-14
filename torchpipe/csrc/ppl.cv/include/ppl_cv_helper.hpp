@@ -1,5 +1,5 @@
 #include "dict.hpp"
-#include <ATen/ATen.h>
+#include <torch/torch.h>
 
 namespace ipipe {
 
@@ -11,8 +11,8 @@ struct HWCTensorWrapper {
   void finalize();
   ~HWCTensorWrapper() = default;
 
-  at::Tensor input_tensor;
-  at::Tensor output_tensor;
+  torch::Tensor input_tensor;
+  torch::Tensor output_tensor;
 
  private:
   bool is_hwc_input{false};

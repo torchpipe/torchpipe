@@ -20,7 +20,7 @@
 
 #include <iostream>
 
-#include <ATen/ATen.h>
+#include <torch/torch.h>
 
 TEST(CropTensorTest, Basic) {
   auto* backend_instance = IPIPE_CREATE(ipipe::Backend, "CropTensor");
@@ -29,7 +29,7 @@ TEST(CropTensorTest, Basic) {
   ASSERT_TRUE(backend_instance->init(config, nullptr));
 
   auto boxes = std::vector<std::vector<uint32_t>>{{1, 0, 11, 13}};
-  auto input = at::zeros({1, 3, 100, 100});
+  auto input = torch::zeros({1, 3, 100, 100});
 
   ipipe::dict data = ipipe::make_dict("test_name");
   (*data)[ipipe::TASK_DATA_KEY] = input;
@@ -37,10 +37,10 @@ TEST(CropTensorTest, Basic) {
 
   backend_instance->forward({data});
 
-  ASSERT_EQ(data->at(ipipe::TASK_RESULT_KEY).type(), typeid(std::vector<at::Tensor>));
+  ASSERT_EQ(data->at(ipipe::TASK_RESULT_KEY).type(), typeid(std::vector<torch::Tensor>));
 
-  std::vector<at::Tensor> result =
-      ipipe::any_cast<std::vector<at::Tensor>>(data->at(ipipe::TASK_RESULT_KEY));
+  std::vector<torch::Tensor> result =
+      ipipe::any_cast<std::vector<torch::Tensor>>(data->at(ipipe::TASK_RESULT_KEY));
   ASSERT_EQ(result.size(), 1);
   ASSERT_EQ(result[0].size(2), 13);
   ASSERT_EQ(result[0].size(3), 10);
@@ -53,7 +53,7 @@ TEST(CropTensorTest, BOXES) {
   ASSERT_TRUE(backend_instance->init(config, nullptr));
 
   auto boxes = std::vector<std::vector<uint32_t>>{{1, 0, 11, 13}, {1, 0, 11, 44}};
-  auto input = at::zeros({100, 100, 4});
+  auto input = torch::zeros({100, 100, 4});
 
   ipipe::dict data = ipipe::make_dict();
   (*data)[ipipe::TASK_DATA_KEY] = input;
@@ -61,8 +61,8 @@ TEST(CropTensorTest, BOXES) {
 
   backend_instance->forward({data});
 
-  std::vector<at::Tensor> result =
-      ipipe::any_cast<std::vector<at::Tensor>>(data->at(ipipe::TASK_RESULT_KEY));
+  std::vector<torch::Tensor> result =
+      ipipe::any_cast<std::vector<torch::Tensor>>(data->at(ipipe::TASK_RESULT_KEY));
 
   ASSERT_EQ(result.size(), 2);
   ASSERT_TRUE(result[1].numel() > 0);
@@ -77,7 +77,7 @@ TEST(CropTensorTest, HW_INPUT) {
   ASSERT_TRUE(backend_instance->init(config, nullptr));
 
   auto boxes = std::vector<std::vector<uint32_t>>{{1, 0, 2, 13}, {1, 0, 11, 44}};
-  auto input = at::zeros({1, 1, 100, 100});
+  auto input = torch::zeros({1, 1, 100, 100});
 
   ipipe::dict data = ipipe::make_dict();
   (*data)[ipipe::TASK_DATA_KEY] = input;
@@ -85,8 +85,8 @@ TEST(CropTensorTest, HW_INPUT) {
 
   backend_instance->forward({data});
 
-  std::vector<at::Tensor> result =
-      ipipe::any_cast<std::vector<at::Tensor>>(data->at(ipipe::TASK_RESULT_KEY));
+  std::vector<torch::Tensor> result =
+      ipipe::any_cast<std::vector<torch::Tensor>>(data->at(ipipe::TASK_RESULT_KEY));
 
   ASSERT_EQ(result.size(), 2);
   ASSERT_TRUE(result[1].numel() == 440);

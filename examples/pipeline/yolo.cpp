@@ -30,7 +30,7 @@
 #include "torchpipe/extension.h"
 
 // 第三方库头文件
-#include <ATen/ATen.h>
+#include <torch/torch.h>
 
 // #define CLASS_SPECIFIC
 
@@ -166,12 +166,12 @@ class PostProcYoloV8 : public Backend {
   };
   void forward(const std::vector<dict>& data) override {
     IPIPE_ASSERT(data.size() == 1);
-    at::Tensor result = dict_get<at::Tensor>(data[0], TASK_DATA_KEY);
+    torch::Tensor result = dict_get<torch::Tensor>(data[0], TASK_DATA_KEY);
     forward({result}, data);
   }
 
  private:
-  void forward(std::vector<at::Tensor> net_outputs, std::vector<dict> input) {
+  void forward(std::vector<torch::Tensor> net_outputs, std::vector<dict> input) {
     if (net_outputs.empty()) return;
 
     auto final_objs = forward_impl(net_outputs, input);
@@ -200,7 +200,7 @@ class PostProcYoloV8 : public Backend {
   }
 
  protected:
-  std::vector<std::vector<Object>> forward_impl(std::vector<at::Tensor> net_outputs,
+  std::vector<std::vector<Object>> forward_impl(std::vector<torch::Tensor> net_outputs,
                                                 std::vector<dict> input) {
     const int numChannels = net_outputs[0].size(1);
     const int numClasses = numChannels - 4;
@@ -222,7 +222,7 @@ class PostProcYoloV8 : public Backend {
 
     auto net_w = net_w_;
     auto net_h = net_h_;
-    at::Tensor img = dict_get<at::Tensor>(input[0], "other");
+    torch::Tensor img = dict_get<torch::Tensor>(input[0], "other");
     int offset_size = img.sizes().size() == 4 ? 2 : 0;
     auto img_h = static_cast<float>(img.size(offset_size));
     auto img_w = static_cast<float>(img.size(offset_size + 1));
@@ -305,7 +305,7 @@ class PostProcYoloV8 : public Backend {
   int net_w_;
 };
 // using PostProcYoloV8_45_30 = PostProcYoloV8;
-// IPIPE_REGISTER(PostProcessor<at::Tensor>, PostProcYoloV8_45_30, "PostProcYoloV8_45_30");
+// IPIPE_REGISTER(PostProcessor<torch::Tensor>, PostProcYoloV8_45_30, "PostProcYoloV8_45_30");
 IPIPE_REGISTER(Backend, PostProcYoloV8, "PostProcYoloV8");
 
 namespace ipipe {

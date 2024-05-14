@@ -13,7 +13,7 @@
 // limitations under the License.
 
 #include <torch/serialize.h>
-#include <ATen/ATen.h>
+#include <torch/torch.h>
 #include <fstream>
 #include "base_logging.hpp"
 #include "reflect.h"

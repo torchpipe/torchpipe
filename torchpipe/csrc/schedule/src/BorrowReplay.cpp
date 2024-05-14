@@ -24,14 +24,14 @@
 #include "time_utils.hpp"
 #include "base_logging.hpp"
 #include "dict_helper.hpp"
-#include <ATen/ATen.h>
+#include <torch/torch.h>
 
 namespace ipipe {
 
 BorrowReplay::~BorrowReplay() {}
 
 bool BorrowReplay::init(const std::unordered_map<std::string, std::string>& config,
-                       dict dict_config) {
+                        dict dict_config) {
   params_ = std::unique_ptr<Params>(new Params({}, {"max_batch_size"}, {}, {}));
   if (config.empty()) {
     SPDLOG_ERROR("empty config. Only support single-node configuration.");
@@ -50,7 +50,7 @@ void BorrowReplay::forward(const std::vector<dict>& raw_inputs) {
   std::string borrow_type = dict_get<std::string>(raw_inputs[0], "borrow_type");
   if (borrow_type == "borrow_or_insert") {
     int id = dict_get<int>(raw_inputs[0], "id");
-    auto input_tensor = dict_get<std::vector<at::Tensor>>(raw_inputs[0], TASK_DATA_KEY);
+    auto input_tensor = dict_get<std::vector<torch::Tensor>>(raw_inputs[0], TASK_DATA_KEY);
 
     IPIPE_ASSERT(input_tensor[0].size(0) < max_batch_size_);
 
@@ -71,7 +71,7 @@ void BorrowReplay::forward(const std::vector<dict>& raw_inputs) {
   } else if (borrow_type == "set_replay") {
     int id = dict_get<int>(raw_inputs[0], "id");
     auto input_tensor =
-        dict_get<std::vector<std::vector<at::Tensor>>>(raw_inputs[0], TASK_DATA_KEY);
+        dict_get<std::vector<std::vector<torch::Tensor>>>(raw_inputs[0], TASK_DATA_KEY);
     pool_.set_replay(id, input_tensor);
 
   } else if (borrow_type == "get_replay") {
@@ -89,11 +89,11 @@ void BorrowReplay::forward(const std::vector<dict>& raw_inputs) {
 
   // if (raw_inputs[0]->at(TASK_DATA_KEY).type() == typeid(int)) {
   //   int id = dict_get<int>(raw_inputs[0], TASK_DATA_KEY);
-  //   at::Tensor result = pool_.get(id);
+  //   torch::Tensor result = pool_.get(id);
   //   (*raw_inputs[0])["result"] = result;
   // }
 
-  // auto input_tensor = dict_get<at::Tensor>(raw_inputs[0], TASK_DATA_KEY);
+  // auto input_tensor = dict_get<torch::Tensor>(raw_inputs[0], TASK_DATA_KEY);
   // int id = dict_get<int>(raw_inputs[0], "id");
   // IPIPE_ASSERT(input_tensor.size(0) < max_batch_size_);
   // if (pool_.size() + input_tensor.size(0) < max_batch_size_) {

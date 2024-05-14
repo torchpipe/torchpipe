@@ -1,4 +1,4 @@
-#include <ATen/ATen.h>
+#include <torch/torch.h>
 #include <nvcv/Tensor.hpp>
 #include <nvcv/DataType.hpp>
 #include <nvcv/TensorData.h>
@@ -17,23 +17,23 @@ at::ScalarType DataTypetoScalarType(const nvcv::DataType &dataType) {
     case nvcv::DataKind::UNSIGNED:
       switch (bits) {
         case 8:
-          return at::ScalarType::Byte;
+          return torch::ScalarType::Byte;
         default:
           throw std::logic_error("Unsupported UNSIGNED bits " + std::to_string(bits));
       }
     case nvcv::DataKind::SIGNED:
       switch (bits) {
         case 8:
-          return at::ScalarType::Char;
+          return torch::ScalarType::Char;
           break;
         case 16:
-          return at::ScalarType::Short;
+          return torch::ScalarType::Short;
           break;
         case 32:
-          return at::ScalarType::Int;
+          return torch::ScalarType::Int;
           break;
         case 64:
-          return at::ScalarType::Long;
+          return torch::ScalarType::Long;
           break;
         default:
           throw std::logic_error("Unsupported kInt bits " + std::to_string(bits));
@@ -41,13 +41,13 @@ at::ScalarType DataTypetoScalarType(const nvcv::DataType &dataType) {
     case nvcv::DataKind::FLOAT:
       switch (bits) {
         case 16:
-          return at::ScalarType::Half;
+          return torch::ScalarType::Half;
           break;
         case 32:
-          return at::ScalarType::Float;
+          return torch::ScalarType::Float;
           break;
         case 64:
-          return at::ScalarType::Double;
+          return torch::ScalarType::Double;
           break;
         default:
           throw std::logic_error("Unsupported kFloat bits " + std::to_string(bits));
@@ -57,7 +57,7 @@ at::ScalarType DataTypetoScalarType(const nvcv::DataType &dataType) {
   }
 }
 
-nvcv::DataType ScalarTypetoDataType(at::ScalarType stype) {
+nvcv::DataType ScalarTypetoDataType(torch::ScalarType stype) {
   nvcv::PackingParams pp;
   pp.byteOrder = nvcv::ByteOrder::MSB;
 
@@ -73,46 +73,46 @@ nvcv::DataType ScalarTypetoDataType(at::ScalarType stype) {
 
   nvcv::DataKind kind;
   switch (t.scalar_type()) {
-    case at::ScalarType::Float:
-    case at::ScalarType::Double:
-    case at::ScalarType::Half:
+    case torch::ScalarType::Float:
+    case torch::ScalarType::Double:
+    case torch::ScalarType::Half:
       kind = nvcv::DataKind::FLOAT;
       break;
-    case at::ScalarType::Byte:
+    case torch::ScalarType::Byte:
       kind = nvcv::DataKind::UNSIGNED;
       break;
-    case at::ScalarType::Char:
-    case at::ScalarType::Int:
-    case at::ScalarType::Long:
-    case at::ScalarType::Short:
-    case at::ScalarType::Bool:
+    case torch::ScalarType::Char:
+    case torch::ScalarType::Int:
+    case torch::ScalarType::Long:
+    case torch::ScalarType::Short:
+    case torch::ScalarType::Bool:
       kind = nvcv::DataKind::SIGNED;
       break;
 
-    case at::ScalarType::BFloat16:
+    case torch::ScalarType::BFloat16:
       throw std::logic_error("BFloat16 is not supported by nvcv");
-    case at::ScalarType::QInt8:
+    case torch::ScalarType::QInt8:
       throw std::logic_error("QInt8 is not supported by nvcv");
-    case at::ScalarType::QUInt8:
+    case torch::ScalarType::QUInt8:
       throw std::logic_error("QUInt8 is not supported by nvcv");
-    case at::ScalarType::QInt32:
+    case torch::ScalarType::QInt32:
       throw std::logic_error("QInt32 is not supported by nvcv");
-    case at::ScalarType::ComplexHalf:
+    case torch::ScalarType::ComplexHalf:
       throw std::logic_error("ComplexHalf is not supported by nvcv");
-    case at::ScalarType::ComplexFloat:
+    case torch::ScalarType::ComplexFloat:
       throw std::logic_error("ComplexFloat is not supported by nvcv");
-    case at::ScalarType::ComplexDouble:
+    case torch::ScalarType::ComplexDouble:
       throw std::logic_error("ComplexDouble is not supported by nvcv");
-    case at::ScalarType::Undefined:
+    case torch::ScalarType::Undefined:
       throw std::logic_error("Undefined is not a valid ScalarType");
-    case at::ScalarType::NumOptions:
+    case torch::ScalarType::NumOptions:
       throw std::logic_error("NumOptions is not a valid ScalarType");
   }
   return nvcv::DataType(kind, packing);
 }
 
 struct ATenTensor {
-  at::Tensor handle;
+  torch::Tensor handle;
   //   nvcv::Tensor tensor;
 };
 
@@ -122,7 +122,7 @@ struct NvcvTensor {
 
 void deleter(void *ctx, const NVCVTensorData *data) { delete static_cast<ATenTensor *>(ctx); }
 }  // namespace cvcuda
-nvcv::Tensor torch2nvcv(at::Tensor data) {
+nvcv::Tensor torch2nvcv(torch::Tensor data) {
   data = img_hwc_guard(data);
   if (!data.is_contiguous()) {
     data = data.contiguous();  // todo: unnecessary?
@@ -158,14 +158,14 @@ nvcv::Tensor torch2nvcv(at::Tensor data) {
 
 // https://github.com/tatsu-i/TradeAI/blob/2156aad9bf3e9a1330d072510194c677b8a6d39f/docker/redisai/src/libtorch_c/torch_c.cpp#L165
 
-at::Tensor nvcv2torch(const nvcv::TensorDataStrided &tensorData) {
+torch::Tensor nvcv2torch(const nvcv::TensorDataStrided &tensorData) {
   if (!tensorData.IsCompatible<nvcv::TensorDataStridedCuda>()) {
     throw std::runtime_error("nvcv2torch: Unsupported tensorData");
   }
 
-  at::ScalarType stype = DataTypetoScalarType(tensorData.dtype());
+  torch::ScalarType stype = DataTypetoScalarType(tensorData.dtype());
   // torch::Device device(device_type, src->ctx.device_id);
-  torch::Device device(at::kCUDA, -1);
+  torch::Device device(torch::kCUDA, -1);
 
   std::vector<int64_t> strides(tensorData.rank());
   for (const std::size_t i = 0; i < tensorData.rank(); ++i) {
@@ -177,11 +177,11 @@ at::Tensor nvcv2torch(const nvcv::TensorDataStrided &tensorData) {
   auto deleter = [ptr = std::move(ptr)](void *in) { ptr.reset(); };
   // torch::DeviceType device = device_type;
   return torch::from_blob(
-      src.basePtr(), at::IntArrayRef(tensorData.shape().shape().begin(), tensorData.rank()),
-      at::IntArrayRef(strides.data(), strides.size()), deleter, torch::device(device).dtype(stype));
+      src.basePtr(), torch::IntArrayRef(tensorData.shape().shape().begin(), tensorData.rank()),
+      torch::IntArrayRef(strides.data(), strides.size()), deleter, torch::device(device).dtype(stype));
 }
 
-nvcv::TensorDataStrided torch2nvcv(at::Tensor data) {
+nvcv::TensorDataStrided torch2nvcv(torch::Tensor data) {
   NVCVTensorData tensorData = {};
 
   // dtype ------------

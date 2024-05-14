@@ -19,7 +19,7 @@
 #include "c10/cuda/CUDAStream.h"
 #include "cuda_runtime.h"
 
-#include <ATen/ATen.h>
+#include <torch/torch.h>
 
 #include "base_logging.hpp"
 #include "nvjpeg.h"
@@ -49,7 +49,7 @@ bool DecodeTensor::init(const std::unordered_map<std::string, std::string>& conf
   TRACE_EXCEPTION(data_format_ = params_->at("data_format"));
   IPIPE_ASSERT(data_format_ == "nchw" || data_format_ == "hwc");
 
-  auto tmp = at::empty({1, 1}, at::TensorOptions().device(at::kCUDA, -1));
+  auto tmp = torch::empty({1, 1}, torch::TensorOptions().device(torch::kCUDA, -1));
   nvjpegDevAllocator_t dev_allocator = {&dev_malloc, &dev_free};
 
   nvjpegBackend_t backend = NVJPEG_BACKEND_DEFAULT;
@@ -85,7 +85,7 @@ inline bool SupportedSubsampling(const nvjpegChromaSubsampling_t& subsampling) {
 }
 
 bool decode(const std::string& data, nvjpegHandle_t handle, nvjpegJpegState_t state,
-            at::Tensor& image_tensor, const std::string& color, const std::string& data_format) {
+            torch::Tensor& image_tensor, const std::string& color, const std::string& data_format) {
   // assert(color == "rgb" || color == "bgr");
   const auto* blob = (const unsigned char*)data.data();
   int nComponents;
@@ -121,15 +121,15 @@ bool decode(const std::string& data, nvjpegHandle_t handle, nvjpegJpegState_t st
     return false;
   }
 
-  auto options = at::TensorOptions()
-                     .device(at::kCUDA, -1)
-                     .dtype(at::kByte)
-                     .layout(at::kStrided)
+  auto options = torch::TensorOptions()
+                     .device(torch::kCUDA, -1)
+                     .dtype(torch::kByte)
+                     .layout(torch::kStrided)
                      .requires_grad(false);
   if (data_format == "nchw") {
-    image_tensor = at::empty({1, nComponents, h, w}, options, at::MemoryFormat::Contiguous);
+    image_tensor = torch::empty({1, nComponents, h, w}, options, torch::MemoryFormat::Contiguous);
   } else {
-    image_tensor = at::empty({h, w, nComponents}, options, at::MemoryFormat::Contiguous);
+    image_tensor = torch::empty({h, w, nComponents}, options, torch::MemoryFormat::Contiguous);
   }
   auto* image = image_tensor.data_ptr<unsigned char>();
 
@@ -186,7 +186,7 @@ void DecodeTensor::forward(const std::vector<dict>& input_dicts) {
     }
     std::string data = any_cast<std::string>(input[TASK_DATA_KEY]);
 
-    at::Tensor tensor;
+    torch::Tensor tensor;
 
     if (decode(data, handle, state, tensor, color_, data_format_)) {
       input[TASK_RESULT_KEY] = tensor;

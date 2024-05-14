@@ -14,7 +14,7 @@
 
 #pragma once
 
-#include <ATen/ATen.h>
+#include <torch/torch.h>
 #include <torch/script.h>
 #include "Backend.hpp"
 #include "dict.hpp"
@@ -35,7 +35,7 @@ class TorchScriptTensor : public Backend {
   virtual bool init(const std::unordered_map<std::string, std::string>&, dict) override;
 
   /**
-   * @param  TASK_DATA_KEY 类型为 at::Tensor
+   * @param  TASK_DATA_KEY 类型为 torch::Tensor
    */
   virtual void forward(const std::vector<dict>&) override;
 
@@ -44,8 +44,8 @@ class TorchScriptTensor : public Backend {
  private:
   torch::jit::script::Module module_;
   std::unique_ptr<Params> params_;
-  std::unique_ptr<PreProcessor<at::Tensor>> preprocessor_;
-  std::unique_ptr<PostProcessor<at::Tensor>> postprocessor_;
+  std::unique_ptr<PreProcessor<torch::Tensor>> preprocessor_;
+  std::unique_ptr<PostProcessor<torch::Tensor>> postprocessor_;
 
   int num_inputs_{0};
   u_int32_t max_{1};

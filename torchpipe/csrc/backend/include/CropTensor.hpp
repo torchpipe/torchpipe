@@ -26,7 +26,7 @@ class CropTensor : public SingleBackend {
  private:
 };
 
-// at::Tensor libtorch_crop(at::Tensor input, int x1, int y1, int x2, int y2) ;
-// at::Tensor tensor_crop(at::Tensor input, int x1, int y1, int x2, int y2) ;
+// torch::Tensor libtorch_crop(torch::Tensor input, int x1, int y1, int x2, int y2) ;
+// torch::Tensor tensor_crop(torch::Tensor input, int x1, int y1, int x2, int y2) ;
 
 }  // namespace ipipe

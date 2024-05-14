@@ -14,7 +14,7 @@
 
 #pragma once
 
-#include <ATen/ATen.h>
+#include <torch/torch.h>
 
 #include <ratio>
 
@@ -35,9 +35,9 @@ class OpenCVResizeTensor : public SingleBackend {
   virtual bool init(const std::unordered_map<std::string, std::string>&, dict) override;
 
   /**
-   * @param TASK_DATA_KEY at::Tensor, 数据类型不限，通道顺序支持 1chw ,其中
+   * @param TASK_DATA_KEY torch::Tensor, 数据类型不限，通道顺序支持 1chw ,其中
    * c==1, 3, 4.
-   * @param[out] TASK_RESULT_KEY at::Tensor 1chw
+   * @param[out] TASK_RESULT_KEY torch::Tensor 1chw
    */
   virtual void forward(dict) override;
 

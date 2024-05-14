@@ -35,7 +35,7 @@ void ResizeNvTensor::forward(dict input_dict) {
   nvcv::Tensor resultTensor(shapeHWC, data.dtype(), nvcv::MemAlignment{}.rowAddr(1).baseAddr(0),
                             nvcv_torch_allocator());
 
-  cudaStream_t stream = at::cuda::getCurrentCUDAStream();
+  cudaStream_t stream = c10::cuda::getCurrentCUDAStream();
   ResizeOp_(stream, data, resultTensor, NVCV_INTERP_LINEAR);
 
   (*input_dict)[TASK_RESULT_KEY] = resultTensor;

@@ -5,7 +5,7 @@
 // #include <torch/torch.h>
 #include "c10/cuda/CUDAStream.h"
 
-#include <ATen/ATen.h>
+#include <torch/torch.h>
 
 #include "ipipe_utils.hpp"
 #include "base_logging.hpp"
@@ -36,13 +36,13 @@ void PPLCopyMakeBorderTensor::forward(dict input_dict) {
   auto& input_tensor = ppl.input_tensor;
   auto& output_tensor = ppl.output_tensor;
 
-  cudaStream_t stream = at::cuda::getCurrentCUDAStream();
+  cudaStream_t stream = c10::cuda::getCurrentCUDAStream();
 
   int img_h = input_tensor.sizes()[0];
   int img_w = input_tensor.sizes()[1];
   int c = input_tensor.sizes()[2];
 
-  if (input_tensor.scalar_type() == at::kByte) {
+  if (input_tensor.scalar_type() == torch::kByte) {
     unsigned char* image = input_tensor.data_ptr<unsigned char>();
     unsigned char* output = output_tensor.data_ptr<unsigned char>();
 
@@ -54,7 +54,7 @@ void PPLCopyMakeBorderTensor::forward(dict input_dict) {
       return;
     }
 
-  } else if (input_tensor.scalar_type() == at::kFloat) {
+  } else if (input_tensor.scalar_type() == torch::kFloat) {
     float* image = input_tensor.data_ptr<float>();
     float* output = output_tensor.data_ptr<float>();
 

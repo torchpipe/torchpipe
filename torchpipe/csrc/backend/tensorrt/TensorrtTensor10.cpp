@@ -17,7 +17,7 @@
 #include "tensorrt_utils.hpp"
 #if NV_TENSORRT_MAJOR >= 10
 
-#include <ATen/ATen.h>
+#include <torch/torch.h>
 #include <nppcore.h>
 #include <fstream>
 #include <memory>
@@ -131,8 +131,8 @@ bool TensorrtTensor::init(const std::unordered_map<std::string, std::string>& co
   /********post*****/
   std::string batch_post = params_->at("postprocessor");
 
-  postprocessor_ = std::unique_ptr<PostProcessor<at::Tensor>>(
-      IPIPE_CREATE(PostProcessor<at::Tensor>, batch_post));
+  postprocessor_ = std::unique_ptr<PostProcessor<torch::Tensor>>(
+      IPIPE_CREATE(PostProcessor<torch::Tensor>, batch_post));
   try {
     if (!postprocessor_ || !postprocessor_->init(config_param, dict_config)) {
       SPDLOG_ERROR("error postprocessor: " + batch_post);
@@ -148,13 +148,13 @@ bool TensorrtTensor::init(const std::unordered_map<std::string, std::string>& co
 
   if (preprocessor.empty()) {
     if (mins_.size() == 1) {
-      preprocessor_ = std::unique_ptr<PreProcessor<at::Tensor>>(new SingleConcatPreprocess());
+      preprocessor_ = std::unique_ptr<PreProcessor<torch::Tensor>>(new SingleConcatPreprocess());
     } else {
-      preprocessor_ = std::unique_ptr<PreProcessor<at::Tensor>>(new MultipleConcatPreprocess());
+      preprocessor_ = std::unique_ptr<PreProcessor<torch::Tensor>>(new MultipleConcatPreprocess());
     }
   } else {
-    preprocessor_ = std::unique_ptr<PreProcessor<at::Tensor>>(
-        IPIPE_CREATE(PreProcessor<at::Tensor>, preprocessor));
+    preprocessor_ = std::unique_ptr<PreProcessor<torch::Tensor>>(
+        IPIPE_CREATE(PreProcessor<torch::Tensor>, preprocessor));
   }
 
   (*dict_config)["max"] = maxs_;
@@ -341,32 +341,32 @@ void TensorrtTensor::parse_context(dict dict_config, int _independent_thread_ind
   }
 }
 
-decltype(at::kFloat) trt2torch_type(decltype(nvinfer1::DataType::kFLOAT) dtype) {
-  auto target_dtype = at::kFloat;
+decltype(torch::kFloat) trt2torch_type(decltype(nvinfer1::DataType::kFLOAT) dtype) {
+  auto target_dtype = torch::kFloat;
   switch (dtype) {
     case nvinfer1::DataType::kFLOAT:
-      target_dtype = at::kFloat;
+      target_dtype = torch::kFloat;
       break;
     case nvinfer1::DataType::kINT32:
-      target_dtype = at::kInt;
+      target_dtype = torch::kInt;
       break;
     case nvinfer1::DataType::kINT8:
-      target_dtype = at::kChar;
+      target_dtype = torch::kChar;
       break;
 // case nvinfer1::DataType::kUINT8:
-//   target_dtype = at::kByte;
+//   target_dtype = torch::kByte;
 //   break;
 #if NV_TENSORRT_MAJOR >= 9
     case nvinfer1::DataType::kINT64:
-      target_dtype = at::kLong;
+      target_dtype = torch::kLong;
       break;
 #endif
 
     case nvinfer1::DataType::kBOOL:
-      target_dtype = at::kBool;
+      target_dtype = torch::kBool;
       break;
     case nvinfer1::DataType::kHALF:
-      target_dtype = at::kHalf;
+      target_dtype = torch::kHalf;
       break;
     default:
       SPDLOG_ERROR("out: only support type of kFLOAT, kINT32, kINT64, kINT8, kBOOL, kHALF");
@@ -375,15 +375,16 @@ decltype(at::kFloat) trt2torch_type(decltype(nvinfer1::DataType::kFLOAT) dtype) 
   return target_dtype;
 }
 
-at::Tensor guard_contiguous_type_and_device(at::Tensor input_data, at::ScalarType target_format) {
-  // assert(input_data.is_cuda() && input_data.scalar_type() == at::kFloat);
+torch::Tensor guard_contiguous_type_and_device(torch::Tensor input_data,
+                                               torch::ScalarType target_format) {
+  // assert(input_data.is_cuda() && input_data.scalar_type() == torch::kFloat);
   if (target_format == input_data.dtype() && !is_cpu_tensor(input_data) &&
       input_data.is_contiguous()) {
     return input_data;
   }
 
-  input_data = input_data.to(at::kCUDA, target_format,
-                             /* non_blocking =*/false, false, at::MemoryFormat::Contiguous);
+  input_data = input_data.to(torch::kCUDA, target_format,
+                             /* non_blocking =*/false, false, torch::MemoryFormat::Contiguous);
   if (!input_data.is_contiguous()) {
     input_data = input_data.contiguous();
   }
@@ -482,8 +483,8 @@ void TensorrtTensor::forward(const std::vector<dict>& raw_inputs) {
     }
 
     outputs_.emplace_back(
-        at::empty(std::vector<int64_t>(infer_dims.d, infer_dims.d + infer_dims.nbDims),
-                  get_tensor_option(target_type), at::MemoryFormat::Contiguous));
+        torch::empty(std::vector<int64_t>(infer_dims.d, infer_dims.d + infer_dims.nbDims),
+                     get_tensor_option(target_type), torch::MemoryFormat::Contiguous));
     bool status = context_->setTensorAddress(name, outputs_.back().data_ptr());
     IPIPE_ASSERT(status);
   }
@@ -495,7 +496,7 @@ void TensorrtTensor::forward(const std::vector<dict>& raw_inputs) {
 
   context_->enqueueV3(c10::cuda::getCurrentCUDAStream());
 
-  // auto outputs_sorted = std::vector<at::Tensor>(outputs_.size());
+  // auto outputs_sorted = std::vector<torch::Tensor>(outputs_.size());
   // for (std::size_t i = 0; i < outputs_.size(); ++i) {
   //   outputs_sorted[new_location_ouputs_[i]] = outputs_[i];
   // }
@@ -505,12 +506,12 @@ void TensorrtTensor::forward(const std::vector<dict>& raw_inputs) {
     dict batched = std::make_shared<std::unordered_map<std::string, any>>();
     (*batched)[TASK_DATA_KEY] = outputs_;
     batch_process_->forward({batched});
-    TRACE_EXCEPTION(outputs_ = any_cast<std::vector<at::Tensor>>(batched->at(TASK_RESULT_KEY)));
+    TRACE_EXCEPTION(outputs_ = any_cast<std::vector<torch::Tensor>>(batched->at(TASK_RESULT_KEY)));
   }
 
   postprocessor_->forward(outputs_, raw_inputs, inputs_);
 
-  at::cuda::getCurrentCUDAStream().synchronize();  // for Reclaim GPU Memory of mem outputs_
+  c10::cuda::getCurrentCUDAStream().synchronize();  // for Reclaim GPU Memory of mem outputs_
   outputs_.clear();
   inputs_.clear();
 }

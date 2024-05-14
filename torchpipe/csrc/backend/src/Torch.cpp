@@ -15,7 +15,7 @@
 #include "Torch.hpp"
 #include "Sequential.hpp"
 
-// #include <ATen/ATen.h>
+// #include <torch/torch.h>
 #include "any.hpp"
 #include "Backend.hpp"
 #include "dict.hpp"
@@ -59,15 +59,15 @@ void Torch::forward(const std::vector<dict>& input_dicts) {
   if (device_id_ != -1) {
     for (auto& input : input_dicts) {
       auto& input_data = *input;
-      // 从any里取出at::Tensor 或者 std::vector<at::Tensor> ,将其的device更改为device_id_
-      if (input_data.at(TASK_DATA_KEY).type() == typeid(at::Tensor)) {
-        at::Tensor data = any_cast<at::Tensor>(input_data.at(TASK_DATA_KEY));
+      // 从any里取出torch::Tensor 或者 std::vector<torch::Tensor> ,将其的device更改为device_id_
+      if (input_data.at(TASK_DATA_KEY).type() == typeid(torch::Tensor)) {
+        torch::Tensor data = any_cast<torch::Tensor>(input_data.at(TASK_DATA_KEY));
         data = to_current_device(data);
         input_data[TASK_DATA_KEY] = data;
-      } else if (input_data.at(TASK_DATA_KEY).type() == typeid(std::vector<at::Tensor>)) {
-        std::vector<at::Tensor> datas =
-            any_cast<std::vector<at::Tensor>>(input_data.at(TASK_DATA_KEY));
-        std::vector<at::Tensor> result;
+      } else if (input_data.at(TASK_DATA_KEY).type() == typeid(std::vector<torch::Tensor>)) {
+        std::vector<torch::Tensor> datas =
+            any_cast<std::vector<torch::Tensor>>(input_data.at(TASK_DATA_KEY));
+        std::vector<torch::Tensor> result;
         for (auto data : datas) {
           result.emplace_back(to_current_device(data));
         }

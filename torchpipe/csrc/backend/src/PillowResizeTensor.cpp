@@ -41,8 +41,8 @@ bool PillowResizeTensor::init(const std::unordered_map<std::string, std::string>
     return false;
   }
 
-  resizer_ = std::make_unique<ipipe_nvcv::PillowResizeCudaV2>(at::IntArrayRef({1, 3, 5000, 5000}),
-                                                              resize_h_, resize_w_, at::kFloat);
+  resizer_ = std::make_unique<ipipe_nvcv::PillowResizeCudaV2>(
+      torch::IntArrayRef({1, 3, 5000, 5000}), resize_h_, resize_w_, torch::kFloat);
   if (!resizer_) return false;
   return true;
 }
@@ -50,18 +50,18 @@ bool PillowResizeTensor::init(const std::unordered_map<std::string, std::string>
 void PillowResizeTensor::forward(dict input_dict) {
   params_->check_and_update(input_dict);
   auto& input = *input_dict;
-  if (input[TASK_DATA_KEY].type() != typeid(at::Tensor)) {
+  if (input[TASK_DATA_KEY].type() != typeid(torch::Tensor)) {
     SPDLOG_ERROR("PillowResizeTensor: error input type: " +
                  std::string(input[TASK_DATA_KEY].type().name()));
     return;
   }
-  auto data = any_cast<at::Tensor>(input[TASK_DATA_KEY]);
-  IPIPE_ASSERT(data.scalar_type() == at::kByte);
+  auto data = any_cast<torch::Tensor>(input[TASK_DATA_KEY]);
+  IPIPE_ASSERT(data.scalar_type() == torch::kByte);
 
   auto im_resize = img_1hwc_guard(data);
   if (!im_resize.is_cuda()) im_resize.cuda();
-  // if (im_resize.scalar_type() != at::kFloat) {
-  //   im_resize = im_resize.to(at::kFloat, true, false, at::MemoryFormat::Contiguous);
+  // if (im_resize.scalar_type() != torch::kFloat) {
+  //   im_resize = im_resize.to(torch::kFloat, true, false, torch::MemoryFormat::Contiguous);
   // } else {
   //   im_resize = im_resize.contiguous();
   // }

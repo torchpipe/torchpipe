@@ -21,7 +21,7 @@
 
 #include "cuda_runtime.h"
 
-#include <ATen/ATen.h>
+#include <torch/torch.h>
 
 #include "Backend.hpp"
 #include "dict.hpp"
@@ -31,21 +31,21 @@
 #include "torch_utils.hpp"
 namespace ipipe {
 
-at::Tensor tensor_crop(at::Tensor input, int x1, int y1, int x2, int y2) {
+torch::Tensor tensor_crop(torch::Tensor input, int x1, int y1, int x2, int y2) {
   // return input;
   const int roi_w = x2 - x1;
   const int roi_h = y2 - y1;
 
   const auto img_w = input.size(1);
 
-  auto options = at::TensorOptions()
-                     .device(at::kCUDA, -1)
-                     .dtype(input.dtype())  // scalar_type dtype at::kByte
-                     .layout(at::kStrided)
+  auto options = torch::TensorOptions()
+                     .device(torch::kCUDA, -1)
+                     .dtype(input.dtype())  // scalar_type dtype torch::kByte
+                     .layout(torch::kStrided)
                      .requires_grad(false);
-  at::Tensor image_tensor = at::empty({roi_h, roi_w, 3},  //, max.d[2], max.d[3]
-                                      options, at::MemoryFormat::Contiguous);
-  if (input.dtype() == at::kByte) {
+  torch::Tensor image_tensor = torch::empty({roi_h, roi_w, 3},  //, max.d[2], max.d[3]
+                                            options, torch::MemoryFormat::Contiguous);
+  if (input.dtype() == torch::kByte) {
     const unsigned char* p_src = input.data_ptr<unsigned char>();
     unsigned char* p_dst = image_tensor.data_ptr<unsigned char>();
 
@@ -84,9 +84,9 @@ at::Tensor tensor_crop(at::Tensor input, int x1, int y1, int x2, int y2) {
 }
 
 // https://pytorch.org/cppdocs/notes/tensor_indexing.html
-at::Tensor libtorch_crop(at::Tensor input, int x1, int y1, int x2, int y2) {
+torch::Tensor libtorch_crop(torch::Tensor input, int x1, int y1, int x2, int y2) {
   if (input.sizes().size() >= 2) {  //..hw
-    return input.index({"...", at::indexing::Slice(y1, y2), at::indexing::Slice(x1, x2)});
+    return input.index({"...", torch::indexing::Slice(y1, y2), torch::indexing::Slice(x1, x2)});
   } else {
     std::stringstream ss;
     ss << "input.sizes() = " << input.sizes() << " x1 y1 x2 y2 = " << x1 << " " << y1 << " " << x2
@@ -100,7 +100,7 @@ void CropTensor::forward(dict input_dict) {
 
   std::vector<int> pbox = dict_get<std::vector<int>>(input_dict, TASK_BOX_KEY);
 
-  auto input_tensor = dict_get<at::Tensor>(input_dict, TASK_DATA_KEY);
+  auto input_tensor = dict_get<torch::Tensor>(input_dict, TASK_DATA_KEY);
 
   input_tensor = img_1chw_guard(input_tensor);
 

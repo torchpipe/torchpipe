@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <ATen/ATen.h>
+#include <torch/torch.h>
 #include "Backend.hpp"
 #include "dict.hpp"
 #include "reflect.h"
@@ -26,12 +26,12 @@ class C10Exception : public SingleBackend {
    * @exception c10::Error libtorch内部异常。
    */
   void forward(dict) {
-    auto options = at::TensorOptions()
-                       .device(at::kCUDA, -1)
-                       .dtype(at::kByte)  // at::kByte
-                       .layout(at::kStrided)
+    auto options = torch::TensorOptions()
+                       .device(torch::kCUDA, -1)
+                       .dtype(torch::kByte)  // torch::kByte
+                       .layout(torch::kStrided)
                        .requires_grad(false);
-    auto input = at::empty({2, 2, 2}, options, at::MemoryFormat::Contiguous);
+    auto input = torch::empty({2, 2, 2}, options, torch::MemoryFormat::Contiguous);
 
     // auto z =
     input.detach().size(-19090);

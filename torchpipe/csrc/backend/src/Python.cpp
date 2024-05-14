@@ -22,7 +22,7 @@
 // #include <torch/csrc/deploy/deploy.h>
 #include <fstream>
 #include "reflect.h"
-#include <ATen/ATen.h>
+#include <torch/torch.h>
 #include "exception.hpp"
 #include "tensor_type_caster.hpp"
 // #include <torch/extension.h>

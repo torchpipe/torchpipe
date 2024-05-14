@@ -16,7 +16,7 @@
  */
 
 #pragma once
-#include <ATen/ATen.h>
+#include <torch/torch.h>
 // #include "at_replace.cuh"
 namespace ipipe_nvcv {
 

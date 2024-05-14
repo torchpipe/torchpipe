@@ -14,7 +14,7 @@
 
 #include "CvtColorTensor.hpp"
 
-#include <ATen/ATen.h>
+#include <torch/torch.h>
 
 #include <numeric>
 
@@ -33,8 +33,8 @@ bool cvtColorTensor::init(const std::unordered_map<std::string, std::string>& co
     SPDLOG_ERROR("color must be rgb or bgr: " + color_);
     return false;
   }
-  //   index_selecter_cpu_ = at::tensor({2, 1, 0}).toType(at::kLong);
-  //   index_selecter_ = at::tensor({2, 1, 0}).toType(at::kLong).cuda();
+  //   index_selecter_cpu_ = torch::Tensor({2, 1, 0}).toType(torch::kLong);
+  //   index_selecter_ = torch::Tensor({2, 1, 0}).toType(torch::kLong).cuda();
 
   return true;
 }
@@ -50,16 +50,16 @@ void cvtColorTensor::forward(dict input_dict) {
     throw std::invalid_argument("input_color should be rgb or bgr, but is " + input_color);
   }
 
-  auto input_tensor = dict_get<at::Tensor>(input_dict, TASK_DATA_KEY);
-  // if (input_tensor.scalar_type() != at::kFloat) {
-  //   input_tensor = input_tensor.to(at::kFloat);
+  auto input_tensor = dict_get<torch::Tensor>(input_dict, TASK_DATA_KEY);
+  // if (input_tensor.scalar_type() != torch::kFloat) {
+  //   input_tensor = input_tensor.to(torch::kFloat);
   // }
 
   if (is_hwc(input_tensor)) {
-    input_tensor = at::flip(input_tensor, {2});
+    input_tensor = torch::flip(input_tensor, {2});
 
   } else if (is_nchw(input_tensor)) {
-    input_tensor = at::flip(input_tensor, {1});
+    input_tensor = torch::flip(input_tensor, {1});
   } else {
     throw std::invalid_argument("input tensor should be hwc or nchw");
   }

@@ -18,7 +18,7 @@
 #include "dict.hpp"
 #include "params.hpp"
 #include "prepost.hpp"
-#include <ATen/ATen.h>
+#include <torch/torch.h>
 
 #include <NvInfer.h>
 #include <string>
@@ -41,7 +41,7 @@ class Calibrator : public Backend, public nvinfer1::IInt8EntropyCalibrator2 {
 
  private:
   std::unique_ptr<Params> params_;
-  std::unique_ptr<PreProcessor<at::Tensor>> preprocessor_;
+  std::unique_ptr<PreProcessor<torch::Tensor>> preprocessor_;
   int batchsize_;
   std::string calib_table_name_;
   //   std::string calibration_tensor_dir_;

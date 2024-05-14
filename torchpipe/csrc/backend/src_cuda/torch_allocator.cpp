@@ -14,7 +14,7 @@
 #ifdef WITH_TENSORRT
 #include "NvInferVersion.h"
 #if (NV_TENSORRT_MAJOR >= 9 || (NV_TENSORRT_MAJOR >= 8 && NV_TENSORRT_MINOR >= 6))
-#include <ATen/ATen.h>
+#include <torch/torch.h>
 
 #include "Backend.hpp"
 #include "dict.hpp"
@@ -31,8 +31,8 @@ void* TorchAllocator::allocate(uint64_t size, uint64_t alignment, uint32_t flags
     size = (size / alignment + 1) * alignment;
   }
   try {
-    at::Tensor buf =
-        at::empty({static_cast<int64_t>(size)}, at::dtype(at::kByte).device(at::kCUDA));
+    torch::Tensor buf =
+        torch::empty({static_cast<int64_t>(size)}, torch::dtype(torch::kByte).device(torch::kCUDA));
     std::lock_guard<std::mutex> lock(mutex_);
     void* ptr = buf.data_ptr();
     data_.insert({ptr, buf});

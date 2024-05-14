@@ -1,6 +1,8 @@
 # Changelog
-## v0.4.5 (WIP)
+## v0.5.0 (WIP)
 - Add support for TensorRT 10.0
+- remove all *at::* namespace, use *torch::* instead
+- TensorRT 7 is deprecated now
 
 ## v0.4.4 (2024.05.08)
 - add c++2py for long long type;

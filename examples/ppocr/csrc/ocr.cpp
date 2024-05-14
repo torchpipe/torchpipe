@@ -76,7 +76,7 @@ class ResizeImgType0Mat : public SingleBackend {
 
 IPIPE_REGISTER(Backend, ResizeImgType0Mat, "ResizeImgType0Mat");
 
-class DBNetPost : public PostProcessor<at::Tensor> {
+class DBNetPost : public PostProcessor<torch::Tensor> {
  private:
   PaddleOCR::PostProcessor post_processor_;
   double det_db_thresh_ = 0.3;
@@ -85,18 +85,18 @@ class DBNetPost : public PostProcessor<at::Tensor> {
   bool use_polygon_score_ = false;
 
  public:
-  virtual void forward(std::vector<at::Tensor> net_outputs, std::vector<dict> input,
-                       const std::vector<at::Tensor>& net_inputs) override {
+  virtual void forward(std::vector<torch::Tensor> net_outputs, std::vector<dict> input,
+                       const std::vector<torch::Tensor>& net_inputs) override {
     if (net_outputs.empty()) return;
 
     std::vector<std::vector<std::vector<int>>> boxes;
 
-    net_outputs[0] = net_outputs[0].to(at::kCPU);
+    net_outputs[0] = net_outputs[0].to(torch::kCPU);
     // torch::save(net_outputs[0], "a.pt");
     auto tensor = net_outputs[0].gt(det_db_thresh_) * 255;
 
-    // tensor = tensor.mul(255).clamp(0, 255).to(at::kByte);
-    tensor = tensor.to(at::kByte).contiguous();
+    // tensor = tensor.mul(255).clamp(0, 255).to(torch::kByte);
+    tensor = tensor.to(torch::kByte).contiguous();
     int64_t height = tensor.size(2);
     int64_t width = tensor.size(3);
 
@@ -123,20 +123,20 @@ class DBNetPost : public PostProcessor<at::Tensor> {
     }
     return;
 
-    return PostProcessor<at::Tensor>::forward(net_outputs, input, net_inputs);
+    return PostProcessor<torch::Tensor>::forward(net_outputs, input, net_inputs);
   }
 };
 
-IPIPE_REGISTER(PostProcessor<at::Tensor>, DBNetPost, "dbnet");
+IPIPE_REGISTER(PostProcessor<torch::Tensor>, DBNetPost, "dbnet");
 
-class RotatePost : public PostProcessor<at::Tensor> {
+class RotatePost : public PostProcessor<torch::Tensor> {
  private:
   float cls_thresh_ = 0.5;
 
  public:
-  virtual void forward(std::vector<at::Tensor> net_outputs, std::vector<dict> input,
-                       const std::vector<at::Tensor>& net_inputs) override {
-    auto tensor = net_outputs[0].to(at::kCPU);
+  virtual void forward(std::vector<torch::Tensor> net_outputs, std::vector<dict> input,
+                       const std::vector<torch::Tensor>& net_inputs) override {
+    auto tensor = net_outputs[0].to(torch::kCPU);
 
     for (std::size_t i = 0; i < input.size(); ++i) {
       cv::Mat src_img = any_cast<cv::Mat>(input[i]->at("cropped_img"));
@@ -153,9 +153,9 @@ class RotatePost : public PostProcessor<at::Tensor> {
   }
 };
 
-IPIPE_REGISTER(PostProcessor<at::Tensor>, RotatePost, "rotate");
+IPIPE_REGISTER(PostProcessor<torch::Tensor>, RotatePost, "rotate");
 
-class RecPost : public PostProcessor<at::Tensor> {
+class RecPost : public PostProcessor<torch::Tensor> {
  private:
   std::vector<std::string> label_list_;
 
@@ -180,11 +180,11 @@ class RecPost : public PostProcessor<at::Tensor> {
 
     return true;
   };
-  virtual void forward(std::vector<at::Tensor> net_outputs, std::vector<dict> input,
-                       const std::vector<at::Tensor>& net_inputs) override {
+  virtual void forward(std::vector<torch::Tensor> net_outputs, std::vector<dict> input,
+                       const std::vector<torch::Tensor>& net_inputs) override {
     auto argmax_idx = net_outputs[0].argmax(2, true);
     auto max_values = net_outputs[0].gather(2, argmax_idx);
-    argmax_idx = argmax_idx.to(at::kCPU, at::kInt);
+    argmax_idx = argmax_idx.to(torch::kCPU, torch::kInt);
     max_values = max_values.cpu();
     auto* pindex = argmax_idx.data_ptr<int>();
     auto* pvalue = max_values.data_ptr<float>();
@@ -222,5 +222,5 @@ class RecPost : public PostProcessor<at::Tensor> {
   }
 };
 
-IPIPE_REGISTER(PostProcessor<at::Tensor>, RecPost, "RecPost");
+IPIPE_REGISTER(PostProcessor<torch::Tensor>, RecPost, "RecPost");
 }  // namespace ipipe

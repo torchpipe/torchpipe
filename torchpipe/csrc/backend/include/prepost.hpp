@@ -31,7 +31,7 @@ template <typename T>
   model = "/app/src/models/ex_model.onnx"
   instance_num = 2
   postprocessor = "resnet_post"
-  IPIPE_REGISTER(PostProcessor<at::Tensor>, YOUR_POST_IMPLEMENTION,
+  IPIPE_REGISTER(PostProcessor<torch::Tensor>, YOUR_POST_IMPLEMENTION,
  "resnet_post")
   ```
  *
@@ -55,9 +55,9 @@ class PostProcessor {
    * 如果有多个分支，可以使用net_output[1],net_output[2]等。
    *
    * @note
-   * 可通过如下代码，将一个batch的数据直接从gpu复制到cpu(以返回at::tensor举例)。
+   * 可通过如下代码，将一个batch的数据直接从gpu复制到cpu(以返回torch::Tensor举例)。
    * ```
-   * at::Tensor cls_result = net_outputs[0].to(at::kCPU);
+   * torch::Tensor cls_result = net_outputs[0].to(torch::kCPU);
    * ```
    * @param inputs 数据字典，注意这里是按照batch的。
    *

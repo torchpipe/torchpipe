@@ -14,7 +14,7 @@
 
 #include "TorchScriptTensor.hpp"
 
-#include <ATen/ATen.h>
+#include <torch/torch.h>
 
 #include <numeric>
 
@@ -43,7 +43,7 @@ bool TorchScriptTensor::init(const std::unordered_map<std::string, std::string>&
   try {
     // Deserialize the Scriptmodule from a file using torch::jit::load().
     module_ = torch::jit::load(model_path);
-    module_.to(at::kCUDA);  // module_.to(at::Device("cuda:1"));
+    module_.to(torch::kCUDA);  // module_.to(torch::Device("cuda:1"));
     // https://github.com/pytorch/pytorch/blob/main/aten/src/ATen/core/builtin_function.h#L56
     // https://github.com/pytorch/pytorch/blob/01069ad4be449f376cf88a56d842b8eb50f6e9b6/torch/csrc/jit/api/method.h#L23
     num_inputs_ = module_.get_method("forward").num_inputs() - 1;
@@ -54,9 +54,9 @@ bool TorchScriptTensor::init(const std::unordered_map<std::string, std::string>&
     return false;
   }
   if (num_inputs_ == 1)
-    preprocessor_ = std::unique_ptr<PreProcessor<at::Tensor>>(new SingleConcatPreprocess());
+    preprocessor_ = std::unique_ptr<PreProcessor<torch::Tensor>>(new SingleConcatPreprocess());
   else {
-    preprocessor_ = std::unique_ptr<PreProcessor<at::Tensor>>(new MultipleConcatPreprocess());
+    preprocessor_ = std::unique_ptr<PreProcessor<torch::Tensor>>(new MultipleConcatPreprocess());
   }
   if (!preprocessor_ || !preprocessor_->init(config_param, dict_config)) {
     std::cout << "preprocess_engine created failed. " << bool(preprocessor_) << std::endl;
@@ -65,8 +65,8 @@ bool TorchScriptTensor::init(const std::unordered_map<std::string, std::string>&
 
   std::string batch_post = "split";  // params_->at("postprocessor");
 
-  postprocessor_ = std::unique_ptr<PostProcessor<at::Tensor>>(
-      IPIPE_CREATE(PostProcessor<at::Tensor>, batch_post));
+  postprocessor_ = std::unique_ptr<PostProcessor<torch::Tensor>>(
+      IPIPE_CREATE(PostProcessor<torch::Tensor>, batch_post));
   try {
     if (!postprocessor_ || !postprocessor_->init(config_param, dict_config)) {
       SPDLOG_ERROR("error postprocessor: " + batch_post);
@@ -100,7 +100,7 @@ void TorchScriptTensor::forward(const std::vector<dict>& raw_inputs) {
   }
   auto out_tmp = module_.forward(model_inputs);
 
-  std::vector<at::Tensor> outputs;
+  std::vector<torch::Tensor> outputs;
   if (out_tmp.isTensor()) {
     auto out = out_tmp.toTensor();
     IPIPE_ASSERT(out.is_cuda());

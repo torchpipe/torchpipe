@@ -18,7 +18,7 @@
 #include "dict.hpp"
 #include <torch/extension.h>
 #include "base_logging.hpp"
-#include <ATen/ATen.h>
+#include <torch/torch.h>
 #include <c10/util/Type.h>
 #include <torch/csrc/autograd/python_variable.h>
 #include "event.hpp"
@@ -112,8 +112,8 @@ py::object cast_other(const any& data) {
     return mat_to_nparray(tm);
   }
 #endif
-  else if (type == typeid(at::Tensor)) {
-    return py_cast<at::Tensor>(data);
+  else if (type == typeid(torch::Tensor)) {
+    return py_cast<torch::Tensor>(data);
   } else if (type == typeid(std::shared_ptr<SimpleEvents>)) {
     return py_cast<std::shared_ptr<SimpleEvents>>(data);
   }
@@ -184,8 +184,8 @@ py::object list22numpy(const any& data) {
 
 py::object list22tensor(const any& data) {
   const auto& in = data.inner_type();
-  if (in == typeid(std::vector<at::Tensor>)) {
-    const auto* pdata = any_cast<std::vector<std::vector<at::Tensor>>>(&data);
+  if (in == typeid(std::vector<torch::Tensor>)) {
+    const auto* pdata = any_cast<std::vector<std::vector<torch::Tensor>>>(&data);
     IPIPE_ASSERT(pdata);
     return py::cast(*pdata);
   }
@@ -295,8 +295,8 @@ py::object cast_other_str_dict(const any& data) {
     return result;
   }
 #endif
-  else if (in_t == typeid(at::Tensor)) {
-    const auto* pdata = any_cast<str_dict<at::Tensor>>(&data);
+  else if (in_t == typeid(torch::Tensor)) {
+    const auto* pdata = any_cast<str_dict<torch::Tensor>>(&data);
     IPIPE_ASSERT(pdata);
     return py::cast(*pdata);
   } else if (in_t == typeid(ipipe::any)) {
@@ -337,8 +337,8 @@ py::object cast_other_list(const any& data) {
     return result;
   }
 #endif
-  else if (in_t == typeid(at::Tensor)) {
-    const auto* pdata = any_cast<std::vector<at::Tensor>>(&data);
+  else if (in_t == typeid(torch::Tensor)) {
+    const auto* pdata = any_cast<std::vector<torch::Tensor>>(&data);
     IPIPE_ASSERT(pdata);
     return py::cast(*pdata);
 

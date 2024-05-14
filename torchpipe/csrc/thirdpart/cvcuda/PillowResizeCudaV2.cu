@@ -16,12 +16,11 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
-*/
-
+ */
 
 // modified from
 // https://github.com/CVCUDA/CV-CUDA/blob/release_v0.2.x/src/cvcuda/priv/legacy/pillow_resize.cu
-// #include <ATen/ATen.h>
+// #include <torch/torch.h>
 
 #include "cvcuda/PillowResizeCudaV2.hpp"
 #include <cuda_runtime.h>
@@ -129,7 +128,7 @@ struct Ptr2dNHWC {
 
 class BilinearFilter {
  public:
-  __host__ __device__ BilinearFilter() : _support(bilinear_filter_support){};
+  __host__ __device__ BilinearFilter() : _support(bilinear_filter_support) {};
 
   __host__ __device__ work_type filter(work_type x) {
     if (x < 0.0) {
@@ -456,23 +455,23 @@ void pillow_resize_filter(const TensorDataAccessStridedImagePlanar &inData,
                           cudaStream_t stream) {
   auto data_type = inData.scalar_type();
   switch (data_type) {
-    case at::kByte:
+    case torch::kByte:
       pillow_resize_v2<Filter, unsigned char>(inData, outData, gpu_workspace, true, 0., false,
                                               stream);
       break;
-    // case at::kChar:
+    // case torch::kChar:
     //   pillow_resize_v2<Filter, signed char>(inData, outData, gpu_workspace, true, 0., false,
     //                                         stream);
     //   break;
 
-    // case at::kFloat:
+    // case torch::kFloat:
     //   pillow_resize_v2<Filter, float>(inData, outData, gpu_workspace, true, 0., false, stream);
     //   break;
     default:
       throw std::runtime_error("scalar_type not supported.");
   }
 }
-void PillowResizeCudaV2::forward_impl(at::Tensor data, at::Tensor out) {
+void PillowResizeCudaV2::forward_impl(torch::Tensor data, torch::Tensor out) {
   pillow_resize_filter<BilinearFilter>(data, out, gpu_workspace_,
                                        c10::cuda::getCurrentCUDAStream());
 }

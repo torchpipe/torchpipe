@@ -5,7 +5,7 @@
 // #include <torch/torch.h>
 #include "c10/cuda/CUDAStream.h"
 
-#include <ATen/ATen.h>
+#include <torch/torch.h>
 
 #include "ipipe_utils.hpp"
 #include "base_logging.hpp"
@@ -33,7 +33,7 @@ void PPLResizeCenterPadTensor::forward(dict input_dict) {
   auto& input_tensor = ppl.input_tensor;
   auto& output_tensor = ppl.output_tensor;
 
-  cudaStream_t stream = at::cuda::getCurrentCUDAStream();
+  cudaStream_t stream = c10::cuda::getCurrentCUDAStream();
 
   int img_h = input_tensor.sizes()[0];
   int img_w = input_tensor.sizes()[1];
@@ -50,7 +50,7 @@ void PPLResizeCenterPadTensor::forward(dict input_dict) {
   int left = (resize_w_ - target_w) / 2;
   int right = resize_w_ - target_w - left;
 
-  if (input_tensor.scalar_type() == at::kByte) {
+  if (input_tensor.scalar_type() == torch::kByte) {
     unsigned char* image = input_tensor.data_ptr<unsigned char>();
     unsigned char* output = output_tensor.data_ptr<unsigned char>();
     output += top * output_tensor.stride(0) + left * c;
@@ -64,7 +64,7 @@ void PPLResizeCenterPadTensor::forward(dict input_dict) {
       SPDLOG_ERROR("PPLResizeCenterPadTensor: Resize failed, ret = {}", ret);
       return;
     }
-  } else if (input_tensor.scalar_type() == at::kFloat) {
+  } else if (input_tensor.scalar_type() == torch::kFloat) {
     float* image = input_tensor.data_ptr<float>();
     float* output = output_tensor.data_ptr<float>();
     output += top * output_tensor.stride(0) + left * c;
@@ -104,7 +104,7 @@ bool PPLResizePadTensor::init(const std::unordered_map<std::string, std::string>
 }
 
 void PPLResizePadTensor::forward(dict input_dict) {
-  at::Tensor in_tensor = dict_get<at::Tensor>(input_dict, TASK_DATA_KEY);
+  torch::Tensor in_tensor = dict_get<torch::Tensor>(input_dict, TASK_DATA_KEY);
   in_tensor = img_hwc_guard(in_tensor);
   int img_h = in_tensor.sizes()[0];
   int img_w = in_tensor.sizes()[1];
@@ -126,9 +126,9 @@ void PPLResizePadTensor::forward(dict input_dict) {
   auto& input_tensor = ppl.input_tensor;
   auto& output_tensor = ppl.output_tensor;
 
-  cudaStream_t stream = at::cuda::getCurrentCUDAStream();
+  cudaStream_t stream = c10::cuda::getCurrentCUDAStream();
 
-  if (input_tensor.scalar_type() == at::kByte) {
+  if (input_tensor.scalar_type() == torch::kByte) {
     unsigned char* image = input_tensor.data_ptr<unsigned char>();
     unsigned char* output = output_tensor.data_ptr<unsigned char>();
 
@@ -141,7 +141,7 @@ void PPLResizePadTensor::forward(dict input_dict) {
       SPDLOG_ERROR("PPLResizePadTensor: Resize failed, ret = {}", ret);
       return;
     }
-  } else if (input_tensor.scalar_type() == at::kFloat) {
+  } else if (input_tensor.scalar_type() == torch::kFloat) {
     float* image = input_tensor.data_ptr<float>();
     float* output = output_tensor.data_ptr<float>();
 

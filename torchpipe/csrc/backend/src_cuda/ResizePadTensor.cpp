@@ -20,7 +20,7 @@
 #include "params.hpp"
 
 #include <fstream>
-#include <ATen/ATen.h>
+#include <torch/torch.h>
 
 #include "reflect.h"
 #include "base_logging.hpp"
@@ -35,9 +35,9 @@ class ResizePadTensor : public ResizePad {
   void forward(dict input_dict) {
     params_->check_and_update(input_dict);
 
-    auto input_tensor = dict_get<at::Tensor>(input_dict, TASK_DATA_KEY);
+    auto input_tensor = dict_get<torch::Tensor>(input_dict, TASK_DATA_KEY);
 
-    input_tensor = img_1chw_guard(input_tensor).to(at::kFloat);
+    input_tensor = img_1chw_guard(input_tensor).to(torch::kFloat);
     if (!input_tensor.is_contiguous()) input_tensor = input_tensor.contiguous();
 
     int cols = input_tensor.size(-1);
@@ -53,7 +53,7 @@ class ResizePadTensor : public ResizePad {
       resize_w = max_w_;
       resize_h = std::min(int(std::round(max_w_ / ratio)), max_h_);
     }
-    at::Tensor resize_img;
+    torch::Tensor resize_img;
     float x_ratio = cols * 1.0f / resize_w;
     float y_ratio = rows * 1.0f / resize_h;
     std::function<std::pair<float, float>(float, float)> inverse_trans = [x_ratio, y_ratio](
@@ -65,13 +65,13 @@ class ResizePadTensor : public ResizePad {
     if (resize_w == cols && resize_h == rows) {
       resize_img = input_tensor;
     } else {
-      resize_img = at::upsample_bilinear2d(input_tensor, {resize_h, resize_w}, true);
+      resize_img = torch::upsample_bilinear2d(input_tensor, {resize_h, resize_w}, true);
     }
     // https://github.com/openppl-public/ppl.cv/blob/master/src/ppl/cv/cuda/copymakeborder.cu
 
     if ((resize_w < max_w_ || resize_h < max_h_) && !pad_values_.empty()) {
-      resize_img = at::constant_pad_nd(resize_img, {0, max_w_ - resize_w, 0, max_h_ - resize_h},
-                                       pad_values_[0]);
+      resize_img = torch::constant_pad_nd(resize_img, {0, max_w_ - resize_w, 0, max_h_ - resize_h},
+                                          pad_values_[0]);
     }
 
     (*input_dict)[TASK_RESULT_KEY] = resize_img;

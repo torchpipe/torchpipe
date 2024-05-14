@@ -14,7 +14,7 @@
 
 #pragma once
 
-#include <ATen/ATen.h>
+#include <torch/torch.h>
 
 #include <memory>
 #include <string>

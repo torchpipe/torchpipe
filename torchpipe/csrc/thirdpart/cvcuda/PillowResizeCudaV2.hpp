@@ -50,16 +50,16 @@ class PillowResizeCudaV2 {
   }
 
   ~PillowResizeCudaV2() { cudaFree(gpu_workspace_); }
-  at::Tensor forward(at::Tensor data) {
+  torch::Tensor forward(torch::Tensor data) {
     // data = data.permute({0, 2, 3, 1}).contiguous();
-    auto options = at::TensorOptions()
-                       .device(at::kCUDA, -1)
+    auto options = torch::TensorOptions()
+                       .device(torch::kCUDA, -1)
                        .dtype(data.dtype())
-                       .layout(at::kStrided)
+                       .layout(torch::kStrided)
                        .requires_grad(false);
-    auto image_tensor =
-        at::empty({(signed long)1, (signed long)resize_h_, (signed long)resize_w_, (signed long)3},
-                  options, at::MemoryFormat::Contiguous);
+    auto image_tensor = torch::empty(
+        {(signed long)1, (signed long)resize_h_, (signed long)resize_w_, (signed long)3}, options,
+        torch::MemoryFormat::Contiguous);
     if (!data.is_contiguous()) {
       data = data.contiguous();
     }
@@ -68,7 +68,7 @@ class PillowResizeCudaV2 {
   }
 
  private:
-  void forward_impl(at::Tensor data, at::Tensor out);
+  void forward_impl(torch::Tensor data, torch::Tensor out);
   void* gpu_workspace_;
   std::size_t resize_h_;
   std::size_t resize_w_;

@@ -18,7 +18,7 @@
 #include "dict.hpp"
 #include <torch/extension.h>
 #include "base_logging.hpp"
-#include <ATen/ATen.h>
+#include <torch/torch.h>
 #include <c10/util/Type.h>
 #include <torch/csrc/autograd/python_variable.h>
 #include "pybind11/numpy.h"
@@ -47,7 +47,7 @@ any container_cast(py::handle second) {
   PyObject* obj = (*list_data.begin()).ptr();
 
   if (THPVariable_Check(obj)) {
-    return py::cast<container<at::Tensor>>(second);
+    return py::cast<container<torch::Tensor>>(second);
   } else if (py::isinstance<py::list>(list_data[0])) {
     py::list inner_list = py::cast<py::list>(list_data[0]);
     if (0 == py::len(inner_list)) {
@@ -55,7 +55,7 @@ any container_cast(py::handle second) {
       throw std::runtime_error("inner list is empty.");
     }
     if (THPVariable_Check(inner_list[0].ptr())) {
-      return py::cast<container<container<at::Tensor>>>(second);
+      return py::cast<container<container<torch::Tensor>>>(second);
     } else if (py::isinstance<py::int_>(inner_list[0])) {
       return py::cast<container<container<int>>>(second);
     } else if (py::isinstance<py::float_>(inner_list[0])) {
@@ -66,9 +66,9 @@ any container_cast(py::handle second) {
       throw std::runtime_error("inner list: Unsupported type from python to c++.");
     }
 
-    // container<container<at::Tensor>> result;
+    // container<container<torch::Tensor>> result;
     // for (auto item : list_data) {
-    //   result.push_back(py::cast<container<at::Tensor>>(item));
+    //   result.push_back(py::cast<container<torch::Tensor>>(item));
     // }
     // return result;
 
@@ -105,7 +105,7 @@ any LocalStrMap_cast(py::handle second) {
   PyObject* obj = (list_data.begin()->second).ptr();
 
   if (THPVariable_Check(obj)) {
-    return py::cast<container<at::Tensor>>(second);
+    return py::cast<container<torch::Tensor>>(second);
   } else if (py::isinstance<py::str>(list_data.begin()->second)) {
     return py::cast<container<std::string>>(second);
   } else if (py::isinstance<py::bytes>(list_data.begin()->second)) {
@@ -133,7 +133,7 @@ any set_cast(py::handle second) {
 
   PyObject* obj = (*list_data.begin()).ptr();
   if (THPVariable_Check(obj)) {
-    IPIPE_THROW("at::Tensor is unhashable.");
+    IPIPE_THROW("torch::Tensor is unhashable.");
   } else if (py::isinstance<py::str>((*list_data.begin()))) {
     return py::cast<std::unordered_set<std::string>>(second);
   } else if (py::isinstance<py::bytes>((*list_data.begin()))) {
@@ -163,7 +163,7 @@ any object2any(pybind11::handle data) {
   } else if (py::isinstance<py::bytes>(data)) {
     return py::cast<std::string>(data);
   } else if (THPVariable_Check(data.ptr())) {
-    return py::cast<at::Tensor>(data);
+    return py::cast<torch::Tensor>(data);
   } else if (py::isinstance<py::bool_>(data)) {
     return py::cast<bool>(data);
   } else if (py::isinstance<py::int_>(data)) {

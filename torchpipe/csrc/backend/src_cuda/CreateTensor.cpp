@@ -14,7 +14,7 @@
 
 #include "CreateTensor.hpp"
 
-#include <ATen/ATen.h>
+#include <torch/torch.h>
 
 #include <numeric>
 
@@ -32,8 +32,8 @@ bool CreateTensor::init(const std::unordered_map<std::string, std::string>& conf
 
   TRACE_EXCEPTION(shape_ = str2number<long int>(params_->at("shape"), ','));
   IPIPE_ASSERT(!shape_.empty());
-  //   index_selecter_cpu_ = at::tensor({2, 1, 0}).toType(at::kLong);
-  //   index_selecter_ = at::tensor({2, 1, 0}).toType(at::kLong).cuda();
+  //   index_selecter_cpu_ = torch::Tensor({2, 1, 0}).toType(torch::kLong);
+  //   index_selecter_ = torch::Tensor({2, 1, 0}).toType(torch::kLong).cuda();
 
   type_ = params_->at("type");
   if (type_ == "char") type_ = "byte";
@@ -42,13 +42,14 @@ bool CreateTensor::init(const std::unordered_map<std::string, std::string>& conf
 }
 
 void CreateTensor::forward(dict input_dict) {
-  static const auto type = (type_ == "byte") ? at::kByte : at::kFloat;
-  auto options = at::TensorOptions()
-                     .device(at::kCUDA, -1)
+  static const auto type = (type_ == "byte") ? torch::kByte : torch::kFloat;
+  auto options = torch::TensorOptions()
+                     .device(torch::kCUDA, -1)
                      .dtype(type)
-                     .layout(at::kStrided)
+                     .layout(torch::kStrided)
                      .requires_grad(false);
-  auto image_tensor = at::empty(at::IntArrayRef(shape_), options, at::MemoryFormat::Contiguous);
+  auto image_tensor =
+      torch::empty(torch::IntArrayRef(shape_), options, torch::MemoryFormat::Contiguous);
 
   (*input_dict)[TASK_RESULT_KEY] = image_tensor;
 }

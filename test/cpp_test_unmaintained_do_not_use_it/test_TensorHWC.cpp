@@ -20,7 +20,7 @@
 
 // #include <iostream>
 
-// #include <ATen/ATen.h>
+// #include <torch/torch.h>
 
 // TEST(TensorHWCTest, Basic) {
 //   auto* backend_instance = IPIPE_CREATE(ipipe::Backend, "ResizeTensor");
@@ -31,14 +31,14 @@
 //   config["resize_w"] = "12";
 //   ASSERT_TRUE(backend_instance->init(config, nullptr));
 
-//   auto input = at::linspace(1, 3 * 42 * 27, 3 * 42 * 27).reshape({42, 27, 3});
+//   auto input = torch::linspace(1, 3 * 42 * 27, 3 * 42 * 27).reshape({42, 27, 3});
 
 //   ipipe::dict data = ipipe::make_dict();
 //   (*data)[ipipe::TASK_DATA_KEY] = input;
 
 //   backend_instance->forward({data});
 
-//   at::Tensor result = ipipe::any_cast<at::Tensor>(data->at(ipipe::TASK_RESULT_KEY));
+//   torch::Tensor result = ipipe::any_cast<torch::Tensor>(data->at(ipipe::TASK_RESULT_KEY));
 //   ASSERT_EQ(result.size(0), 224);
 //   ASSERT_EQ(result.size(1), 12);
 //   ASSERT_EQ(result.size(2), 3);
@@ -47,7 +47,7 @@
 //   (*data)[ipipe::TASK_DATA_KEY] = input;
 //   backend_instance->forward({data});
 
-//   result = ipipe::any_cast<at::Tensor>(data->at(ipipe::TASK_RESULT_KEY));
+//   result = ipipe::any_cast<torch::Tensor>(data->at(ipipe::TASK_RESULT_KEY));
 //   ASSERT_EQ(result.size(0), 224);
 //   ASSERT_EQ(result.size(1), 12);
 //   ASSERT_EQ(result.size(2), 3);

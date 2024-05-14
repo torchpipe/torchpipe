@@ -20,7 +20,7 @@
 
 #include <iostream>
 
-#include <ATen/ATen.h>
+#include <torch/torch.h>
 
 TEST(cvtColorTensorTest, Basic) {
   auto* backend_instance = IPIPE_CREATE(ipipe::Backend, "cvtColorTensor");
@@ -30,7 +30,7 @@ TEST(cvtColorTensorTest, Basic) {
   config["color"] = "rgb";
   ASSERT_TRUE(backend_instance->init(config, nullptr));
 
-  auto input = at::linspace(1, 27, 27).reshape({3, 3, 3});
+  auto input = torch::linspace(1, 27, 27).reshape({3, 3, 3});
 
   ipipe::dict data = ipipe::make_dict();
   (*data)[ipipe::TASK_DATA_KEY] = input;
@@ -38,7 +38,7 @@ TEST(cvtColorTensorTest, Basic) {
 
   backend_instance->forward({data});
 
-  at::Tensor result = ipipe::any_cast<at::Tensor>(data->at(ipipe::TASK_RESULT_KEY));
+  torch::Tensor result = ipipe::any_cast<torch::Tensor>(data->at(ipipe::TASK_RESULT_KEY));
 
   ASSERT_EQ((result[0].index({0, 0, 0}).item<float>()), 3.f);
   ASSERT_EQ((result[0].index({2, 0, 1}).item<float>()), 4.f);

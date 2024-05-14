@@ -32,12 +32,11 @@ void CvtColorNvTensor::forward(dict input_dict) {
   nvcv::Tensor resultTensor(data.shape(), data.dtype(), nvcv::MemAlignment{}.rowAddr(1).baseAddr(0),
                             nvcv_torch_allocator());
 
-  cudaStream_t stream = at::cuda::getCurrentCUDAStream();
+  cudaStream_t stream = c10::cuda::getCurrentCUDAStream();
   cvtColorOp_(stream, data, resultTensor, NVCV_COLOR_BGR2RGB);
 
   (*input_dict)["color"] = color_;
   (*input_dict)[TASK_RESULT_KEY] = resultTensor;
-
 }
 IPIPE_REGISTER(Backend, CvtColorNvTensor, "CvtColorNvTensor,cvtColorNvTensor");
 
