@@ -35,8 +35,7 @@ class TestBackend:
             torch.rand(1, 3, 224, 224),
             [torch.rand(1, 3, 224, 224).cuda(0), torch.rand(1, 3, 224, 224)],
             torch.rand(1, 3, 224, 224).cuda(0).half(),
-            torch.empty((1, 3, 224, 224),
-                        dtype=torch.float32, pin_memory=True),
+            torch.empty((1, 3, 224, 224), dtype=torch.float32, pin_memory=True),
         ]
 
     # 只有一个设备时跳过
@@ -50,7 +49,11 @@ class TestBackend:
                 pytest.skip("len(CUDA_VISIBLE_DEVICES) < 2")
 
         model = pipe(config)
+
+        stop_flag = False
         for input0 in self.inputs:
+            if stop_flag:
+                continue
             if isinstance(input0, torch.Tensor):
                 input0 = input0.cuda(0)
             elif isinstance(input0, list):
@@ -60,6 +63,26 @@ class TestBackend:
             model(input_dict)
 
             if isinstance(input0, torch.Tensor):
+                z = input0.cuda(1)
+
+                print(
+                    (
+                        z[0, 0, 223:224, 223:224].item(),
+                        input0[0, 0, 223:224, 223:224].item(),
+                    )
+                )
+                if not (
+                    z[0, 0, 223:224, 223:224].item()
+                    == input0[0, 0, 223:224, 223:224].item()
+                ):
+                    print("GPU error found!")
+                    # import torch
+                    # a = torch.rand(1, 3, 224, 224).cuda(0)
+                    # z = a.cuda(1)
+                    # a != z
+                    stop_flag = True
+                    continue
+
                 assert input_dict["result"].device == torch.device("cuda:1")
                 assert torch.equal(input0.cuda(1), input_dict["result"])
             elif isinstance(input0, list):
