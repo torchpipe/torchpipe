@@ -1,4 +1,6 @@
 # Changelog
+## v0.4.5 (WIP)
+- Add support for TensorRT 10.0
 
 ## v0.4.4 (2024.05.08)
 - add c++2py for long long type;
