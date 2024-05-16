@@ -132,7 +132,7 @@ else:
     WITH_TENSORRT = os.getenv("WITH_TENSORRT", "1") == "1"
 
 assert WITH_OPENVINO != WITH_TENSORRT
-
+TENSORRT_PATH = os.getenv("TENSORRT_PATH", None)
 BUILD_PPLCV = os.getenv("BUILD_PPLCV", "0") == "1"
 PPLCV_INSTALL = os.getenv("PPLCV_INSTALL", "0") == "1"
 
@@ -679,6 +679,9 @@ def get_extensions():
 
     if WITH_TENSORRT:
         thirdpart_libs += ["nvonnxparser", "nvinfer", "nvinfer_plugin"]
+        if TENSORRT_PATH:
+            include_dirs += [os.path.join(TENSORRT_PATH, "include")]
+            library_dirs += [os.path.join(TENSORRT_PATH, "lib")]
     if WITH_CUDA:
         thirdpart_libs += ["nppc", "nppig", "nvrtc", "nvjpeg"]
     if WITH_OPENCV:
