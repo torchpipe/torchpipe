@@ -681,7 +681,10 @@ def get_extensions():
         thirdpart_libs += ["nvonnxparser", "nvinfer", "nvinfer_plugin"]
         if TENSORRT_PATH:
             include_dirs += [os.path.join(TENSORRT_PATH, "include")]
-            library_dirs += [os.path.join(TENSORRT_PATH, "lib")]
+            path_trt = os.path.join(TENSORRT_PATH, "lib")
+            # soft to real link
+            path_trt = os.path.realpath(path_trt)
+            library_dirs += [path_trt]
     if WITH_CUDA:
         thirdpart_libs += ["nppc", "nppig", "nvrtc", "nvjpeg"]
     if WITH_OPENCV:
