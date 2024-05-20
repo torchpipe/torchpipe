@@ -706,7 +706,7 @@ def get_extensions():
             define_macros=define_macros + image_macros,
             extra_compile_args=extra_compile_args,
             extra_link_args=extra_link_args,  # "-lstdc++fs"
-            library_dirs=["./lib", "/usr/local/lib/"] + thirdpart_lib_dirs,
+            library_dirs=["./lib", "/usr/local/lib/"] + thirdpart_lib_dirs+library_dirs,
             libraries=thirdpart_libs + extra_lib,
         )
     )

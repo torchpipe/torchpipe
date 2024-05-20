@@ -87,7 +87,7 @@ void DecodeMat::forward(dict input_dict) {
   IPIPE_ASSERT(data && !data->empty());
   auto tensor = cpu_decode(*data);  // tensor type is Mat
   if (tensor.channels() != 3) {
-    SPDLOG_ERROR(std::string("only support tensor.channels() == 3."));
+    SPDLOG_ERROR("only support tensor.channels() == 3. get {}", tensor.channels());
     return;
   }
   if (tensor.empty()) {
@@ -243,7 +243,7 @@ void cvtColorMat::forward(const std::vector<dict>& input_dicts) {
   }
 }
 
-IPIPE_REGISTER(Backend, cvtColorMat, "cvtColorMat");
+IPIPE_REGISTER(Backend, cvtColorMat, "cvtColorMat,CvtColorMat");
 
 class PerspectiveTransformMats : public SingleBackend {
  public:

@@ -56,6 +56,10 @@ cv::Mat torchTensortoCVMatV2(torch::Tensor tensor, bool deepcopy) {  //
   } else if (tensor.dtype() == torch::kFloat) {
     mat = cv::Mat(cv::Size(tensor.size(1), tensor.size(0)), CV_32FC(tensor.size(2)),
                   tensor.data_ptr<float>());
+  } else if (tensor.dtype() == torch::kHalf) {
+    tensor = tensor.to(torch::kFloat);
+    mat = cv::Mat(cv::Size(tensor.size(1), tensor.size(0)), CV_32FC(tensor.size(2)),
+                  tensor.data_ptr<float>());
   } else {
     throw std::runtime_error("unsupported datatype " + std::string(tensor.dtype().name()));
   }

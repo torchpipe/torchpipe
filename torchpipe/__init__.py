@@ -80,6 +80,7 @@ from torchpipe.libipipe import encrypt
 # from torchpipe.utils import test, cpp_extension, patform, models
 import torchpipe.utils
 from .python_api import pipe
+Pipe = pipe
 
 import logging
 
@@ -115,6 +116,7 @@ __all__ = [
     "TASK_RESULT_KEY",
     "TASK_INFO_KEY",
     "pipe",
+    'Pipe',
     "TASK_BOX_KEY",
     "TASK_NODE_NAME_KEY",
     "TASK_EVENT_KEY",
