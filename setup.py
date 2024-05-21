@@ -685,6 +685,15 @@ def get_extensions():
             # soft to real link
             path_trt = os.path.realpath(path_trt)
             library_dirs += [path_trt]
+        else:
+            # 检查是否可连接到thirdpart_libs
+            import ctypes
+            try:
+                ctypes.CDLL("nvinfer")
+            except OSError:
+                print("cannot find tensorrt, please set TENSORRT_PATH")
+                raise RuntimeError("cannot find tensorrt, please set TENSORRT_PATH")
+            
     if WITH_CUDA:
         thirdpart_libs += ["nppc", "nppig", "nvrtc", "nvjpeg"]
     if WITH_OPENCV:

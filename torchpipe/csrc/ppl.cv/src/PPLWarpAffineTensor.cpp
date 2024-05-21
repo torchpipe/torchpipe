@@ -32,7 +32,7 @@ bool PPLWarpAffineTensor::init(const std::unordered_map<std::string, std::string
 void PPLWarpAffineTensor::forward(dict input_dict) {
   try_update(input_dict, "target_h", target_h_);
   try_update(input_dict, "target_w", target_w_);
-  IPIPE_ASSERT(target_h_ > 0 && target_w_ > 0 && target_h_ * target_w_ < 1024 * 1024);
+  IPIPE_ASSERT(target_h_ > 0 && target_w_ > 0 && target_h_ * target_w_ < 4096 * 4096);
 
   auto affine_matrix = dict_get<std::vector<float>>(input_dict, "affine_matrix");
 
