@@ -679,12 +679,16 @@ def get_extensions():
 
     if WITH_TENSORRT:
         thirdpart_libs += ["nvonnxparser", "nvinfer", "nvinfer_plugin"]
+        
         if TENSORRT_PATH:
             include_dirs += [os.path.join(TENSORRT_PATH, "include")]
             path_trt = os.path.join(TENSORRT_PATH, "lib")
             # soft to real link
             path_trt = os.path.realpath(path_trt)
             library_dirs += [path_trt]
+        else:
+            include_dirs.append('/usr/include/x86_64-linux-gnu/')
+            library_dirs.append('/usr/lib/x86_64-linux-gnu/')
         found = False
         for pp in include_dirs:
             if os.path.exists(os.path.join(pp, "NvInfer.h")):
