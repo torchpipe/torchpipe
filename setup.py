@@ -374,6 +374,13 @@ def get_extensions():
         source_cpu += glob.glob(os.path.join(extensions_dir, "ppl.cv", "src", "*.cpp"))
 
     third_includes = [os.path.join(this_dir, "thirdparty/")]
+    try:
+        import pybind11
+        if pybind11.__version__ >= "2.7":
+            third_includes.append(pybind11.get_include())
+    except:
+        pass
+
 
     thirdpart_lib_dirs = []
     thirdpart_libs = []
