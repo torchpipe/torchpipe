@@ -1,5 +1,5 @@
 # Changelog
-## v0.5.0 (WIP)
+## v0.5.1  
 - Add support for TensorRT 10.0
 - remove all *at::* namespace, use *torch::* instead
 - TensorRT 7 is deprecated now

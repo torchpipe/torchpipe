@@ -1,7 +1,7 @@
 # FROM nvcr.io/nvidia/cuda:11.6.0-devel-ubuntu20.04 as base_devel
 # FROM nvcr.io/nvidia/cuda:11.6.0-runtime-ubuntu20.04 as base
 
-# docker build --network=host -f ./docker/Dockerfile -t trt-9 thirdparty/
+# docker build --network=host -f ./docker/Dockerfile -t trt thirdparty/
 
 FROM nvcr.io/nvidia/cuda:11.6.2-cudnn8-devel-ubuntu20.04 as base_devel
 FROM nvcr.io/nvidia/cuda:11.6.2-cudnn8-runtime-ubuntu20.04 as base
@@ -133,9 +133,9 @@ RUN pip install /app/tensorrt-*-cp38-none-linux_x86_64.whl && rm /app/tensorrt-*
 RUN apt-get update -y && apt-get install git -y && pip --no-cache-dir install cmake 
 WORKDIR /app
 
-# docker build --network=host -f ./docker/Dockerfile -t trt-9 thirdparty/
+# docker build --network=host -f ./docker/Dockerfile -t trt thirdparty/
 
-# docker run --rm   --network=host --gpus=all  --ulimit memlock=-1 --ulimit stack=67108864  --privileged=true  -v `pwd`:/workspace --name="tmp" -it trt-9  /bin/bash 
+# docker run --rm   --network=host --gpus=all  --ulimit memlock=-1 --ulimit stack=67108864  --privileged=true  -v `pwd`:/workspace --name="tmp" -it trt  /bin/bash 
 # cd /workspace/ && WITH_CVCUDA=1 BUILD_PPLCV=1 python setup.py install 
 # python -c "import torchpipe;print(torchpipe.__version__);print(torchpipe._C.get_sm())"
 # # docker commit  tmp xxxx:latest
