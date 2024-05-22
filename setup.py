@@ -694,8 +694,8 @@ def get_extensions():
             path_trt = os.path.realpath(path_trt)
             library_dirs += [path_trt]
         else:
-            include_dirs.append('/usr/include/x86_64-linux-gnu/')
-            library_dirs.append('/usr/lib/x86_64-linux-gnu/')
+            include_dirs+=['/usr/include/x86_64-linux-gnu/','/usr/include/']
+            library_dirs+=['/usr/lib/x86_64-linux-gnu/','/usr/lib/']
         found = False
         for pp in include_dirs:
             if os.path.exists(os.path.join(pp, "NvInfer.h")):
@@ -719,6 +719,15 @@ def get_extensions():
     if PPLCV_INSTALL:
         ext_modules.append(CMakeExtension("ppl.cv", "thirdparty/ppl.cv/"))
 
+    
+    def src_filter(x):
+        if StrictVersion(torch.__version__.split("+")[0]) < "1.13":
+            if 'LoadTensors.cpp' in x or 'MultiModalEmbedsTensor.cpp' in x:
+                return False
+        return True
+    # filter
+    sources = [x for x in sources if src_filter(x)]
+    
     ext_modules.append(
         extension(
             "torchpipe.libipipe",
