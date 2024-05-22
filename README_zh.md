@@ -74,7 +74,7 @@ python setup.py install
 cd examples/resnet18 && python resnet18.py
 ```
 
-详见 [安装文档](https://torchpipe.github.io/zh/docs/installation)
+详见 [安装文档](https://torchpipe.github.io/docs/installation)
 
 
 ### 2. 获取恰当的模型文件(目前支持 onnx, trt engine等) 

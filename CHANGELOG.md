@@ -4,7 +4,8 @@
 - remove all *at::* namespace, use *torch::* instead
 - TensorRT 7 is deprecated now
 - add TENSORRT_PATH to set the path of TensorRT
-- need pybind11 >= v2.7.0
+- torchpipe need pybind11 >= v2.7.0 now (for cvnp)
+- add MultiModalEmbedsTensor for multimodal embedding
 
 ## v0.4.4 (2024.05.08)
 - add c++2py for long long type;
