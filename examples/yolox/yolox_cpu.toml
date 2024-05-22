@@ -2,7 +2,7 @@ batching_timeout = 5 #默认的凑batch的超时时间
 precision = "fp16" 
 
 [jpg_decoder]
-backend = "Sequential[DecodeMat,cvtColorMat,ResizePadMat,Mat2Tensor,SyncTensor]"
+backend = "Sequential[DecodeMat,CvtColorMat,ResizePadMat,Mat2Tensor,SyncTensor]"
 color = "bgr"
 instance_num = 5
 max_h = 416

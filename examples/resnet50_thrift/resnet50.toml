@@ -17,7 +17,7 @@ backend = "DecodeMat" # 需要处理背景线程cuda流同步问题可用SyncTen
 next = "cpu_posprocess"
 
 [cpu_posprocess]
-backend = "SyncTensor[Sequential[ResizeMat,cvtColorMat,Mat2Tensor]]" # 需要处理背景线程cuda流同步问题可用SyncTensor， 否则可用Sequential；SyncTensor确保初始化和前向在同一个线程时，能准确处理多个backend的同步时机
+backend = "SyncTensor[Sequential[ResizeMat,CvtColorMat,Mat2Tensor]]" # 需要处理背景线程cuda流同步问题可用SyncTensor， 否则可用Sequential；SyncTensor确保初始化和前向在同一个线程时，能准确处理多个backend的同步时机
 
 
 
@@ -25,7 +25,7 @@ backend = "SyncTensor[Sequential[ResizeMat,cvtColorMat,Mat2Tensor]]" # 需要处
 resize_h = 224
 resize_w = 224
 
-### cvtColorMat输出的参数
+### CvtColorMat输出的参数
 color = "rgb"
 
 next = "resnet50"

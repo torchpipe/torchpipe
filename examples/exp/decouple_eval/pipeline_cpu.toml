@@ -3,7 +3,7 @@ instance_num = 5
 precision = "fp16" 
 #### main graph ####
 [jpg_decoder]
-backend = "Sequential[DecodeMat,(result2other)cvtColorMat,ResizePadMat,Mat2Tensor,SyncTensor]"
+backend = "Sequential[DecodeMat,(result2other)CvtColorMat,ResizePadMat,Mat2Tensor,SyncTensor]"
 color = "bgr"
 instance_num = 16
 max_h = 416
@@ -47,7 +47,7 @@ next = "final"
 
 #### sub graph ####
 [cls_preprocess]
-backend = "Sequential[CropMat,ResizeMat,cvtColorMat,Mat2Tensor,SyncTensor]"
+backend = "Sequential[CropMat,ResizeMat,CvtColorMat,Mat2Tensor,SyncTensor]"
 color = "rgb"
 instance_num = 12
 resize_h = 224

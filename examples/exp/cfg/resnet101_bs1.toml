@@ -2,7 +2,7 @@
 batching_timeout = 0 #默认的凑batch的超时时间
 instance_num = 2 
 [jpg_decoder]
-backend = "Sequential[DecodeMat,ResizeMat,cvtColorMat,Mat2Tensor,SyncTensor]" # 需要处理背景线程cuda流同步问题可用SyncTensor， 否则可用Sequential；SyncTensor确保初始化和前向在同一个线程时，能准确处理多个backend的同步时机
+backend = "Sequential[DecodeMat,ResizeMat,CvtColorMat,Mat2Tensor,SyncTensor]" # 需要处理背景线程cuda流同步问题可用SyncTensor， 否则可用Sequential；SyncTensor确保初始化和前向在同一个线程时，能准确处理多个backend的同步时机
 
 resize_h = 224
 resize_w = 224

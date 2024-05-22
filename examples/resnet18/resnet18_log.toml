@@ -8,7 +8,7 @@ instance_num = 2
 "Logger::path" = "/app/logs_torchpipe/torchpipe.log"
 
 [jpg_decoder]
-backend = "Sequential[DecodeMat,ResizeMat,cvtColorMat]" # 需要处理背景线程cuda流同步问题可用SyncTensor， 否则可用Sequential；SyncTensor确保初始化和前向在同一个线程时，能准确处理多个backend的同步时机
+backend = "Sequential[DecodeMat,ResizeMat,CvtColorMat]" # 需要处理背景线程cuda流同步问题可用SyncTensor， 否则可用Sequential；SyncTensor确保初始化和前向在同一个线程时，能准确处理多个backend的同步时机
 
 resize_h = 224
 resize_w = 224

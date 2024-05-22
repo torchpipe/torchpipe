@@ -21,6 +21,11 @@
 #ifdef PYBIND
 #include <pybind11/pybind11.h>
 #include <pybind11/cast.h>
+#if PYBIND11_VERSION_MAJOR == 2
+#if PYBIND11_VERSION_MINOR < 7
+#error "This code requires pybind11 version 2.7 or greater"
+#endif
+#endif
 #endif
 
 // #include "Backend.hpp"

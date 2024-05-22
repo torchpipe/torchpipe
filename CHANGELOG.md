@@ -3,6 +3,8 @@
 - Add support for TensorRT 10.0
 - remove all *at::* namespace, use *torch::* instead
 - TensorRT 7 is deprecated now
+- add TENSORRT_PATH to set the path of TensorRT
+- need pybind11 >= v2.7.0
 
 ## v0.4.4 (2024.05.08)
 - add c++2py for long long type;

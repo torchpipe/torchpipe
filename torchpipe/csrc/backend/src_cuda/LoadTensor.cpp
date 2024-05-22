@@ -54,6 +54,8 @@ class LoadTensor : public SingleBackend {
     return true;
   }
 
+  
+
   /**
    * @param TASK_RESULT_KEY 加载的tensor
    */

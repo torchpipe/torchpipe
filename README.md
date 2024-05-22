@@ -39,14 +39,14 @@ Production-Grade：Within NetEase over hundreds of billions of calls supported b
 The easiest way is to choose NGC mirror for source code compilation (official mirror may still be able to run low version drivers through Forward Compatibility or Minor Version Compatibility).
 
 
-- Minimum support `nvcr.io/nvidia/pytorch:21.07-py3` (Starting from 0.3.2rc3)
+- Minimum support `nvcr.io/nvidia/pytorch:21.08-py3` (Starting from 0.3.2rc3)
 - Maximum support `nvcr.io/nvidia/pytorch:23.08-py3`
 
 
 First, clone the code:
 ```bash
-$ git clone https://github.com/torchpipe/torchpipe.git
-$ cd torchpipe/ && git submodule update --init --recursive
+git clone https://github.com/torchpipe/torchpipe.git
+cd torchpipe/ && git submodule update --init --recursive
 ```
 
 Then start the container and if your machine supports [a higher version of the image](https://catalog.ngc.nvidia.com/orgs/nvidia/containers/pytorch/tags), you can use the updated version of the Pytorch image.

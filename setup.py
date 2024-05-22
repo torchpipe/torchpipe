@@ -36,9 +36,9 @@ from distutils.version import StrictVersion
 
 import torch
 
-if StrictVersion(torch.__version__.split("+")[0]) < "1.10.0a0":
+if StrictVersion(torch.__version__.split("+")[0]) < "1.10.1a0":
     raise RuntimeError(
-        f"torch's version should >= 1.10.0a0, but get {torch.__version__}"
+        f"torch's version should >= 1.10.1a0, but get {torch.__version__}"
     )
 
 if sys.version_info < (3, 7, 0):
@@ -685,7 +685,16 @@ def get_extensions():
             # soft to real link
             path_trt = os.path.realpath(path_trt)
             library_dirs += [path_trt]
+        found = False
+        for pp in include_dirs:
+            if os.path.exists(os.path.join(pp, "NvInfer.h")):
+                found = True
+                break
 
+        if not found:
+            print("TensorRT not found. You may need to set TENSORRT_PATH")
+            raise RuntimeError("TensorRT not found. You may need to set TENSORRT_PATH")
+        
     if WITH_CUDA:
         thirdpart_libs += ["nppc", "nppig", "nvrtc", "nvjpeg"]
     if WITH_OPENCV:

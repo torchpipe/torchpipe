@@ -1,4 +1,4 @@
-torch>=1.10.0a0
+torch>=1.10.1
 #onnx-simplifier
 cmake~=3.24
 GPUtil

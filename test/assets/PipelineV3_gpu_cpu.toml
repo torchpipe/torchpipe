@@ -30,7 +30,7 @@ next = "cpu_decoder"
 [cpu_decoder]
 filter = "or"
 # 切换batchsize时， 需要单独节点处理
-backend = " Sequential[DecodeMat,ResizeMat,cvtColorMat,Mat2Tensor,SyncTensor]  " # 需要处理背景线程cuda流同步问题可用Torch， 否则可用Sequential；Torch确保初始化和前向在同一个线程时，能准确处理多个backend的同步时机
+backend = " Sequential[DecodeMat,ResizeMat,CvtColorMat,Mat2Tensor,SyncTensor]  " # 需要处理背景线程cuda流同步问题可用Torch， 否则可用Sequential；Torch确保初始化和前向在同一个线程时，能准确处理多个backend的同步时机
 resize_h = 224 
 resize_w = 224 
 

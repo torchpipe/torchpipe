@@ -12,7 +12,7 @@ next = "preprocessor"
 [preprocessor]
 instance_num = 4
 
-backend = "Sequential[ResizeImgType0Mat,cvtColorMat, Mat2Tensor,SyncTensor]"
+backend = "Sequential[ResizeImgType0Mat,CvtColorMat, Mat2Tensor,SyncTensor]"
 max_size_len = "960"
 
 color = "bgr"
@@ -70,8 +70,8 @@ std = "58.395, 57.120, 57.375"
 instance_num = 2
 
 [independent_node]
-# backend="Sequential[DynamicFixHResizePadMat,cvtColorMat, SaveMat, Mat2Tensor,SyncTensor]"
-backend = "Sequential[DynamicFixHResizePadMat,cvtColorMat, Mat2Tensor,SyncTensor]"
+# backend="Sequential[DynamicFixHResizePadMat,CvtColorMat, SaveMat, Mat2Tensor,SyncTensor]"
+backend = "Sequential[DynamicFixHResizePadMat,CvtColorMat, Mat2Tensor,SyncTensor]"
 
 color = "bgr" # todo
 instance_num = 10 

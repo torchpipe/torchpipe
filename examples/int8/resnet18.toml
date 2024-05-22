@@ -2,7 +2,7 @@
 batching_timeout = 5 #默认的凑batch的超时时间
 instance_num = 2 
 [jpg_decoder]
-backend = "S[S[DecodeTensor,ResizeTensor,cvtColorTensor,SyncTensor],(or)S[DecodeMat,ResizeMat,cvtColorMat,Mat2Tensor,SyncTensor]]"
+backend = "S[S[DecodeTensor,ResizeTensor,cvtColorTensor,SyncTensor],(or)S[DecodeMat,ResizeMat,CvtColorMat,Mat2Tensor,SyncTensor]]"
 
 resize_h = 224
 resize_w = 224

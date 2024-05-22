@@ -11,7 +11,7 @@ next = "cpu_decoder"
 instance_num =3
 
 [cpu_decoder]
-backend = "Torch[Sequential[DecodeMat,ResizeMat,cvtColorMat,Mat2Tensor]]" 
+backend = "Torch[Sequential[DecodeMat,ResizeMat,CvtColorMat,Mat2Tensor]]" 
 filter = "or" 
 resize_h = 224 
 resize_w = 224 

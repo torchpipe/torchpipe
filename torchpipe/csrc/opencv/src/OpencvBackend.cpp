@@ -73,6 +73,12 @@ cv::Mat ResizeImgLow(const cv::Mat& im, int min_len, int max_len, int align) {
 
 cv::Mat cpu_decode(std::string data) {
   std::vector<char> vectordata(data.begin(), data.end());
+
+  // Check if the data is a JPEG file
+  if (vectordata.size() < 2 || vectordata[0] != char(0xFF) || vectordata[1] != char(0xD8)) {
+    throw std::runtime_error("The data is not a valid JPEG file.");
+  }
+
   return cv::imdecode(cv::Mat(vectordata), cv::IMREAD_COLOR);
 }
 
