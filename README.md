@@ -36,11 +36,7 @@ Production-Grade：Within NetEase over hundreds of billions of calls supported b
 
 
 ### Using NGC Docker Image
-The easiest way is to choose NGC mirror for source code compilation (official mirror may still be able to run low version drivers through Forward Compatibility or Minor Version Compatibility).
-
-
-- Minimum support `nvcr.io/nvidia/pytorch:21.08-py3` (Starting from 0.3.2rc3)
-- Maximum support `nvcr.io/nvidia/pytorch:23.08-py3`
+The easiest way is to choose NGC mirror for source code compilation (you may need to update your dirver).
 
 
 First, clone the code:
@@ -51,7 +47,7 @@ cd torchpipe/ && git submodule update --init --recursive
 
 Then start the container and if your machine supports [a higher version of the image](https://catalog.ngc.nvidia.com/orgs/nvidia/containers/pytorch/tags), you can use the updated version of the Pytorch image.
 ```bash
-img_name=nvcr.io/nvidia/pytorch:23.05-py3  # for tensort8.6.1, LayerNorm
+img_name=nvcr.io/nvidia/pytorch:23.08-py3  # for tensort8.6.1, LayerNorm
 # img_name=nvcr.io/nvidia/pytorch:22.12-py3  # For driver version lower than 510
 docker run --rm --gpus=all --ipc=host  --network=host -v `pwd`:/workspace  --shm-size 1G  --ulimit memlock=-1 --ulimit stack=67108864  --privileged=true  -w/workspace -it $img_name /bin/bash
 
