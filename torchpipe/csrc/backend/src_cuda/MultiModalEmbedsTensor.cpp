@@ -144,7 +144,7 @@ class MultiModalEmbedsTensor : public SingleBackend {
         results.push_back(image_embeds[i]);
       }
     } else if (tensors_.size() == image_embeds.size() + 1) {
-      for (std::size_t i = 0; i < tensors_.size(); ++i) {
+      for (std::size_t i = 0; i < image_embeds.size(); ++i) {
         results.push_back(tensors_[i]);
         results.push_back(image_embeds[i]);
       }

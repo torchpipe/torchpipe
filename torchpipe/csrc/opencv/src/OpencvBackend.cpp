@@ -76,7 +76,8 @@ cv::Mat cpu_decode(std::string data) {
 
   // Check if the data is a JPEG file
   if (vectordata.size() < 2 || vectordata[0] != char(0xFF) || vectordata[1] != char(0xD8)) {
-    throw std::runtime_error("The data is not a valid JPEG file.");
+    SPDLOG_ERROR("The data is not a valid JPEG file.");
+    return cv::Mat();
   }
 
   return cv::imdecode(cv::Mat(vectordata), cv::IMREAD_COLOR);
