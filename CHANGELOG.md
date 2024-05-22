@@ -1,6 +1,6 @@
 # Changelog
-## v0.5.1  
-- Add support for TensorRT 10.0
+## v0.5.1 (2024.05.22)
+- Add support for TensorRT 10.0 (for Turing or later only)
 - remove all *at::* namespace, use *torch::* instead
 - TensorRT 7 is deprecated now
 - add TENSORRT_PATH to set the path of TensorRT

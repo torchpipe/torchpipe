@@ -64,9 +64,9 @@ cd examples/resnet18 && python resnet18.py
     <summary>From Dockerfile</summary>
 
 ```bash
-# build docker image by yourself (recommend, for tensorrt 9.3): 
-docker build --network=host -f ./docker/Dockerfilex -t trt-10 thirdparty/
-export img_name=trt-10
+# build docker image by yourself: 
+docker build --network=host -f ./docker/Dockerfilex -t trt thirdparty/
+export img_name=trt
 ```
 </details>
 
