@@ -15,7 +15,7 @@
 # throughput and lantecy test
 from __future__ import annotations
 
-version = "20240424"
+version = "20240522"
 
 """! @package test-tools
 # update 0.0.1 2022-03-15 整理出基础版本。 by zsy
@@ -39,31 +39,7 @@ version = "20240424"
 # update 2023-08-17  增加测试结果的返回;                        
 # update 2023-11-09  增加gpu使用率中位数输出;                        
 # update 2024-04-24  恢复为单文件，并增加 ProcessAdaptor
-# ##########################################################################################################################
-# 评价服务性的最佳指标是
-# 1. 低于一定时延下的最高吞吐
-# 2. 实时性
-# 线上服务不像移动端， 不太关注实时性
-
-# 时延依赖于并发请求数目， 并发为5时，此时可能有另外5个服务在排队，排队的时间不算做请求时间， 故只有固定并发请求路数（比如固定客户端数目）下， 算时间延迟才准确。 在并发请求路数少时，时间延迟比测算出来的要多。
-
-# 当我们固定并发请求数目时，此时qps和平均时延又是反相关的， 此时的时延和qps都能够比较准确反映性能。
-
-# 另外，第一条接近于满足一定时间延迟要求下， 比较两个服务同时能够响应的并发请求数目（更准确的，是该并发请求数目下的qps， 不过此时如果可以假设两个服务平均时延差不多，则qps可以由并发请求数决定。
-#           但实际上这条假设只是近似成立， 尤其当我们设置的是TP90这类阈值）。这是第二种测量性能的方法， 需要不断增加并发数并判断时延是否超过阈值，然后获得最大并发数以及该并发下的qps。比较动态。
-
-# 总结为，测量低于一定时延下的最高吞吐这一个指标主要有两种方法：
-# A. 选择一个或者一组合适的固定的并发请求路数， 如10*2或者20*1，跑固定数量的图片， 如10000张， 算时延（或者qps）
-# B. 选择一个或者一组合适的时间延迟阈值，测算TP90等时延指标满足此阈值时，服务所能最大支撑的请求数目。
-# ##########################################################################################################################
-
-
-# 建议固定服务端设置，报告以下三种情况的 qps TP50 TP90 TP99：
-# – 10并发请求下 每次数据量1
-# – 10并发请求下 每次数据量4（或者2）
-# – 40（或者20）并发请求下 每次数据量1 (需要修改thrift设置)
-# 或者只报告第一种情况
-
+# update 2024-05-22  使用request_batch取代batch_size参数。但保持兼容性
 """
 
 
@@ -582,8 +558,6 @@ def test(sample: Union[Sampler, List[Sampler]], total_number=10000):
         i.join()
     resource_event.set()
 
-    # torch.cuda.synchronize()
-
     final_result = test_params.result
 
     all_time = []
@@ -598,7 +572,6 @@ def test(sample: Union[Sampler, List[Sampler]], total_number=10000):
     total_time = 1 * (all_time[len(all_time) - 1] - all_time[0])
     resource_thread.join()
 
-    # import pdb; pdb.set_trace()
     gpu_resource_result = []
     try:
         gpu_resource_result = [
@@ -652,11 +625,10 @@ def test(sample: Union[Sampler, List[Sampler]], total_number=10000):
 
     qps = round(total_number / total_time, 2)
     avg = round(1000 * num_clients / qps, 2)
-    # avg = 0
+    
     print("------------------------------Summary------------------------------")
     print(f"tool's version:: {version}")
     print(f"num_clients:: {num_clients}")
-    # print(f"request batch::  {batch_size}")
 
     print(f"total_number::   {total_number}")
 
@@ -676,12 +648,6 @@ def test(sample: Union[Sampler, List[Sampler]], total_number=10000):
         flush=True,
     )
 
-    # data_zip = list(zip(*data))
-    # x.field_names= data_zip[0]
-    # x.add_row(data_zip[1])
-    # print(data_zip)
-    # x.set_style(prettytable.MARKDOWN)
-    # print(x, flush=True)
     data = []
     if False:
         # x.field_names = ["Project",  "Value"]
@@ -728,7 +694,27 @@ def test(sample: Union[Sampler, List[Sampler]], total_number=10000):
     result["gpu_usage"] = gpu_
     return result
 
+def test_from_toml(
+    toml_path,
+    file_dir: str,
+    num_clients=10,
+    request_batch=-1,
+    total_number=10000,
+    num_preload=1000,
+    recursive=True,
+    ext=[".jpg", ".JPG", ".jpeg", ".JPEG"],
+):
+    import torchpipe
 
+    model = torchpipe.Pipe("vila.toml")
+
+    def run(inputs):
+        path_img, img = inputs[0]
+        input = {'data':img}
+        model(input)
+    test_from_raw_file(run, file_dir, num_clients, 1, 1, total_number, num_preload, recursive, ext)
+
+    
 def test_from_raw_file(
     forward_function: Union[
         Callable[[List[tuple[str, bytes]]]], List[Callable[[List[tuple[str, bytes]]]]]
@@ -736,6 +722,7 @@ def test_from_raw_file(
     file_dir: str,
     num_clients=10,
     batch_size=1,
+    request_batch=-1,
     total_number=10000,
     num_preload=1000,
     recursive=True,
@@ -748,6 +735,8 @@ def test_from_raw_file(
     data = preload(
         file_dir=file_dir, recursive=recursive, num_preload=num_preload, ext=ext
     )
+    if request_batch > 0:
+        batch_size = request_batch
 
     assert len(data) > 0
     if num_preload <= 0:
@@ -777,6 +766,7 @@ def test_function(
     forward_function: Union[Callable, List[Callable]],
     num_clients=10,
     batch_size=1,
+    request_batch=-1,
     total_number=10000,
 ):
     """
@@ -787,6 +777,10 @@ def test_function(
     :param total_number: total number of data.
     :return: None
     """
+    
+    if request_batch > 0:
+        batch_size = request_batch
+
 
     class FunctionSampler:
         def __init__(self, function, batchsize) -> None:
@@ -888,8 +882,12 @@ if __name__ == "__main__":
         port=8095,
         num_clients=10,
         batch_size=1,
+        request_batch = -1,
         total_number=10000,
     ):
+        if request_batch > 0:
+            batch_size = request_batch
+
         instances_ = [ThriftInfer(host, port, batch_size) for i in range(num_clients)]
 
         test_from_raw_file(
