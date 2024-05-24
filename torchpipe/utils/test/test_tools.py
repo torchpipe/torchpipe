@@ -712,7 +712,7 @@ def test_from_toml(
         path_img, img = inputs[0]
         input = {'data':img}
         model(input)
-    test_from_raw_file(run, file_dir, num_clients, 1, 1, total_number, num_preload, recursive, ext)
+    return test_from_raw_file(run, file_dir, num_clients, 1, 1, total_number, num_preload, recursive, ext)
 
     
 def test_from_raw_file(
