@@ -38,7 +38,7 @@ COPY ./opencv-4.5.4.zip /app/
 RUN if [ ! -f ./opencv-4.5.4.zip ]; then \
     wget -O /app/opencv-4.5.4.zip  https://codeload.github.com/opencv/opencv/zip/refs/tags/4.5.4; \
 else \
-    cp ./opencv-4.5.4.zip /app/ \
+    cp ./opencv-4.5.4.zip /app/ ; \
 fi
 
 RUN unzip opencv-4.5.4.zip  && rm -rf /app/opencv-4.5.4.zip
