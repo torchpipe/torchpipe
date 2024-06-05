@@ -34,7 +34,6 @@ ARG TRT_VER
 ARG TRT_URL
 # 2) TensorRT/opencv Installation
 # RUN wget https://codeload.github.com/opencv/opencv/zip/refs/tags/4.5.4 -O /app/opencv-4.5.4.zip
-COPY ./opencv-4.5.4.zip /app/
 RUN if [ ! -f ./opencv-4.5.4.zip ]; then \
     wget -O /app/opencv-4.5.4.zip  https://codeload.github.com/opencv/opencv/zip/refs/tags/4.5.4; \
 else \
