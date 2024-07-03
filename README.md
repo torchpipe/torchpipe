@@ -128,12 +128,12 @@ model(input)  # Can be called in parallel with multiple threads
 print(input["result"].shape)  # If failed, this key value must not exist, even if it already exists when input.
 ```
 
-> c++ API is also possible through [libtorch+cmake] or [pybind11].
+> c++ API is also possible through [libtorch+cmake(currently unmaintained)] or [pybind11].
 
 
 <!-- end quickstart -->
 
-
+[ResNet18 Example](examples/resnet18/README.md)
 <details>
     <summary>YOLO-X Example</summary>
 
@@ -144,7 +144,7 @@ batching_timeout = 5  # Waiting timeout for cross-request batching
 precision = "fp16" 
 
 [jpg_decoder]
-backend = "Sequential[DecodeMat,cvtColorMat,ResizePadMat,Mat2Tensor,SyncTensor]"
+backend = "Sequential[DecodeMat,CvtColorMat,ResizePadMat,Mat2Tensor,SyncTensor]"
 color = "bgr"
 instance_num = 5
 max_h = 416
@@ -159,7 +159,7 @@ batching_timeout = 5 # Waiting timeout for cross-request batching
 instance_num = 2 
 max = 4  # maximum batchsize
 model = "./yolox_tiny.onnx"
-"model::cache" = "./yolox_tiny.trt"
+"model::cache" = "./yolox_tiny.trt.encrypted"
 
 # params for user-defined backend PostProcYolox:
 net_h=416

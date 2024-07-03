@@ -112,7 +112,7 @@ def get_cpu_preprocess_cfg(preprocess_instances):
     if preprocess_instances == 0:
         preprocess_instances = 24
     return {
-        "backend": "S[DecodeMat,ResizeMat,cvtColorMat,Mat2Tensor,SyncTensor]",
+        "backend": "S[DecodeMat,ResizeMat,CvtColorMat,Mat2Tensor,SyncTensor]",
         "resize_h": "224",
         "resize_w": "224",
         "instance_num": preprocess_instances,
