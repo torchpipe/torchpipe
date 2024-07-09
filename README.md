@@ -23,9 +23,9 @@ Serving inside Pytorch with Multiple Threads
 
 
 
-Torchpipe is an alternative choice for [Triton Inference Server]((https://github.com/triton-inference-server/server)), mainly featuring similar functionalities such as [Shared-momory](https://docs.nvidia.com/deeplearning/triton-inference-server/user-guide/docs/protocol/extension_shared_memory.html)，[Ensemble](https://github.com/triton-inference-server/server/blob/main/docs/user_guide/architecture.md#ensemble-models), [BLS](https://github.com/triton-inference-server/python_backend#business-logic-scripting) mechanism. It aims to address common problems faced by the industry.
+Torchpipe is an alternative choice for [Triton Inference Server]((https://github.com/triton-inference-server/server)), mainly featuring similar functionalities such as [Shared-momory](https://docs.nvidia.com/deeplearning/triton-inference-server/user-guide/docs/protocol/extension_shared_memory.html), [Ensemble](https://github.com/triton-inference-server/server/blob/main/docs/user_guide/architecture.md#ensemble-models), and [BLS](https://github.com/triton-inference-server/python_backend#business-logic-scripting) mechanism. It aims to address common problems faced by the industry.
 
-Production-Grade：Within NetEase over hundreds of billions of calls supported by Torchpipe everyday.
+Production-Grade：Within NetEase a massive number of calls supported by Torchpipe everyday.
 
 
 
@@ -132,12 +132,12 @@ model(input)  # Can be called in parallel with multiple threads
 print(input["result"].shape)  # If failed, this key value must not exist, even if it already exists when input.
 ```
 
-> c++ API is also possible through [libtorch+cmake] or [pybind11].
+> c++ API is also possible through [libtorch+cmake(currently unmaintained)] or [pybind11].
 
 
 <!-- end quickstart -->
 
-
+[ResNet18 Example](examples/resnet18/README.md)
 <details>
     <summary>YOLO-X Example</summary>
 
@@ -148,7 +148,7 @@ batching_timeout = 5  # Waiting timeout for cross-request batching
 precision = "fp16" 
 
 [jpg_decoder]
-backend = "Sequential[DecodeMat,cvtColorMat,ResizePadMat,Mat2Tensor,SyncTensor]"
+backend = "Sequential[DecodeMat,CvtColorMat,ResizePadMat,Mat2Tensor,SyncTensor]"
 color = "bgr"
 instance_num = 5
 max_h = 416
@@ -163,7 +163,7 @@ batching_timeout = 5 # Waiting timeout for cross-request batching
 instance_num = 2 
 max = 4  # maximum batchsize
 model = "./yolox_tiny.onnx"
-"model::cache" = "./yolox_tiny.trt"
+"model::cache" = "./yolox_tiny.trt.encrypted"
 
 # params for user-defined backend PostProcYolox:
 net_h=416
