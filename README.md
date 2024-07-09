@@ -27,7 +27,11 @@ Torchpipe is an alternative choice for [Triton Inference Server]((https://github
 
 Production-Grade：Within NetEase over hundreds of billions of calls supported by Torchpipe everyday.
 
- 
+
+
+*Latest News* 🔥
+- [2024/06] We added a [YoloV10](https://github.com/THU-MIG/yolov10) example [here](examples/yolov10).
+
 
 ## Installation
 

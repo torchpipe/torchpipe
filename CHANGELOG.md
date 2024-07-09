@@ -1,6 +1,10 @@
 # Changelog
+## v0.5.2 (WIP)
+- fix docker/Dockerfilex
+-  We added a [YoloV10](https://github.com/THU-MIG/yolov10) example [here](examples/yolov10).
+
 ## v0.5.1 (2024.05.22)
-- Add support for TensorRT 10.0 (for Turing or later only)
+- Add support for TensorRT 10.0
 - remove all *at::* namespace, use *torch::* instead
 - TensorRT 7 is deprecated now
 - add TENSORRT_PATH to set the path of TensorRT
@@ -13,7 +17,6 @@
 - add ProcessAdaptor for test_tools 
 - add batch_process for TensorrtTensor
 - BUG FIX: MapReduce and PipelineV3 may cause resource deadlock under specific extreme conditions.
-
 
 
 ## v0.4.3 (2024.02.27)
@@ -120,3 +123,4 @@ assert 8 == self.model_trt.min()
 - fix the issue of check_dynamic_batchsize failing for some Unsqueeze layers during initialization(0.3.0b4-0.3.2b1).
 
 ## v0.0.1
+- start from 2021.09.28
