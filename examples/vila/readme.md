@@ -56,7 +56,7 @@ see [prefill export](model_exported.md#prefilling-batchlessattention).
 
 Model inputs: query_states,key_states, value_states,position_ids,past_key,past_value
 
-see [prefill export](model_exported.md#decoding-batchlessattention-export).
+see [batchless part for Decoding](model_exported.md#decoding-batchlessattention).
 
 
 ## visual encoder

@@ -27,7 +27,7 @@ export onnx by:
 
 
 
-### BatchfulAttention export 
+## BatchfulAttention export 
 
 In `llava/eval/run_vila.py `,
 put the following code after `tokenizer, model, image_processor, context_len = load_pretrained_model(args.model_path, model_name, args.model_base)
@@ -71,8 +71,8 @@ export PATH=/workspace/TensorRT-10.2.0.19/bin/:$PATH
          --shapes=inputs_embeds:1x2560 #  #  9.4762 ms
 ```
  
-## decoding
-### decoding-BatchlessAttention export 
+
+## decoding: BatchlessAttention 
 In LlamaDecoderLayer, replace   
 `self.self_attn = BatchfulAttention(config=config)` with 
 `self.self_attn = LlamaAttention(config=config)`.
@@ -117,9 +117,8 @@ CUDA_VISIBLE_DEVICES=5 trtexec --onnx=onnx/batchless.onnx --fp16  \
 
 
 
-## Prefilling
 
-### Prefilling-BatchlessAttention
+## Prefilling: BatchlessAttention
 In LlamaDecoderLayer, make sure
 `self.self_attn = LlamaAttention(config=config)`.
 
