@@ -1,0 +1,28 @@
+'precision' = 'fp16'
+
+[preprocess]
+'backend' = 'S[DecodeMat,CvtColorMat,ResizeMat,Mat2Tensor,SyncTensor]'
+'color' = 'rgb'
+instance_num = 2
+next = 'siglip'
+'resize_h' = '384'
+'resize_w' = '384'
+
+[siglip]
+'backend' = 'SyncTensor[TensorrtTensor]'
+'mean' = '127.5,127.5,127.5'
+'model' = '../onnx/visual_encoder.onnx'
+'model::cache' = '../onnx/visual_encoder.trt'
+next = 'multimodal'
+'std' = '127.5,127.5,127.5'
+
+[multimodal]
+backend = 'SyncTensor[MultiModalEmbedsTensor]'
+input_embeds = '../cur_input_embeds_no_im.pt'
+next = 'llm'
+
+[llm]
+'backend' = 'SyncTensor[TensorrtTensor]'
+batch_process = 'CpuTensor'
+'model' = '../onnx/llm.onnx'
+'model::cache' = '../onnx/llm.trt'

@@ -1,0 +1,85 @@
+Work In Process
+## WIP
+In this example, we serve VILA1.5-3B(fp16) with torchpipe, with no dependency on TensorRT-LLM or Triton server. We segment the LLM based on whether the layers are batchful with respect to the sequence length's dimension. The model is divided into two parts: batchful and batchless. Model parameters are located in the batchful part, whereas the batchless part consists of positional encoding and parameter-free self-attention.  After masking the batchless part, we perform a complete trace. 
+
+ Traditional dynamic batching can be applied the batchful part. We isolate the batchless part as a separate [function](https://github.com/gramalingam/onnx/blob/main/docs/IR.md#functions) and implement it using a TensorRT plugin. Within this plugin, we handle the batchless part and direct it to a dedicated TorchPipe server. The management and resource(e.g. kvcache) control operate entirely independently of TensorRT.
+ 
+
+The batchless part can be implemented as an independent cuda kernel, but for simplicity, it is traced and  implemented by TensorRT here, as TensorRT possibly internally [match flash attention patterns](https://github.com/NVIDIA/TensorRT/issues/3647#issuecomment-2054441577). (Need check)
+
+### Features:
+- [x] A TensorRT and trace based solution with no need for `TensorRT-LLM` and `Triton inference server`.
+- [x] flash attention
+- [x] contiguous batching
+- [x] ~~PagedAttention~~ memory pool(need further thought)
+
+
+### Benchmark
+
+
+## Requirements
+- Ensure that you have successfully set up the environment for [VILA](https://github.com/NVlabs/VILA). Follow the instructions in their README carefully. Once successed, you can run the following commands to check.
+
+```bash
+python3 -W ignore llava/eval/run_vila.py     --model-path Efficient-Large-Model/VILA1.5-3B      --conv-mode vicuna_v1     --query "<image>\n Please describe the traffic condition."      --image-file "demo_images/av.png" 
+```
+
+Follow these steps to export a few model files (separating Prefilling and Decoding stages).
+
+Assuming you are in the root directory of [VILA](https://github.com/NVlabs/VILA). Copy the following files to the `deploy` directory.
+```bash
+mkdir ./deploy/
+
+cp /path/to/torchpipe/examples/vila/*.py ./deploy/
+```
+
+## batchful part
+
+After masking the batchless part, we export an ONNX model that can be batched, with the sequence length dimension serving as the batch dimension. 
+
+see [BatchfulAttention export](model_exported.md#BatchfulAttention).
+
+
+Model inputs: inputs_embeds
+Model outputs: logits
+
+
+
+
+## batchless part for Prefilling/Context stage
+Model inputs: query_states,key_states, value_states,position_ids
+
+see [prefill export](model_exported.md#Prefilling-BatchlessAttention ).
+
+## batchless part for Decoding stage
+
+Model inputs: query_states,key_states, value_states,position_ids,past_key,past_value
+
+During the prefilling stage, the sequence length dimension is inherently batched. We deploy this part separately from decoding stage and export a complete ONNX model containing this portion.
+see [prefill export](model_exported.md#decoding-BatchlessAttention ).
+
+
+## visual encoder
+
+Get `onnx/visual_encoder.onnx` file by [exporting visual encoder](model_exported.md#visual-encoder). You can also get it from [build_visual_engine.py](https://github.com/NVIDIA/TensorRT-LLM/tree/main/examples/multimodal)
+
+
+## (WIP) scheduling
+
+## (WIP)optinal:  Independent prefilling stage(decoupled mode of Prefilling and Decoding)
+
+
+by decoupling of Prefilling and Decoding, model parameters can not be shared between these two stages, resulting in increased GPU memory usage. This may be unacceptable in some scenarios.        However,  during the prefilling stage, the sequence length dimension is inherently batched. 
+by decoupling, engineering can be simplified, and different GPU numbers can be allocated to different stages for better balancing.  
+
+ see [decode export](model_exported.md#decoding).
+ 
+
+## inference
+```python
+```
+
+
+## Reference
+- TensorRT-LLM
+- [TensorRT-Custom-Plugin-Example](https://github.com/leimao/TensorRT-Custom-Plugin-Example)
