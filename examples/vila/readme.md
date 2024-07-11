@@ -37,7 +37,7 @@ cp /path/to/torchpipe/examples/vila/*.py ./deploy/
 
 After masking the batchless part, we export an ONNX model that can be batched, with the sequence length dimension serving as the batch dimension. 
 
-see [BatchfulAttention export](model_exported.md#BatchfulAttention).
+see [BatchfulAttention export](model_exported.md#BatchfulAttention-export).
 
 
 Model inputs: inputs_embeds
@@ -50,13 +50,13 @@ Model outputs: logits
 ## batchless part for Prefilling/Context stage
 Model inputs: query_states,key_states, value_states,position_ids
 
-see [prefill export](model_exported.md#Prefilling-BatchlessAttention ).
+see [prefill export](model_exported.md#Prefilling-BatchlessAttention).
 
 ## batchless part for Decoding stage
 
 Model inputs: query_states,key_states, value_states,position_ids,past_key,past_value
 
-see [prefill export](model_exported.md#decoding-BatchlessAttention ).
+see [prefill export](model_exported.md#decoding-batchlessattention-export).
 
 
 ## visual encoder
