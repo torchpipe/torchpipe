@@ -47,19 +47,19 @@ Model outputs: logits
 
 
 
-## batchless part for Prefilling/Context stage
+## Batchless part for Prefilling/Context stage
 Model inputs: query_states,key_states, value_states,position_ids
 
 see [prefill export](model_exported.md#prefilling-batchlessattention).
 
-## batchless part for Decoding stage
+## Batchless part for Decoding stage
 
 Model inputs: query_states,key_states, value_states,position_ids,past_key,past_value
 
 see [batchless part for Decoding](model_exported.md#decoding-batchlessattention).
 
 
-## visual encoder
+## Visual encoder
 
 Get `onnx/visual_encoder.onnx` file by [exporting visual encoder](model_exported.md#visual-encoder). You can also get it from [build_visual_engine.py](https://github.com/NVIDIA/TensorRT-LLM/tree/main/examples/multimodal)
 
