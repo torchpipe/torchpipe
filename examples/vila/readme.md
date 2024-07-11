@@ -1,5 +1,5 @@
-Work In Process
-## WIP
+
+## Work In Process
 In this example, we serve VILA1.5-3B(fp16) with torchpipe, with no dependency on TensorRT-LLM or Triton server. We segment the LLM based on whether the layers are batchful with respect to the sequence length's dimension. The model is divided into two parts: batchful and batchless. Model parameters are located in the batchful part, whereas the batchless part consists of positional encoding and parameter-free self-attention.  After masking the batchless part, we perform a complete trace. 
 
 Traditional dynamic batching can be applied the batchful part. We isolate the batchless part as a separate [function](https://github.com/gramalingam/onnx/blob/main/docs/IR.md#functions) and implement it using a TensorRT plugin. This plugin does nothing but  direct the batchless part to a dedicated TorchPipe server. The management and resource(e.g. kvcache) control operate entirely independently of TensorRT.
