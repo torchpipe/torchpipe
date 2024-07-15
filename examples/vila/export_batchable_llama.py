@@ -36,6 +36,28 @@ class BatchlessAttention(nn.Module):
 
 #Attention layers whose sequence length dimension can be batched
 if False:
+    class DummyTorchPluginOp(torch.autograd.Function):
+        
+        @staticmethod
+        def symbolic(g, q, k, v):
+            args = [q, k, v]
+            # These become the operator attributes.
+            kwargs = {}
+            from torch.onnx.symbolic_helper import _get_tensor_sizes
+            output_type = q.type().with_sizes(_get_tensor_sizes(q))
+            return g.op("CustomTorchOps::TorchPlugin", *args,
+                        **kwargs).setType(output_type)
+
+        @staticmethod
+        def forward(ctx, q,k,v):
+            return q
+
+
+    class DummyTorchPlugin(nn.Module):
+        def forward(self, q,k,v):
+            x = DummyTorchPluginOp.apply(q,k,v)
+            return x
+        
     # put the following in modeling_llama.py
     class BatchfulAttention(LlamaAttention):
         """
@@ -46,7 +68,9 @@ if False:
         def __init__(self, config: LlamaConfig):
             super().__init__(config=config)
 
-            self.batchless_attn = BatchlessAttention()
+            # self.batchless_attn = TorchPlugin()
+            self.batchless_attn = DummyTorchPlugin()
+            
         def forward(
             self,
             hidden_states: torch.Tensor,
@@ -126,7 +150,7 @@ def export_decode_batchful(llm: LlamaForCausalLM, out_dir = 'onnx/'):
                       input_names=['inputs_embeds'],
                       output_names=['logits'] ,
                       dynamic_axes=dynamic_axes,
-                      export_modules_as_functions={modeling_llama.BatchlessAttention})
+                      export_modules_as_functions={modeling_llama.TorchPlugin})
     print(f'{out_path} saved with custom BatchlessAttention.')
 
 
