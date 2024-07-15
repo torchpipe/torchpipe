@@ -148,7 +148,7 @@ std::string getBasename(std::string const& path) {
 }
 
 bool initPlugins() {
-  bool didInitPlugins = initLibNvInferPlugins(&gLogger_inplace, "");
+  static bool didInitPlugins = initLibNvInferPlugins(&gLogger_inplace, "");
   assert(didInitPlugins);
   return didInitPlugins;
 }

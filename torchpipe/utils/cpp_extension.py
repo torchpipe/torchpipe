@@ -21,7 +21,7 @@ IS_WINDOWS = platform.system() == "Windows"
 IS_DARWIN = platform.system() == "Darwin"
 IS_LINUX = platform.system() == "Linux"
 
-from torchpipe import WITH_CUDA
+from torchpipe import WITH_CUDA, libipipe
 
 
 def make_relative_rpath_args(path):
@@ -35,31 +35,35 @@ def make_relative_rpath_args(path):
 
 torchpipe_dir = os.path.join(os.path.abspath(os.path.dirname(__file__)), "..")
 
-include_dir = os.path.join(torchpipe_dir, "../", "thirdparty/any")
-# print(include_dir)
-if not os.path.exists(os.path.join(include_dir, "any.hpp")):
-    include_dir = "/usr/local/torchpipe/thirdparty/any"
+def get_include_dir():
+    include_dir = os.path.join(torchpipe_dir, "../", "thirdparty/any")
+    # print(include_dir)
+    if not os.path.exists(os.path.join(include_dir, "any.hpp")):
+        include_dir = "/usr/local/torchpipe/thirdparty/any"
+    return include_dir
 
-include_dirs = [
-    torchpipe_dir,
-    os.path.join(torchpipe_dir, "csrc", "./core/include"),
-    os.path.join(torchpipe_dir, "csrc", "./backend/include"),
-    os.path.join(torchpipe_dir, "csrc", "./schedule/include"),
-    os.path.join(torchpipe_dir, "csrc", "./pipeline/include"),
-    os.path.join(torchpipe_dir, "csrc"),
-    os.path.join(torchpipe_dir, "../thirdparty/spdlog/include/"),
-    "/usr/local/include/",
-    "/usr/local/include/opencv4/",
-] + [include_dir]
+def get_include_dirs():
+    return [torchpipe_dir,
+            os.path.join(torchpipe_dir, "csrc", "./core/include"),
+            os.path.join(torchpipe_dir, "csrc", "./backend/include"),
+            os.path.join(torchpipe_dir, "csrc", "./schedule/include"),
+            os.path.join(torchpipe_dir, "csrc", "./pipeline/include"),
+            os.path.join(torchpipe_dir, "csrc", "./python/include"),
+            os.path.join(torchpipe_dir, "csrc"),
+            os.path.join(torchpipe_dir, "../thirdparty/spdlog/include/"),
+            "/usr/local/include/",
+            "/usr/local/include/opencv4/",
+            ] + [get_include_dir()]
 
 lib_dir = ""
 lib_path = ""
-for root, dirs, files in os.walk(os.path.join(torchpipe_dir, "..")):
-    for name in files:
-        if name == "libipipe.so":
-            lib_path = os.path.join(root, name)
-            lib_dir = root
-
+# for root, dirs, files in os.walk(os.path.join(torchpipe_dir, "..")):
+#     for name in files:
+#         if name == "libipipe.so":
+#             lib_path = os.path.join(root, name)
+#             lib_dir = root
+lib_path = libipipe.__file__
+lib_dir = os.path.dirname(lib_path)
 
 def _import_module_from_library(module_name, path, is_python_module):
     import torch
@@ -289,7 +293,7 @@ def load(
             name=name,
             sources=sources,
             extra_cflags=extra_compile_args,
-            extra_include_paths=[include_dir] + extra_include_paths + include_dirs,
+            extra_include_paths=[get_include_dir()] + extra_include_paths + get_include_dirs(),
             extra_ldflags=[f"-L{lib_dir}", "-lipipe", "-L/usr/lib/x86_64-linux-gnu/"]
             + extra_ldflags
             + extra_ldflags_rpath,
@@ -307,7 +311,7 @@ def load(
             name=name,
             cpp_sources=file_datas,
             extra_cflags=extra_compile_args,
-            extra_include_paths=[include_dir] + extra_include_paths + include_dirs,
+            extra_include_paths=[get_include_dir()] + extra_include_paths + get_include_dirs(),
             extra_ldflags=[f"-L{lib_dir}", "-lipipe"]
             + extra_ldflags
             + extra_ldflags_rpath,

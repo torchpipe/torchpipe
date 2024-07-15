@@ -126,6 +126,7 @@ void parse_ln(nvinfer1::INetworkDefinition* network) {
         }
       }
     }
+    find_ln = false;
     if (find_ln) {
       SPDLOG_INFO("\nLayerNorm matched:");
       for (std::size_t index = 0; index < target.size(); ++index) {

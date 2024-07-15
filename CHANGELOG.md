@@ -2,7 +2,7 @@
 ## v0.5.2 (WIP)
 - fix docker/Dockerfilex
 -  We added a [YoloV10](https://github.com/THU-MIG/yolov10) example [here](examples/yolov10).
-- Resolved the issue where matching the incorrect libipipe.so path resulted in the compilation of extra files due to importing multiple libipipe.so files, causing problems with handling static variables.
+- torchpipe.utils.cpp_extension: Resolved the issue where matching the incorrect libipipe.so path resulted in  importing multiple libipipe.so files, causing problems with handling static variables.
 
 
 ## v0.5.1 (2024.05.22)

@@ -1,28 +1,47 @@
 'precision' = 'fp16'
 
-[preprocess]
-'backend' = 'S[DecodeMat,CvtColorMat,ResizeMat,Mat2Tensor,SyncTensor]'
-'color' = 'rgb'
-instance_num = 2
-next = 'siglip'
-'resize_h' = '384'
-'resize_w' = '384'
-
-[siglip]
+# [preprocess]
+# 'backend' = 'S[DecodeMat,CvtColorMat,ResizeMat,Mat2Tensor,SyncTensor]'
+# 'color' = 'rgb'
+# instance_num = 2
+# next = 'siglip'
+# 'resize_h' = '384'
+# 'resize_w' = '384'
+[batchful]
 'backend' = 'SyncTensor[TensorrtTensor]'
-'mean' = '127.5,127.5,127.5'
-'model' = '../onnx/visual_encoder.onnx'
-'model::cache' = '../onnx/visual_encoder.trt'
-next = 'multimodal'
-'std' = '127.5,127.5,127.5'
-
-[multimodal]
-backend = 'SyncTensor[MultiModalEmbedsTensor]'
-input_embeds = '../cur_input_embeds_no_im.pt'
-next = 'llm'
-
-[llm]
+# max = '1x2047x2560,1x2047,1x2047x2560,1x2047x2560'
+# min = '1x1x2560,1x1,1x1x2560,1x1x2560'
+max = '2047'
+'model' = '/workspace/VILA/onnx/decode_batchful.onnx'
+'model::cache' = './batchful.trt'
+[prefill_batchless]
+# 0. key_states 1x-1x2560 
+# 1. position_ids 1x-1 
+# 2. query_states 1x-1x2560 
+# 3. value_states 1x-1x2560 
 'backend' = 'SyncTensor[TensorrtTensor]'
-batch_process = 'CpuTensor'
-'model' = '../onnx/llm.onnx'
-'model::cache' = '../onnx/llm.trt'
+max = '1x2047x2560,1x2047,1x2047x2560,1x2047x2560'
+min = '1x1x2560,1x1,1x1x2560,1x1x2560'
+'model' = '/workspace/VILA/onnx/batchless_prefill.onnx'
+'model::cache' = './batchless_prefill.trt'
+
+[TorchPlugin]
+backend = "Identity"
+# [siglip]
+# 'backend' = 'SyncTensor[TensorrtTensor]'
+# 'mean' = '127.5,127.5,127.5'
+# 'model' = '../onnx/visual_encoder.onnx'
+# 'model::cache' = '../onnx/visual_encoder.trt'
+# next = 'multimodal'
+# 'std' = '127.5,127.5,127.5'
+
+# [multimodal]
+# backend = 'SyncTensor[MultiModalEmbedsTensor]'
+# input_embeds = '../cur_input_embeds_no_im.pt'
+# next = 'llm'
+
+# [llm]
+# 'backend' = 'SyncTensor[TensorrtTensor]'
+# batch_process = 'CpuTensor'
+# 'model' = '../onnx/llm.onnx'
+# 'model::cache' = '../onnx/llm.trt'

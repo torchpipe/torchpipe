@@ -7,7 +7,7 @@
 #include <exception>
 #include <sstream>
 #include <vector>
-#include "Interpreter.hpp"
+
 #include <NvInferRuntime.h>
 #include <NvInferRuntimePlugin.h>
 
@@ -45,10 +45,10 @@ torch::ScalarType getTorchTypeFromTrtType(nvinfer1::DataType trttype) {
   return trttype2torchtype.at(trttype);
 }
 
-void io_tensor(nvinfer1::PluginTensorDesc const* inputDesc,
-               nvinfer1::PluginTensorDesc const* outputDesc, void const* const* inputs,
-               void* const* outputs, std::vector<torch::Tensor>& input_arrays,
-               std::vector<torch::Tensor>& output_arrays, nvinfer1::DataType trttype) noexcept {
+int32_t io_tensor(nvinfer1::PluginTensorDesc const* inputDesc,
+                  nvinfer1::PluginTensorDesc const* outputDesc, void const* const* inputs,
+                  void* const* outputs, std::vector<torch::Tensor>& input_arrays,
+                  std::vector<torch::Tensor>& output_arrays, nvinfer1::DataType trttype) noexcept {
   for (std::size_t i{0}; i < knbInputs; ++i) {
     std::vector<int64_t> sizes;
     for (int j = 0; j < inputDesc[i].dims.nbDims; j++) {
@@ -68,9 +68,9 @@ void io_tensor(nvinfer1::PluginTensorDesc const* inputDesc,
         torch::TensorOptions().dtype(getTorchTypeFromTrtType(trttype)).device(torch::kCUDA);
     output_arrays.emplace_back(torch::from_blob((void*)outputs[i], sizes, options));
   }
+  return 0;
 }
 }  // namespace
-
 namespace nvinfer1 {
 namespace plugin {
 
@@ -142,11 +142,11 @@ int32_t TorchPlugin::configurePlugin(DynamicPluginTensorDesc const* in, int32_t 
       nbInputs ==
       knbInputs);  // query_states:1x244x2560,key_states:1x244x2560,value_states:1x244x2560
   PLUGIN_ASSERT(nbOutputs == 1);  // attn_output:1x244x2560
-  PLUGIN_ASSERT(in[0].desc.dims.nbDims == 2);
-  PLUGIN_ASSERT(out[0].desc.dims.nbDims == 2);
+  PLUGIN_ASSERT(in[0].desc.dims.nbDims == 3);
+  PLUGIN_ASSERT(out[0].desc.dims.nbDims == 3);
   PLUGIN_ASSERT(in[0].desc.dims.d[0] == out[0].desc.dims.d[0]);
   PLUGIN_ASSERT(in[0].desc.dims.d[1] == out[0].desc.dims.d[1]);
-  // PLUGIN_ASSERT(in[0].desc.dims.d[2] == out[0].desc.dims.d[2]);
+  PLUGIN_ASSERT(in[0].desc.dims.d[2] == out[0].desc.dims.d[2]);
   PLUGIN_ASSERT(in[0].desc.type == out[0].desc.type);
 
   mParams.dtype = in[0].desc.type;
@@ -205,7 +205,7 @@ int32_t TorchPlugin::getOutputShapes(DimsExprs const* inputs, int32_t nbInputs,
   PLUGIN_ASSERT(nbInputs == knbInputs);
   PLUGIN_ASSERT(nbOutputs == 1);
   PLUGIN_ASSERT(inputs != nullptr);
-  PLUGIN_ASSERT(inputs[0].nbDims == 2);
+  PLUGIN_ASSERT(inputs[0].nbDims == 3);
 
   outputs[0].nbDims = inputs[0].nbDims;
   for (int32_t i{0}; i < inputs[0].nbDims; ++i) {
@@ -219,36 +219,19 @@ int32_t TorchPlugin::enqueue(PluginTensorDesc const* inputDesc, PluginTensorDesc
                              void const* const* inputs, void* const* outputs, void* workspace,
                              cudaStream_t stream) noexcept {
   {
-    std::vector<torch::Tensor> input_arrays;
-    std::vector<torch::Tensor> output_arrays;
-
-    io_tensor(inputDesc, outputDesc, inputs, outputs, input_arrays, output_arrays, mParams.dtype);
-
-    // Interrupt torch's cuda semantics
     auto ret = cudaStreamSynchronize(stream);
-    // throw std::runtime_error("debug here in TorchPlugin");
+    throw std::runtime_error("debug here in TorchPlugin");
     assert(cudaSuccess == 0);
     if (ret != cudaSuccess) return ret;
-    // IPEIPE_ASSERT(c10::cuda::getCurrentCUDAStream(-1).stream == stream);
 
-    auto inter = ipipe::CThreadSafeInterpreters::getInstance().get();
-    assert(inter.size() > 0);
-    const auto index = 0;
-    // std::unordered_map<std::string, ipipe::any> usr_data = ;
-
-    ipipe::dict user_data = std::make_shared<std::unordered_map<std::string, ipipe::any>>(
-        std::unordered_map<std::string, ipipe::any>({{"data", input_arrays},
-                                                     {"outputs", output_arrays},
-                                                     {"node_name", std::string("TorchPlugin")}}));
-    inter[index]->forward({user_data});
-
-    // return 0;
+    return 0;
   }
-  // size_t const inputSize{static_cast<size_t>(inputDesc[0].dims.d[0] * inputDesc[0].dims.d[1])};
-  // size_t const inputSizeBytes{inputSize * mParams.dtypeBytes};
-  // cudaError_t const status{
-  //     cudaMemcpyAsync(outputs[0], inputs[0], inputSizeBytes, cudaMemcpyDeviceToDevice, stream)};
-  return 0;
+  size_t const inputSize{static_cast<size_t>(inputDesc[0].dims.d[0] * inputDesc[0].dims.d[1] *
+                                             inputDesc[0].dims.d[2])};
+  size_t const inputSizeBytes{inputSize * mParams.dtypeBytes};
+  cudaError_t const status{
+      cudaMemcpyAsync(outputs[0], inputs[0], inputSizeBytes, cudaMemcpyDeviceToDevice, stream)};
+  return status;
 }
 
 int32_t TorchPlugin::onShapeChange(PluginTensorDesc const* in, int32_t nbInputs,
@@ -288,20 +271,18 @@ TorchPluginCreator::TorchPluginCreator() {
   //     "group": num_groups
   // }
 
-  // mPluginAttributes.clear();
-  // mPluginAttributes.emplace_back(
-  //     nvinfer1::PluginField("kernel_shape", nullptr, PluginFieldType::kINT32, 2));
-  // mPluginAttributes.emplace_back(
-  //     nvinfer1::PluginField("strides", nullptr, PluginFieldType::kINT32, 2));
-  // mPluginAttributes.emplace_back(
-  //     nvinfer1::PluginField("pads", nullptr, PluginFieldType::kINT32, 4));
-  // mPluginAttributes.emplace_back(
-  //     nvinfer1::PluginField("group", nullptr, PluginFieldType::kINT32, 1));
+  mPluginAttributes.clear();
+  mPluginAttributes.emplace_back(
+      nvinfer1::PluginField("kernel_shape", nullptr, PluginFieldType::kINT32, 2));
+  mPluginAttributes.emplace_back(
+      nvinfer1::PluginField("strides", nullptr, PluginFieldType::kINT32, 2));
+  mPluginAttributes.emplace_back(
+      nvinfer1::PluginField("pads", nullptr, PluginFieldType::kINT32, 4));
+  mPluginAttributes.emplace_back(
+      nvinfer1::PluginField("group", nullptr, PluginFieldType::kINT32, 1));
 
-  // mFC.nbFields = mPluginAttributes.size();
-  // mFC.fields = mPluginAttributes.data();
-  mFC.fields = nullptr;
-  mFC.nbFields = 0;
+  mFC.nbFields = mPluginAttributes.size();
+  mFC.fields = mPluginAttributes.data();
 }
 
 nvinfer1::PluginFieldCollection const* TorchPluginCreator::getFieldNames() noexcept {
@@ -318,9 +299,66 @@ IPluginV3* TorchPluginCreator::createPlugin(char const* name, PluginFieldCollect
       nvinfer1::PluginField const* fields{fc->fields};
       int32_t nbFields{fc->nbFields};
 
-      PLUGIN_ASSERT(nbFields == 0);
+      PLUGIN_ASSERT(nbFields == 4);
 
-      TorchPluginParameters const params{};
+      std::vector<int32_t> kernelShape{};
+      std::vector<int32_t> strides{};
+      std::vector<int32_t> pads{};
+      int32_t group{};
+
+      for (int32_t i{0}; i < nbFields; ++i) {
+        char const* attrName = fields[i].name;
+        if (!strcmp(attrName, "kernel_shape")) {
+          PLUGIN_ASSERT(fields[i].type == nvinfer1::PluginFieldType::kINT32);
+          int32_t const* const kernelShapeData{static_cast<int32_t const*>(fields[i].data)};
+          for (int32_t j{0}; j < fields[i].length; ++j) {
+            kernelShape.push_back(kernelShapeData[j]);
+          }
+        }
+        if (!strcmp(attrName, "strides")) {
+          PLUGIN_ASSERT(fields[i].type == nvinfer1::PluginFieldType::kINT32);
+          int32_t const* const stridesData{static_cast<int32_t const*>(fields[i].data)};
+          for (int32_t j{0}; j < fields[i].length; ++j) {
+            strides.push_back(stridesData[j]);
+          }
+        }
+        if (!strcmp(attrName, "pads")) {
+          PLUGIN_ASSERT(fields[i].type == nvinfer1::PluginFieldType::kINT32);
+          int32_t const* const padsData{static_cast<int32_t const*>(fields[i].data)};
+          for (int32_t j{0}; j < fields[i].length; ++j) {
+            pads.push_back(padsData[j]);
+          }
+        }
+        if (!strcmp(attrName, "group")) {
+          PLUGIN_ASSERT(fields[i].type == nvinfer1::PluginFieldType::kINT32);
+          PLUGIN_ASSERT(fields[i].length == 1);
+          group = *(static_cast<int32_t const*>(fields[i].data));
+        }
+      }
+
+      // Log the attributes parsed from ONNX node.
+      std::stringstream ss;
+      ss << "Plugin Attributes:";
+
+      ss << "kernel_shape: ";
+      for (auto const& val : kernelShape) {
+        ss << val << " ";
+      }
+
+      ss << "strides: ";
+      for (auto const& val : strides) {
+        ss << val << " ";
+      }
+
+      ss << "pads: ";
+      for (auto const& val : pads) {
+        ss << val << " ";
+      }
+
+      ss << "group: " << group;
+      logInfo(ss.str().c_str());
+
+      TorchPluginParameters const params{.group = group};
 
       TorchPlugin* const plugin{new TorchPlugin{params}};
       return plugin;

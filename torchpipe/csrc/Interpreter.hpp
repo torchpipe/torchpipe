@@ -74,4 +74,20 @@ class Interpreter : public Backend {
   static std::once_flag once_flag_;
 };
 
+class CThreadSafeInterpreters {
+ public:
+  static CThreadSafeInterpreters& getInstance();
+
+  CThreadSafeInterpreters(const CThreadSafeInterpreters&) = delete;
+  CThreadSafeInterpreters& operator=(const CThreadSafeInterpreters&) = delete;
+
+  void append(Interpreter* inter);
+
+  std::vector<Interpreter*> get();
+
+ private:
+  CThreadSafeInterpreters() = default;
+  std::mutex mutex_;
+  std::vector<Interpreter*> interpreters_;
+};
 }  // namespace ipipe

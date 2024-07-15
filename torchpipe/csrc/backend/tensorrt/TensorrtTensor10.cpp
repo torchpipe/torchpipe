@@ -45,6 +45,8 @@
 
 // #define USE_OUT_MEM
 namespace ipipe {
+// record stream;
+// https://dev-discuss.pytorch.org/t/fsdp-cudacachingallocator-an-outsider-newb-perspective/1486/5
 
 bool TensorrtTensor::init(const std::unordered_map<std::string, std::string>& config_param,
                           dict dict_config) {

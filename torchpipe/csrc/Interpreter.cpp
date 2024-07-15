@@ -24,7 +24,24 @@
 #endif
 namespace ipipe {
 namespace {
+
 std::unique_ptr<Backend> g_env;
+
+}  // namespace
+
+CThreadSafeInterpreters& CThreadSafeInterpreters::getInstance() {
+  static CThreadSafeInterpreters inst;
+  return inst;
+}
+
+void CThreadSafeInterpreters::append(Interpreter* inter) {
+  std::lock_guard<std::mutex> lock(mutex_);
+  interpreters_.push_back(inter);
+}
+
+std::vector<Interpreter*> CThreadSafeInterpreters::get() {
+  std::lock_guard<std::mutex> lock(mutex_);
+  return interpreters_;
 }
 
 bool Interpreter::init(const std::unordered_map<std::string, std::string>& config,
@@ -143,6 +160,8 @@ uint32_t Interpreter::min() const { return backend_->min(); }
 void Interpreter::env_init(const std::unordered_map<std::string, std::string>& config,
                            dict dict_config, const std::string& backend_name, bool& finished) {
   finished = false;
+
+  CThreadSafeInterpreters::getInstance().append(this);
 
   if (!backend_name.empty()) {
     g_env = std::unique_ptr<Backend>(IPIPE_CREATE(Backend, backend_name));
