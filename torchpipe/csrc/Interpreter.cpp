@@ -29,21 +29,6 @@ std::unique_ptr<Backend> g_env;
 
 }  // namespace
 
-CThreadSafeInterpreters& CThreadSafeInterpreters::getInstance() {
-  static CThreadSafeInterpreters inst;
-  return inst;
-}
-
-void CThreadSafeInterpreters::append(Interpreter* inter) {
-  std::lock_guard<std::mutex> lock(mutex_);
-  interpreters_.push_back(inter);
-}
-
-std::vector<Interpreter*> CThreadSafeInterpreters::get() {
-  std::lock_guard<std::mutex> lock(mutex_);
-  return interpreters_;
-}
-
 bool Interpreter::init(const std::unordered_map<std::string, std::string>& config,
                        dict shared_config) {
   try {
@@ -240,6 +225,21 @@ void Interpreter::forward(const std::vector<dict>& input_dicts) {
   }
 
   backend_->forward(input_dicts);
+}
+
+CThreadSafeInterpreters& CThreadSafeInterpreters::getInstance() {
+  static CThreadSafeInterpreters inst;
+  return inst;
+}
+
+void CThreadSafeInterpreters::append(Interpreter* inter) {
+  std::lock_guard<std::mutex> lock(mutex_);
+  interpreters_.push_back(inter);
+}
+
+std::vector<Interpreter*> CThreadSafeInterpreters::get() {
+  std::lock_guard<std::mutex> lock(mutex_);
+  return interpreters_;
 }
 
 std::once_flag Interpreter::once_flag_;

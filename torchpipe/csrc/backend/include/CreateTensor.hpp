@@ -14,4 +14,12 @@ class CreateTensor : public SingleBackend {
   std::vector<long int> shape_;
   std::string type_;
 };
+
+class AppendPositionIDsTensor : public SingleBackend {
+ public:
+  virtual void forward(dict) override;
+
+ private:
+};
+
 }  // namespace ipipe

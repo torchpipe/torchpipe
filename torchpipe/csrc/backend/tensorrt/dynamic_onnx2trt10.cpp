@@ -187,7 +187,9 @@ std::shared_ptr<CudaEngineWithRuntime> loadEngineFromBuffer(const std::string& e
       std::make_shared<CudaEngineWithRuntime>(nvinfer1::createInferRuntime(gLogger_inplace));
 #ifdef USE_TORCH_ALLOCATOR
   const char* value = std::getenv("PYTORCH_NO_CUDA_MEMORY_CACHING");
-  if (value == nullptr) {
+  bool using_default_stream =
+      c10::cuda::getCurrentCUDAStream() == c10::cuda::getDefaultCUDAStream();
+  if (value == nullptr && !using_default_stream) {
     SPDLOG_INFO("use torch allocator");
     en_with_rt->allocator = new TorchAllocator();
     en_with_rt->runtime->setGpuAllocator(en_with_rt->allocator);
@@ -206,7 +208,9 @@ std::shared_ptr<CudaEngineWithRuntime> loadCudaBackend(std::string const& trtMod
 
 #ifdef USE_TORCH_ALLOCATOR
   const char* value = std::getenv("PYTORCH_NO_CUDA_MEMORY_CACHING");
-  if (value == nullptr) {
+  bool using_default_stream =
+      c10::cuda::getCurrentCUDAStream() == c10::cuda::getDefaultCUDAStream();
+  if (value == nullptr && !using_default_stream) {
     SPDLOG_INFO("use torch allocator");
     en_with_rt->allocator = new TorchAllocator();
     en_with_rt->runtime->setGpuAllocator(en_with_rt->allocator);
@@ -319,6 +323,7 @@ std::shared_ptr<CudaEngineWithRuntime> onnx2trt(
     SPDLOG_ERROR(onnxModelPath + " not exists.\n\n");
     return nullptr;
   }
+  auto input_reorder = precision.input_reorder;
 
   const static std::unordered_set<std::string> int8_enable{"int8", "best"};
   const static std::unordered_set<std::string> fp16_enable{"fp16", "int8", "best"};
@@ -330,7 +335,9 @@ std::shared_ptr<CudaEngineWithRuntime> onnx2trt(
 #ifdef USE_TORCH_ALLOCATOR
   const char* value = std::getenv("PYTORCH_NO_CUDA_MEMORY_CACHING");
   std::unique_ptr<TorchAllocator> allocator = std::make_unique<TorchAllocator>();
-  if (value == nullptr && allocator) {
+  bool using_default_stream =
+      c10::cuda::getCurrentCUDAStream() == c10::cuda::getDefaultCUDAStream();
+  if (value == nullptr && allocator && !using_default_stream) {
     SPDLOG_INFO("use torch allocator");
     builder->setGpuAllocator(allocator.get());
   }
@@ -433,25 +440,35 @@ std::shared_ptr<CudaEngineWithRuntime> onnx2trt(
     SPDLOG_INFO("use tensorrt's PreviewFeature: kPROFILE_SHARING_0806");
 #endif
 
-    std::map<std::string, nvinfer1::Dims> net_inputs_ordered_dims;
-    std::vector<uint32_t> new_location;
-    for (int i = 0; i < network->getNbInputs(); ++i) {
-      net_inputs_ordered_dims[network->getInput(i)->getName()] =
-          network->getInput(i)->getDimensions();
+    if (!input_reorder.empty()) {
+      IPIPE_ASSERT(input_reorder.size() == network->getNbInputs());
+    } else {
+      // [DEAFULT] set input_reorder to n_inputs-1, ... , 0
+      input_reorder.resize(network->getNbInputs());
+      // std::iota(input_reorder.rbegin(), input_reorder.rend(), 0);
+      std::iota(input_reorder.begin(), input_reorder.end(), 0);
     }
-    for (int i = 0; i < network->getNbInputs(); ++i) {
-      new_location.push_back(
-          std::distance(net_inputs_ordered_dims.begin(),
-                        net_inputs_ordered_dims.find(network->getInput(i)->getName())));
+
+    std::vector<std::pair<std::string, nvinfer1::Dims>> net_inputs_ordered_dims;
+    // std::vector<uint32_t> new_location;
+    for (int i = 0; i < input_reorder.size(); ++i) {
+      net_inputs_ordered_dims.push_back({network->getInput(input_reorder[i])->getName(),
+                                         network->getInput(input_reorder[i])->getDimensions()});
     }
+    // for (int i = 0; i < network->getNbInputs(); ++i) {
+    //   new_location.push_back(
+    //       std::distance(net_inputs_ordered_dims.begin(),
+    //                     net_inputs_ordered_dims.find(network->getInput(i)->getName())));
+    // }
 
     //// 打印网络输入输出形状
     std::stringstream ss;
     ss << "Network input: ";
-    int index = 0;
+    // int index = 0;
     int ch = 0;
-    for (const auto& item : net_inputs_ordered_dims) {
-      ss << "\n" << index++ << ". " << item.first << " ";
+    for (std::size_t i = 0; i < net_inputs_ordered_dims.size(); ++i) {
+      const auto& item = net_inputs_ordered_dims[i];
+      ss << "\n" << input_reorder[i] << ". " << item.first << " ";
       for (int j = 0; j < item.second.nbDims; ++j) {
         const int inputS = item.second.d[j];
         if (j == 1) {
@@ -463,8 +480,15 @@ std::shared_ptr<CudaEngineWithRuntime> onnx2trt(
       ss << " ";
     }
 
+    std::string current_order = "(current: ";
+    for (std::size_t i = 0; i < input_reorder.size(); ++i) {
+      current_order += std::to_string(input_reorder[i]) + ",";
+    }
+    current_order.pop_back();
+    current_order += ")";
+
     SPDLOG_INFO(colored("use this information to set ranges(batchsizes) of profiles: \n" +
-                        ss.str() + "\n"));
+                        ss.str() + "\nreset order by setting `input_reorder`." + current_order));
 
     nvinfer1::ITensor* input = network->getInput(0);
 
@@ -515,35 +539,35 @@ std::shared_ptr<CudaEngineWithRuntime> onnx2trt(
         maxs[index_p].resize(network->getNbInputs(), maxs[index_p].back());
       }
 
-      for (int i = 0; i < network->getNbInputs(); ++i) {
-        if (network->getInput(i)->isShapeTensor()) {
-          // auto min_dim = shape_tensor_to_dim(mins[index_p][new_location[i]]);
-          // auto max_dim = shape_tensor_to_dim(maxs[index_p][new_location[i]]);
-          auto& min_dim = mins[index_p][new_location[i]];
-          auto& max_dim = maxs[index_p][new_location[i]];
+      for (int i = 0; i < input_reorder.size(); ++i) {
+        if (network->getInput(input_reorder[i])->isShapeTensor()) {
+          // auto min_dim = shape_tensor_to_dim(mins[index_p][i]);
+          // auto max_dim = shape_tensor_to_dim(maxs[index_p][i]);
+          auto& min_dim = mins[index_p][i];
+          auto& max_dim = maxs[index_p][i];
           // IPIPE_ASSERT(min_dim.nbDims == max_dim.nbDims);
 
-          profile->setShapeValues(network->getInput(i)->getName(),
+          profile->setShapeValues(network->getInput(input_reorder[i])->getName(),
                                   nvinfer1::OptProfileSelector::kMIN, min_dim.data(),
                                   min_dim.size());
-          profile->setShapeValues(network->getInput(i)->getName(),
+          profile->setShapeValues(network->getInput(input_reorder[i])->getName(),
                                   nvinfer1::OptProfileSelector::kMAX, max_dim.data(),
                                   max_dim.size());
-          profile->setShapeValues(network->getInput(i)->getName(),
+          profile->setShapeValues(network->getInput(input_reorder[i])->getName(),
                                   nvinfer1::OptProfileSelector::kOPT, max_dim.data(),
                                   max_dim.size());
 
           continue;
         }
-        auto net_shape = network->getInput(i)->getDimensions();
-        auto min_dim = vtodim(mins[index_p][new_location[i]], net_shape);
-        auto max_dim = vtodim(maxs[index_p][new_location[i]], net_shape);
-        profile->setDimensions(network->getInput(i)->getName(), nvinfer1::OptProfileSelector::kMIN,
-                               min_dim);
-        profile->setDimensions(network->getInput(i)->getName(), nvinfer1::OptProfileSelector::kOPT,
-                               max_dim);
-        profile->setDimensions(network->getInput(i)->getName(), nvinfer1::OptProfileSelector::kMAX,
-                               max_dim);
+        auto net_shape = network->getInput(input_reorder[i])->getDimensions();
+        auto min_dim = vtodim(mins[index_p][i], net_shape);
+        auto max_dim = vtodim(maxs[index_p][i], net_shape);
+        profile->setDimensions(network->getInput(input_reorder[i])->getName(),
+                               nvinfer1::OptProfileSelector::kMIN, min_dim);
+        profile->setDimensions(network->getInput(input_reorder[i])->getName(),
+                               nvinfer1::OptProfileSelector::kOPT, max_dim);
+        profile->setDimensions(network->getInput(input_reorder[i])->getName(),
+                               nvinfer1::OptProfileSelector::kMAX, max_dim);
         if (!(max_dim.nbDims > 0 && min_dim.nbDims > 0)) {
           SPDLOG_ERROR(
               "max_dim.nbDims = {} net_shape.nbDims={} check failed: max_dim.nbDims > 0 && "

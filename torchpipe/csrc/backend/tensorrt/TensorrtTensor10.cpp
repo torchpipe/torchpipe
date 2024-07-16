@@ -64,7 +64,9 @@ bool TensorrtTensor::init(const std::unordered_map<std::string, std::string>& co
                                                 {"save_engine", ""},
                                                 {"instance_num", "1"},
                                                 {"force_range", ""},
-                                                {"batch_process", ""}},
+                                                {"batch_process", ""},
+                                                {"input_reorder", ""},
+                                                {"output_reorder", ""}},
                                                {}, {}, {}));
 
 #if NV_TENSORRT_MAJOR < 8
@@ -168,11 +170,12 @@ bool TensorrtTensor::init(const std::unordered_map<std::string, std::string>& co
   }
 
   // save engne if needed.
-  // if (!params_->at("save_engine").empty() && _independent_thread_index == 0) {
-  //   SPDLOG_INFO("engine saved:  {}{}", params_->at("save_engine"), "\n");
-  //   std::ofstream ff(params_->at("save_engine"));
-  //   ff << engine_plan;
-  // }
+  if (!params_->at("input_reorder").empty()) {
+    input_reorder_ = str2int(params_->at("input_reorder"), ',');
+  }
+  if (!params_->at("output_reorder").empty()) {
+    output_reorder_ = str2int(params_->at("output_reorder"), ',');
+  }
 
   if (maxs_.empty() || maxs_[0].empty() || mins_.empty() || mins_[0].empty()) {
     SPDLOG_ERROR("maxs_.empty() || maxs_[0].empty() || mins_.empty() || mins_[0].empty()");
@@ -234,104 +237,133 @@ void TensorrtTensor::parse_context(dict dict_config, int _independent_thread_ind
   // tensorrt 10:
   const int n_inputsOutputs = engine_->engine->getNbIOTensors();
 
+  int n_inputs = 0;
+  int n_outputs = 0;
   for (int j = 0; j < n_inputsOutputs; j++) {
-    const auto tensorName = engine_->engine->getIOTensorName(j);
-    const auto tensorType = engine_->engine->getTensorIOMode(tensorName);
+    const auto name = engine_->engine->getIOTensorName(j);
+    const auto tensorType = engine_->engine->getTensorIOMode(name);
     if (tensorType == nvinfer1::TensorIOMode::kINPUT) {
-      sorted_index_inputs_[tensorName] = j;
+      n_inputs += 1;
     } else {
-      sorted_index_ouputs_[tensorName] = j;
+      n_outputs += 1;
+      IPIPE_ASSERT(j >= n_inputs);
     }
   }
+  IPIPE_ASSERT(n_inputs + n_outputs == n_inputsOutputs);
+  if (!input_reorder_.empty()) {
+    IPIPE_ASSERT(input_reorder_.size() == n_inputs);
+  } else {
+    // [DEAFULT] set input_reorder_ to n_inputs-1, ... , 0
+    input_reorder_.resize(n_inputs);
+    // std::iota(input_reorder_.rbegin(), input_reorder_.rend(), 0);
+    std::iota(input_reorder_.begin(), input_reorder_.end(), 0);
+  }
+  if (!output_reorder_.empty()) {
+    IPIPE_ASSERT(output_reorder_.size() == n_outputs);
+  } else {
+    output_reorder_.resize(n_outputs);
+    // std::iota(output_reorder_.rbegin(), output_reorder_.rend(), 0);
+    std::iota(output_reorder_.begin(), output_reorder_.end(), 0);
+  }
 
-  std::map<std::string, std::stringstream> inputs_ss;
-  std::map<std::string, std::stringstream> outputs_ss;
+  std::vector<std::pair<std::string, std::string>> inputs_ss(input_reorder_.size());
+  std::vector<std::pair<std::string, std::string>> outputs_ss(output_reorder_.size());
 
   // 获取输入输出尺寸信息
-  for (int j = 0; j < n_inputsOutputs; j++) {
-    const auto name = engine_->engine->getIOTensorName(j);
+  for (int j = 0; j < input_reorder_.size(); j++) {
+    // tensorrt is inverted order
+    const auto name = engine_->engine->getIOTensorName(input_reorder_[j]);
     const auto tensorType = engine_->engine->getTensorIOMode(name);
 
-    if (tensorType == nvinfer1::TensorIOMode::kINPUT) {
-      nvinfer1::Dims min_dims = engine_->engine->getProfileShape(
-          name, profile_index_, nvinfer1::OptProfileSelector::kMIN);
-      nvinfer1::Dims max_dims = engine_->engine->getProfileShape(
-          name, profile_index_, nvinfer1::OptProfileSelector::kMAX);
-      mins_.emplace_back(min_dims.d, min_dims.d + min_dims.nbDims);
-      maxs_.emplace_back(max_dims.d, max_dims.d + max_dims.nbDims);
-      context_->setInputShape(name, min_dims);
+    IPIPE_ASSERT(tensorType == nvinfer1::TensorIOMode::kINPUT);
+    nvinfer1::Dims min_dims =
+        engine_->engine->getProfileShape(name, profile_index_, nvinfer1::OptProfileSelector::kMIN);
+    nvinfer1::Dims max_dims =
+        engine_->engine->getProfileShape(name, profile_index_, nvinfer1::OptProfileSelector::kMAX);
+    mins_.emplace_back(min_dims.d, min_dims.d + min_dims.nbDims);
+    maxs_.emplace_back(max_dims.d, max_dims.d + max_dims.nbDims);
+    IPIPE_ASSERT(context_->setInputShape(name, min_dims));
 
-      std::stringstream ss;
-      ss << "\t\t";
-      for (int dim_index = 0; dim_index < min_dims.nbDims; ++dim_index) {
-        ss << min_dims.d[dim_index];
-        if (dim_index != min_dims.nbDims - 1) ss << "x";
-      }
-      ss << " -> ";
-      for (int dim_index = 0; dim_index < max_dims.nbDims; ++dim_index) {
-        ss << max_dims.d[dim_index];
-        if (dim_index != max_dims.nbDims - 1) ss << "x";
-      }
-      inputs_ss[name] = std::move(ss);
-      continue;
-    } else {
-      nvinfer1::Dims dims = context_->getTensorShape(name);
-      std::stringstream out_s;
-      out_s << "\t\t";
+    std::stringstream ss;
+    ss << "\t\t";
+    for (int dim_index = 0; dim_index < min_dims.nbDims; ++dim_index) {
+      ss << min_dims.d[dim_index];
+      if (dim_index != min_dims.nbDims - 1) ss << "x";
+    }
+    ss << " -> ";
+    for (int dim_index = 0; dim_index < max_dims.nbDims; ++dim_index) {
+      ss << max_dims.d[dim_index];
+      if (dim_index != max_dims.nbDims - 1) ss << "x";
+    }
+    inputs_ss[input_reorder_[j]] = {name, ss.str()};
+  }
 
-      for (int dim_index = 0; dim_index < dims.nbDims; ++dim_index) {
-        out_s << dims.d[dim_index];
-        if (dim_index != dims.nbDims - 1) out_s << "x";
-      }
-      outputs_ss[name] = std::move(out_s);
+  for (int j = 0; j < output_reorder_.size(); j++) {
+    // tensorrt is inverted order
+    const auto name = engine_->engine->getIOTensorName(input_reorder_.size() + output_reorder_[j]);
+    const auto tensorType = engine_->engine->getTensorIOMode(name);
+
+    nvinfer1::Dims dims = context_->getTensorShape(name);
+    std::stringstream ss;
+    ss << "\t\t";
+
+    for (int dim_index = 0; dim_index < dims.nbDims; ++dim_index) {
+      ss << dims.d[dim_index];
+      if (dim_index != dims.nbDims - 1) ss << "x";
+    }
+    // outputs_ss[name] = out_s;
+    outputs_ss[output_reorder_[j]] = {name, ss.str()};
+  }
+
+  for (int j = 0; j < input_reorder_.size(); j++) {
+    // tensorrt is inverted order
+    const auto name = engine_->engine->getIOTensorName(input_reorder_[j]);
+    nvinfer1::Dims max_dims =
+        engine_->engine->getProfileShape(name, profile_index_, nvinfer1::OptProfileSelector::kMAX);
+
+    IPIPE_ASSERT(context_->setInputShape(name, max_dims));
+  }
+
+  // 获取max输出尺寸信息
+  for (int j = 0; j < output_reorder_.size(); j++) {
+    const auto name = engine_->engine->getIOTensorName(input_reorder_.size() + output_reorder_[j]);
+    // const auto tensorType = engine_->engine->getTensorIOMode(name);
+
+    // if (tensorType == nvinfer1::TensorIOMode::kINPUT) {
+    //   // nvinfer1::Dims max_dims = engine_->engine->getProfileShape(
+    //   //     name, profile_index_, nvinfer1::OptProfileSelector::kMAX);
+
+    //   // context_->setInputShape(name, max_dims);
+    //   // continue;
+    // } else
+
+    // std::stringstream out_ss;
+    nvinfer1::Dims dims = context_->getTensorShape(name);
+    outputs_ss[output_reorder_[j]].second += " -> ";
+    for (int dim_index = 0; dim_index < dims.nbDims; ++dim_index) {
+      outputs_ss[output_reorder_[j]].second += std::to_string(dims.d[dim_index]);
+      if (dim_index != dims.nbDims - 1) outputs_ss[output_reorder_[j]].second += "x";
     }
   }
 
-  // 获取输出尺寸信息
-  for (int j = 0; j < n_inputsOutputs; j++) {
-    const auto name = engine_->engine->getIOTensorName(j);
-    const auto tensorType = engine_->engine->getTensorIOMode(name);
-
-    if (tensorType == nvinfer1::TensorIOMode::kINPUT) {
-      nvinfer1::Dims max_dims = engine_->engine->getProfileShape(
-          name, profile_index_, nvinfer1::OptProfileSelector::kMAX);
-
-      context_->setInputShape(name, max_dims);
-      continue;
-    } else {
-      // std::stringstream out_ss;
-      nvinfer1::Dims dims = context_->getTensorShape(name);
-      outputs_ss[name] << " -> ";
-      for (int dim_index = 0; dim_index < dims.nbDims; ++dim_index) {
-        outputs_ss[name] << dims.d[dim_index];
-        if (dim_index != dims.nbDims - 1) outputs_ss[name] << "x";
-      }
-    }
-  }
-
+  std::string current_order = "(current: ";
   std::stringstream ss;
-  int index = 0;
-  for (const auto& item : inputs_ss) {
-    ss << "\n\t\t" << index++ << ". " << item.first << "\t" << item.second.str();
+  for (std::size_t i = 0; i < inputs_ss.size(); ++i) {
+    ss << "\n\t\t" << input_reorder_[i] << ". " << inputs_ss[i].first << "\t"
+       << inputs_ss[i].second;
+    current_order += std::to_string(input_reorder_[i]) + ",";
   }
+  current_order.pop_back();
+  current_order += " reset by `input_reorder`)";
 
-  index = 0;
-  for (const auto& item : outputs_ss) {
-    ss << "\n\t\t" << index++ << ". " << item.first << "\t" << item.second.str();
+  for (std::size_t i = 0; i < outputs_ss.size(); ++i) {
+    ss << "\n\t\t" << output_reorder_[i] << ". " << outputs_ss[i].first << "\t"
+       << outputs_ss[i].second;
   }
-
-  // std::vector<std::vector<int>> maxs_reordered(maxs_.size());
-  // std::vector<std::vector<int>> mins_reordered(maxs_.size());
-  // for (std::size_t i = 0; i < maxs_.size(); ++i) {
-  //   maxs_reordered[new_location_inputs_[i]] = maxs_[i];
-  //   mins_reordered[new_location_inputs_[i]] = mins_[i];
-  // }
-  // maxs_.swap(maxs_reordered);
-  // mins_.swap(mins_reordered);
 
   if (_independent_thread_index == 0 && (n_inputsOutputs - maxs_.size() > 1 || (maxs_.size() > 1)))
-    SPDLOG_INFO("Engine {}, Profile {}(Order of inputs and outputs):\n" + colored(ss.str()),
-                _independent_thread_index / n_profiles, profile_index_);
+    SPDLOG_INFO("Engine {}, Profile {}: Order of inputs{} and outputs:\n" + colored(ss.str()),
+                _independent_thread_index / n_profiles, profile_index_, current_order.c_str());
   else {
     if (profile_index_ == n_profiles - 1)
       SPDLOG_INFO("Engine {}, Profile {}:\n{}", _independent_thread_index / n_profiles,
@@ -405,19 +437,19 @@ void TensorrtTensor::forward(const std::vector<dict>& raw_inputs) {
     }
   }
 #ifndef NDEBUG
-  std::string shape = std::to_string(inputs_[0].size(0));
-  for (std::size_t i = 1; i < inputs_[0].sizes().size(); ++i) {
-    shape += " " + std::to_string(inputs_[0].size(i));
+  std::string shape;
+  for (const auto& input : inputs_) {
+    shape = std::to_string(input.size(0));
+
+    for (std::size_t i = 1; i < input.sizes().size(); ++i) {
+      shape += "," + std::to_string(input.size(i));
+    }
+    shape += " ";
   }
 
-  SPDLOG_DEBUG("{}: index({}) size({}) max-{} input.shape({})", node_name.c_str(),
+  SPDLOG_DEBUG("{}: index({}) size({}) max({}) input.shape({})", node_name.c_str(),
                independent_thread_index_, raw_inputs.size(), max(), shape);
 #endif
-
-  {
-    for (auto& true_input : inputs_) {
-    }
-  }
 
   binding_.clear();
   outputs_.clear();
@@ -426,57 +458,65 @@ void TensorrtTensor::forward(const std::vector<dict>& raw_inputs) {
   // const unsigned n_inputsOutputs = engine_->engine->getNbBindings() / n_profiles;
   const unsigned n_inputsOutputs = engine_->engine->getNbIOTensors();
 
-  int index_input = 0;
+  // int index_input = 0;
 
-  for (unsigned j = 0; j < n_inputsOutputs; j++) {
-    const auto name = engine_->engine->getIOTensorName(j);
+  for (unsigned j = 0; j < input_reorder_.size(); j++) {
+    const auto name = engine_->engine->getIOTensorName(input_reorder_[j]);
     const auto tensorType = engine_->engine->getTensorIOMode(name);
-    index_input = j;  // todo
 
     nvinfer1::Dims infer_dims = context_->getTensorShape(name);
     auto dtype = engine_->engine->getTensorDataType(name);
     auto target_type = trt2torch_type(dtype);
 
-    if (tensorType == nvinfer1::TensorIOMode::kINPUT) {
-      auto& input_data = inputs_[j];
+    IPIPE_ASSERT(tensorType == nvinfer1::TensorIOMode::kINPUT);
 
-      input_data = guard_contiguous_type_and_device(input_data, target_type);
+    int index_input = j;  // todo
+    auto& input_data = inputs_[j];
 
-      if (infer_dims.nbDims != input_data.sizes().size()) {
-        std::stringstream ss;
-        ss << "shape not match: model input and preprocessed tensor(s): (infer_dims)"
-           << infer_dims.nbDims << " != (input_data)" << input_data.sizes().size();
-        SPDLOG_ERROR(ss.str());
-        throw std::runtime_error(ss.str());
-      }
+    input_data = guard_contiguous_type_and_device(input_data, target_type);
 
-      const auto& profile_mins_shape = mins_[index_input];
-      const auto& profile_maxs_shape = maxs_[index_input];
-      for (decltype(infer_dims.nbDims) t = 0; t < infer_dims.nbDims; ++t) {
-        if (infer_dims.d[t] != input_data.size(t)) {
-          if (input_data.size(t) < profile_mins_shape[t] ||
-              input_data.size(t) > profile_maxs_shape[t]) {
-            std::stringstream ss;
-            ss << "shape out of range: input_data.size(" << t << "): " << input_data.size(t)
-               << ", input range is [" << profile_mins_shape[t] << ", " << profile_maxs_shape[t]
-               << "]";
-            SPDLOG_ERROR(ss.str());
-            throw std::runtime_error(ss.str());
-          }
-          change_shape_[index_input] = true;
-          infer_dims.d[t] = input_data.size(t);
-        }
-      }
-
-      if (change_shape_[index_input]) {
-        context_->setInputShape(name, infer_dims);
-        change_shape_[index_input] = false;
-      }
-      bool status = context_->setTensorAddress(name, input_data.data_ptr());
-      IPIPE_ASSERT(status);
-
-      continue;
+    if (infer_dims.nbDims != input_data.sizes().size()) {
+      std::stringstream ss;
+      ss << "shape not match: model input and preprocessed tensor(s): (infer_dims)"
+         << infer_dims.nbDims << " != (input_data)" << input_data.sizes().size();
+      SPDLOG_ERROR(ss.str());
+      throw std::runtime_error(ss.str());
     }
+
+    const auto& profile_mins_shape = mins_[index_input];
+    const auto& profile_maxs_shape = maxs_[index_input];
+    for (decltype(infer_dims.nbDims) t = 0; t < infer_dims.nbDims; ++t) {
+      if (infer_dims.d[t] != input_data.size(t)) {
+        if (input_data.size(t) < profile_mins_shape[t] ||
+            input_data.size(t) > profile_maxs_shape[t]) {
+          std::stringstream ss;
+          ss << "shape out of range: input_data.size(" << t << "): " << input_data.size(t)
+             << ", input range is [" << profile_mins_shape[t] << ", " << profile_maxs_shape[t]
+             << "]";
+          SPDLOG_ERROR(ss.str());
+          throw std::runtime_error(ss.str());
+        }
+        change_shape_[index_input] = true;
+        infer_dims.d[t] = input_data.size(t);
+      }
+    }
+
+    if (change_shape_[index_input]) {
+      context_->setInputShape(name, infer_dims);
+      change_shape_[index_input] = false;
+    }
+    bool status = context_->setTensorAddress(name, input_data.data_ptr());
+    IPIPE_ASSERT(status);
+  }
+
+  for (unsigned j = 0; j < output_reorder_.size(); j++) {
+    const auto name = engine_->engine->getIOTensorName(input_reorder_.size() + output_reorder_[j]);
+    const auto tensorType = engine_->engine->getTensorIOMode(name);
+    IPIPE_ASSERT(tensorType == nvinfer1::TensorIOMode::kOUTPUT);
+
+    nvinfer1::Dims infer_dims = context_->getTensorShape(name);
+    auto dtype = engine_->engine->getTensorDataType(name);
+    auto target_type = trt2torch_type(dtype);
 
     // infer_dims = context_->getTensorShape(name);
 
@@ -496,7 +536,7 @@ void TensorrtTensor::forward(const std::vector<dict>& raw_inputs) {
   context_->setDeviceMemory(mem.data_ptr());
 #endif
 
-  context_->enqueueV3(c10::cuda::getCurrentCUDAStream());
+  IPIPE_ASSERT(context_->enqueueV3(c10::cuda::getCurrentCUDAStream()));
 
   // auto outputs_sorted = std::vector<torch::Tensor>(outputs_.size());
   // for (std::size_t i = 0; i < outputs_.size(); ++i) {

@@ -1,8 +1,11 @@
 # Changelog
-## v0.5.2 (WIP)
+## v0.6.0 (WIP)
 - fix docker/Dockerfilex
 -  We added a [YoloV10](https://github.com/THU-MIG/yolov10) example [here](examples/yolov10).
 - torchpipe.utils.cpp_extension: Resolved the issue where matching the incorrect libipipe.so path resulted in  importing multiple libipipe.so files, causing problems with handling static variables.
+- Forbidding the use of TorchAllocator in the default CUDA stream.
+- `AppendPositionIDsTensor` to append a position ID tensor(with shape (1, seq_len)) to the input qkv tensor(s).
+- Add support TensorRT 10.2 and add input_reorder/output_reorder
 
 
 ## v0.5.1 (2024.05.22)

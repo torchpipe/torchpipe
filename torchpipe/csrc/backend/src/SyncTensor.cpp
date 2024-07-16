@@ -49,6 +49,8 @@ bool SyncTensor::init(const std::unordered_map<std::string, std::string>& config
         "SyncTensor: device_id is not supported by SyncTensor. Use `Torch` instead.");
   }
 
+  c10::InferenceMode guard;  // optinal
+
   engine_ = std::unique_ptr<Backend>(IPIPE_CREATE(Backend, params_->at("SyncTensor::backend")));
 
   auto config_param_new = config_param;

@@ -44,7 +44,8 @@ bool Onnx2TensorrtConverter::init(const std::unordered_map<std::string, std::str
                                                 {"model_type", ""},
                                                 {"max_workspace_size", "1024"},
                                                 {"allocator", "torch"},
-                                                {"log_level", "verbose"}},
+                                                {"log_level", "verbose"},
+                                                {"input_reorder", ""}},
                                                {}, {}, {}));
 
   if (!params_->init(config_param)) return false;
@@ -181,7 +182,7 @@ bool Onnx2TensorrtConverter::init(const std::unordered_map<std::string, std::str
 
   if (!params_->at("model::cache").empty()) {
     if (Is_File_Exist(params_->at("model::cache"))) {
-      SPDLOG_WARN("Using cached model [{}]. {}.", params_->at("model::cache"),
+      SPDLOG_WARN("Using cached model [{}]. {}", params_->at("model::cache"),
                   "Delete it to regenerate.\n");
       model = params_->at("model::cache");
     } else {
@@ -234,6 +235,10 @@ bool Onnx2TensorrtConverter::init(const std::unordered_map<std::string, std::str
     onnxp.timecache = params_->at("model::timingcache");
     onnxp.precision = params_->at("precision");
     onnxp.allocator = params_->at("allocator");
+    if (!params_->at("input_reorder").empty()) {
+      onnxp.input_reorder = str2int(params_->at("input_reorder"), ',');
+      IPIPE_ASSERT(onnxp.input_reorder.size() > 0);
+    }
 
     if (onnxp.precision.empty()) {
       auto sm = get_sm();

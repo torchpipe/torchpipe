@@ -22,6 +22,7 @@ void caughtError(std::exception const& e) {
 }
 
 void logInfo(char const* msg) { getLogger()->log(nvinfer1::ILogger::Severity::kINFO, msg); }
+void logError(char const* msg) { getLogger()->log(nvinfer1::ILogger::Severity::kERROR, msg); }
 
 void reportAssertion(bool success, char const* msg, char const* file, int32_t line) {
   if (!success) {
@@ -224,6 +225,13 @@ int32_t TorchPlugin::enqueue(PluginTensorDesc const* inputDesc, PluginTensorDesc
 
     io_tensor(inputDesc, outputDesc, inputs, outputs, input_arrays, output_arrays, mParams.dtype);
 
+    // for (auto& item : input_arrays) {
+    //   if (item.sizes().size() == 2) item = item.unsqueeze(0);
+    // }
+    // for (auto& item : output_arrays) {
+    //   if (item.sizes().size() == 2) item = item.unsqueeze(0);
+    // }
+
     // Interrupt torch's cuda semantics
     auto ret = cudaStreamSynchronize(stream);
     // throw std::runtime_error("debug here in TorchPlugin");
@@ -240,7 +248,26 @@ int32_t TorchPlugin::enqueue(PluginTensorDesc const* inputDesc, PluginTensorDesc
         std::unordered_map<std::string, ipipe::any>({{"data", input_arrays},
                                                      {"outputs", output_arrays},
                                                      {"node_name", std::string("TorchPlugin")}}));
-    inter[index]->forward({user_data});
+    try {
+      inter[index]->forward({user_data});
+    } catch (std::exception const& e) {
+      caughtError(e);
+      return -1;
+    }
+
+    if (user_data->find("result") == user_data->end()) {
+      logError("result not found in user_data");
+      return -1;
+    }
+
+    // for (auto& item : output_arrays) {
+    //   if (item.sizes().size() == 3) item = item.squeeze(0);
+    // }
+
+    std::cout << output_arrays[0].sizes()
+              << output_arrays[0].index({torch::indexing::Slice(torch::indexing::None, 4),
+                                         torch::indexing::Slice(torch::indexing::None, 4)})
+              << std::endl;
 
     // return 0;
   }

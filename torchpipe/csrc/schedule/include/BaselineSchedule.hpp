@@ -34,7 +34,7 @@ class BaselineSchedule : public Backend {
  public:
   bool init(const std::unordered_map<std::string, std::string>& config, dict dict_config) {
     params_ = std::unique_ptr<Params>(new Params(
-        {{"Schedule::backend", ""}, {"batching_timeout", "0"}, {"node_name", ""}}, {}, {}, {}));
+        {{"Schedule::backend", ""}, {"batching_timeout", "2"}, {"node_name", ""}}, {}, {}, {}));
     if (config.empty()) {
       SPDLOG_ERROR("empty config. Only support single-node configuration.");
       return false;
@@ -59,7 +59,7 @@ class BaselineSchedule : public Backend {
       if (max_batch_size_ == UINT32_MAX) {
         SPDLOG_WARN(node_name_ + ": max() == UINT32_MAX");
       }
-      if (max_batch_size_ != 1 || batching_timeout_ == 0) {
+      if (max_batch_size_ != 1 && batching_timeout_ > 0) {
         bThreadInited_.store(true);
         thread_ = std::thread(&BaselineSchedule::run, this);
       }

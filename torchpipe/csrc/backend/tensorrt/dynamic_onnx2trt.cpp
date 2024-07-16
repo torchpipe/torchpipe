@@ -187,7 +187,9 @@ std::shared_ptr<CudaEngineWithRuntime> loadEngineFromBuffer(const std::string& e
       std::make_shared<CudaEngineWithRuntime>(nvinfer1::createInferRuntime(gLogger_inplace));
 #ifdef USE_TORCH_ALLOCATOR
   const char* value = std::getenv("PYTORCH_NO_CUDA_MEMORY_CACHING");
-  if (value == nullptr) {
+  bool using_default_stream =
+      c10::cuda::getCurrentCUDAStream() == c10::cuda::getDefaultCUDAStream();
+  if (value == nullptr && !using_default_stream) {
     SPDLOG_INFO("use torch allocator");
     en_with_rt->allocator = new TorchAllocator();
     en_with_rt->runtime->setGpuAllocator(en_with_rt->allocator);
@@ -206,7 +208,9 @@ std::shared_ptr<CudaEngineWithRuntime> loadCudaBackend(std::string const& trtMod
 
 #ifdef USE_TORCH_ALLOCATOR
   const char* value = std::getenv("PYTORCH_NO_CUDA_MEMORY_CACHING");
-  if (value == nullptr) {
+  bool using_default_stream =
+      c10::cuda::getCurrentCUDAStream() == c10::cuda::getDefaultCUDAStream();
+  if (value == nullptr && !using_default_stream) {
     SPDLOG_INFO("use torch allocator");
     en_with_rt->allocator = new TorchAllocator();
     en_with_rt->runtime->setGpuAllocator(en_with_rt->allocator);
@@ -331,7 +335,9 @@ std::shared_ptr<CudaEngineWithRuntime> onnx2trt(
 
 #ifdef USE_TORCH_ALLOCATOR
   const char* value = std::getenv("PYTORCH_NO_CUDA_MEMORY_CACHING");
-  if (value == nullptr) {
+  bool using_default_stream =
+      c10::cuda::getCurrentCUDAStream() == c10::cuda::getDefaultCUDAStream();
+  if (value == nullptr && !using_default_stream) {
     SPDLOG_INFO("use torch allocator");
     en_with_rt->allocator = new TorchAllocator();
     builder->setGpuAllocator(en_with_rt->allocator);

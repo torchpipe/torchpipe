@@ -110,5 +110,8 @@ class TensorrtTensor : public Backend {
   std::vector<uint32_t> new_location_ouputs_;
 
   int independent_thread_index_{0};
+
+  std::vector<int> input_reorder_;
+  std::vector<int> output_reorder_;
 };
 }  // namespace ipipe

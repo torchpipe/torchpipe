@@ -25,8 +25,14 @@ namespace ipipe {
 
 void* TorchAllocator::allocate(uint64_t size, uint64_t alignment, uint32_t flags) noexcept {
   if (alignment == 0) {
+    SPDLOG_ERROR("TorchAllocator::allocate failed(alignment={}!=0)", alignment);
     return nullptr;
   }
+  if (c10::cuda::getCurrentCUDAStream() == c10::cuda::getDefaultCUDAStream()) {
+    SPDLOG_ERROR("TorchAllocator was using default cuda stream, which is not supported.");
+    return nullptr;
+  }
+
   if (size % alignment != 0) {
     size = (size / alignment + 1) * alignment;
   }

@@ -14,19 +14,23 @@
 max = '2047'
 'model' = '/workspace/VILA/onnx/decode_batchful.onnx'
 'model::cache' = './batchful.trt'
-[prefill_batchless]
-# 0. key_states 1x-1x2560 
-# 1. position_ids 1x-1 
-# 2. query_states 1x-1x2560 
-# 3. value_states 1x-1x2560 
-'backend' = 'SyncTensor[TensorrtTensor]'
+# [prefill_batchless]
+# # 0. key_states 1x-1x2560 
+# # 1. position_ids 1x-1 
+# # 2. query_states 1x-1x2560 
+# # 3. value_states 1x-1x2560 
+# 'backend' = 'SyncTensor[TensorrtTensor]'
+# max = '1x2047x2560,1x2047,1x2047x2560,1x2047x2560'
+# min = '1x1x2560,1x1,1x1x2560,1x1x2560'
+# 'model' = '/workspace/VILA/onnx/batchless_prefill.onnx'
+# 'model::cache' = './batchless_prefill.trt'
+
+[TorchPlugin]
+backend = "S[AppendPositionIDsTensor,TensorrtTensor,SyncTensor]"
 max = '1x2047x2560,1x2047,1x2047x2560,1x2047x2560'
 min = '1x1x2560,1x1,1x1x2560,1x1x2560'
 'model' = '/workspace/VILA/onnx/batchless_prefill.onnx'
 'model::cache' = './batchless_prefill.trt'
-
-[TorchPlugin]
-backend = "Identity"
 # [siglip]
 # 'backend' = 'SyncTensor[TensorrtTensor]'
 # 'mean' = '127.5,127.5,127.5'

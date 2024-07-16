@@ -55,4 +55,32 @@ void CreateTensor::forward(dict input_dict) {
 }
 IPIPE_REGISTER(Backend, CreateTensor, "CreateTensor");
 
+void AppendPositionIDsTensor::forward(dict input_dict) {
+  auto& input = *input_dict;
+  std::vector<torch::Tensor> data;
+  if (input[TASK_DATA_KEY].type() == typeid(std::vector<torch::Tensor>)) {
+    data = any_cast<std::vector<torch::Tensor>>(input[TASK_DATA_KEY]);
+  } else if (input[TASK_DATA_KEY].type() == typeid(torch::Tensor)) {
+    torch::Tensor input_tensor = any_cast<torch::Tensor>(input[TASK_DATA_KEY]);
+
+    data.push_back(input_tensor);
+  } else {
+    throw std::runtime_error("Input is not a tensor or a list of tensors.");
+  }
+
+  IPIPE_ASSERT(data.size() > 0);
+  auto options = torch::TensorOptions()
+                     .device(torch::kCUDA, -1)
+                     .dtype(torch::kLong)
+                     .layout(torch::kStrided)
+                     .requires_grad(false);
+  std::vector<long int> shape_{1, data[0].size(-2)};
+  auto seq_length = shape_[1];  // Assuming seq_length is the second dimension of shape_
+  auto image_tensor = torch::arange(0, seq_length, options).unsqueeze(0);
+  data.push_back(image_tensor);
+  (*input_dict)[TASK_RESULT_KEY] = data;
+}
+
+IPIPE_REGISTER(Backend, AppendPositionIDsTensor, "AppendPositionIDsTensor");
+
 }  // namespace ipipe
