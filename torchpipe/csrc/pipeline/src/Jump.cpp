@@ -36,14 +36,26 @@ bool Jump::init(const std::unordered_map<std::string, std::string>& config, dict
     return false;
   }
   interpreter_ = any_cast<Backend*>(iter->second);
+  IPIPE_ASSERT(interpreter_);
+
+  // std::string jump;
   auto iter_config = config.find("jump");
-  if (iter_config == config.end()) {
-    SPDLOG_ERROR("jump not exists");
+  if (iter_config != config.end()) {
+    jump_ = any_cast<std::string>(iter_config->second);
+  }
+  iter_config = config.find("Jump::backend");
+  if (iter_config != config.end()) {
+    std::string jump = any_cast<std::string>(iter_config->second);
+    if (!jump_.empty()) {
+      IPIPE_ASSERT(jump_ == jump);
+    } else {
+      jump_ = jump;
+    }
+  }
+  if (jump_.empty()) {
+    SPDLOG_ERROR("parameter `jump` not set");
     return false;
   }
-  jump_ = any_cast<std::string>(iter_config->second);
-
-  if (!interpreter_ || jump_.empty()) return false;
 
   return post_init(config, dict_config);
 }

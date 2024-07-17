@@ -21,6 +21,8 @@ struct TorchPluginParameters {
   int32_t height;
   int32_t width;
   size_t dtypeBytes;
+  size_t nbInputs;
+  size_t nbOutputs;
 };
 
 class TorchPlugin : public IPluginV3,

@@ -432,9 +432,7 @@ void TensorrtTensor::forward(const std::vector<dict>& raw_inputs) {
 
   {
     inputs_ = preprocessor_->forward(raw_inputs);
-    if (inputs_.empty()) {
-      return;
-    }
+    IPIPE_ASSERT(!inputs_.empty());
   }
 #ifndef NDEBUG
   std::string shape;
@@ -509,6 +507,14 @@ void TensorrtTensor::forward(const std::vector<dict>& raw_inputs) {
     IPIPE_ASSERT(status);
   }
 
+  auto iter_outputs = raw_inputs[0]->find("outputs");
+  std::vector<torch::Tensor> predefined_outputs;
+  if (iter_outputs != raw_inputs[0]->end()) {
+    IPIPE_ASSERT(raw_inputs.size() == 1);
+    predefined_outputs = any_cast<std::vector<torch::Tensor>>(iter_outputs->second);
+    IPIPE_ASSERT(!predefined_outputs.empty());
+  }
+
   for (unsigned j = 0; j < output_reorder_.size(); j++) {
     const auto name = engine_->engine->getIOTensorName(input_reorder_.size() + output_reorder_[j]);
     const auto tensorType = engine_->engine->getTensorIOMode(name);
@@ -518,15 +524,25 @@ void TensorrtTensor::forward(const std::vector<dict>& raw_inputs) {
     auto dtype = engine_->engine->getTensorDataType(name);
     auto target_type = trt2torch_type(dtype);
 
-    // infer_dims = context_->getTensorShape(name);
-
     if (infer_dims.nbDims == -1) {
       throw std::range_error("tensorrt: getBindingDimensions for output failed");
     }
 
-    outputs_.emplace_back(
-        torch::empty(std::vector<int64_t>(infer_dims.d, infer_dims.d + infer_dims.nbDims),
-                     get_tensor_option(target_type), torch::MemoryFormat::Contiguous));
+    if (predefined_outputs.size() > j) {
+      IPIPE_ASSERT(predefined_outputs[j].is_contiguous());
+      int64_t total_bytes = predefined_outputs[j].numel() * predefined_outputs[j].element_size();
+      int64_t need_bytes = std::accumulate(infer_dims.d, infer_dims.d + infer_dims.nbDims, 1,
+                                           std::multiplies<int64_t>()) *
+                           torch::elementSize(target_type);
+      IPIPE_ASSERT(need_bytes == total_bytes);
+
+      outputs_.emplace_back(predefined_outputs[j]);
+    } else {
+      outputs_.emplace_back(
+          torch::empty(std::vector<int64_t>(infer_dims.d, infer_dims.d + infer_dims.nbDims),
+                       get_tensor_option(target_type), torch::MemoryFormat::Contiguous));
+    }
+
     bool status = context_->setTensorAddress(name, outputs_.back().data_ptr());
     IPIPE_ASSERT(status);
   }
@@ -538,12 +554,6 @@ void TensorrtTensor::forward(const std::vector<dict>& raw_inputs) {
 
   IPIPE_ASSERT(context_->enqueueV3(c10::cuda::getCurrentCUDAStream()));
 
-  // auto outputs_sorted = std::vector<torch::Tensor>(outputs_.size());
-  // for (std::size_t i = 0; i < outputs_.size(); ++i) {
-  //   outputs_sorted[new_location_ouputs_[i]] = outputs_[i];
-  // }
-  // outputs_.swap(outputs_sorted);
-
   if (batch_process_) {
     dict batched = std::make_shared<std::unordered_map<std::string, any>>();
     (*batched)[TASK_DATA_KEY] = outputs_;
@@ -553,8 +563,8 @@ void TensorrtTensor::forward(const std::vector<dict>& raw_inputs) {
 
   postprocessor_->forward(outputs_, raw_inputs, inputs_);
 
-  c10::cuda::getCurrentCUDAStream().synchronize();  // for Reclaim GPU Memory of mem outputs_
-  outputs_.clear();
+  c10::cuda::getCurrentCUDAStream().synchronize();
+  outputs_.clear();  // for Reclaim GPU Memory of mem outputs_
   inputs_.clear();
 }
 

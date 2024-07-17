@@ -7,13 +7,19 @@
 # next = 'siglip'
 # 'resize_h' = '384'
 # 'resize_w' = '384'
+
 [batchful]
-'backend' = 'SyncTensor[TensorrtTensor]'
+'backend' = 'S[TensorrtTensor,SyncTensor]'
 # max = '1x2047x2560,1x2047,1x2047x2560,1x2047x2560'
 # min = '1x1x2560,1x1,1x1x2560,1x1x2560'
 max = '2047'
 'model' = '/workspace/VILA/onnx/decode_batchful.onnx'
 'model::cache' = './batchful.trt'
+
+# next = 'decode_batchful'
+# [decode_batchful]
+# backend = "S[AddKey[plugin_node:batchless_decode],BatchingTensor,Jump[batchful]]"
+
 # [prefill_batchless]
 # # 0. key_states 1x-1x2560 
 # # 1. position_ids 1x-1 
@@ -25,12 +31,17 @@ max = '2047'
 # 'model' = '/workspace/VILA/onnx/batchless_prefill.onnx'
 # 'model::cache' = './batchless_prefill.trt'
 
-[TorchPlugin]
-backend = "S[AppendPositionIDsTensor,TensorrtTensor,SyncTensor]"
+# [batchless_prefill]
+[batchless_prefill]
+# request_id node_name
+backend = "S[AppendPositionIDsTensor,TensorrtTensor,Jump[kvcache],SyncTensor]"
 max = '1x2047x2560,1x2047,1x2047x2560,1x2047x2560'
 min = '1x1x2560,1x1,1x1x2560,1x1x2560'
 'model' = '/workspace/VILA/onnx/batchless_prefill.onnx'
 'model::cache' = './batchless_prefill.trt'
+
+[kvcache]
+backend = "S[KVCacheTensor,SyncTensor]"
 # [siglip]
 # 'backend' = 'SyncTensor[TensorrtTensor]'
 # 'mean' = '127.5,127.5,127.5'
@@ -49,3 +60,6 @@ min = '1x1x2560,1x1,1x1x2560,1x1x2560'
 # batch_process = 'CpuTensor'
 # 'model' = '../onnx/llm.onnx'
 # 'model::cache' = '../onnx/llm.trt'
+
+[batchless_decode]
+#TorchPlugin

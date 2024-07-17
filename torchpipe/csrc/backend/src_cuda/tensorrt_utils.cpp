@@ -100,7 +100,8 @@ void parse_ln(nvinfer1::INetworkDefinition* network) {
   const static std::string POW_NAME = "Pow";
   const static std::string ReduceMean_NAME = "ReduceMean";
   const static std::string Add_NAME = "Add";
-  const static std::set<std::string> LN_NAME{POW_NAME, ReduceMean_NAME, Add_NAME, "Sqrt"};
+  const static std::set<std::string> LN_NAME{POW_NAME, ReduceMean_NAME, Add_NAME,
+                                             "Sqrt",   "Div",           "Mul"};
 
   for (std::size_t index_l = 0; index_l < network->getNbLayers(); ++index_l) {
     nvinfer1::ILayer* layer = network->getLayer(index_l);
@@ -112,35 +113,51 @@ void parse_ln(nvinfer1::INetworkDefinition* network) {
     std::string start_name = layer->getName();
     std::vector<nvinfer1::ILayer*> target;
     bool find_ln = false;
+    bool has_reduce_mean = false;
     if (start_name.find(POW_NAME) != std::string::npos &&
         !network->getLayer(index_l)->precisionIsSet()) {
+      // auto ln_name = LN_NAME;
       while (index_l < network->getNbLayers()) {
         target.push_back(network->getLayer(index_l));
-        if (target.size() >= 6) break;
+        SPDLOG_DEBUG("parse {}", network->getLayer(index_l)->getName());
+        if (target.size() >= 12) break;
         ++index_l;
         std::string name = network->getLayer(index_l)->getName();
-        if (name.find("Sqrt") != std::string::npos) {
+        if (name.find(ReduceMean_NAME) != std::string::npos) {
+          has_reduce_mean = true;
+        } else if (name.find("Mul") != std::string::npos) {
           target.push_back(network->getLayer(index_l));
-          find_ln = true;
+          SPDLOG_DEBUG("post Mul {}", network->getLayer(index_l + 1)->getName());
+          /*
+          cast -> Pow -> ReduceMean -> Add -> Sqrt -> Div -> Mul -> cast*/
+
+          if (has_reduce_mean) find_ln = true;
           break;
         }
       }
     }
-    find_ln = false;
     if (find_ln) {
-      SPDLOG_INFO("\nLayerNorm matched:");
+      std::set<std::string> parsed;
+      SPDLOG_INFO("********** LayerNorm matched ************");
       for (std::size_t index = 0; index < target.size(); ++index) {
         std::string name = target[index]->getName();
-        if (!is_ln_name(LN_NAME, name)) continue;
+        // if (!is_ln_name(LN_NAME, name)) continue;
         target[index]->setPrecision(nvinfer1::DataType::kFLOAT);
+        parsed.insert(name);
 
-        if (index != target.size() - 1) {
+        if (true || index != target.size() - 1) {
           target[index]->setOutputType(0, nvinfer1::DataType::kFLOAT);
-          SPDLOG_INFO("{} and its output was set to fp32 mode", target[index]->getName());
+          // SPDLOG_INFO("{} and its output was set to fp32", target[index]->getName());
         } else {
-          SPDLOG_INFO("{} was set to fp32 mode", target[index]->getName());
+          // SPDLOG_INFO("{} was set to fp32 mode", target[index]->getName());
         }
+        std::string info = "LayerNorm: The following layers were set to fp32 mode: {}";
+        for (const auto& item : parsed) {
+          info += item + ' ';
+        }
+        SPDLOG_INFO(info);
       }
+      SPDLOG_INFO("*****************************");
     }
   }
 }

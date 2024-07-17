@@ -64,6 +64,8 @@ bool SyncTensor::init(const std::unordered_map<std::string, std::string>& config
 }
 
 void SyncTensor::forward(const std::vector<dict>& input_dicts) {
+  c10::InferenceMode guard;  // optinal
+
   if (bNeedSync_) {
     try {
       engine_->forward(input_dicts);

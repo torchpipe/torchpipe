@@ -6,6 +6,9 @@
 - Forbidding the use of TorchAllocator in the default CUDA stream.
 - `AppendPositionIDsTensor` to append a position ID tensor(with shape (1, seq_len)) to the input qkv tensor(s).
 - Add support TensorRT 10.2 and add input_reorder/output_reorder
+- Add a TensorRT plugin, TorchPlugin, to offload computation to another node, and use the PyTorch tensor as input and output.
+- improved `Jump`
+
 
 
 ## v0.5.1 (2024.05.22)

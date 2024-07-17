@@ -8,6 +8,7 @@
 #include <sstream>
 #include <vector>
 #include "Interpreter.hpp"
+#include "base_logging.hpp"
 #include <NvInferRuntime.h>
 #include <NvInferRuntimePlugin.h>
 
@@ -16,7 +17,7 @@
 #define PLUGIN_ASSERT(val) reportAssertion((val), #val, __FILE__, __LINE__)
 
 namespace {
-constexpr std::size_t knbInputs = 3;
+// constexpr
 void caughtError(std::exception const& e) {
   getLogger()->log(nvinfer1::ILogger::Severity::kINTERNAL_ERROR, e.what());
 }
@@ -49,8 +50,10 @@ torch::ScalarType getTorchTypeFromTrtType(nvinfer1::DataType trttype) {
 void io_tensor(nvinfer1::PluginTensorDesc const* inputDesc,
                nvinfer1::PluginTensorDesc const* outputDesc, void const* const* inputs,
                void* const* outputs, std::vector<torch::Tensor>& input_arrays,
-               std::vector<torch::Tensor>& output_arrays, nvinfer1::DataType trttype) noexcept {
-  for (std::size_t i{0}; i < knbInputs; ++i) {
+               std::vector<torch::Tensor>& output_arrays, nvinfer1::DataType trttype,
+               std::size_t nbInputs) noexcept {
+  // IPIPE_ASSERT(nbInputs == 3);
+  for (std::size_t i{0}; i < nbInputs; ++i) {
     std::vector<int64_t> sizes;
     for (int j = 0; j < inputDesc[i].dims.nbDims; j++) {
       sizes.push_back(inputDesc[i].dims.d[j]);
@@ -77,6 +80,7 @@ namespace plugin {
 
 // Plugin
 TorchPlugin::TorchPlugin(TorchPluginParameters const& params) : mParams{params} {
+  SPDLOG_DEBUG("TorchPlugin: this={}", (long)this);
   initFieldsToSerialize();
 }
 
@@ -124,7 +128,7 @@ char const* TorchPlugin::getPluginVersion() const noexcept { return kTORCH_PLUGI
 
 char const* TorchPlugin::getPluginNamespace() const noexcept { return kTORCH_PLUGIN_NAMESPACE; }
 
-int32_t TorchPlugin::getNbOutputs() const noexcept { return 1; }
+int32_t TorchPlugin::getNbOutputs() const noexcept { return 1 /*mParams.nbOutputs*/; }
 
 int32_t TorchPlugin::configurePlugin(DynamicPluginTensorDesc const* in, int32_t nbInputs,
                                      DynamicPluginTensorDesc const* out,
@@ -139,21 +143,11 @@ int32_t TorchPlugin::configurePlugin(DynamicPluginTensorDesc const* in, int32_t 
   // This member function will only be called during engine build time.
 
   // Validate input arguments.
-  PLUGIN_ASSERT(
-      nbInputs ==
-      knbInputs);  // query_states:1x244x2560,key_states:1x244x2560,value_states:1x244x2560
-  PLUGIN_ASSERT(nbOutputs == 1);  // attn_output:1x244x2560
-  PLUGIN_ASSERT(in[0].desc.dims.nbDims == 2);
-  PLUGIN_ASSERT(out[0].desc.dims.nbDims == 2);
-  PLUGIN_ASSERT(in[0].desc.dims.d[0] == out[0].desc.dims.d[0]);
-  PLUGIN_ASSERT(in[0].desc.dims.d[1] == out[0].desc.dims.d[1]);
-  // PLUGIN_ASSERT(in[0].desc.dims.d[2] == out[0].desc.dims.d[2]);
-  PLUGIN_ASSERT(in[0].desc.type == out[0].desc.type);
+  mParams.nbInputs = nbInputs;
+  // query_states:1x244x2560,key_states:1x244x2560,value_states:1x244x2560
+  mParams.nbOutputs = nbOutputs;  // attn_output:1x244x2560
 
   mParams.dtype = in[0].desc.type;
-  mParams.channelSize = in[0].desc.dims.d[0];
-  mParams.height = in[0].desc.dims.d[1];
-  mParams.width = in[0].desc.dims.d[2];
 
   if (mParams.dtype == nvinfer1::DataType::kINT8) {
     mParams.dtypeBytes = 1;
@@ -173,7 +167,9 @@ bool TorchPlugin::supportsFormatCombination(int32_t pos, DynamicPluginTensorDesc
   // For this method inputs are numbered 0..(nbInputs-1) and outputs are
   // numbered nbInputs..(nbInputs+nbOutputs-1). Using this numbering, pos is
   // an index into InOut, where 0 <= pos < nbInputs+nbOutputs.
-  PLUGIN_ASSERT(nbInputs == knbInputs && nbOutputs == 1 && pos < nbInputs + nbOutputs);
+  mParams.nbInputs = nbInputs;
+  mParams.nbOutputs = nbOutputs;
+  PLUGIN_ASSERT(pos < nbInputs + nbOutputs);
   bool isValidCombination = false;
 
   // Suppose we support only a limited number of format configurations.
@@ -191,11 +187,12 @@ bool TorchPlugin::supportsFormatCombination(int32_t pos, DynamicPluginTensorDesc
 int32_t TorchPlugin::getOutputDataTypes(DataType* outputTypes, int32_t nbOutputs,
                                         DataType const* inputTypes,
                                         int32_t nbInputs) const noexcept {
-  // One output.
-  PLUGIN_ASSERT(nbInputs == knbInputs);
-  PLUGIN_ASSERT(nbOutputs == 1);
   // The output type is the same as the input type.
-  outputTypes[0] = inputTypes[0];
+  // IPIPE_ASSERT(nbOutputs <= nbInputs);
+  for (std::size_t i = 0; i < nbOutputs; ++i) {
+    outputTypes[i] = inputTypes[0];
+  }
+
   return 0;
 }
 
@@ -203,14 +200,14 @@ int32_t TorchPlugin::getOutputShapes(DimsExprs const* inputs, int32_t nbInputs,
                                      DimsExprs const* shapeInputs, int32_t nbShapeInputs,
                                      DimsExprs* outputs, int32_t nbOutputs,
                                      IExprBuilder& exprBuilder) noexcept {
-  PLUGIN_ASSERT(nbInputs == knbInputs);
-  PLUGIN_ASSERT(nbOutputs == 1);
   PLUGIN_ASSERT(inputs != nullptr);
-  PLUGIN_ASSERT(inputs[0].nbDims == 2);
-
-  outputs[0].nbDims = inputs[0].nbDims;
-  for (int32_t i{0}; i < inputs[0].nbDims; ++i) {
-    outputs[0].d[i] = inputs[0].d[i];
+  // PLUGIN_ASSERT(inputs[0].nbDims == 2);
+  // IPIPE_ASSERT(nbOutputs <= nbInputs);
+  for (std::size_t i = 0; i < nbOutputs; ++i) {
+    outputs[i].nbDims = inputs[0].nbDims;
+    for (int32_t j{0}; j < inputs[0].nbDims; ++j) {
+      outputs[i].d[j] = inputs[0].d[j];
+    }
   }
 
   return 0;
@@ -219,11 +216,15 @@ int32_t TorchPlugin::getOutputShapes(DimsExprs const* inputs, int32_t nbInputs,
 int32_t TorchPlugin::enqueue(PluginTensorDesc const* inputDesc, PluginTensorDesc const* outputDesc,
                              void const* const* inputs, void* const* outputs, void* workspace,
                              cudaStream_t stream) noexcept {
+  SPDLOG_DEBUG("TorchPlugin:(enqueue) this={}", (long)this);
   {
     std::vector<torch::Tensor> input_arrays;
     std::vector<torch::Tensor> output_arrays;
-
-    io_tensor(inputDesc, outputDesc, inputs, outputs, input_arrays, output_arrays, mParams.dtype);
+    if (mParams.nbInputs == 0) {
+      return -2;
+    }
+    io_tensor(inputDesc, outputDesc, inputs, outputs, input_arrays, output_arrays, mParams.dtype,
+              mParams.nbInputs);
 
     // for (auto& item : input_arrays) {
     //   if (item.sizes().size() == 2) item = item.unsqueeze(0);
@@ -263,6 +264,14 @@ int32_t TorchPlugin::enqueue(PluginTensorDesc const* inputDesc, PluginTensorDesc
     // for (auto& item : output_arrays) {
     //   if (item.sizes().size() == 3) item = item.squeeze(0);
     // }
+    std::cout << input_arrays[0].sizes()
+              << input_arrays[0].index({torch::indexing::Slice(torch::indexing::None, 4),
+                                        torch::indexing::Slice(torch::indexing::None, 4)})
+              << std::endl;
+    std::cout << input_arrays[1].sizes()
+              << input_arrays[1].index({torch::indexing::Slice(torch::indexing::None, 4),
+                                        torch::indexing::Slice(torch::indexing::None, 4)})
+              << std::endl;
 
     std::cout << output_arrays[0].sizes()
               << output_arrays[0].index({torch::indexing::Slice(torch::indexing::None, 4),
@@ -280,6 +289,8 @@ int32_t TorchPlugin::enqueue(PluginTensorDesc const* inputDesc, PluginTensorDesc
 
 int32_t TorchPlugin::onShapeChange(PluginTensorDesc const* in, int32_t nbInputs,
                                    PluginTensorDesc const* out, int32_t nbOutputs) noexcept {
+  mParams.nbInputs = nbInputs;
+  mParams.nbOutputs = nbOutputs;
   return 0;
 }
 
@@ -367,7 +378,9 @@ IPluginV3* TorchPluginCreator::createPlugin(char const* name, PluginFieldCollect
       PLUGIN_ASSERT(fields[0].type == nvinfer1::PluginFieldType::kUNKNOWN);
       PLUGIN_ASSERT(fields[0].length == sizeof(TorchPluginParameters));
       TorchPluginParameters params{*(static_cast<TorchPluginParameters const*>(fields[0].data))};
-
+      SPDLOG_DEBUG("deserialized TorchPluginParameters: nbInputs: {}, nbOutputs: {}",
+                   params.nbInputs, params.nbOutputs);
+      IPIPE_ASSERT(params.nbInputs > 0 && params.nbOutputs > 0);
       TorchPlugin* const plugin{new TorchPlugin{params}};
       return plugin;
     } catch (std::exception const& e) {
