@@ -203,12 +203,12 @@ if __name__ == "__main__":
     # time.sleep(10)
     a = TestBackend()
     a.setup_class()
-    a.test_next()
+    # a.test_next()
     # a.test_single_map()
     # for i in range(1000):
     #     a.test_async_v0()
     # exit()
-    # a.test_async()
+    a.test_async()
     # a.test_event()
     # a.test_no_map()
 

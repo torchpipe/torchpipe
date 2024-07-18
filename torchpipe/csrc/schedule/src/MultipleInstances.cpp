@@ -25,6 +25,8 @@
 #include "reflect.h"
 #include "time_utils.hpp"
 #include "InstanceHandler.hpp"
+#include "StatefulInstanceHandler.hpp"
+
 namespace ipipe {
 
 class SharedBackendsMap {};
@@ -165,4 +167,63 @@ bool MultipleInstances::init(const std::unordered_map<std::string, std::string>&
 }
 std::unordered_map<std::string, std::vector<Backend*>> MultipleInstances::shared_instances_{};
 std::mutex MultipleInstances::lock_;
+
+bool MultiInstances::init(const std::unordered_map<std::string, std::string>& config,
+                          dict dict_config) {
+  params_ = std::unique_ptr<Params>(
+      new Params({{"instance_num", "1"}, {"instance_handle", ""}}, {"node_name"}, {}, {}));
+  if (!params_->init(config)) return false;
+
+  std::string node_name = params_->at("node_name");
+
+  TRACE_EXCEPTION(instance_num_ = std::stoi(params_->at("instance_num")));
+  if (instance_num_ > 1024 || instance_num_ == 0) {
+    SPDLOG_ERROR("instance_num wired: " + params_->at("instance_num"));
+    return false;
+  }
+  IPIPE_ASSERT(dict_config);
+  // if (dict_config) {
+  //   state_ = std::make_shared<StateEvents>(instance_num_);
+  //   (*dict_config)["_state_event"] = state_;
+  // }
+
+  all_backends_.resize(instance_num_);
+  batched_queue_ = std::make_unique<ThreadSafeSizedQueue<std::vector<dict>>>();
+
+  for (auto& backend : all_backends_) {
+    if (!params_->at("instance_handle").empty()) {
+      backend = std::unique_ptr<Backend>(IPIPE_CREATE(Backend, params_->at("instance_handle")));
+    } else {
+      backend = std::make_unique<StatefulInstanceHandler>();
+    }
+  }
+
+  dict dict_config_split =
+      dict_config ? std::make_shared<std::unordered_map<std::string, any>>(*dict_config)
+                  : std::make_shared<std::unordered_map<std::string, any>>();
+  for (std::size_t i = 0; i < instance_num_; ++i) {
+    (*dict_config_split)["_batched_queue"] = batched_queue_.get();
+
+    auto new_config = config;
+    new_config["_independent_thread_index"] = std::to_string(i);
+    if (!all_backends_[i] || !all_backends_[i]->init(new_config, dict_config_split)) {
+      return false;
+    }
+  }
+
+  std::vector<uint32_t> mins;
+  std::vector<uint32_t> maxs;
+  for (std::size_t i = 0; i < all_backends_.size(); ++i) {
+    mins.push_back(all_backends_[i]->min());
+    maxs.push_back(all_backends_[i]->max());
+  }
+  min_ = *std::min_element(mins.begin(), mins.end());
+  max_ = *std::max_element(maxs.begin(), maxs.end());
+
+  if (min() > max()) {
+    SPDLOG_ERROR("MultipleInstances: min() > max().  min() = {} max() = {}", min(), max());
+    return false;
+  }
+  return true;
+}
 }  // namespace ipipe

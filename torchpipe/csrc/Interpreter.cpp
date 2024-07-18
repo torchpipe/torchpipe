@@ -96,8 +96,15 @@ void Interpreter::init(mapmap config) {
   /// 如果没有配置主引擎，则根据节点数目选择默认主程序
   if (iter_main == iter_global->second.end() || iter_main->second.empty()) {
     if (config.size() <= 2) {
-      // 如果是单节点, 默认启动 BaselineSchedule 引擎进行调度
-      backend_ = std::make_unique<BaselineSchedule>();
+      if (iter_global->second.find("batching") != iter_global->second.end()) {
+        std::string tmp_name = any_cast<std::string>(iter_global->second.find("batching")->second);
+        SPDLOG_DEBUG("use batching backend: {}", tmp_name);
+        backend_ = std::unique_ptr<Backend>(IPIPE_CREATE(Backend, tmp_name));
+      } else {
+        // 如果是单节点, 默认启动 BaselineSchedule 引擎进行调度
+        backend_ = std::make_unique<BaselineSchedule>();
+      }
+
     } else {
       // 如果是多节点， 默认启动 PipelineV3 引擎进行 管理
       backend_ = std::make_unique<PipelineV3>();

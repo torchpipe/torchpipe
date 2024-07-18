@@ -117,7 +117,21 @@ class SingleBackend : public Backend {
 };
 
 class EmptyForwardSingleBackend : public SingleBackend {
-  virtual void forward(dict input_dict) override final{};
+  virtual void forward(dict input_dict) override final {};
 };
+
+// static inline uint32_t get_request_size(const std::vector<dict>& in) {
+//   uint32_t total_len = 0;
+//   for (const auto& item : in) {
+//     const auto iter = item->find(TASK_REQUEST_SIZE_KEY);
+//     if (iter != item->end()) {
+//       const int re = any_cast<int>(iter->second);
+//       total_len += re;
+//     } else {
+//       total_len += 1;
+//     }
+//   }
+//   return total_len;
+// }
 
 }  // namespace ipipe

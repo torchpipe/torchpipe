@@ -31,6 +31,8 @@
 #include "reflect.h"
 #include "state_event.hpp"
 #include "threadsafe_queue.hpp"
+#include "threadsafe_queue_sized.hpp"
+
 namespace ipipe {
 
 /**
@@ -140,5 +142,37 @@ class MultipleInstances : public Backend {
   // };
   static std::mutex lock_;
   static std::unordered_map<std::string, std::vector<Backend*>> shared_instances_;
+};
+
+class MultiInstances : public Backend {
+ public:
+  bool init(const std::unordered_map<std::string, std::string>& config, dict dict_config) override;
+
+  void forward(const std::vector<dict>& inputs_data) override {
+    const auto size = get_request_size(inputs_data);
+    batched_queue_->Push(inputs_data, size);
+  }
+  uint32_t max() const override { return max_; }
+
+  /// 子Backend的下限最小值
+  uint32_t min() const override { return min_; }
+  // important: destroy all_backends_ befire batched_queue_
+  ~MultiInstances() { all_backends_.clear(); }
+
+ private:
+  std::unique_ptr<Params> params_;
+  // std::vector<Backend*> active_backends_;
+  std::vector<std::unique_ptr<Backend>> all_backends_;
+  // std::vector<std::unique_ptr<Backend>> all_backends_;
+  // std::unique_ptr<Backend> backend_;
+  std::unique_ptr<ThreadSafeSizedQueue<std::vector<dict>>> batched_queue_;
+  // std::unique_ptr<ThreadSafeSizedQueue<std::vector<dict>>> batched_queue_;
+  // ThreadSafeQueue<std::vector<dict>>* batched_queue_{nullptr};
+  uint32_t instance_num_;
+  std::shared_ptr<StateEvents> state_;
+  uint32_t max_{0};
+  uint32_t min_{0};
+
+  // std::unordered_map<std::string, std::string> config_;
 };
 }  // namespace ipipe

@@ -35,8 +35,8 @@ max = '2047'
 [batchless_prefill]
 # request_id node_name
 backend = "S[AppendPositionIDsTensor,TensorrtTensor,Jump[kvcache],SyncTensor]"
-max = '1x2047x2560,1x2047,1x2047x2560,1x2047x2560'
-min = '1x1x2560,1x1,1x1x2560,1x1x2560'
+max = '1x2047x2560,1x2047x2560,1x2047x2560,1x2047'
+min = '1x1x2560,1x1x2560,1x1x2560,1x1'
 'model' = '/workspace/VILA/onnx/batchless_prefill.onnx'
 'model::cache' = './batchless_prefill.trt'
 

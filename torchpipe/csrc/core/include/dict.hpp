@@ -79,25 +79,35 @@ constexpr auto TASK_STACK_KEY = "_stack";
 constexpr auto TASK_NODE_NAME_KEY = "node_name";
 
 constexpr auto TASK_DEFAULT_NAME_KEY = "_default_node_name";
+constexpr auto TASK_REQUEST_KEY = "request";
+constexpr auto TASK_REQUEST_SIZE_KEY = "request_size";
 
-static const std::unordered_set<std::string> RESERVED_WORDS{TASK_RESULT_KEY,
-                                                            TASK_CONTEXT_KEY,
-                                                            TASK_BOX_KEY,
-                                                            TASK_INFO_KEY,
-                                                            TASK_STACK_KEY,
-                                                            TASK_NODE_NAME_KEY,
-                                                            TASK_DEFAULT_NAME_KEY,
-                                                            "global",
-                                                            "default",
-                                                            "node_name",
-                                                            ""};
 static inline const std::unordered_map<std::string, std::string> TASK_KEY_MAP(
     {{"TASK_RESULT_KEY", TASK_RESULT_KEY},
      {"TASK_DATA_KEY", TASK_DATA_KEY},
      {"TASK_BOX_KEY", TASK_BOX_KEY},
      {"TASK_INFO_KEY", TASK_INFO_KEY},
      {"TASK_NODE_NAME_KEY", TASK_NODE_NAME_KEY},
-     {"TASK_CONTEXT_KEY", TASK_CONTEXT_KEY}});
+     {"TASK_CONTEXT_KEY", TASK_CONTEXT_KEY},
+     {"TASK_REQUEST_KEY", TASK_REQUEST_KEY},
+     {"TASK_REQUEST_SIZE_KEY", TASK_REQUEST_SIZE_KEY}});
+
+static inline bool is_reserved(const std::string& key) {
+  static const std::unordered_set<std::string> reserved_words{"global", "default", "node_name", ""};
+  if (0 != reserved_words.count(key)) return true;
+  for (const auto& item : TASK_KEY_MAP) {
+    if (item.second == key) return true;
+  }
+  return false;
+}
+// stateful request
+struct Request {
+  uint32_t id;
+  uint32_t size;
+  // uint32_t slice_size;        // slice size: [offset, offset+size)
+  // uint32_t slice_offset = 0;  // slice offset
+  // std::unordered_map<std::string, std::string> custom;
+};
 
 extern void throw_wrong_type(const char* need_type, const char* input_type);
 
@@ -115,6 +125,31 @@ T dict_get(dict data, const std::string& key, bool return_default = false) {
     else {
       throw std::invalid_argument("dict_get: can not found key: " + key);
     }
+  }
+}
+
+template <typename Container = std::vector<dict>>
+static inline int get_request_size(const Container& in) {
+  int total_len = 0;
+  for (const auto& item : in) {
+    const auto iter = item->find(TASK_REQUEST_SIZE_KEY);
+    if (iter != item->end()) {
+      const int re = any_cast<int>(iter->second);
+      total_len += re;
+    } else {
+      total_len += 1;
+    }
+  }
+  return total_len;
+}
+
+template <>
+inline int get_request_size<dict>(const dict& in) {
+  const auto iter = in->find(TASK_REQUEST_SIZE_KEY);
+  if (iter != in->end()) {
+    return any_cast<int>(iter->second);
+  } else {
+    return 1;
   }
 }
 
