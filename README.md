@@ -29,8 +29,8 @@ Production-Grade：Within NetEase a massive number of calls supported by Torchpi
 
 
 
-*Latest News* 🔥
-- [2024/06] We added a [YoloV10](https://github.com/THU-MIG/yolov10) example [here](examples/yolov10).
+<!-- *Latest News* 🔥
+- [2024/06] We added a [YoloV10](https://github.com/THU-MIG/yolov10) example [here](examples/yolov10). -->
 
 
 ## Installation
