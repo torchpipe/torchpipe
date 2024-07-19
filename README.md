@@ -138,38 +138,7 @@ print(input["result"].shape)  # If failed, this key value must not exist, even i
 <!-- end quickstart -->
 
 [ResNet18 Example](examples/resnet18/README.md)
-<details>
-    <summary>YOLO-X Example</summary>
 
-The following example shows the configuration for detection using YOLO-X. By default, it supports cross-request batching and node-level pipeline parallelism, under a product-ready environment.
-
-```toml
-batching_timeout = 5  # Waiting timeout for cross-request batching 
-precision = "fp16" 
-
-[jpg_decoder]
-backend = "Sequential[DecodeMat,CvtColorMat,ResizePadMat,Mat2Tensor,SyncTensor]"
-color = "bgr"
-instance_num = 5
-max_h = 416
-max_w = 416
-
-# the next node to go after this node
-next = "detect"
-
-[detect]
-backend = "Sequential[TensorrtTensor,PostProcYolox,SyncTensor]" 
-batching_timeout = 5 # Waiting timeout for cross-request batching 
-instance_num = 2 
-max = 4  # maximum batchsize
-model = "./yolox_tiny.onnx"
-"model::cache" = "./yolox_tiny.trt.encrypted"
-
-# params for user-defined backend PostProcYolox:
-net_h=416
-net_w=416
-```
-</details>
 
 ## Roadmap
 
