@@ -69,7 +69,7 @@ if __name__ == "__main__":
     img_out = img_out.tobytes()
 
     model = torchpipe.pipe({"model": onnx_path_1+"&"+onnx_path_4, "backend": "SyncTensor[TensorrtTensor]",
-                            'instance_num': 2, 'batching_timeout': '5', 'min': "1&4", 'max': "1&4"})
+                            'instance_num': 2, 'batching_timeout': '2', 'min': "1&4", 'max': "1&4"})
 
     data = torch.zeros((224, 282, 3), dtype=torch.int8)
     # or
