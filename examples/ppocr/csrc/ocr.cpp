@@ -21,6 +21,8 @@
 #include "params.hpp"
 #include "prepost.hpp"
 #include "reflect.h"
+#include <torch/torch.h>
+
 namespace ipipe {
 
 class ResizeImgType0Mat : public SingleBackend {
