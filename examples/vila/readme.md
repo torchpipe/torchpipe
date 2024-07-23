@@ -2,7 +2,7 @@
 ## Work In Process
 In this example, we serve VILA1.5-3B(fp16) with torchpipe, with no dependency on TensorRT-LLM or Triton server. We segment layers based on whether they can be batched with respect to the sequence length's dimension. The model is divided into two parts: batchful and batchless. Model parameters are (mainly) located in the batchful part, whereas the batchless part consists of positional encoding and parameter-free self-attention.  After masking the batchless part, we perform a complete trace. 
 
-Traditional dynamic batching can be applied the batchful part. We isolate the batchless part as a separate [function](https://github.com/gramalingam/onnx/blob/main/docs/IR.md#functions) and implement it using a TensorRT plugin. This plugin does nothing but  direct the batchless part to a dedicated TorchPipe server. The management and resource(e.g. kvcache) control operate entirely independently of TensorRT.
+Traditional dynamic batching can be applied the batchful part. We isolate the batchless part as a separate custom sub-graph/([function](https://github.com/gramalingam/onnx/blob/main/docs/IR.md#functions) in future) and implement it using a TensorRT plugin. This plugin does nothing but  direct the batchless part to a dedicated TorchPipe server. The management and resource(e.g. kvcache) control operate entirely independently of TensorRT.
  
 
 The computing for batchless part can be implemented as an independent cuda kernel, but for simplicity, it is traced and  implemented with TensorRT here, as TensorRT possibly internally [match flash attention patterns](https://github.com/NVIDIA/TensorRT/issues/3647#issuecomment-2054441577). (to be checked)
@@ -10,7 +10,7 @@ The computing for batchless part can be implemented as an independent cuda kerne
 ### Features:
 - [x] A TensorRT and trace based solution with no need for `TensorRT-LLM` and `Triton inference server`.
 - [x] flash attention
-- [x] contiguous batching
+- [x] ~~contiguous batching~~ special scheduler && load banlancing
 - [x] ~~PagedAttention~~ memory pool(need further thought)
 
 

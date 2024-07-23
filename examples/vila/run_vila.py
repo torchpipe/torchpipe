@@ -26,8 +26,12 @@ input = torch.ones((244,2560)).to(torch.float16).cuda()
 pt = "/workspace/VILA/inputs_embeds.pt"
 if os.path.exists(pt):
     input = torch.load(pt).squeeze(0).cuda()
-data = {'data':input,'request_id':'zzz', 'node_name':'batchful', 'trt_plugin':'batchless_prefill'}
-model(data)
-print(data['result'].shape)
+data = {'data':input,'request_id':'zzz','request_size':input.shape[0], 'node_name':'batchful', 'trt_plugin':'batchless_prefill'}
+
+inputs = [data]
+inputs += [{'data':input,'request_id':'zzz','request_size':input.shape[0], 'node_name':'batchful', 'trt_plugin':'batchless_prefill'}]
+
+model(inputs)
+print(inputs[0]['result'].shape, inputs[1]['result'].shape)
 # torchpipe.utils.test.test_from_raw_file(run,file_dir="../assets/", num_clients=2,
 #                                         total_number=1000)

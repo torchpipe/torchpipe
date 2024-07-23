@@ -93,6 +93,15 @@ std::vector<torch::Tensor> MultipleConcatPreprocess::forward(const std::vector<d
     }
 
     resized_inputs.push_back(net_inputs);
+    const auto& net_input = net_inputs[0];
+    if (raw_inputs.size() > 1 && net_input.size(0) != 1) {
+      if (get_request_size(item) != net_input.size(0)) {
+        throw std::runtime_error(
+            std::string("For batched input, the size of each tensor should be set by `") +
+            TASK_REQUEST_SIZE_KEY + "`. Expect " + std::to_string(net_input.size(0)) + ", get " +
+            std::to_string(get_request_size(item)));
+      }
+    }
   }
   int num_input = resized_inputs[0].size();
   if (resized_inputs.size() > 1) {

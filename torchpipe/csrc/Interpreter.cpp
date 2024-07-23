@@ -96,8 +96,8 @@ void Interpreter::init(mapmap config) {
   /// 如果没有配置主引擎，则根据节点数目选择默认主程序
   if (iter_main == iter_global->second.end() || iter_main->second.empty()) {
     if (config.size() <= 2) {
-      if (iter_global->second.find("batching") != iter_global->second.end()) {
-        std::string tmp_name = any_cast<std::string>(iter_global->second.find("batching")->second);
+      if (iter_global->second.find("scheduler") != iter_global->second.end()) {
+        std::string tmp_name = any_cast<std::string>(iter_global->second.find("scheduler")->second);
         SPDLOG_DEBUG("use batching backend: {}", tmp_name);
         backend_ = std::unique_ptr<Backend>(IPIPE_CREATE(Backend, tmp_name));
       } else {

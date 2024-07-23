@@ -1,5 +1,10 @@
 # Changelog
-## v0.6.0 (WIP)
+
+## v0.6.1 (WIP)
+- docker/Dockerfilex updated to TensorRT 10.2
+- support batching for batched input. need set 'batching = Batching' and the size of each tensor should be smaller than the max batch size.
+
+## v0.6.0 (2024.07.19)
 - fix docker/Dockerfilex
 - torchpipe.utils.cpp_extension: Resolved the issue where matching the incorrect libipipe.so path resulted in  importing multiple libipipe.so files, causing problems with handling static variables.
 - Forbidding the use of TorchAllocator in the default CUDA stream.

@@ -55,6 +55,7 @@ std::vector<torch::Tensor> SingleConcatPreprocess::forward(const std::vector<dic
   std::vector<torch::Tensor> resized_inputs;
 
   bool may_need_quick_cat = true;
+  // std::vector<uint32_t> shapes(raw_inputs.size());
   for (std::size_t index = 0; index < raw_inputs.size(); ++index) {
     auto item = raw_inputs[index];
     auto iter_data = item->find(TASK_DATA_KEY);
@@ -85,6 +86,14 @@ std::vector<torch::Tensor> SingleConcatPreprocess::forward(const std::vector<dic
     }
 
     resized_inputs.push_back(net_input);
+    if (raw_inputs.size() > 1 && net_input.size(0) != 1) {
+      if (get_request_size(item) != net_input.size(0)) {
+        throw std::runtime_error(
+            std::string("For batched input, the size of each tensor should be set by `") +
+            TASK_REQUEST_SIZE_KEY + "`. Expect " + std::to_string(net_input.size(0)) + ", get " +
+            std::to_string(get_request_size(item)));
+      }
+    }
   }
   assert(!resized_inputs.empty());
 

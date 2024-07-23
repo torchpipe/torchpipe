@@ -13,6 +13,7 @@
 #include <NvInferRuntimePlugin.h>
 
 #include <torch/torch.h>
+#include "PluginCacher.hpp"
 
 #define PLUGIN_ASSERT(val) reportAssertion((val), #val, __FILE__, __LINE__)
 
@@ -81,6 +82,8 @@ namespace plugin {
 // Plugin
 TorchPlugin::TorchPlugin(TorchPluginParameters const& params) : mParams{params} {
   SPDLOG_DEBUG("TorchPlugin: this={}", (long)this);
+  interpreter_ = nullptr;
+
   initFieldsToSerialize();
 }
 
@@ -216,6 +219,21 @@ int32_t TorchPlugin::getOutputShapes(DimsExprs const* inputs, int32_t nbInputs,
 int32_t TorchPlugin::enqueue(PluginTensorDesc const* inputDesc, PluginTensorDesc const* outputDesc,
                              void const* const* inputs, void* const* outputs, void* workspace,
                              cudaStream_t stream) noexcept {
+  {
+    std::lock_guard<std::mutex> lock(interpreter_mutex_);
+    if (interpreter_ == nullptr) {
+      config_ = ipipe::PluginCacher::query_config((void*)stream);
+      if (!config_.dict_config) return -1;
+      auto iter = config_.dict_config->find("Interpreter");
+      if (iter == config_.dict_config->end()) {
+        SPDLOG_ERROR("Interpreter not found in config");
+        return -1;
+      }
+      interpreter_ = ipipe::any_cast<ipipe::Backend*>(iter->second);
+      // IPIPE_ASSERT(config_.config.find("") == config_.config.end());
+    }
+  }
+
   SPDLOG_DEBUG("TorchPlugin:(enqueue) this={}", (long)this);
   {
     std::vector<torch::Tensor> input_arrays;
@@ -235,22 +253,37 @@ int32_t TorchPlugin::enqueue(PluginTensorDesc const* inputDesc, PluginTensorDesc
 
     // Interrupt torch's cuda semantics
     auto ret = cudaStreamSynchronize(stream);
-    // throw std::runtime_error("debug here in TorchPlugin");
+
+    // for (const auto& item : input_dicts) {
+    //   for (auto iter = item->begin(); iter != item->end(); ++iter) {
+    //     std::cout << iter->first << " " << iter->second.type().name() << std::endl;
+    //   }
+    // }
     assert(cudaSuccess == 0);
     if (ret != cudaSuccess) return ret;
+
+    const std::vector<ipipe::dict>& input_dicts = ipipe::PluginCacher::query_input((void*)stream);
+    // throw std::runtime_error("debug here in TorchPlugin");
+    assert(input_dicts.size() > 0);
+
+    auto iter = input_dicts[0]->find("trt_plugin");
+    if (iter == input_dicts[0]->end()) {
+      logError("trt_plugin not found in input data");
+      return -1;
+    }
+    std::string trt_plugin = ipipe::any_cast<std::string>(iter->second);
     // IPEIPE_ASSERT(c10::cuda::getCurrentCUDAStream(-1).stream == stream);
 
-    auto inter = ipipe::CThreadSafeInterpreters::getInstance().get();
-    assert(inter.size() > 0);
-    const auto index = 0;
+    // auto inter = ipipe::CThreadSafeInterpreters::getInstance().get();
+    // assert(inter.size() > 0);
+    // const auto index = 0;
     // std::unordered_map<std::string, ipipe::any> usr_data = ;
 
     ipipe::dict user_data = std::make_shared<std::unordered_map<std::string, ipipe::any>>(
-        std::unordered_map<std::string, ipipe::any>({{"data", input_arrays},
-                                                     {"outputs", output_arrays},
-                                                     {"node_name", std::string("TorchPlugin")}}));
+        std::unordered_map<std::string, ipipe::any>(
+            {{"data", input_arrays}, {"outputs", output_arrays}, {"node_name", trt_plugin}}));
     try {
-      inter[index]->forward({user_data});
+      interpreter_->forward({user_data});
     } catch (std::exception const& e) {
       caughtError(e);
       return -1;

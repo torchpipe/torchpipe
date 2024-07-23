@@ -93,13 +93,13 @@ bool PhysicalView::init(mapmap config) {
 
     auto iter_pipeline_backend = iter->second.find("PhysicalView::backend");
 #ifndef NDEBUG
-    if (const char* env_p = std::getenv("batching")) {
+    if (const char* env_p = std::getenv("scheduler")) {
       SPDLOG_INFO("use batching backend from env: {}", env_p);
       backends_[iter->first] = std::unique_ptr<Backend>(IPIPE_CREATE(Backend, env_p));
     } else
 #endif
-        if (iter->second.find("batching") != iter->second.end()) {
-      std::string tmp_name = any_cast<std::string>(iter->second.find("batching")->second);
+        if (iter->second.find("scheduler") != iter->second.end()) {
+      std::string tmp_name = any_cast<std::string>(iter->second.find("scheduler")->second);
       SPDLOG_DEBUG("use batching backend: {}", tmp_name);
       backends_[iter->first] = std::unique_ptr<Backend>(IPIPE_CREATE(Backend, tmp_name));
     } else if (iter_pipeline_backend == iter->second.end()) {

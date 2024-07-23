@@ -41,6 +41,7 @@ void Batching::run() {  // only one Batching thread
 
   while (bThreadInited_.load()) {
     auto input_data_size = get_request_size(input_data);
+
     const auto data_size = input_queue_.size();
 
     if (data_size + input_data_size >= max_batch_size_) {

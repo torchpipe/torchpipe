@@ -30,11 +30,17 @@
 
 namespace ipipe {
 
+// # cal_request_size_method = "AddRequestSizeTensor"
+
 class Batching : public Backend {
  public:
   bool init(const std::unordered_map<std::string, std::string>& config, dict dict_config) {
-    params_ = std::unique_ptr<Params>(new Params(
-        {{"multiple_instances", ""}, {"batching_timeout", "2"}, {"node_name", ""}}, {}, {}, {}));
+    params_ = std::unique_ptr<Params>(
+        new Params({{"multiple_instances", ""},
+                    {"batching_timeout", "2"},
+                    {"cal_request_size_method", ""},  // AddRequestSizeTensor
+                    {"node_name", ""}},
+                   {}, {}, {}));
     if (config.empty()) {
       SPDLOG_ERROR("empty config. Only support single-node configuration.");
       return false;
@@ -52,6 +58,11 @@ class Batching : public Backend {
       backend_ = std::make_unique<MultiInstances>();
     } else {
       backend_ = std::unique_ptr<Backend>(IPIPE_CREATE(Backend, params_->at("multiple_instances")));
+    }
+    if (!params_->at("cal_request_size_method").empty()) {
+      cal_request_size_method_ =
+          std::unique_ptr<Backend>(IPIPE_CREATE(Backend, params_->at("cal_request_size_method")));
+      IPIPE_ASSERT(cal_request_size_method_ && cal_request_size_method_->init(config, dict_config));
     }
 
     runing_state_ = std::make_shared<RuningState>();
@@ -78,6 +89,9 @@ class Batching : public Backend {
   virtual uint32_t max() const { return UINT32_MAX; };
 
   void forward(const std::vector<dict>& raw_inputs) {
+    if (cal_request_size_method_ && bThreadInited_.load()) {
+      for (const auto& item : raw_inputs) cal_request_size_method_->forward({item});
+    }
     std::vector<std::shared_ptr<SimpleEvents>> events;  // 注意，
     // 事件需要提前准备好，不可运行时从map获得，容易造成多线程问题
 
@@ -110,12 +124,13 @@ class Batching : public Backend {
 
       if (!bThreadInited_.load()) {
         for (auto raw_input : raw_inputs) {
-          backend_->forward({raw_input});  // 异步调用
+          backend_->forward({raw_input});  // 异步调用, bs=1
         }
       } else {
         std::vector<size_t> sizes;
         for (const auto& item : raw_inputs) {
           const auto item_size = get_request_size(item);
+          // SPDLOG_DEBUG("item_size={} max_batch_size={}", item_size, max_batch_size_);
           IPIPE_ASSERT(item_size <= max_batch_size_);
           sizes.push_back(item_size);
         }
@@ -158,6 +173,7 @@ class Batching : public Backend {
   std::unique_ptr<Params> params_;
   std::string node_name_;
   std::unique_ptr<Backend> backend_;
+  std::unique_ptr<Backend> cal_request_size_method_;
 
   std::atomic_bool bThreadInited_{false};
 

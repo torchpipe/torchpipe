@@ -4,6 +4,8 @@
 #include <NvInferRuntime.h>
 #include <NvInferRuntimePlugin.h>
 
+#include "PluginCacher.hpp"
+
 // In IPluginV3 interface, the plugin name, version, and name space must be
 // specified for the plugin and plugin creator exactly the same.
 constexpr char const* const kTORCH_PLUGIN_NAME{"TorchPlugin"};
@@ -83,6 +85,9 @@ class TorchPlugin : public IPluginV3,
                           int32_t nbOutputs) const noexcept override;
 
  private:
+  ipipe::Backend* interpreter_ = nullptr;
+  ipipe::BackendConfig config_;
+  std::mutex interpreter_mutex_;
   // TensorRT plugin parameters.
   TorchPluginParameters mParams;
 

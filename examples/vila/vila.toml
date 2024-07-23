@@ -1,4 +1,5 @@
 'precision' = 'fp16'
+scheduler = "Batching"
 
 # [preprocess]
 # 'backend' = 'S[DecodeMat,CvtColorMat,ResizeMat,Mat2Tensor,SyncTensor]'
@@ -9,12 +10,14 @@
 # 'resize_w' = '384'
 
 [batchful]
-'backend' = 'S[TensorrtTensor,SyncTensor]'
+# PluginCacher is used to cache parameters and input data for (tensorrt) plugin
+'backend' = 'S[PluginCacher[TensorrtTensor],SyncTensor]'
 # max = '1x2047x2560,1x2047,1x2047x2560,1x2047x2560'
 # min = '1x1x2560,1x1,1x1x2560,1x1x2560'
-max = '2047'
-'model' = '/workspace/VILA/onnx/decode_batchful.onnx'
-'model::cache' = './batchful.trt'
+cal_request_size_method = "CalTorchBatchSize" # calc. request_size according to torch tensor size
+max = '2047' 
+'model' = '/workspace/VILA/onnx/decode_batchful.onnx' 
+'model::cache' = './batchful.trt' 
 
 # next = 'decode_batchful'
 # [decode_batchful]

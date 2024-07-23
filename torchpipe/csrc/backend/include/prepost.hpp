@@ -15,8 +15,9 @@
 #pragma once
 #include "Backend.hpp"
 #include "dict.hpp"
+#include <torch/torch.h>
+
 namespace ipipe {
-template <typename T>
 /**
  * @brief @ref TensorrtTensor 提供的后处理操作的扩展，
  可继承并实现自定义后处理。
@@ -36,6 +37,7 @@ template <typename T>
   ```
  *
  */
+template <typename T>
 class PostProcessor {
  public:
   /**
@@ -74,16 +76,36 @@ class PostProcessor {
       else
         (*inputs[0])[TASK_RESULT_KEY] = net_outputs;
       return;
-    }
-    for (std::size_t i = 0; i < inputs.size(); ++i) {
-      std::vector<T> single_result;
-      for (const auto& item : net_outputs) {
-        single_result.push_back(item[i].unsqueeze(0));
+    } else if (net_outputs[0].sizes()[0] > inputs.size()) {
+      std::vector<uint32_t> shapes{0};
+      for (const auto& item : inputs) {
+        shapes.push_back(get_request_size(item));
       }
-      if (single_result.size() == 1) {
-        (*inputs[i])[TASK_RESULT_KEY] = single_result[0];  // batch=1 的时候，返回单个值
-      } else
-        (*inputs[i])[TASK_RESULT_KEY] = single_result;
+      IPIPE_ASSERT(std::accumulate(shapes.begin(), shapes.end(), 0) == net_outputs[0].sizes()[0]);
+      // 累加
+      std::partial_sum(shapes.begin(), shapes.end(), shapes.begin());
+
+      for (std::size_t i = 0; i < inputs.size(); ++i) {
+        std::vector<T> single_result;
+        for (const auto& item : net_outputs) {
+          single_result.push_back(item.index({torch::indexing::Slice(shapes[i], shapes[i + 1])}));
+        }
+        if (single_result.size() == 1) {
+          (*inputs[i])[TASK_RESULT_KEY] = single_result[0];  // 返回torch::Tensor
+        } else
+          (*inputs[i])[TASK_RESULT_KEY] = single_result;  // 返回std::vector<torch::Tensor>
+      }
+    } else {
+      for (std::size_t i = 0; i < inputs.size(); ++i) {
+        std::vector<T> single_result;
+        for (const auto& item : net_outputs) {
+          single_result.push_back(item[i].unsqueeze(0));
+        }
+        if (single_result.size() == 1) {
+          (*inputs[i])[TASK_RESULT_KEY] = single_result[0];
+        } else
+          (*inputs[i])[TASK_RESULT_KEY] = single_result;
+      }
     }
   }
 
