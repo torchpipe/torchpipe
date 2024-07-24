@@ -89,7 +89,11 @@ class Batching : public Backend {
   virtual uint32_t max() const { return UINT32_MAX; };
 
   void forward(const std::vector<dict>& raw_inputs) {
-    if (cal_request_size_method_ && bThreadInited_.load()) {
+    if (cal_request_size_method_) {
+      if (!bThreadInited_.load()) {
+        SPDLOG_ERROR("cal_request_size_method_ is not supported when no batching needed");
+        abort();
+      }
       for (const auto& item : raw_inputs) cal_request_size_method_->forward({item});
     }
     std::vector<std::shared_ptr<SimpleEvents>> events;  // 注意，
@@ -107,12 +111,20 @@ class Batching : public Backend {
         auto event = make_event();
         events.emplace_back(event);
         event->add_callback([guard_state]() { guard_state->del(); });
+        if (cal_request_size_method_) {
+          auto* data = raw_input.get();
+          event->add_callback([data]() { data->erase(TASK_REQUEST_SIZE_KEY); });
+        }
         map_data[TASK_EVENT_KEY] = event;
       } else {
         events.emplace_back(nullptr);
 
         std::shared_ptr<SimpleEvents> ev = any_cast<std::shared_ptr<SimpleEvents>>(iter->second);
         ev->add_callback([guard_state]() { guard_state->del(); });
+        if (cal_request_size_method_) {
+          auto* data = raw_input.get();
+          ev->add_callback([data]() { data->erase(TASK_REQUEST_SIZE_KEY); });
+        }
       }
     }
 

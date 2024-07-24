@@ -19,6 +19,7 @@ cal_request_size_method = "CalTorchBatchSize" # calc. request_size according to 
 max = '2047'
 'model' = '/workspace/VILA/onnx/decode_batchful.onnx'
 'model::cache' = './batchful.trt'
+next = 'sample'
 # next = 'decode_batchful'
 # [decode_batchful]
 # backend = "S[AddKey[plugin_node:batchless_decode],BatchingTensor,Jump[batchful]]"
@@ -68,3 +69,8 @@ num_layers = 32 # for llama. Auto set?
 
 [batchless_decode]
 #TorchPlugin
+
+[sample]
+backend = 'SyncTensor[SampleTensor]'
+# map = "batchful[result:data]" # remove TASK_REQUEST_SIZE_KEY
+temperature = 0.2
