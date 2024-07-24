@@ -30,10 +30,12 @@
 namespace ipipe {
 bool KVCacheTensor::init(const std::unordered_map<std::string, std::string>& config_param,
                          dict dict_config) {
-  params_ =
-      std::unique_ptr<Params>(new Params({{"KVCacheTensor::backend", "Identity"}}, {}, {}, {}));
+  params_ = std::unique_ptr<Params>(
+      new Params({{"KVCacheTensor::backend", "Identity"}, {"num_layers", "32"}}, {}, {}, {}));
 
   if (!params_->init(config_param)) return false;
+
+  num_layers_ = std::stoi(params_->at("num_layers"));
 
   engine_ = std::unique_ptr<Backend>(IPIPE_CREATE(Backend, params_->at("KVCacheTensor::backend")));
 
@@ -44,15 +46,80 @@ bool KVCacheTensor::init(const std::unordered_map<std::string, std::string>& con
     return false;
   }
 
+  auto options = torch::TensorOptions()
+                     .device(torch::kCUDA, -1)
+                     .dtype(torch::kLong)
+                     .layout(torch::kStrided)
+                     .requires_grad(false);
+  std::vector<long int> shape_{1, 2048};
+  auto seq_length = shape_[1];
+  position_ids_ = torch::arange(0, seq_length, options);
+
   return true;
 }
 
 void KVCacheTensor::forward(dict input_dict) {
-  auto iter = input_dict->find("request_id");
-  if (iter != input_dict->end()) {
-    std::string request_id = any_cast<std::string>(iter->second);
-    SPDLOG_INFO("KVCacheTensor request_id: {}", request_id);
+  auto& input = *input_dict;
+  std::vector<torch::Tensor>* input_tensor = nullptr;
+  if (input[TASK_DATA_KEY].type() == typeid(torch::Tensor)) {
+    // todo
+    throw std::runtime_error(
+        "KVCacheTensor: std::vector<torch::Tensor> needed; error input type: " +
+        std::string(input[TASK_DATA_KEY].type().name()));
+  } else if (input[TASK_DATA_KEY].type() == typeid(std::vector<torch::Tensor>)) {
+    input_tensor = any_cast<std::vector<torch::Tensor>>(&input[TASK_DATA_KEY]);
+
+  } else {
+    throw std::runtime_error("vector<torch::Tensor> needed; error input type: " +
+                             std::string(input[TASK_DATA_KEY].type().name()));
   }
+
+  IPIPE_ASSERT(input_tensor->size() == 3);
+  int seq_len = input_tensor->at(0).size(-2);
+  int kv_seq_len = input_tensor->at(1).size(-2);
+  IPIPE_ASSERT(seq_len == kv_seq_len || (seq_len == 1));
+  SPDLOG_DEBUG("KVCache: seq_len: {} kv_seq_len {}", seq_len, kv_seq_len);
+
+  auto iter = input_dict->find("request_id");
+  IPIPE_ASSERT(iter != input_dict->end());
+  std::string request_id = any_cast<std::string>(iter->second);
+  SPDLOG_DEBUG("KVCacheTensor request_id: {}", request_id);
+
+  KVCache* cache = nullptr;
+  {
+    std::lock_guard<std::mutex> lock(mutex_);
+    auto iter_kvcache = kv_caches_.find(request_id);
+    if (iter_kvcache == kv_caches_.end()) {
+      kv_caches_[request_id] = std::make_unique<KVCache>(num_layers_);
+    }
+    cache = kv_caches_[request_id].get();
+  }
+  auto state = cache->get_and_switch_state();
+  if (cache->is_prefill()) {
+    if (state == KVCache::KVCacheState::kPrepareInput) {
+      torch::Tensor position_ids =
+          position_ids_.index({torch::indexing::Slice(0, seq_len)}).unsqueeze(0);
+      input_tensor->push_back(position_ids);
+    } else {
+      std::vector<torch::Tensor> kv(input_tensor->end() - 2, input_tensor->end());
+      cache->push(kv);
+    }
+  } else {
+    if (state == KVCache::KVCacheState::kPrepareInput) {
+      auto past_kv = cache->pop();
+      int past_seq_len = past_kv.at(0).size(-2);
+      torch::Tensor position_ids =
+          position_ids_.index({torch::indexing::Slice(past_seq_len, 1 + past_seq_len)})
+              .unsqueeze(0);
+      input_tensor->push_back(position_ids);
+      input_tensor->push_back(past_kv.at(0));
+      input_tensor->push_back(past_kv.at(1));
+    } else {
+      std::vector<torch::Tensor> kv(input_tensor->end() - 2, input_tensor->end());
+      cache->push(kv);
+    }
+  }
+
   engine_->forward({input_dict});
 }
 

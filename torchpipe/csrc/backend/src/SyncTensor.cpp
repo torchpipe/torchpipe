@@ -60,6 +60,8 @@ bool SyncTensor::init(const std::unordered_map<std::string, std::string>& config
     return false;
   }
 
+  c10::cuda::getCurrentCUDAStream().synchronize();
+
   return true;
 }
 

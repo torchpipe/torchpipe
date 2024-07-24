@@ -18,18 +18,57 @@
 #include "dict.hpp"
 
 #include <memory>
+#include <torch/torch.h>
 
 namespace ipipe {
 class Params;
+class KVCache {
+ public:
+  enum class KVCacheState { kPrepareInput, kUpdateoutput };
+
+  KVCache(int num_layers) : num_layer_(num_layers) { kv_cache_.resize(num_layers); }
+
+  KVCacheState get_and_switch_state() {
+    if (state_ == KVCacheState::kPrepareInput) {
+      state_ = KVCacheState::kUpdateoutput;
+      return KVCacheState::kPrepareInput;
+    }
+    state_ = KVCacheState::kPrepareInput;
+    return KVCacheState::kUpdateoutput;
+  }
+  bool is_prefill() { return current_layer_ < num_layer_; }
+
+  std::vector<torch::Tensor> pop() {
+    std::vector<torch::Tensor> tmp;
+    std::swap(tmp, kv_cache_[current_layer_ % num_layer_]);
+    return tmp;
+  }
+  void push(std::vector<torch::Tensor> input) {
+    std::swap(kv_cache_[(current_layer_++) % num_layer_], input);
+  }
+  std::size_t get_current_layer() { return current_layer_; }
+
+ private:
+  KVCacheState state_ = KVCacheState::kPrepareInput;
+  std::vector<std::vector<torch::Tensor>> kv_cache_;  // 32x2: layer index && k,v
+  std::size_t current_layer_ = 0;
+  const int num_layer_;
+};
 
 class KVCacheTensor : public SingleBackend {
  public:
-  virtual bool init(const std::unordered_map<std::string, std::string>&, dict) override;
+  virtual bool init(const std::unordered_map<std::string, std::string> &, dict) override;
 
   virtual void forward(dict) override;
 
  private:
   std::unique_ptr<Params> params_;
   std::unique_ptr<Backend> engine_;
+  // layer_index -> request_id -> k,v
+  std::unordered_map<std::string, std::unique_ptr<KVCache>> kv_caches_;
+  std::mutex mutex_;
+  torch::Tensor position_ids_;
+
+  int num_layers_{0};
 };
 }  // namespace ipipe

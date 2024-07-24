@@ -437,15 +437,16 @@ void TensorrtTensor::forward(const std::vector<dict>& raw_inputs) {
 #ifndef NDEBUG
   std::string shape;
   for (const auto& input : inputs_) {
-    shape = std::to_string(input.size(0));
+    shape += std::to_string(input.size(0));
 
     for (std::size_t i = 1; i < input.sizes().size(); ++i) {
-      shape += "," + std::to_string(input.size(i));
+      shape += "x" + std::to_string(input.size(i));
     }
-    shape += " ";
+    shape += ",";
   }
+  shape.pop_back();
 
-  SPDLOG_DEBUG("{}: index({}) size({}) max({}) input.shape({})", node_name.c_str(),
+  SPDLOG_DEBUG("{}: instance({}) dicts({}) this->max()={}({})", node_name.c_str(),
                independent_thread_index_, raw_inputs.size(), max(), shape);
 #endif
 

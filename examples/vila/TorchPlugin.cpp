@@ -52,26 +52,41 @@ void io_tensor(nvinfer1::PluginTensorDesc const* inputDesc,
                nvinfer1::PluginTensorDesc const* outputDesc, void const* const* inputs,
                void* const* outputs, std::vector<torch::Tensor>& input_arrays,
                std::vector<torch::Tensor>& output_arrays, nvinfer1::DataType trttype,
-               std::size_t nbInputs) noexcept {
+               std::size_t nbInputs, int request_start, int request_end) noexcept {
   // IPIPE_ASSERT(nbInputs == 3);
   for (std::size_t i{0}; i < nbInputs; ++i) {
     std::vector<int64_t> sizes;
-    for (int j = 0; j < inputDesc[i].dims.nbDims; j++) {
+    sizes.push_back(request_end - request_start);
+
+    for (int j = 1; j < inputDesc[i].dims.nbDims; j++) {
       sizes.push_back(inputDesc[i].dims.d[j]);
     }
-    auto options =
-        torch::TensorOptions().dtype(getTorchTypeFromTrtType(trttype)).device(torch::kCUDA);
-    input_arrays.emplace_back(torch::from_blob((void*)inputs[i], sizes, options));
+
+    char* start_ptr = (char*)inputs[i];
+    auto dtype = getTorchTypeFromTrtType(trttype);
+
+    int offset = request_start * torch::elementSize(dtype) *
+                 std::accumulate(sizes.begin() + 1, sizes.end(), 1, std::multiplies<int64_t>());
+    auto options = torch::TensorOptions().dtype(dtype).device(torch::kCUDA);
+    input_arrays.emplace_back(
+        torch::from_blob((void*)(start_ptr + offset), sizes, options).unsqueeze(0));
   }
 
   for (std::size_t i{0}; i < 1; ++i) {
     std::vector<int64_t> sizes;
-    for (int j = 0; j < outputDesc[i].dims.nbDims; j++) {
+    sizes.push_back(request_end - request_start);
+    for (int j = 1; j < outputDesc[i].dims.nbDims; j++) {
       sizes.push_back(outputDesc[i].dims.d[j]);
     }
-    auto options =
-        torch::TensorOptions().dtype(getTorchTypeFromTrtType(trttype)).device(torch::kCUDA);
-    output_arrays.emplace_back(torch::from_blob((void*)outputs[i], sizes, options));
+
+    char* start_ptr = (char*)outputs[i];
+    auto dtype = getTorchTypeFromTrtType(trttype);
+
+    int offset = request_start * torch::elementSize(dtype) *
+                 std::accumulate(sizes.begin() + 1, sizes.end(), 1, std::multiplies<int64_t>());
+    auto options = torch::TensorOptions().dtype(dtype).device(torch::kCUDA);
+    output_arrays.emplace_back(
+        torch::from_blob((void*)(start_ptr + offset), sizes, options).unsqueeze(0));
   }
 }
 }  // namespace
@@ -236,13 +251,9 @@ int32_t TorchPlugin::enqueue(PluginTensorDesc const* inputDesc, PluginTensorDesc
 
   SPDLOG_DEBUG("TorchPlugin:(enqueue) this={}", (long)this);
   {
-    std::vector<torch::Tensor> input_arrays;
-    std::vector<torch::Tensor> output_arrays;
     if (mParams.nbInputs == 0) {
       return -2;
     }
-    io_tensor(inputDesc, outputDesc, inputs, outputs, input_arrays, output_arrays, mParams.dtype,
-              mParams.nbInputs);
 
     // for (auto& item : input_arrays) {
     //   if (item.sizes().size() == 2) item = item.unsqueeze(0);
@@ -250,6 +261,42 @@ int32_t TorchPlugin::enqueue(PluginTensorDesc const* inputDesc, PluginTensorDesc
     // for (auto& item : output_arrays) {
     //   if (item.sizes().size() == 2) item = item.unsqueeze(0);
     // }
+
+    const std::vector<ipipe::dict>& input_dicts = ipipe::PluginCacher::query_input((void*)stream);
+    // throw std::runtime_error("debug here in TorchPlugin");
+    assert(input_dicts.size() > 0);
+    int request_size_start = 0;
+    ipipe::dicts user_datas;
+    for (std::size_t i = 0; i < input_dicts.size(); ++i) {
+      auto iter = input_dicts[i]->find("trt_plugin");
+      if (iter == input_dicts[i]->end()) {
+        logError("trt_plugin not found in input data");
+        return -1;
+      }
+      std::string trt_plugin = ipipe::any_cast<std::string>(iter->second);
+
+      iter = input_dicts[i]->find("request_id");
+      if (iter == input_dicts[i]->end()) {
+        logError("request_id not found in input data");
+        return -1;
+      }
+      std::string request_id = ipipe::any_cast<std::string>(iter->second);
+
+      int request_size = ipipe::get_request_size(input_dicts[i]);
+
+      std::vector<torch::Tensor> input_arrays;
+      std::vector<torch::Tensor> output_arrays;
+      io_tensor(inputDesc, outputDesc, inputs, outputs, input_arrays, output_arrays, mParams.dtype,
+                mParams.nbInputs, request_size_start, request_size_start + request_size);
+      request_size_start += request_size;
+
+      ipipe::dict user_data = std::make_shared<std::unordered_map<std::string, ipipe::any>>(
+          std::unordered_map<std::string, ipipe::any>({{"data", input_arrays},
+                                                       {"outputs", output_arrays},
+                                                       {"request_id", request_id},
+                                                       {"node_name", trt_plugin}}));
+      user_datas.push_back(user_data);
+    }
 
     // Interrupt torch's cuda semantics
     auto ret = cudaStreamSynchronize(stream);
@@ -262,54 +309,34 @@ int32_t TorchPlugin::enqueue(PluginTensorDesc const* inputDesc, PluginTensorDesc
     assert(cudaSuccess == 0);
     if (ret != cudaSuccess) return ret;
 
-    const std::vector<ipipe::dict>& input_dicts = ipipe::PluginCacher::query_input((void*)stream);
-    // throw std::runtime_error("debug here in TorchPlugin");
-    assert(input_dicts.size() > 0);
-
-    auto iter = input_dicts[0]->find("trt_plugin");
-    if (iter == input_dicts[0]->end()) {
-      logError("trt_plugin not found in input data");
-      return -1;
-    }
-    std::string trt_plugin = ipipe::any_cast<std::string>(iter->second);
-    // IPEIPE_ASSERT(c10::cuda::getCurrentCUDAStream(-1).stream == stream);
-
-    // auto inter = ipipe::CThreadSafeInterpreters::getInstance().get();
-    // assert(inter.size() > 0);
-    // const auto index = 0;
-    // std::unordered_map<std::string, ipipe::any> usr_data = ;
-
-    ipipe::dict user_data = std::make_shared<std::unordered_map<std::string, ipipe::any>>(
-        std::unordered_map<std::string, ipipe::any>(
-            {{"data", input_arrays}, {"outputs", output_arrays}, {"node_name", trt_plugin}}));
     try {
-      interpreter_->forward({user_data});
+      interpreter_->forward(user_datas);
     } catch (std::exception const& e) {
       caughtError(e);
       return -1;
     }
 
-    if (user_data->find("result") == user_data->end()) {
-      logError("result not found in user_data");
-      return -1;
-    }
+    // if (user_data->find("result") == user_data->end()) {
+    //   logError("result not found in user_data");
+    //   return -1;
+    // }
 
     // for (auto& item : output_arrays) {
     //   if (item.sizes().size() == 3) item = item.squeeze(0);
     // }
-    std::cout << input_arrays[0].sizes()
-              << input_arrays[0].index({torch::indexing::Slice(torch::indexing::None, 4),
-                                        torch::indexing::Slice(torch::indexing::None, 4)})
-              << std::endl;
-    std::cout << input_arrays[1].sizes()
-              << input_arrays[1].index({torch::indexing::Slice(torch::indexing::None, 4),
-                                        torch::indexing::Slice(torch::indexing::None, 4)})
-              << std::endl;
+    // std::cout << input_arrays[0].sizes()
+    //           << input_arrays[0].index({torch::indexing::Slice(torch::indexing::None, 4),
+    //                                     torch::indexing::Slice(torch::indexing::None, 4)})
+    //           << std::endl;
+    // std::cout << input_arrays[1].sizes()
+    //           << input_arrays[1].index({torch::indexing::Slice(torch::indexing::None, 4),
+    //                                     torch::indexing::Slice(torch::indexing::None, 4)})
+    //           << std::endl;
 
-    std::cout << output_arrays[0].sizes()
-              << output_arrays[0].index({torch::indexing::Slice(torch::indexing::None, 4),
-                                         torch::indexing::Slice(torch::indexing::None, 4)})
-              << std::endl;
+    // std::cout << output_arrays[0].sizes()
+    //           << output_arrays[0].index({torch::indexing::Slice(torch::indexing::None, 4),
+    //                                      torch::indexing::Slice(torch::indexing::None, 4)})
+    //           << std::endl;
 
     // return 0;
   }

@@ -15,10 +15,10 @@ scheduler = "Batching"
 # max = '1x2047x2560,1x2047,1x2047x2560,1x2047x2560'
 # min = '1x1x2560,1x1,1x1x2560,1x1x2560'
 cal_request_size_method = "CalTorchBatchSize" # calc. request_size according to torch tensor size
-max = '2047' 
-'model' = '/workspace/VILA/onnx/decode_batchful.onnx' 
-'model::cache' = './batchful.trt' 
 
+max = '2047'
+'model' = '/workspace/VILA/onnx/decode_batchful.onnx'
+'model::cache' = './batchful.trt'
 # next = 'decode_batchful'
 # [decode_batchful]
 # backend = "S[AddKey[plugin_node:batchless_decode],BatchingTensor,Jump[batchful]]"
@@ -36,15 +36,17 @@ max = '2047'
 
 # [batchless_prefill]
 [batchless_prefill]
-# request_id node_name
-backend = "S[AppendPositionIDsTensor,TensorrtTensor,Jump[kvcache],SyncTensor]"
-max = '1x2047x2560,1x2047x2560,1x2047x2560,1x2047'
-min = '1x1x2560,1x1x2560,1x1x2560,1x1'
-'model' = '/workspace/VILA/onnx/batchless_prefill.onnx'
-'model::cache' = './batchless_prefill.trt'
+# request_id node_name 
+backend = "S[Jump[kvcache],TensorrtTensor,Jump[kvcache],SyncTensor]" # AppendPositionIDsTensor,
+instance_num = 4 
+max = '1x2047x2560,1x2047x2560,1x2047x2560,1x2047' 
+min = '1x1x2560,1x1x2560,1x1x2560,1x1' 
+'model' = '/workspace/VILA/onnx/batchless_prefill.onnx' 
+'model::cache' = './batchless_prefill.trt' 
 
 [kvcache]
-backend = "S[KVCacheTensor,SyncTensor]"
+backend = "S[KVCacheTensor,SyncTensor]" 
+num_layers = 32 # for llama. Auto set?
 # [siglip]
 # 'backend' = 'SyncTensor[TensorrtTensor]'
 # 'mean' = '127.5,127.5,127.5'
