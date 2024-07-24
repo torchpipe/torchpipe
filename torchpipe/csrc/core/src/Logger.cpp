@@ -28,15 +28,18 @@ namespace ipipe {
 
 std::shared_ptr<spdlog::sinks::stdout_color_sink_mt> get_colored_sink() {
   auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
-#if defined _MSC_VER
-  console_sink->set_color(spdlog::level::err, console_sink->RED);
-  console_sink->set_color(spdlog::level::warn, console_sink->YELLOW);
-#else
-  console_sink->set_color(spdlog::level::err, "\033[31m");   // Red for error
-  console_sink->set_color(spdlog::level::warn, "\033[33m");  // Yellow for warning
-  // console_sink->set_color(spdlog::level::info, "\033[37m"); // White for info
 
-#endif
+  console_sink->set_color_mode(spdlog::color_mode::always);
+  // #if defined _MSC_VER
+  // console_sink->set_color(spdlog::level::err, console_sink->red);
+  // console_sink->set_color(spdlog::level::warn, console_sink->yellow);
+  // console_sink->set_color(spdlog::level::warn, console_sink->YELLOW);
+  // #else
+  //   console_sink->set_color(spdlog::level::err, "\033[31m");   // Red for error
+  //   console_sink->set_color(spdlog::level::warn, "\033[33m");  // Yellow for warning
+  //   // console_sink->set_color(spdlog::level::info, "\033[37m"); // White for info
+
+  // #endif
   return console_sink;
 }
 

@@ -51,6 +51,7 @@ class Batching : public Backend {
     for (const auto& item : batching_timeouts) {
       batching_timeout_ = std::max(batching_timeout_, std::stof(item));
     }
+
     node_name_ = params_->at("node_name");
 
     if (params_->at("multiple_instances").empty()) {
@@ -64,23 +65,28 @@ class Batching : public Backend {
           std::unique_ptr<Backend>(IPIPE_CREATE(Backend, params_->at("cal_request_size_method")));
       IPIPE_ASSERT(cal_request_size_method_ && cal_request_size_method_->init(config, dict_config));
     }
-
+    if (!backend_ || !backend_->init(config, dict_config)) return false;
     runing_state_ = std::make_shared<RuningState>();
-    if (backend_ && backend_->init(config, dict_config)) {
+    {
       max_batch_size_ = backend_->max();
       if (max_batch_size_ == UINT32_MAX) {
         SPDLOG_WARN(node_name_ + ": max() == UINT32_MAX");
       }
+
       if (max_batch_size_ != 1 && batching_timeout_ > 0) {
         bThreadInited_.store(true);
         thread_ = std::thread(&Batching::run, this);
+      } else if (max_batch_size_ != 1 && batching_timeout_ == 0) {
+        SPDLOG_WARN(
+            "{}: Batching will not be enabled as batching_timeout is set to 0. Even though "
+            "max_batch_size is greater than 1, multiple requests coming in simultaneously will not "
+            "be batched together.",
+            node_name_);
       }
-      SPDLOG_INFO("{}: max_batch_size={}", node_name_, max_batch_size_);
-
-      return true;
-    } else {
-      return false;
+      SPDLOG_INFO("{}: max_batch_size={}, batching_timeout={}", node_name_, max_batch_size_,
+                  batching_timeout_);
     }
+    return true;
   }
 
   /**

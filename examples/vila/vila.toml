@@ -9,31 +9,20 @@ scheduler = "Batching"
 # 'resize_h' = '384'
 # 'resize_w' = '384'
 
+[embed_tokens]
+backend = "SyncTensor[EmbedTokensTensor]"
+tensor = "/workspace/VILA/embed_tokens.pt"
+
 [batchful]
 # PluginCacher is used to cache parameters and input data for (tensorrt) plugin
 'backend' = 'S[PluginCacher[TensorrtTensor],SyncTensor]'
-# max = '1x2047x2560,1x2047,1x2047x2560,1x2047x2560'
-# min = '1x1x2560,1x1,1x1x2560,1x1x2560'
+
 cal_request_size_method = "CalTorchBatchSize" # calc. request_size according to torch tensor size
 
 max = '2047'
 'model' = '/workspace/VILA/onnx/decode_batchful.onnx'
 'model::cache' = './batchful.trt'
 next = 'sample'
-# next = 'decode_batchful'
-# [decode_batchful]
-# backend = "S[AddKey[plugin_node:batchless_decode],BatchingTensor,Jump[batchful]]"
-
-# [prefill_batchless]
-# # 0. key_states 1x-1x2560 
-# # 1. position_ids 1x-1 
-# # 2. query_states 1x-1x2560 
-# # 3. value_states 1x-1x2560 
-# 'backend' = 'SyncTensor[TensorrtTensor]'
-# max = '1x2047x2560,1x2047,1x2047x2560,1x2047x2560'
-# min = '1x1x2560,1x1,1x1x2560,1x1x2560'
-# 'model' = '/workspace/VILA/onnx/batchless_prefill.onnx'
-# 'model::cache' = './batchless_prefill.trt'
 
 # [batchless_prefill]
 [batchless_prefill]
@@ -73,4 +62,5 @@ num_layers = 32 # for llama. Auto set?
 [sample]
 backend = 'SyncTensor[SampleTensor]'
 # map = "batchful[result:data]" # remove TASK_REQUEST_SIZE_KEY
+next = "embed_tokens"
 temperature = 0.2

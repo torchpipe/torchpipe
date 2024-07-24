@@ -54,8 +54,6 @@ class LoadTensor : public SingleBackend {
     return true;
   }
 
-  
-
   /**
    * @param TASK_RESULT_KEY 加载的tensor
    */
@@ -85,5 +83,50 @@ class LoadTensor : public SingleBackend {
 };
 
 IPIPE_REGISTER(Backend, LoadTensor, "LoadTensor");
+
+class EmbedTokensTensor : public SingleBackend {
+ public:
+  /**
+   * @param tensor_name 文件路径；
+   *
+   */
+  virtual bool init(const std::unordered_map<std::string, std::string>& config_param,
+                    dict) override {
+    params_ = std::unique_ptr<Params>(new Params({}, {"tensor"}, {}, {}));
+    if (!params_->init(config_param)) return false;
+
+    SPDLOG_INFO("load " + params_->at("tensor"));
+    std::ifstream file(params_->at("tensor").c_str());
+    if (!file.good()) {
+      throw std::invalid_argument(params_->at("tensor") + " not exists.");
+    }
+    file.seekg(0, file.end);
+    int length = file.tellg();
+    file.seekg(0, file.beg);
+
+    std::vector<char> data(length);
+    file.read(data.data(), length);
+
+    tensor_ = torch::pickle_load(data).toTensor().cuda();
+
+    return true;
+  }
+
+  /**
+   * @param TASK_RESULT_KEY 加载的tensor
+   */
+  virtual void forward(dict input_dict) override {
+    torch::Tensor input = any_cast<torch::Tensor>(input_dict->at(TASK_DATA_KEY));
+    // slice   tensor from input
+    torch::Tensor data_loaded = tensor_.index_select(0, input);
+    (*input_dict)[TASK_RESULT_KEY] = data_loaded;
+  }
+
+ private:
+  std::unique_ptr<Params> params_;
+  torch::Tensor tensor_;
+};
+
+IPIPE_REGISTER(Backend, EmbedTokensTensor, "EmbedTokensTensor");
 
 }  // namespace ipipe
