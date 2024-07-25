@@ -29,6 +29,10 @@ std::string LogicalGraph::get_default_filter(const std::string& node_name) const
   }
   if (iter->second.indegree == 1 && iter->second.map_reduce.empty() &&
       iter->second.map_reduces.empty()) {
+    SPDLOG_WARN(
+        "Using the `swap` filter (default for non-root node)."
+        " This will cause a 'Break' status if no TASK_RESULT_KEY was found. Please "
+        "ensure you are using the correct filter.");
     return "swap";
   } else {
     return "Run";

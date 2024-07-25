@@ -61,6 +61,13 @@ num_layers = 32 # for llama. Auto set?
 
 [sample]
 backend = 'SyncTensor[SampleTensor]'
-# map = "batchful[result:data]" # remove TASK_REQUEST_SIZE_KEY
-next = "embed_tokens"
+next = 'check_eos'
 temperature = 0.2
+[check_eos]
+backend = 'S[SyncTensor[IsEosTensorFilter],(if)S[Add[remove_request_id:],(run)Jump[kvcache]], (else)Jump[embed_tokens]]'
+# map = "result:other,result:data,request_id:request_id"
+# next = "embed_tokens"
+eos = 1
+
+# IsEosTensorFilter 写入filter, no result
+# filter check 'filter', remove it

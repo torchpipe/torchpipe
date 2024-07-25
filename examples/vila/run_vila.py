@@ -32,6 +32,7 @@ inputs = [data]
 inputs += [{'data':input,'request_id':'r1', 'node_name':'batchful', 'trt_plugin':'batchless_prefill'}]
 
 model(inputs)
-print(inputs[0]['result'], inputs[1]['result'], inputs[1].keys())
+print(inputs[0]['result'].shape, inputs[1]['result'].shape, inputs[1].keys())
+print(inputs[0]['filter'])
 # torchpipe.utils.test.test_from_raw_file(run,file_dir="../assets/", num_clients=2,
 #                                         total_number=1000)

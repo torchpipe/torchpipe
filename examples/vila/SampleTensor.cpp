@@ -33,6 +33,7 @@ class SampleTensor : public SingleBackend {
     auto probs = torch::softmax(scores, /*dim=*/-1);
 
     auto next_tokens = torch::multinomial(probs, /*num_samples=*/1);
+    // next_tokens = next_tokens - next_tokens + 1;
     input[TASK_RESULT_KEY] = next_tokens;
   }
 

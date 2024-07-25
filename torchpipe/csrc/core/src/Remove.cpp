@@ -27,16 +27,16 @@ namespace ipipe {
  *
  *  * **使用示例**
     ```toml
-    # 这里仅以toml配置文件方式展示Remove的使用，其他方式使用同理：
+    # 这里仅以toml配置文件方式展示RemoveV0的使用，其他方式使用同理：
 
     [out]
-    backend = "Remove"
+    backend = "RemoveV0"
     remove="color,model_struct"
     ```
  *
 
  */
-class Remove : public SingleBackend {
+class RemoveV0 : public SingleBackend {
  public:
   /**
    * @brief 初始化函数
@@ -81,8 +81,8 @@ class Remove : public SingleBackend {
         if (map_iter != input_dict->end()) {
           input_dict->erase(map_iter);
         } else {
-          SPDLOG_WARN("Warning:[ Remove Backend ] : Not Fount This Key: [" + remove_key +
-                      "] In Input Dict, Backend Skip Remove It.");
+          SPDLOG_WARN("Warning:[ RemoveV0 Backend ] : Not Fount This Key: [" + remove_key +
+                      "] In Input Dict, Backend Skip RemoveV0 It.");
         }
       }
     }
@@ -92,5 +92,133 @@ class Remove : public SingleBackend {
   std::set<std::string> keys_;
   std::unique_ptr<Params> params_;
 };
-IPIPE_REGISTER(Backend, Remove, "Remove");
+IPIPE_REGISTER(Backend, RemoveV0, "RemoveV0");
+
+class Add : public SingleBackend {
+ public:
+  virtual bool init(const std::unordered_map<std::string, std::string>& config,
+                    dict /*dict_config*/) {
+    params_ = std::unique_ptr<Params>(new Params({}, {"Add::backend"}, {}, {}));
+
+    if (!params_->init(config)) return false;
+    auto multiple_kv = str_split(params_->at("Add::backend"), ',');
+    for (auto& single_kv : multiple_kv) {
+      auto strs = str_split(single_kv, ':', true);
+      IPIPE_ASSERT(strs.size() == 2);
+      for (auto& key : strs) {
+        try_replace_inner_key(key);
+      }
+      keys_[strs[0]] = strs[1];
+    }
+
+    return true;
+  };
+
+  void forward(dict input_dict) {
+    for (const auto& item : keys_) {
+      (*input_dict)[item.first] = item.second;
+    }
+  }
+
+ private:
+  std::unordered_map<std::string, std::string> keys_;
+  std::unique_ptr<Params> params_;
+};
+IPIPE_REGISTER(Backend, Add, "Add,add");
+
+class Copy : public SingleBackend {
+ public:
+  virtual bool init(const std::unordered_map<std::string, std::string>& config,
+                    dict /*dict_config*/) {
+    params_ = std::unique_ptr<Params>(new Params({}, {"Copy::backend"}, {}, {}));
+
+    if (!params_->init(config)) return false;
+    auto multiple_kv = str_split(params_->at("Copy::backend"), ',');
+    for (auto& single_kv : multiple_kv) {
+      auto strs = str_split(single_kv, ':');
+      IPIPE_ASSERT(strs.size() == 2);
+      for (auto& key : strs) {
+        try_replace_inner_key(key);
+      }
+      keys_[strs[0]] = strs[1];
+    }
+
+    return true;
+  };
+
+  void forward(dict input_dict) {
+    for (const auto& item : keys_) {
+      auto iter = input_dict->find(item.first);
+      IPIPE_ASSERT(iter != input_dict->end());
+      (*input_dict)[item.first] = iter->second;
+    }
+  }
+
+ private:
+  std::unordered_map<std::string, std::string> keys_;
+  std::unique_ptr<Params> params_;
+};
+IPIPE_REGISTER(Backend, Copy, "Copy,cp");
+
+class Move : public SingleBackend {
+ public:
+  virtual bool init(const std::unordered_map<std::string, std::string>& config,
+                    dict /*dict_config*/) {
+    params_ = std::unique_ptr<Params>(new Params({}, {"Move::backend"}, {}, {}));
+
+    if (!params_->init(config)) return false;
+    auto multiple_kv = str_split(params_->at("Move::backend"), ',');
+    for (auto& single_kv : multiple_kv) {
+      auto strs = str_split(single_kv, ':');
+      IPIPE_ASSERT(strs.size() == 2);
+      for (auto& key : strs) {
+        try_replace_inner_key(key);
+      }
+      keys_[strs[0]] = strs[1];
+    }
+
+    return true;
+  };
+
+  void forward(dict input_dict) {
+    for (const auto& item : keys_) {
+      auto iter = input_dict->find(item.first);
+      IPIPE_ASSERT(iter != input_dict->end());
+      (*input_dict)[item.first] = iter->second;
+      input_dict->erase(iter);
+    }
+  }
+
+ private:
+  std::unordered_map<std::string, std::string> keys_;
+  std::unique_ptr<Params> params_;
+};
+IPIPE_REGISTER(Backend, Move, "Move,mv");
+
+class Remove : public SingleBackend {
+ public:
+  virtual bool init(const std::unordered_map<std::string, std::string>& config,
+                    dict /*dict_config*/) {
+    params_ = std::unique_ptr<Params>(new Params({}, {"Remove::backend"}, {}, {}));
+
+    if (!params_->init(config)) return false;
+    auto multiple_kv = str_split(params_->at("Remove::backend"), ',');
+    for (const auto& single_kv : multiple_kv) {
+      keys_.insert(single_kv);
+    }
+
+    return true;
+  };
+
+  void forward(dict input_dict) {
+    for (const auto& item : keys_) {
+      input_dict->erase(item);
+    }
+  }
+
+ private:
+  std::set<std::string> keys_;
+  std::unique_ptr<Params> params_;
+};
+IPIPE_REGISTER(Backend, Remove, "Remove,Del,rm,del");
 }  // namespace ipipe

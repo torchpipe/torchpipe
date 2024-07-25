@@ -22,8 +22,8 @@
 
 #include <torch/torch.h>
 
-TEST(BackendTest, BackendRemove) {
-  auto* backend_instance = IPIPE_CREATE(ipipe::Backend, "Remove");
+TEST(BackendTest, BackendRemoveV0) {
+  auto* backend_instance = IPIPE_CREATE(ipipe::Backend, "RemoveV0");
   ASSERT_TRUE(backend_instance != nullptr);
   std::unordered_map<std::string, std::string> config;
   ASSERT_TRUE(backend_instance->init(config, nullptr));

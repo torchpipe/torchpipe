@@ -59,6 +59,21 @@ bool KVCacheTensor::init(const std::unordered_map<std::string, std::string>& con
 }
 
 void KVCacheTensor::forward(dict input_dict) {
+  auto iter = input_dict->find("request_id");
+  IPIPE_ASSERT(iter != input_dict->end());
+  std::string request_id = any_cast<std::string>(iter->second);
+  SPDLOG_DEBUG("KVCacheTensor request_id: {}", request_id);
+
+  auto iter_remove = input_dict->find("remove_request_id");
+  if (iter_remove != input_dict->end()) {
+    SPDLOG_INFO("KVCacheTensor remove_request_id: {}", request_id);
+    std::lock_guard<std::mutex> lock(mutex_);
+    auto iter_cache = (kv_caches_.find(request_id));
+    IPIPE_ASSERT(iter_cache != kv_caches_.end());
+    kv_caches_.erase(iter_cache);
+    return;
+  }
+
   auto& input = *input_dict;
   std::vector<torch::Tensor>* input_tensor = nullptr;
   if (input[TASK_DATA_KEY].type() == typeid(torch::Tensor)) {
@@ -79,11 +94,6 @@ void KVCacheTensor::forward(dict input_dict) {
   int kv_seq_len = input_tensor->at(1).size(-2);
   IPIPE_ASSERT(seq_len == kv_seq_len || (seq_len == 1));
   SPDLOG_DEBUG("KVCache: seq_len: {} kv_seq_len {}", seq_len, kv_seq_len);
-
-  auto iter = input_dict->find("request_id");
-  IPIPE_ASSERT(iter != input_dict->end());
-  std::string request_id = any_cast<std::string>(iter->second);
-  SPDLOG_DEBUG("KVCacheTensor request_id: {}", request_id);
 
   KVCache* cache = nullptr;
   {

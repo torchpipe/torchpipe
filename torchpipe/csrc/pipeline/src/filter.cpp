@@ -14,10 +14,29 @@
 
 #include "filter.hpp"
 #include "params.hpp"
+#include "base_logging.hpp"
 namespace ipipe {
+
+Filter::status Filter::forward(dict input) {
+  auto iter = input->find(TASK_RESULT_KEY);
+  if (iter == input->end()) {
+    // Something might be wrong
+    SPDLOG_DEBUG(
+        "Entered the `swap` filter (default for non-root node/backend), but no TASK_RESULT_KEY was "
+        "found. This will cause a "
+        "'Break' status to be returned. Please ensure you are using the correct filter.");
+    return status::Break;
+  }
+  (*input)[TASK_DATA_KEY] = (*input)[TASK_RESULT_KEY];
+  input->erase(iter);
+  return status::Run;
+}
+
 IPIPE_REGISTER(Filter, Filter, "swap")
 
-IPIPE_REGISTER(Filter, FilterOr, "or");
+IPIPE_REGISTER(Filter, FilterOr, "or,else");
+IPIPE_REGISTER(Filter, Cfilter, "filter,if");
+
 // IPIPE_REGISTER(Filter, FilterOr, "FilterOr");
 // using FilterReturn_Filter_status_skip_ = FilterReturn<Filter::status::Skip>;
 // IPIPE_REGISTER(Filter, FilterReturn_Filter_status_skip_, "Skip");

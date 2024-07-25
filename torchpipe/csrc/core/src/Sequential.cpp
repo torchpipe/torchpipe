@@ -92,6 +92,10 @@ bool Sequential::init(const std::unordered_map<std::string, std::string>& config
         pre_str = "Run";
       } else {
         pre_str = "swap";
+        SPDLOG_WARN(
+            "Using the `swap` filter (default for non-root backend in Sequential)."
+            " This will cause a 'Break' status if no TASK_RESULT_KEY was found. Please "
+            "ensure you are using the correct filter.");
       }
     }
     filters_.emplace_back(IPIPE_CREATE(Filter, pre_str));

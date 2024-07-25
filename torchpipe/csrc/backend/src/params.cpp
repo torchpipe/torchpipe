@@ -579,8 +579,8 @@ bool is_comma_separable(const std::string& strtem, char left, char right) {
       stack_size++;
     } else if (item == right) {
       if (stack_size == 0) {
-        SPDLOG_ERROR("brackets not match " + strtem);
-        throw std::invalid_argument("brackets not match " + strtem);
+        SPDLOG_ERROR("brackets not match: " + strtem);
+        throw std::invalid_argument("brackets not match: " + strtem);
       }
       stack_size--;
     } else if (item == ',') {
@@ -650,7 +650,7 @@ std::string pre_parentheses_split(const std::string& strtem, std::string& pre_st
   constexpr auto left = '(';
   constexpr auto right = ')';
   auto iter = strtem.find(left);
-  auto iter_right = strtem.find_last_of(right);
+  auto iter_right = strtem.find_last_of(right, strtem.find('['));
   if (iter == std::string::npos || iter_right == std::string::npos) {
     return strtem;
   } else {

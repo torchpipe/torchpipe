@@ -28,18 +28,7 @@ class Filter {
     return true;
   };
 
-  virtual status forward(dict input) {
-    auto iter = input->find(TASK_RESULT_KEY);
-    if (iter == input->end()) {
-      // there must be sth wrong
-
-      return status::Break;
-    }
-
-    (*input)[TASK_DATA_KEY] = (*input)[TASK_RESULT_KEY];
-    input->erase(iter);
-    return status::Run;
-  }
+  virtual status forward(dict input);
 
   virtual ~Filter() = default;
 };
@@ -58,6 +47,18 @@ template <Filter::status return_status>
 class FilterReturn : public Filter {
  public:
   status forward(dict data) { return return_status; }
+};
+
+class Cfilter : public Filter {
+ public:
+  status forward(dict input) {
+    auto iter = input->find("filter");
+    if (iter == input->end()) return status::Error;
+    Filter::status status = any_cast<Filter::status>(iter->second);
+
+    // input->erase(iter);
+    return status;
+  }
 };
 
 }  // namespace ipipe
