@@ -9,12 +9,6 @@ scheduler = "Batching"
 # 'resize_h' = '384'
 # 'resize_w' = '384'
 
-[embed_tokens]
-backend = "S[SyncTensor[EmbedTokensTensor],Add[restart:batchful,trt_plugin:batchless_decode]]" # ,Jump[batchful]] 
-# restart = "batchful" 
-# next = "batchful"
-tensor = "/workspace/VILA/embed_tokens.pt"
-
 [batchful]
 # PluginCacher is used to cache parameters and input data for (tensorrt) plugin
 'backend' = 'S[PluginCacher[TensorrtTensor],SyncTensor]'
@@ -74,3 +68,9 @@ eos = 1
 
 # IsEosTensorFilter 写入filter, no result
 # filter check 'filter', remove it
+
+[embed_tokens]
+backend = "S[SyncTensor[EmbedTokensTensor],Add[restart:batchful,trt_plugin:batchless_decode]]" # ,Jump[batchful]] 
+# restart = "batchful" 
+# next = "batchful"
+tensor = "/workspace/VILA/embed_tokens.pt"
