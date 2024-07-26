@@ -30,8 +30,9 @@
 namespace ipipe {
 bool KVCacheTensor::init(const std::unordered_map<std::string, std::string>& config_param,
                          dict dict_config) {
-  params_ = std::unique_ptr<Params>(
-      new Params({{"KVCacheTensor::backend", "Identity"}, {"num_layers", "32"}}, {}, {}, {}));
+  params_ = std::unique_ptr<Params>(new Params(
+      {{"KVCacheTensor::backend", "Identity"}, {"num_layers", "32"}, {"instance_num", "1"}}, {}, {},
+      {}));
 
   if (!params_->init(config_param)) return false;
 
@@ -55,6 +56,19 @@ bool KVCacheTensor::init(const std::unordered_map<std::string, std::string>& con
   auto seq_length = shape_[1];
   position_ids_ = torch::arange(0, seq_length, options);
 
+  auto instance_num = std::stoi(params_->at("instance_num"));
+  IPIPE_ASSERT(instance_num == 1);
+
+  // todo
+  //  int _independent_thread_index = 0;
+
+  //  if (!params_->at("_independent_thread_index").empty()) {
+  //    TRACE_EXCEPTION(_independent_thread_index =
+  //                        std::stoi(params_->at("_independent_thread_index")));
+  //  } else {
+  //    _independent_thread_index = 0;
+  //  }
+
   return true;
 }
 
@@ -67,7 +81,7 @@ void KVCacheTensor::forward(dict input_dict) {
   auto iter_remove = input_dict->find("remove_request_id");
   if (iter_remove != input_dict->end()) {
     SPDLOG_INFO("KVCacheTensor remove_request_id: {}", request_id);
-    std::lock_guard<std::mutex> lock(mutex_);
+    // std::lock_guard<std::mutex> lock(mutex_);
     auto iter_cache = (kv_caches_.find(request_id));
     IPIPE_ASSERT(iter_cache != kv_caches_.end());
     kv_caches_.erase(iter_cache);
@@ -97,7 +111,7 @@ void KVCacheTensor::forward(dict input_dict) {
 
   KVCache* cache = nullptr;
   {
-    std::lock_guard<std::mutex> lock(mutex_);
+    // std::lock_guard<std::mutex> lock(mutex_);
     auto iter_kvcache = kv_caches_.find(request_id);
     if (iter_kvcache == kv_caches_.end()) {
       kv_caches_[request_id] = std::make_unique<KVCache>(num_layers_);

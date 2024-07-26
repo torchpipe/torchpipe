@@ -57,6 +57,7 @@ class Cfilter : public Filter {
     Filter::status status = any_cast<Filter::status>(iter->second);
 
     // input->erase(iter);
+    // (*input)[TASK_RESULT_KEY] = (*input)[TASK_DATA_KEY];
     return status;
   }
 };

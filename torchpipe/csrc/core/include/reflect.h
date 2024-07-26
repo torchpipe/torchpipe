@@ -44,9 +44,10 @@
 #include <unordered_map>
 #include <string>
 #include <vector>
+#include <mutex>
 #include "ipipe_common.hpp"
 namespace {
-std::vector<std::string> inline_str_split(std::string strtem, char a) {
+static inline std::vector<std::string> inline_str_split(std::string strtem, char a) {
   std::vector<std::string> strvec;
   if (strtem.empty()) return strvec;
 
@@ -95,7 +96,9 @@ class IPIPE_EXPORT ClassRegistryBase {
  private:
   typedef std::unordered_map<std::string, ObjectGetter> ClassMap;
   ClassMap getter_map_;
-  mutable std::unordered_map<ClassName*, std::string> class_name_map_;
+  std::mutex getter_map_mutex_;
+  std::unordered_map<ClassName*, std::string> class_name_map_;
+  std::mutex class_name_map_mutex_;
 
  public:
   void DoAddClass(const std::string& class_name, ObjectGetter getter) {
@@ -104,6 +107,7 @@ class IPIPE_EXPORT ClassRegistryBase {
   }
 
   void DoAddSingleClass(const std::string class_name, ObjectGetter getter) {
+    std::lock_guard<std::mutex> guard(getter_map_mutex_);
     typename ClassMap::iterator it = getter_map_.find(class_name);
 
     if (it != getter_map_.end()) {
@@ -112,7 +116,8 @@ class IPIPE_EXPORT ClassRegistryBase {
     getter_map_[class_name] = getter;
   }
 
-  ClassName* DoGetObject(const std::string& class_name) const {
+  ClassName* DoGetObject(const std::string& class_name) {
+    std::unique_lock<std::mutex> guard(getter_map_mutex_);
     typename ClassMap::const_iterator it = getter_map_.find(class_name);
 
     if (it == getter_map_.end()) {
@@ -121,13 +126,17 @@ class IPIPE_EXPORT ClassRegistryBase {
       return nullptr;
     }
     auto result = ((it->second))();
+
+    guard.unlock();
     if (result) {
+      std::lock_guard<std::mutex> guard(class_name_map_mutex_);
       class_name_map_[result] = class_name;
     }
     return result;
   }
 
   std::string GetObjectName(ClassName* name) {
+    std::lock_guard<std::mutex> guard(class_name_map_mutex_);
     auto iter = class_name_map_.find(name);
     if (iter != class_name_map_.end()) {
       return iter->second;
@@ -136,7 +145,7 @@ class IPIPE_EXPORT ClassRegistryBase {
     }
   }
 
-  ClassMap& IpipeGetMap(const std::string class_name) const { return getter_map_; }
+  // ClassMap& IpipeGetMap(const std::string class_name) const { return getter_map_; }
 };
 
 template <typename RegistryType>

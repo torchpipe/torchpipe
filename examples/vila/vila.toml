@@ -1,6 +1,6 @@
+"Interpreter::backend" = "SyncRing"
 'precision' = 'fp16'
 scheduler = "Batching"
-
 # [preprocess]
 # 'backend' = 'S[DecodeMat,CvtColorMat,ResizeMat,Mat2Tensor,SyncTensor]'
 # 'color' = 'rgb'
@@ -10,7 +10,9 @@ scheduler = "Batching"
 # 'resize_w' = '384'
 
 [embed_tokens]
-backend = "SyncTensor[EmbedTokensTensor]"
+backend = "S[SyncTensor[EmbedTokensTensor],(run)Add[restart1:batchful]]" # ,Jump[batchful]] 
+# restart = "batchful" 
+# next = "batchful"
 tensor = "/workspace/VILA/embed_tokens.pt"
 
 [batchful]
@@ -64,7 +66,7 @@ backend = 'SyncTensor[SampleTensor]'
 next = 'check_eos'
 temperature = 0.2
 [check_eos]
-backend = 'S[SyncTensor[IsEosTensorFilter],(if)S[Add[remove_request_id:],(run)Jump[kvcache]], (else)Jump[embed_tokens]]'
+backend = 'S[SyncTensor[IsEosTensorFilter],(if)S[Add[remove_request_id:],(run)Jump[kvcache]], (else)Add[restart:embed_tokens]]'
 # map = "result:other,result:data,request_id:request_id"
 # next = "embed_tokens"
 eos = 1

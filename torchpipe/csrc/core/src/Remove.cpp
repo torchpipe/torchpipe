@@ -98,10 +98,11 @@ class Add : public SingleBackend {
  public:
   virtual bool init(const std::unordered_map<std::string, std::string>& config,
                     dict /*dict_config*/) {
-    params_ = std::unique_ptr<Params>(new Params({}, {"Add::backend"}, {}, {}));
+    const std::string name = IPIPE_GET_REGISTER_NAME(Backend, this) + "::backend";
+    params_ = std::unique_ptr<Params>(new Params({}, {name}, {}, {}));
 
     if (!params_->init(config)) return false;
-    auto multiple_kv = str_split(params_->at("Add::backend"), ',');
+    auto multiple_kv = str_split(params_->at(name), ',');
     for (auto& single_kv : multiple_kv) {
       auto strs = str_split(single_kv, ':', true);
       IPIPE_ASSERT(strs.size() == 2);
@@ -130,10 +131,11 @@ class Copy : public SingleBackend {
  public:
   virtual bool init(const std::unordered_map<std::string, std::string>& config,
                     dict /*dict_config*/) {
-    params_ = std::unique_ptr<Params>(new Params({}, {"Copy::backend"}, {}, {}));
+    const std::string name = IPIPE_GET_REGISTER_NAME(Backend, this) + "::backend";
+    params_ = std::unique_ptr<Params>(new Params({}, {name}, {}, {}));
 
     if (!params_->init(config)) return false;
-    auto multiple_kv = str_split(params_->at("Copy::backend"), ',');
+    auto multiple_kv = str_split(params_->at(name), ',');
     for (auto& single_kv : multiple_kv) {
       auto strs = str_split(single_kv, ':');
       IPIPE_ASSERT(strs.size() == 2);
@@ -164,10 +166,11 @@ class Move : public SingleBackend {
  public:
   virtual bool init(const std::unordered_map<std::string, std::string>& config,
                     dict /*dict_config*/) {
-    params_ = std::unique_ptr<Params>(new Params({}, {"Move::backend"}, {}, {}));
+    const std::string name = IPIPE_GET_REGISTER_NAME(Backend, this) + "::backend";
+    params_ = std::unique_ptr<Params>(new Params({}, {name}, {}, {}));
 
     if (!params_->init(config)) return false;
-    auto multiple_kv = str_split(params_->at("Move::backend"), ',');
+    auto multiple_kv = str_split(params_->at(name), ',');
     for (auto& single_kv : multiple_kv) {
       auto strs = str_split(single_kv, ':');
       IPIPE_ASSERT(strs.size() == 2);
@@ -199,10 +202,11 @@ class Remove : public SingleBackend {
  public:
   virtual bool init(const std::unordered_map<std::string, std::string>& config,
                     dict /*dict_config*/) {
-    params_ = std::unique_ptr<Params>(new Params({}, {"Remove::backend"}, {}, {}));
+    const std::string name = IPIPE_GET_REGISTER_NAME(Backend, this) + "::backend";
+    params_ = std::unique_ptr<Params>(new Params({}, {name}, {}, {}));
 
     if (!params_->init(config)) return false;
-    auto multiple_kv = str_split(params_->at("Remove::backend"), ',');
+    auto multiple_kv = str_split(params_->at(name), ',');
     for (const auto& single_kv : multiple_kv) {
       keys_.insert(single_kv);
     }

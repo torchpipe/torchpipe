@@ -100,7 +100,7 @@ bool PhysicalView::init(mapmap config) {
 #endif
         if (iter->second.find("scheduler") != iter->second.end()) {
       std::string tmp_name = any_cast<std::string>(iter->second.find("scheduler")->second);
-      SPDLOG_DEBUG("use batching backend: {}", tmp_name);
+      SPDLOG_DEBUG("{}: use batching backend: {}", iter->first, tmp_name);
       backends_[iter->first] = std::unique_ptr<Backend>(IPIPE_CREATE(Backend, tmp_name));
     } else if (iter_pipeline_backend == iter->second.end()) {
       backends_[iter->first] = std::make_unique<BaselineSchedule>();

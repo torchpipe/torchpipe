@@ -34,7 +34,7 @@ class TestTensor:
     def setup_class(self):
         pass
 
-    @pytest.mark.parametrize('backend', ['SyncTensor[ResizeTensor]', 'SyncTensor[cvtColorTensor]', 'Sequential[ResizeTensor,cvtColorTensor,SyncTensor]', 'Sequential[cvtColorTensor,ResizeTensor,SyncTensor]'])
+    @pytest.mark.parametrize('backend', ['SyncTensor[ResizeTensor]', 'SyncTensor[cvtColorTensor]', 'Sequential[ResizeTensor,cvtColorTensor,SyncTensor]', 'Sequential[CvtColorTensor,ResizeTensor,SyncTensor]'])
     def test_input(self, backend):
         config = {"dd": {'Interpreter::backend': f"{backend}",
                          "color": "rgb",

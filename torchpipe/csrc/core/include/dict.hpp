@@ -82,6 +82,8 @@ constexpr auto TASK_DEFAULT_NAME_KEY = "_default_node_name";
 constexpr auto TASK_REQUEST_KEY = "request";
 constexpr auto TASK_REQUEST_SIZE_KEY = "request_size";
 
+constexpr auto TASK_RESTART_KEY = "restart";
+
 static inline const std::unordered_map<std::string, std::string> TASK_KEY_MAP(
     {{"TASK_RESULT_KEY", TASK_RESULT_KEY},
      {"TASK_DATA_KEY", TASK_DATA_KEY},
@@ -90,6 +92,9 @@ static inline const std::unordered_map<std::string, std::string> TASK_KEY_MAP(
      {"TASK_NODE_NAME_KEY", TASK_NODE_NAME_KEY},
      {"TASK_CONTEXT_KEY", TASK_CONTEXT_KEY},
      {"TASK_REQUEST_KEY", TASK_REQUEST_KEY},
+     {"TASK_RESTART_KEY", TASK_RESTART_KEY},
+     {"TASK_STACK_KEY", TASK_STACK_KEY},
+     {"TASK_DEFAULT_NAME_KEY", TASK_DEFAULT_NAME_KEY},
      {"TASK_REQUEST_SIZE_KEY", TASK_REQUEST_SIZE_KEY}});
 
 static inline void try_replace_inner_key(std::string& key) {

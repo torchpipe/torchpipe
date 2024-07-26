@@ -47,6 +47,9 @@ void Interpreter::init(const std::unordered_map<std::string, std::string>& confi
 }
 
 void Interpreter::init(mapmap config) {
+  // 1. update global
+  // 2. update node_name
+  // 3. write config to shared_dict
   if (config.size() == 1) {
     const auto key = config.begin()->first;
     if (key != "global") {
@@ -118,10 +121,12 @@ void Interpreter::init(mapmap config) {
 
   // 初始化主引擎
   dict shared_dict = std::make_shared<std::unordered_map<std::string, any>>();
-  (*shared_dict)["config"] = config;
+
   std::unordered_map<std::string, std::string> static_config;
   if (config.size() == 1) {
     static_config = config["global"];
+    config[TASK_DEFAULT_NAME_KEY] = config["global"];
+    // config.erase("global");
   } else if (config.size() == 2) {
     for (auto iter_config = config.begin(); iter_config != config.end(); ++iter_config) {
       if (iter_config->first == "global") continue;
@@ -129,14 +134,17 @@ void Interpreter::init(mapmap config) {
       auto iter_node_name = static_config.find("node_name");
       if (iter_node_name != static_config.end()) {
         if (iter_node_name->second != iter_config->first) {
-          SPDLOG_ERROR("node_name not match: " + iter_node_name->second + " vs. " +
-                       iter_config->first);
+          throw std::runtime_error("node_name not match: " + iter_node_name->second + " vs. " +
+                                   iter_config->first);
         }
       } else {
         static_config["node_name"] = iter_config->first;
       }
     }
+    // config.clear();
+    config[static_config["node_name"]] = static_config;
   }
+  (*shared_dict)["config"] = config;
   (*shared_dict)["Interpreter"] = (Backend*)this;
   if (!backend_ || !backend_->init(static_config, shared_dict)) {
     backend_ = nullptr;

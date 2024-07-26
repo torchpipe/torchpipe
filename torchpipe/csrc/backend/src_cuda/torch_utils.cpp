@@ -146,8 +146,8 @@ torch::Tensor switch_device(torch::Tensor input) {
 // 结论 此时 cudaMemcpyAsync 和 cudaMemcpy 差不多
 class TestRun {
  public:
-  TestRun(){
-      // test_cudaMemcpyAsync();
+  TestRun() {
+    // test_cudaMemcpyAsync();
   };
 
   void test_run(int src[]) {
@@ -448,9 +448,9 @@ torch::Tensor tensor_permute(torch::Tensor input, const std::vector<int>& min_sh
     if (permute_vector.size() != max_shape.size()) {
       std::stringstream ss;
       ss << "network's max = ";
-      for (const auto& item : max_shape) ss << std::to_string(item) << ",";
+      for (const auto& item : max_shape) ss << std::to_string(item) << "x";
       ss << "input data = ";
-      for (const auto& item : input.sizes()) ss << std::to_string(item) << ",";
+      for (const auto& item : input.sizes()) ss << std::to_string(item) << "x";
       ss << "please check it.";
       throw std::runtime_error("input shape and network shape not match. " + ss.str());
     }

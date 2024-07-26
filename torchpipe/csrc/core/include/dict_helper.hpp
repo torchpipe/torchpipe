@@ -20,9 +20,9 @@ namespace ipipe {
 class DictHelper {
  public:
   DictHelper(const std::vector<dict>& data)
-      : dicts_(data){
-            // keep(TASK_DATA_KEY);
-            // keep("node_name");
+      : dicts_(data) {
+          // keep(TASK_DATA_KEY);
+          // keep("node_name");
         };
   ~DictHelper() {
     for (std::size_t i = 0; i < dicts_.size(); ++i) {
@@ -73,9 +73,23 @@ class DictHelper {
     return *this;
   }
 
+  DictHelper& keep_alive(const std::string& key) {
+    std::vector<any> keeped;
+    for (const auto& da : dicts_) {
+      auto iter = da->find(key);
+      if (iter == da->end()) {
+        throw std::out_of_range(key + ": not exists");
+      }
+      keeped.emplace_back(iter->second);
+    }
+    keep_alive_[key] = keeped;
+    return *this;
+  }
+
  private:
   const std::vector<dict>& dicts_;
   std::vector<std::string> lazy_clear_keys_;
   std::unordered_map<std::string, std::vector<any>> keep_;
+  std::unordered_map<std::string, std::vector<any>> keep_alive_;
 };
 }  // namespace ipipe

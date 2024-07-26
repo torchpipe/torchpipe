@@ -66,7 +66,8 @@ void Jump::forward(const std::vector<dict>& input_dicts) {
     IPIPE_ASSERT(input->find(TASK_STACK_KEY) == input->end());
   }
   DictHelper guard(input_dicts);
-  guard.keep(TASK_DATA_KEY).keep("node_name").lazy_erase(TASK_EVENT_KEY);
+  // guard.keep(TASK_DATA_KEY).keep("node_name");  //.lazy_erase(TASK_EVENT_KEY);
+  guard.keep("node_name");  //.lazy_erase(TASK_EVENT_KEY);
 
   try {
     std::vector<std::vector<dict>> splits;
@@ -82,10 +83,11 @@ void Jump::forward(const std::vector<dict>& input_dicts) {
     }
     auto event = make_event(total_splits.size());
     DictHelper local_guard(total_splits);
-    local_guard.set(TASK_EVENT_KEY, event).set("node_name", jump_);
+    // local_guard.set(TASK_EVENT_KEY, event).set("node_name", jump_);
+    local_guard.set("node_name", jump_);
 
     interpreter_->forward(total_splits);
-    event->Wait();
+    // event->Wait();
 
     for (std::size_t i = 0; i < splits.size(); ++i) {
       merge_wrapper(input_dicts[i], splits[i]);

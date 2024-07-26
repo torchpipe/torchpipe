@@ -82,7 +82,7 @@ void StatefulInstanceHandler::run() {  // 确保初始化和前向处于同一�
         if (iter_name != tasks[i]->end()) {
           node_name = any_cast<std::string>(iter_name->second);
         }
-        SPDLOG_ERROR(node_name + ": Fatal Error: lack of event.");
+        SPDLOG_CRITICAL(node_name + ": Fatal Error: lack of event.");
       }
     }
     if (events.size() != tasks.size()) {

@@ -53,6 +53,7 @@ class IsEosTensorFilter : public SingleBackend {
     } else {
       input["filter"] = Filter::status::Skip;
     }
+    // input[TASK_RESULT_KEY] = input[TASK_DATA_KEY];
   }
 
  private:

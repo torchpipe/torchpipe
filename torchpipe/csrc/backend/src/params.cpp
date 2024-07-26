@@ -487,6 +487,7 @@ mapmap generate_mapmap(std::string data) {
 
 bool Params::init(const std::unordered_map<std::string, std::string>& config) {
   for (auto iter = init_optinal_params_.begin(); iter != init_optinal_params_.end(); ++iter) {
+    // IPIPE_ASSERT(!iter->first.empty());
     auto iter_config = config.find(iter->first);
     if (iter_config == config.end()) {
       config_[iter->first] = iter->second;
@@ -496,6 +497,7 @@ bool Params::init(const std::unordered_map<std::string, std::string>& config) {
   }
 
   for (const auto& req : init_required_params_) {
+    IPIPE_ASSERT(!req.empty());
     auto iter_config = config.find(req);
     if (iter_config == config.end()) {
       std::string node_name;

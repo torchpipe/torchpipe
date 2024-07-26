@@ -115,7 +115,7 @@ torch.onnx.export(resnet18, data_bchw, model_path,
 ```python
 import torch, torchpipe
 model = torchpipe.pipe({'model': model_path,
-                        'backend': "Sequential[cvtColorTensor,TensorrtTensor,SyncTensor]", # Backend engine, see backend API reference documentation
+                        'backend': "Sequential[CvtColorTensor,TensorrtTensor,SyncTensor]", # Backend engine, see backend API reference documentation
                         'instance_num': 2, 'batching_timeout': '5', # Number of instances and timeout time
                         'max': 4, # Maximum value of the model optimization range, which can also be '4x3x224x224'
                         'mean': '123.675, 116.28, 103.53', # 255*"0.485, 0.456, 0.406"

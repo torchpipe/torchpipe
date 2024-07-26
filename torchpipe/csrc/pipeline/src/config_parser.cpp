@@ -126,6 +126,7 @@ mapmap parse_toml(std::string toml_path) {
   return parse_toml_data(data.as_table());
 }
 
+std::set<std::string> handle_ring(const mapmap& config_param) { return std::set<std::string>(); }
 /**
  * @brief 解析全局配置，设置默认参数，中括号语法解析，对于单节点配置默认节点名称
  *

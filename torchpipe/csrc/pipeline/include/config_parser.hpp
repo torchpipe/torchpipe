@@ -15,6 +15,7 @@
 #pragma once
 
 #include <string>
+#include <set>
 #include <unordered_map>
 #include "Backend.hpp"
 #include "dict.hpp"
@@ -25,4 +26,5 @@ namespace ipipe {
 mapmap parse_toml(std::string toml_path);
 void handle_config(mapmap& config);
 void update_global(mapmap& config);
+std::set<std::string> handle_ring(const mapmap& config_param);
 }  // namespace ipipe
