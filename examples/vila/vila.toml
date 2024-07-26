@@ -10,7 +10,7 @@ scheduler = "Batching"
 # 'resize_w' = '384'
 
 [embed_tokens]
-backend = "S[SyncTensor[EmbedTokensTensor],(run)Add[restart1:batchful]]" # ,Jump[batchful]] 
+backend = "S[SyncTensor[EmbedTokensTensor],Add[restart:batchful,trt_plugin:batchless_decode]]" # ,Jump[batchful]] 
 # restart = "batchful" 
 # next = "batchful"
 tensor = "/workspace/VILA/embed_tokens.pt"
@@ -59,6 +59,7 @@ num_layers = 32 # for llama. Auto set?
 # 'model::cache' = '../onnx/llm.trt'
 
 [batchless_decode]
+backend = "RuntimeError"
 #TorchPlugin
 
 [sample]

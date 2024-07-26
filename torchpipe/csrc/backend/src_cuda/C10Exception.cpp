@@ -45,7 +45,7 @@ class RuntimeError : public SingleBackend {
   /**
    * @exception std::runtime_error 用于测试。
    */
-  void forward(dict) { throw std::runtime_error("RuntimeError throwed"); }
+  void forward(dict) { throw std::runtime_error("RuntimeError throwed. Used in Test"); }
 };
 IPIPE_REGISTER(Backend, RuntimeError, "RuntimeError");
 }  // namespace ipipe
