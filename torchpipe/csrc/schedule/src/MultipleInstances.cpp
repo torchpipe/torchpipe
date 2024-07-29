@@ -188,7 +188,9 @@ bool MultiInstances::init(const std::unordered_map<std::string, std::string>& co
   // }
 
   all_backends_.resize(instance_num_);
-  batched_queue_ = std::make_unique<ThreadSafeSizedQueue<std::vector<dict>>>();
+  // batched_queue_ = std::make_unique<ThreadSafeSizedQueue<std::vector<dict>>>();
+  batched_queue_ =
+      any_cast<ThreadSafeSizedQueue<std::vector<dict>>*>(dict_config->at("_batched_queue"));
 
   for (auto& backend : all_backends_) {
     if (!params_->at("instance_handle").empty()) {
@@ -201,8 +203,9 @@ bool MultiInstances::init(const std::unordered_map<std::string, std::string>& co
   dict dict_config_split =
       dict_config ? std::make_shared<std::unordered_map<std::string, any>>(*dict_config)
                   : std::make_shared<std::unordered_map<std::string, any>>();
+
   for (std::size_t i = 0; i < instance_num_; ++i) {
-    (*dict_config_split)["_batched_queue"] = batched_queue_.get();
+    // (*dict_config_split)["_batched_queue"] = batched_queue_.get();
 
     auto new_config = config;
     new_config["_independent_thread_index"] = std::to_string(i);

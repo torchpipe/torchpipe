@@ -57,9 +57,10 @@ void StatefulInstanceHandler::run() {  // 确保初始化和前向处于同一�
   while (bInited_.load()) {
     std::vector<dict> tasks;
     {
-      auto succ = batched_queue_->WaitForPopWithSize(tasks, 50, [max_len, min_len](std::size_t in) {
-        return in >= min_len && in <= max_len;
-      });  // for exit this thread
+      auto succ = batched_queue_->WaitForPopWithConditionAndStatus(
+          tasks, 50, [max_len, min_len](std::size_t in) {
+            return in >= min_len && in <= max_len;
+          });  // for exit this thread
       if (!succ) {
         assert(tasks.empty());
         continue;

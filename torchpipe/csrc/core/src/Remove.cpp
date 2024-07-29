@@ -125,7 +125,7 @@ class Add : public SingleBackend {
   std::unordered_map<std::string, std::string> keys_;
   std::unique_ptr<Params> params_;
 };
-IPIPE_REGISTER(Backend, Add, "Add,add");
+IPIPE_REGISTER(Backend, Add, "ADD, Add,add");
 
 class Copy : public SingleBackend {
  public:

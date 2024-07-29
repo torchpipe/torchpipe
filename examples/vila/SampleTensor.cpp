@@ -7,11 +7,11 @@ class SampleTensor : public SingleBackend {
   virtual bool init(const std::unordered_map<std::string, std::string> &config_param,
                     dict) override {
     params_ = std::unique_ptr<Params>(
-        new Params({{"topk", "50"}, {"topp", "0.2"}}, {"temperature"}, {}, {}));
+        new Params({{"top_k", "50"}, {"top_p", "0.2"}}, {"temperature"}, {}, {}));
     if (!params_->init(config_param)) return false;
     temperature_ = std::stof(params_->at("temperature"));
-    topk_ = std::stoi(params_->at("topk"));
-    topp_ = std::stof(params_->at("topp"));
+    topk_ = std::stoi(params_->at("top_k"));
+    topp_ = std::stof(params_->at("top_p"));
     return true;
   }
   virtual void forward(dict input_dict) override {

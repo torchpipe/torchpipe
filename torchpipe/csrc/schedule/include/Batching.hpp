@@ -60,6 +60,9 @@ class Batching : public Backend {
     } else {
       backend_ = std::unique_ptr<Backend>(IPIPE_CREATE(Backend, params_->at("multiple_instances")));
     }
+    // batched_queue_ = std::make_unique<ThreadSafeSizedQueue<std::vector<dict>>>();
+    (*dict_config)["_batched_queue"] = &batched_queue_;
+
     if (!params_->at("cal_request_size_method").empty()) {
       cal_request_size_method_ =
           std::unique_ptr<Backend>(IPIPE_CREATE(Backend, params_->at("cal_request_size_method")));
@@ -186,6 +189,7 @@ class Batching : public Backend {
   uint32_t max_batch_size_{1};
   std::thread thread_;
   ThreadSafeSizedQueue<dict> input_queue_;
+  ThreadSafeSizedQueue<std::vector<dict>> batched_queue_;
   float batching_timeout_;
 
   std::unique_ptr<Params> params_;

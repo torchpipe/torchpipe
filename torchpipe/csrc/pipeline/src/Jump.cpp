@@ -67,7 +67,10 @@ void Jump::forward(const std::vector<dict>& input_dicts) {
   }
   DictHelper guard(input_dicts);
   // guard.keep(TASK_DATA_KEY).keep("node_name");  //.lazy_erase(TASK_EVENT_KEY);
-  guard.keep("node_name");  //.lazy_erase(TASK_EVENT_KEY);
+  guard.keep("node_name")
+      .keep(TASK_REQUEST_SIZE_KEY)
+      .erase(TASK_REQUEST_SIZE_KEY);  //.lazy_erase(TASK_EVENT_KEY);
+                                      // todo merge TASK_REQUEST_SIZE_KEY to TASK_EVENT_KEY
 
   try {
     std::vector<std::vector<dict>> splits;

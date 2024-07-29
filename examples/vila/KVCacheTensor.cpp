@@ -30,13 +30,19 @@
 namespace ipipe {
 bool KVCacheTensor::init(const std::unordered_map<std::string, std::string>& config_param,
                          dict dict_config) {
-  params_ = std::unique_ptr<Params>(new Params(
-      {{"KVCacheTensor::backend", "Identity"}, {"num_layers", "32"}, {"instance_num", "1"}}, {}, {},
-      {}));
+  params_ = std::unique_ptr<Params>(new Params({{"KVCacheTensor::backend", "Identity"},
+                                                {"num_layers", "32"},
+                                                // {"max_input_len", "-1"},
+                                                {"max_seq_len", "2048"},
+                                                {"max_new_tokens", "-1"},
+                                                {"instance_num", "1"}},
+                                               {}, {}, {}));
 
   if (!params_->init(config_param)) return false;
 
   num_layers_ = std::stoi(params_->at("num_layers"));
+  max_seq_len_ = std::stoi(params_->at("max_seq_len"));
+  IPIPE_ASSERT(max_seq_len_ >= 1 && num_layers_ >= 1);
 
   engine_ = std::unique_ptr<Backend>(IPIPE_CREATE(Backend, params_->at("KVCacheTensor::backend")));
 
@@ -52,9 +58,7 @@ bool KVCacheTensor::init(const std::unordered_map<std::string, std::string>& con
                      .dtype(torch::kLong)
                      .layout(torch::kStrided)
                      .requires_grad(false);
-  std::vector<long int> shape_{1, 2048};
-  auto seq_length = shape_[1];
-  position_ids_ = torch::arange(0, seq_length, options);
+  position_ids_ = torch::arange(0, max_seq_len_, options);
 
   auto instance_num = std::stoi(params_->at("instance_num"));
   IPIPE_ASSERT(instance_num == 1);
@@ -83,8 +87,9 @@ void KVCacheTensor::forward(dict input_dict) {
     SPDLOG_INFO("KVCacheTensor remove_request_id: {}", request_id);
     // std::lock_guard<std::mutex> lock(mutex_);
     auto iter_cache = (kv_caches_.find(request_id));
-    IPIPE_ASSERT(iter_cache != kv_caches_.end());
-    kv_caches_.erase(iter_cache);
+    // IPIPE_ASSERT(iter_cache != kv_caches_.end());
+    if (iter_cache != kv_caches_.end()) kv_caches_.erase(iter_cache);
+    engine_->forward({input_dict});
     return;
   }
 
@@ -109,6 +114,7 @@ void KVCacheTensor::forward(dict input_dict) {
   IPIPE_ASSERT(seq_len == kv_seq_len || (seq_len == 1));
   SPDLOG_DEBUG("KVCache: seq_len: {} kv_seq_len {}", seq_len, kv_seq_len);
 
+  int final_past_seq_len = -1;
   KVCache* cache = nullptr;
   {
     // std::lock_guard<std::mutex> lock(mutex_);
@@ -126,6 +132,7 @@ void KVCacheTensor::forward(dict input_dict) {
       input_tensor->push_back(position_ids);
     } else {
       std::vector<torch::Tensor> kv(input_tensor->end() - 2, input_tensor->end());
+      final_past_seq_len = kv.at(0).size(-2);
       cache->push(kv);
     }
   } else {
@@ -140,7 +147,17 @@ void KVCacheTensor::forward(dict input_dict) {
       input_tensor->push_back(past_kv.at(1));
     } else {
       std::vector<torch::Tensor> kv(input_tensor->end() - 2, input_tensor->end());
+      final_past_seq_len = kv.at(0).size(-2);
       cache->push(kv);
+    }
+  }
+  // (*input_dict)[TASK_RESULT_KEY] = (*input_dict)[TASK_DATA_KEY];
+
+  if (cache->round_over()) {
+    if (final_past_seq_len >= max_seq_len_) {
+      (*input_dict)["is_eos"] = 1;
+      SPDLOG_DEBUG("KVCacheTensor: is eos");
+      kv_caches_.erase(request_id);
     }
   }
 

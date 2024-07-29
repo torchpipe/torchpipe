@@ -39,15 +39,15 @@ class ThreadSafeSizedQueue {
     data_cond_.notify_all();
   }
 
-  void PushIfEmpty(const T& new_value, size_t size) {
-    {
-      std::unique_lock<std::mutex> lk(mut_);
-      poped_cond_.wait(lk, [this] { return data_queue_.empty(); });
-      data_queue_.push(new_value, size);
-    }
+  // void PushIfEmpty(const T& new_value, size_t size) {
+  //   {
+  //     std::unique_lock<std::mutex> lk(mut_);
+  //     poped_cond_.wait(lk, [this] { return data_queue_.empty(); });
+  //     data_queue_.push(new_value, size);
+  //   }
 
-    data_cond_.notify_all();
-  }
+  //   data_cond_.notify_all();
+  // }
 
   void Push(const std::vector<T>& new_value, const std::vector<size_t>& sizes) {
     std::lock_guard<std::mutex> lk(mut_);
@@ -127,6 +127,38 @@ class ThreadSafeSizedQueue {
     return true;
   }
 
+  bool WaitForPopWithConditionAndStatus(T& value, int time_out,
+                                        std::function<bool(std::size_t)> check) {
+    std::unique_lock<std::mutex> lk(mut_);
+
+    if (data_queue_.empty() || !check(data_queue_.front_size())) {
+      num_waiting_++;
+      // lk.unlock();
+      waiting_cond_.notify_all();
+      // lk.lock();
+      auto re = data_cond_.wait_for(lk, std::chrono::milliseconds(time_out), [this, check] {
+        return !data_queue_.empty() && check(data_queue_.front_size());
+      });
+      num_waiting_--;
+      if (!re) return false;
+    }
+
+    value = data_queue_.front();
+    data_queue_.pop();
+
+    poped_cond_.notify_all();
+    return true;
+  }
+
+  bool WaitForWaiting(int time_out) {
+    std::unique_lock<std::mutex> lk(mut_);
+
+    auto re = waiting_cond_.wait_for(lk, std::chrono::milliseconds(time_out),
+                                     [this] { return num_waiting_ > 0; });
+    if (!re) return false;
+    return true;
+  }
+
   void Wait(int time_out) {
     std::unique_lock<std::mutex> lk(mut_);
     data_cond_.wait_for(lk, std::chrono::milliseconds(int(time_out)),
@@ -159,6 +191,8 @@ class ThreadSafeSizedQueue {
   SizedQueue<T> data_queue_;
   std::condition_variable data_cond_;
   std::condition_variable poped_cond_;
+  uint32_t num_waiting_{0};
+  std::condition_variable waiting_cond_;
 };
 
 }  // namespace ipipe

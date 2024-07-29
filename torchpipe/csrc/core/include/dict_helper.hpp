@@ -30,7 +30,7 @@ class DictHelper {
         dicts_[i]->erase(key);
       }
       for (const auto& item : keep_) {
-        (*dicts_[i])[item.first] = item.second[i];
+        if (item.second[i].has_value()) (*dicts_[i])[item.first] = item.second[i];
       }
     }
   };
@@ -65,9 +65,10 @@ class DictHelper {
     for (const auto& da : dicts_) {
       auto iter = da->find(key);
       if (iter == da->end()) {
-        throw std::out_of_range(key + ": not exists");
-      }
-      keeped.emplace_back(iter->second);
+        // throw std::out_of_range(key + ": not exists");
+        keeped.emplace_back(any());
+      } else
+        keeped.emplace_back(iter->second);
     }
     keep_[key] = keeped;
     return *this;
@@ -78,7 +79,7 @@ class DictHelper {
     for (const auto& da : dicts_) {
       auto iter = da->find(key);
       if (iter == da->end()) {
-        throw std::out_of_range(key + ": not exists");
+        // throw std::out_of_range(key + ": not exists");
       }
       keeped.emplace_back(iter->second);
     }

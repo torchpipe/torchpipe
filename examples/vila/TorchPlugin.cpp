@@ -14,6 +14,7 @@
 
 #include <torch/torch.h>
 #include "PluginCacher.hpp"
+#include "dict_helper.hpp"
 
 #define PLUGIN_ASSERT(val) reportAssertion((val), #val, __FILE__, __LINE__)
 
@@ -266,6 +267,12 @@ int32_t TorchPlugin::enqueue(PluginTensorDesc const* inputDesc, PluginTensorDesc
     // throw std::runtime_error("debug here in TorchPlugin");
     assert(input_dicts.size() > 0);
     int request_size_start = 0;
+    ipipe::DictHelper helper(input_dicts);
+    helper.keep("node_name")
+        .keep("request_size")
+        .erase("request_size")
+        .lazy_erase("outputs")
+        .lazy_erase(ipipe::TASK_RESULT_KEY);
     ipipe::dicts user_datas;
     for (std::size_t i = 0; i < input_dicts.size(); ++i) {
       auto iter = input_dicts[i]->find("trt_plugin");
@@ -290,12 +297,17 @@ int32_t TorchPlugin::enqueue(PluginTensorDesc const* inputDesc, PluginTensorDesc
                 mParams.nbInputs, request_size_start, request_size_start + request_size);
       request_size_start += request_size;
 
-      ipipe::dict user_data = std::make_shared<std::unordered_map<std::string, ipipe::any>>(
-          std::unordered_map<std::string, ipipe::any>({{"data", input_arrays},
-                                                       {"outputs", output_arrays},
-                                                       {"request_id", request_id},
-                                                       {"node_name", trt_plugin}}));
-      user_datas.push_back(user_data);
+      // ipipe::dict user_data = std::make_shared<std::unordered_map<std::string, ipipe::any>>(
+      //     std::unordered_map<std::string, ipipe::any>({{"data", input_arrays},
+      //                                                  {"outputs", output_arrays},
+      //                                                  {"request_id", request_id},
+      //                                                  {"node_name", trt_plugin}}));
+      // update
+      (*input_dicts[i])["data"] = input_arrays;
+      (*input_dicts[i])["outputs"] = output_arrays;
+      (*input_dicts[i])["request_id"] = request_id;
+      (*input_dicts[i])["node_name"] = trt_plugin;
+      user_datas.push_back(input_dicts[i]);
     }
 
     // Interrupt torch's cuda semantics

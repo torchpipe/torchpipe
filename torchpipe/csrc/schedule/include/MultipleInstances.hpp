@@ -165,7 +165,7 @@ class MultiInstances : public Backend {
   std::vector<std::unique_ptr<Backend>> all_backends_;
   // std::vector<std::unique_ptr<Backend>> all_backends_;
   // std::unique_ptr<Backend> backend_;
-  std::unique_ptr<ThreadSafeSizedQueue<std::vector<dict>>> batched_queue_;
+  ThreadSafeSizedQueue<std::vector<dict>>* batched_queue_ = nullptr;
   // std::unique_ptr<ThreadSafeSizedQueue<std::vector<dict>>> batched_queue_;
   // ThreadSafeQueue<std::vector<dict>>* batched_queue_{nullptr};
   uint32_t instance_num_;

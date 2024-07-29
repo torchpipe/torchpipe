@@ -36,8 +36,17 @@ class IsEosTensorFilter : public SingleBackend {
   }
 
   virtual void forward(dict input_dict) override {
-    int now_token{-1};
     auto& input = *input_dict;
+
+    bool is_eos = input_dict->find("is_eos") != input_dict->end();
+    if (is_eos) {
+      SPDLOG_DEBUG("IsEosTensorFilter: is_eos is true");
+      input["filter"] = Filter::status::Run;
+      return;
+    }
+
+    int now_token{-1};
+
     if (input[TASK_DATA_KEY].type() == typeid(torch::Tensor)) {
       auto* input_tensor = any_cast<torch::Tensor>(&input[TASK_DATA_KEY]);
       now_token = input_tensor->item<long>();
@@ -47,6 +56,7 @@ class IsEosTensorFilter : public SingleBackend {
       throw std::runtime_error("IsEosTensorFilter: torch::Tensor needed; error input type: " +
                                std::string(input[TASK_DATA_KEY].type().name()));
     }
+
     // input[TASK_RESULT_KEY] = input[TASK_DATA_KEY];
     if (now_token == eos_) {
       input["filter"] = Filter::status::Run;

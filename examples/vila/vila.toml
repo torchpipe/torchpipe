@@ -32,7 +32,8 @@ min = '1x1x2560,1x1x2560,1x1x2560,1x1'
 
 [kvcache]
 backend = "S[KVCacheTensor,SyncTensor]" 
-num_layers = 32 # for llama. Auto set?
+max_seq_len = 2048 # out_put : reach_max_seq_len
+num_layers = 1 # for llama. Auto set?
 # [siglip]
 # 'backend' = 'SyncTensor[TensorrtTensor]'
 # 'mean' = '127.5,127.5,127.5'
@@ -53,15 +54,23 @@ num_layers = 32 # for llama. Auto set?
 # 'model::cache' = '../onnx/llm.trt'
 
 [batchless_decode]
-backend = "RuntimeError"
+# backend = "RuntimeError"
+backend = "S[Jump[kvcache],TensorrtTensor,Jump[kvcache],SyncTensor]" # AppendPositionIDsTensor,
+instance_num = 4 
+max = '1x1x2560,1x1x2560,1x1x2560,1x1,1x20x2047x128,1x20x2047x128' 
+min = '1x1x2560,1x1x2560,1x1x2560,1x1,1x20x1x128,1x20x1x128' 
+'model' = '/workspace/VILA/onnx/batchless.onnx' 
+'model::cache' = './batchless_decode.trt' 
+
 #TorchPlugin
 
 [sample]
 backend = 'SyncTensor[SampleTensor]'
 next = 'check_eos'
 temperature = 0.2
+
 [check_eos]
-backend = 'S[SyncTensor[IsEosTensorFilter],(if)S[Add[remove_request_id:],(run)Jump[kvcache]], (else)Add[restart:embed_tokens]]'
+backend = 'S[SyncTensor[IsEosTensorFilter],(if)S[ADD[remove_request_id:],(run)Jump[kvcache]], (else)Add[restart:embed_tokens]]'
 # map = "result:other,result:data,request_id:request_id"
 # next = "embed_tokens"
 eos = 1
@@ -70,7 +79,8 @@ eos = 1
 # filter check 'filter', remove it
 
 [embed_tokens]
-backend = "S[SyncTensor[EmbedTokensTensor],Add[restart:batchful,trt_plugin:batchless_decode]]" # ,Jump[batchful]] 
+backend = "S[SyncTensor[EmbedTokensTensor],ADD[restart:batchful,trt_plugin:batchless_decode]]" # ,Jump[batchful]] 
 # restart = "batchful" 
 # next = "batchful"
+
 tensor = "/workspace/VILA/embed_tokens.pt"

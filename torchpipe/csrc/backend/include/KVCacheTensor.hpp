@@ -43,9 +43,13 @@ class KVCache {
     std::swap(tmp, kv_cache_[current_layer_ % num_layer_]);
     return tmp;
   }
+  // const std::vector<torch::Tensor>& current() { return kv_cache_[current_layer_ % num_layer_]; }
   void push(std::vector<torch::Tensor> input) {
     std::swap(kv_cache_[(current_layer_++) % num_layer_], input);
   }
+
+  bool round_over() { return current_layer_ % num_layer_ == 0; }
+
   std::size_t get_current_layer() { return current_layer_; }
 
  private:
@@ -57,7 +61,7 @@ class KVCache {
 
 class KVCacheTensor : public SingleBackend {
  public:
-  virtual bool init(const std::unordered_map<std::string, std::string> &, dict) override;
+  virtual bool init(const std::unordered_map<std::string, std::string>&, dict) override;
 
   virtual void forward(dict) override;
 
@@ -70,5 +74,6 @@ class KVCacheTensor : public SingleBackend {
   torch::Tensor position_ids_;
 
   int num_layers_{0};
+  int max_seq_len_{0};
 };
 }  // namespace ipipe
