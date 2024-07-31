@@ -88,11 +88,11 @@ bool MultipleInstances::init(const std::unordered_map<std::string, std::string>&
 
     for (const auto& instance : instances_grp_) {
       for (const auto& item : instance) {
-        IPIPE_CHECK(total.count(item) != 0, "instances_grp include invalid instance index");
+        IPIPE_ASSERT(total.count(item) != 0, "instances_grp include invalid instance index");
         total.erase(item);
       }
     }
-    IPIPE_CHECK(total.empty(), "some elements not included in instances_grp");
+    IPIPE_ASSERT(total.empty(), "some elements not included in instances_grp");
 
     if (dict_config) {
       state_ = std::make_shared<StateEvents>(instances_grp_[activate_grp_index].size());

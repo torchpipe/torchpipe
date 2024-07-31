@@ -29,7 +29,7 @@ std::vector<dict> MapReduce::split(dict input) {
   std::vector<dict> result;
 
   auto iter = input->find(split_);
-  IPIPE_CHECK(iter != input->end(), "failed to find key: " + split_);
+  IPIPE_ASSERT(iter != input->end(), "failed to find key: " + split_);
 
   auto split_size = iter->second.size();
 

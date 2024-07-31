@@ -14,8 +14,13 @@ The computation for the batchless part could be implemented as a standalone CUDA
 - [x] ~~PagedAttention~~ memory pool(need further thought)
 
 
-### Benchmark
-
+### Run && Benchmark
+```
+export TENSORRT_PATH=/workspace/TensorRT-10.2.0.19
+export CUDA_VISIBLE_DEVICES=1
+export LD_LIBRARY_PATH=/workspace/TensorRT-10.2.0.19/targets/x86_64-linux-gnu/lib/:$LD_LIBRARY_PATH
+DEBUG=1 python run_vila.py
+```
 
 ## Requirements
 - Ensure that you have successfully set up the environment for [VILA](https://github.com/NVlabs/VILA). Follow the instructions in their README carefully. Once successed, you can run the following commands to check.

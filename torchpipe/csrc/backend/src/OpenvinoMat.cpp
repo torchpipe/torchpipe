@@ -100,7 +100,7 @@ void OpenvinoMat::forward(const std::vector<dict>& input_dicts) {
   }
   IPIPE_ASSERT(input.elemSize1() == 1 || input.elemSize1() == 4);
   std::vector<cv::Mat> outputs;
-  IPIPE_CHECK(in_names_.size() == 1, "only support one input at this time");
+  IPIPE_ASSERT(in_names_.size() == 1, "only support one input at this time");
   for (std::size_t i = 0; i < in_names_.size(); ++i) {
     instance_->set_input(in_names_[i], input);
   }

@@ -45,7 +45,8 @@ std::exception_ptr insert_exception(const std::string& original_msg, const char*
 
 std::exception_ptr insert_exception(const char* original_msg, const std::string& msg) {
   // std::throw_with_nested(std::runtime_error(msg));
-  return std::make_exception_ptr(std::runtime_error(std::string(original_msg) + "\nerror: " + msg));
+  return std::make_exception_ptr(
+      std::runtime_error(std::string(original_msg) + "\n    error: " + msg));
 }
 
 std::exception_ptr insert_exception(std::exception_ptr curr_except, const std::string& msg) {

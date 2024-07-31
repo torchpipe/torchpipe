@@ -3,10 +3,6 @@
 #include "dynamic_onnx2trt.hpp"
 #include "tensorrt_utils.hpp"
 
-#ifdef PYBIND
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
-#endif
 #include "params.hpp"
 namespace ipipe {
 
@@ -90,18 +86,4 @@ int supported_opset() {
     return 13;
 };
 
-#ifdef PYBIND
-#ifdef WITH_TENSORRT
-namespace py = pybind11;
-// 通过pybind11将infer_onnx_shape函数暴露到python中，注意其参数
-void init_infer_shape(py::module& m) {
-  m.def("infer_shape", py::overload_cast<const std::string&>(&infer_shape),
-        py::call_guard<py::gil_scoped_release>(), py::arg("model_path"));
-}
-void supported_opset(py::module& m) {
-  m.def("supported_opset", py::overload_cast<>(&supported_opset),
-        py::call_guard<py::gil_scoped_release>());
-}
-#endif
-#endif
 }  // namespace ipipe

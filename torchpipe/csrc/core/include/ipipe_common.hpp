@@ -29,7 +29,8 @@ constexpr const char* file_name(const char* path) {
 }
 }  // namespace
 
-#define IPIPE_CHECK(x, args...)                                                                  \
+#ifdef NEVER_DEFINE_THIS_COMMENTED_CODE
+#define IPIPE_ASSERT(x, args...)                                                                 \
   do {                                                                                           \
     if (!(x)) {                                                                                  \
       throw std::runtime_error("[" + std::string(file_name(__FILE__)) + ":" +                    \
@@ -38,15 +39,38 @@ constexpr const char* file_name(const char* path) {
                                std::string(#x) + std::string("` failed. ") + std::string(args)); \
     }                                                                                            \
   } while (false)
+#endif
 
-#define IPIPE_ASSERT(x)                                                                 \
-  do {                                                                                  \
-    if (!(x)) {                                                                         \
-      throw std::runtime_error("[" + std::string(file_name(__FILE__)) + ":" +           \
-                               std::to_string(__LINE__) + std::string(" ") +            \
-                               std::string(__FUNCTION__) + std::string("]: assert `") + \
-                               std::string(#x) + std::string("` failed. "));            \
-    }                                                                                   \
+#define IPIPE_ASSERT_V1(x, ...)                                                       \
+  do {                                                                                \
+    if (!(x)) {                                                                       \
+      throw std::runtime_error(                                                       \
+          "[" + std::string(file_name(__FILE__)) + ":" + std::to_string(__LINE__) +   \
+          std::string(" ") + std::string(__FUNCTION__) + std::string("]: assert `") + \
+          std::string(#x) + std::string("` failed. ") + std::string(__VA_ARGS__));    \
+    }                                                                                 \
+  } while (false)
+
+#define IPIPE_ASSERT(x, ...)                 \
+  do {                                       \
+    if (!(x)) {                              \
+      throw std::runtime_error(              \
+          "\nAssertion failed:\n"            \
+          "\tFile: " +                       \
+          std::string(file_name(__FILE__)) + \
+          "\n"                               \
+          "\tLine: " +                       \
+          std::to_string(__LINE__) +         \
+          "\n"                               \
+          "\tFunction: " +                   \
+          std::string(__FUNCTION__) +        \
+          "\n"                               \
+          "\tExpression: `" +                \
+          std::string(#x) +                  \
+          "`\n"                              \
+          "\tMessage: " +                    \
+          std::string(__VA_ARGS__));         \
+    }                                        \
   } while (false)
 
 #define IPIPE_THROW(args...)                                                                      \

@@ -99,7 +99,7 @@ torch::Tensor to_current_device(torch::Tensor input) {
 
 bool is_cpu_tensor(torch::Tensor input) {
 #ifndef TORCH_VERSION_MAJOR
-  IPIPE_CHECK(0, "TORCH_VERSION_MAJOR not defined");
+  IPIPE_ASSERT(0, "TORCH_VERSION_MAJOR not defined");
 #endif
 #if TORCH_VERSION_MAJOR == 1 && TORCH_VERSION_MINOR < 10
   return input.device().is_cpu();

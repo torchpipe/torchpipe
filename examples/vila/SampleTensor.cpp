@@ -35,6 +35,7 @@ class SampleTensor : public SingleBackend {
     auto next_tokens = torch::multinomial(probs, /*num_samples=*/1);
     // next_tokens = next_tokens - next_tokens + 1;
     input[TASK_RESULT_KEY] = next_tokens;
+    input["tensor_item"] = next_tokens.item<long>();
   }
 
  private:

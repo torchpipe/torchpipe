@@ -15,7 +15,8 @@
 #pragma once
 #include "pybind11/pybind11.h"
 #include "any.hpp"
+#include "ipipe_common.hpp"
 
 namespace ipipe {
-pybind11::object any2object(const any& data);
+pybind11::object IPIPE_EXPORT any2object(const any& data);
 }

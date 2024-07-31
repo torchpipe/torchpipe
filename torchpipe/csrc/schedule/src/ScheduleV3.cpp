@@ -163,7 +163,7 @@ void ScheduleV3::forward(const std::vector<dict>& raw_inputs) {
     async_forward(raw_inputs);
     return;
   }
-  IPIPE_CHECK(events.empty(), "number of events must be 0 or inputs.size()");
+  IPIPE_ASSERT(events.empty(), "number of events must be 0 or inputs.size()");
 
   auto event = make_event(raw_inputs.size());
   event->add_callback([guard_state]() { guard_state->del(); });

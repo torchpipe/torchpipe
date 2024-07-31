@@ -80,7 +80,7 @@ class Range : public Backend {
 
     std::vector<std::string> range_minmax;
     TRACE_EXCEPTION(range_minmax = str_split(params_->at("range"), ',', false));
-    IPIPE_CHECK(range_minmax.size() == 2, "range should be like 'min,max'");
+    IPIPE_ASSERT(range_minmax.size() == 2, "range should be like 'min,max'");
     TRACE_EXCEPTION(min_ = std::stoi(range_minmax[0]));
     TRACE_EXCEPTION(max_ = std::stoi(range_minmax[1]));
 

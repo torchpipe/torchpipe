@@ -20,8 +20,8 @@
 
 #ifdef PYBIND
 #include <pybind11/pybind11.h>
-#include "tensor_type_caster.hpp"
-
+namespace py = pybind11;
+// #include "tensor_type_caster.hpp"
 #endif
 
 namespace ipipe {
@@ -56,12 +56,7 @@ class Interpreter : public Backend {
   void forward(py::list py_inputs);
 
   void forward(py::dict py_input);
-  ~Interpreter() {
-    if (PyGILState_Check()) {
-      py::gil_scoped_release gil_lock;  // https://github.com/pybind/pybind11/issues/1446
-      backend_.reset();
-    }
-  }
+  ~Interpreter();
 
 #endif
 

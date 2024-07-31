@@ -345,11 +345,11 @@ class LogicalGraph {
     auto iter = node_configs_.find(node_name);
     assert(iter != node_configs_.end());
     const auto& pre = iter->second.previous;
-    IPIPE_CHECK(!pre.empty(), "map is not supported for root node.");
+    IPIPE_ASSERT(!pre.empty(), "map is not supported for root node.");
     dict curr_data;
     dict previous_data;
     if (!iter->second.map_reduce.empty()) {
-      // IPIPE_CHECK(pre.size() == 1);
+      // IPIPE_ASSERT(pre.size() == 1);
       std::string pre_key;
       for (const auto& item : pre) {
         auto iter_pre = processed.find(item);
@@ -377,7 +377,7 @@ class LogicalGraph {
       }
     } else {
       if (pre.size() != 1) {
-        IPIPE_CHECK(pre.size() == 1, node_name + ": unmatch map.");
+        IPIPE_ASSERT(pre.size() == 1, node_name + ": unmatch map.");
       }
       const auto& pre_node = *pre.begin();
       auto iter_pre = processed.find(pre_node);

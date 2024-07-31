@@ -15,7 +15,7 @@
 #pragma once
 
 #include "dict.hpp"
-
+#include "ipipe_common.hpp"
 #include "pybind11/pybind11.h"
 namespace py = pybind11;
 
@@ -58,13 +58,13 @@ namespace ipipe {
 //   return list;
 // }
 
-dict py2dict(pybind11::dict input);
+dict IPIPE_EXPORT py2dict(pybind11::dict input);
 
-void dict2py(dict input, pybind11::dict result_dict, bool keep_data = false);
+void IPIPE_EXPORT dict2py(dict input, pybind11::dict result_dict, bool keep_data = false);
 
 class AnyWrapper {
  public:
-  AnyWrapper(){};
+  AnyWrapper() {};
 
   const ipipe::any& value() const { return value_; }
   void set_value(const ipipe::any& value) { value_ = value; }

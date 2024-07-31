@@ -33,7 +33,7 @@ min = '1x1x2560,1x1x2560,1x1x2560,1x1'
 [kvcache]
 backend = "S[KVCacheTensor,SyncTensor]" 
 max_seq_len = 2048 # out_put : reach_max_seq_len
-num_layers = 1 # for llama. Auto set?
+num_layers = 1 # for debug. 32 for llama.  Auto set?
 # [siglip]
 # 'backend' = 'SyncTensor[TensorrtTensor]'
 # 'mean' = '127.5,127.5,127.5'
@@ -65,7 +65,7 @@ min = '1x1x2560,1x1x2560,1x1x2560,1x1,1x20x1x128,1x20x1x128'
 #TorchPlugin
 
 [sample]
-backend = 'SyncTensor[SampleTensor]'
+backend = 'S[SampleTensor, Streaming, SyncTensor]'
 next = 'check_eos'
 temperature = 0.2
 

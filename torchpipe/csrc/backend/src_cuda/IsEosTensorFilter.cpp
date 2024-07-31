@@ -46,8 +46,9 @@ class IsEosTensorFilter : public SingleBackend {
     }
 
     int now_token{-1};
-
-    if (input[TASK_DATA_KEY].type() == typeid(torch::Tensor)) {
+    if (input.find("tensor_item") != input.end()) {
+      now_token = any_cast<long>(input["tensor_item"]);
+    } else if (input[TASK_DATA_KEY].type() == typeid(torch::Tensor)) {
       auto* input_tensor = any_cast<torch::Tensor>(&input[TASK_DATA_KEY]);
       now_token = input_tensor->item<long>();
     } else {

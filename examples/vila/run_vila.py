@@ -2,11 +2,16 @@
 import torchpipe
 import cv2, torch, os, glob
 
-torchpipe.utils.cpp_extension.load(name="plugin", sources=glob.glob("./*.cpp"),
-                                   extra_include_paths=['/workspace/TensorRT-10.2.0.19/include/'],
-                                   extra_ldflags=['-L/workspace/TensorRT-10.2.0.19/targets/x86_64-linux-gnu/lib/','-lnvinfer_plugin','-lnvinfer'],
-                                   verbose=True)
 
+plugin=torchpipe.utils.cpp_extension.load(name="plugin", sources=glob.glob("./*.cpp"),
+                                   extra_include_paths=['/workspace/TensorRT-10.2.0.19/include/'],
+                                   extra_ldflags=['-L/workspace/TensorRT-10.2.0.19/targets/x86_64-linux-gnu/lib/','-lnvinfer_plugin','-lnvinfer','-lipipe','-Wl,--no-as-needed'],
+                                   verbose=True,
+                                   is_python_module=True)
+kv = plugin.ThreadSafeKVStorage.getInstance()
+# kv.write("z", 1)
+# print(kv.read("z"))
+# exit(0)
 model = torchpipe.Pipe("vila.toml")
 
 

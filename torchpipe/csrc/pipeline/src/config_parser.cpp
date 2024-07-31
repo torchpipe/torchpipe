@@ -91,7 +91,7 @@ void update_node(std::unordered_map<std::string, std::string>& single_node, toml
       update_node(single_node_inner, iter->first, iter->second, results);
       results[key + "." + iter->first] = single_node_inner;
     } else {
-      IPIPE_CHECK(!is_reserved(iter->first), "`" + iter->first + "` is reserved word.");
+      IPIPE_ASSERT(!is_reserved(iter->first), "`" + iter->first + "` is reserved word.");
       single_node[iter->first] = toml2str(iter->second);
     }
   }

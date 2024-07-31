@@ -42,4 +42,22 @@ std::exception_ptr insert_exception(std::exception_ptr curr_except, const std::s
     }                                                                                        \
   }
 
+#define RETURN_EXCEPTION_TRACE(input)                                                      \
+  ([&]() {                                                                                   \
+    try {                                                                                    \
+      return input;                                                                          \
+    } catch (const std::exception& e) {                                                      \
+      const auto& trace_exception_msg =                                                      \
+          ('[' + std::string(__FILE__) + ":" + std::to_string(__LINE__) + "]: failed:\n `" + \
+           std::string(#input) + "`.");                                                      \
+      throw std::runtime_error(std::string(e.what()) + "\nerror: " + trace_exception_msg);   \
+    } catch (...) {                                                                          \
+      const auto& trace_exception_msg =                                                      \
+          ('[' + std::string(__FILE__) + ":" + std::to_string(__LINE__) + "]: failed:\n `" + \
+           std::string(#input) + "`.");                                                      \
+      throw std::runtime_error(std::string("an exception not drived from std::exception.") + \
+                               "\nerror: " + trace_exception_msg);                           \
+    }                                                                                        \
+  }())
+
 }  // namespace ipipe

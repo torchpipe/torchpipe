@@ -149,7 +149,7 @@ void Schedule::forward(const std::vector<dict>& raw_inputs) {
     async_forward(raw_inputs);
     return;
   }
-  IPIPE_CHECK(num_events == 0, "num_events must be 0 or inputs.size()");
+  IPIPE_ASSERT(num_events == 0, "num_events must be 0 or inputs.size()");
 
   auto event = make_event(raw_inputs.size());
 
