@@ -53,7 +53,7 @@ print(kv)
 # q = kv.__getitem__('r0','tensor_item').as_queue()
 
 
-q = kv['r0','tensor_item'].as_queue()
-print(q.size())
+q = kv['r0','queue'].as_queue()
+print(q, q.size())
 # torchpipe.utils.test.test_from_raw_file(run,file_dir="../assets/", num_clients=2,
 #                                         total_number=1000)

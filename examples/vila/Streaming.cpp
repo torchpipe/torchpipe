@@ -49,14 +49,14 @@ class Streaming : public SingleBackend {
 
     std::shared_ptr<ThreadSafeQueue<long>> obj;
     auto &ins = ThreadSafeKVStorage::getInstance();
-    auto que = ins.get(request_id, "tensor_item");
+    auto que = ins.get(request_id, "queue");
     if (que) {
       obj = any_cast<std::shared_ptr<ThreadSafeQueue<long>>>(*que);
       obj->Push(tensor_item);
     } else {
       obj = std::make_shared<ThreadSafeQueue<long>>();
       obj->Push(tensor_item);
-      ins.set(request_id, "tensor_item", obj);
+      ins.set(request_id, "queue", obj);
     }
 
     if (input.find("is_eos") != input.end()) {
