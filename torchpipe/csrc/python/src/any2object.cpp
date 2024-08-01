@@ -360,7 +360,7 @@ py::object cast_other_list(const any& data) {
   }
   IPIPE_THROW("Unable to convert return value to Python object.");
 }
-py::object any2object(const any& data) {
+py::object any2object_impl(const any& data) {
   std::vector<PyClassType> types = data.get_class_type();
   IPIPE_ASSERT(types.size() != 0);
 

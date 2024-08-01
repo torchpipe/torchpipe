@@ -9,6 +9,7 @@
 #include "params.hpp"
 #include "exception.hpp"
 #include "threadsafe_queue.hpp"
+#include "threadsafe_kv_storage.hpp"
 namespace ipipe {
 /**
  * @brief Streaming class that extends SingleBackend.
@@ -47,24 +48,26 @@ class Streaming : public SingleBackend {
     long tensor_item = RETURN_EXCEPTION_TRACE(any_cast<long>(input.at("tensor_item")));
 
     std::shared_ptr<ThreadSafeQueue<long>> obj;
-    {
-      std::lock_guard<std::mutex> lock(mutex_);
-      auto iter_request = streaming_.find(request_id);
-      if (iter_request == streaming_.end()) {
-        obj = std::make_shared<ThreadSafeQueue<long>>();
-        streaming_[request_id] = obj;
-      } else {
-        obj = iter_request->second;
-      }
+    auto &ins = ThreadSafeKVStorage::getInstance();
+    auto que = ins.get(request_id, "tensor_item");
+    if (que) {
+      obj = any_cast<std::shared_ptr<ThreadSafeQueue<long>>>(*que);
+      obj->Push(tensor_item);
+    } else {
+      obj = std::make_shared<ThreadSafeQueue<long>>();
+      obj->Push(tensor_item);
+      ins.set(request_id, "tensor_item", obj);
     }
-    IPIPE_ASSERT(obj);
+
+    if (input.find("is_eos") != input.end()) {
+      ins.set(request_id, "is_eos", input["is_eos"]);
+    }
 
     input[TASK_RESULT_KEY] = input[TASK_DATA_KEY];
   }
 
  private:
   std::unique_ptr<Params> params_;
-  std::unordered_map<std::string, std::shared_ptr<ThreadSafeQueue<long>>> streaming_;
   std::mutex mutex_;
 };
 

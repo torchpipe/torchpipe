@@ -64,13 +64,16 @@ min = '1x1x2560,1x1x2560,1x1x2560,1x1,1x20x1x128,1x20x1x128'
 
 #TorchPlugin
 
+[streaming]
+backend = "Streaming"
+
 [sample]
-backend = 'S[SampleTensor, Streaming, SyncTensor]'
+backend = 'S[SampleTensor,Jump[streaming], SyncTensor]'
 next = 'check_eos'
 temperature = 0.2
 
 [check_eos]
-backend = 'S[SyncTensor[IsEosTensorFilter],(if)S[ADD[remove_request_id:],(run)Jump[kvcache]], (else)Add[restart:embed_tokens]]'
+backend = 'S[SyncTensor[IsEosTensorFilter],(if)S[ADD[remove_request_id:],(run)Jump[kvcache],Jump[streaming]], (else)Add[restart:embed_tokens]]'
 # map = "result:other,result:data,request_id:request_id"
 # next = "embed_tokens"
 eos = 1

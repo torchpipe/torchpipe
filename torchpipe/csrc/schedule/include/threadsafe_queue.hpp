@@ -20,6 +20,7 @@
 #include <queue>
 #include <thread>
 #include <vector>
+#include <functional>
 
 namespace ipipe {
 
@@ -39,15 +40,15 @@ class ThreadSafeQueue {
     data_cond_.notify_all();
   }
 
-  void PushIfEmpty(const T& new_value) {
-    {
-      std::unique_lock<std::mutex> lk(mut_);
-      poped_cond_.wait(lk, [this] { return data_queue_.empty(); });
-      data_queue_.push(new_value);
-    }
+  // void PushIfEmpty(const T& new_value) {
+  //   {
+  //     std::unique_lock<std::mutex> lk(mut_);
+  //     poped_cond_.wait(lk, [this] { return data_queue_.empty(); });
+  //     data_queue_.push(new_value);
+  //   }
 
-    data_cond_.notify_all();
-  }
+  //   data_cond_.notify_all();
+  // }
 
   void Push(const std::vector<T>& new_value) {
     {

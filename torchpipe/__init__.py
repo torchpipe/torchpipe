@@ -74,7 +74,7 @@ from torchpipe.libipipe import (
 )
 if WITH_CUDA:
     from torchpipe.libipipe import  infer_shape, supported_opset
-from torchpipe.libipipe import Event
+from torchpipe.libipipe import Event,ThreadSafeKVStorage
 from torchpipe.libipipe import encrypt
 
 # from torchpipe.utils import test, cpp_extension, patform, models
@@ -122,7 +122,8 @@ __all__ = [
     "TASK_EVENT_KEY",
     "encrypt",
     # "any",
-    "show"
+    "show",
+    "ThreadSafeKVStorage"
 ]
 
 if WITH_CUDA:

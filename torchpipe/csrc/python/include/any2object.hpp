@@ -18,5 +18,12 @@
 #include "ipipe_common.hpp"
 
 namespace ipipe {
-pybind11::object IPIPE_EXPORT any2object(const any& data);
+inline pybind11::object IPIPE_EXPORT any2object_impl(const any& data);
+
+// stop type conversion
+template <typename T>
+pybind11::object any2object(const T& data) {
+  static_assert(std::is_same<T, any>::value, "The argument must be of type 'any'");
+  return any2object_impl(data);
 }
+}  // namespace ipipe

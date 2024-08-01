@@ -154,7 +154,7 @@ void KVCacheTensor::forward(dict input_dict) {
   // (*input_dict)[TASK_RESULT_KEY] = (*input_dict)[TASK_DATA_KEY];
 
   if (cache->round_over()) {
-    if (final_past_seq_len >= max_seq_len_) {
+    if (final_past_seq_len >= max_seq_len_ - 1) {
       (*input_dict)["is_eos"] = 1;
       SPDLOG_DEBUG("KVCacheTensor: is eos");
       kv_caches_.erase(request_id);

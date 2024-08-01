@@ -19,6 +19,7 @@
 #include "event.hpp"
 #include "filter.hpp"
 #include "infer_model_input_shape.hpp"
+#include "threadsafe_queue.hpp"
 
 // python related
 #include "tensor_type_caster.hpp"
@@ -107,6 +108,33 @@ void register_backend(py::object class_def, const std::string& register_name) {
 
 void register_filter(py::object class_def, const std::string& register_name) {
   register_py_filter(class_def, register_name);
+}
+
+template <typename T>
+void bind_threadsafe_queue(py::module& m, const std::string& typestr) {
+  using Queue = ipipe::ThreadSafeQueue<T>;
+  std::string pyclass_name = std::string("ThreadSafeQueue") + typestr;
+  py::class_<Queue, std::shared_ptr<Queue>>(m, pyclass_name.c_str())
+      .def(py::init<>())
+      .def("Push", py::overload_cast<const T&>(&Queue::Push),
+           py::call_guard<py::gil_scoped_release>())
+      .def("Push", py::overload_cast<const std::vector<T>&>(&Queue::Push),
+           py::call_guard<py::gil_scoped_release>())
+      .def(
+          "WaitForPop",
+          [](Queue& q, int time_out) -> py::object {
+            T value;
+            bool result = q.WaitForPop(value, time_out);
+            py::gil_scoped_acquire local_guard;
+            if (result) {
+              return py::cast(value);
+            } else {
+              return py::none();
+            }
+          },
+          py::call_guard<py::gil_scoped_release>())
+      .def("empty", &Queue::empty, py::call_guard<py::gil_scoped_release>())
+      .def("size", &Queue::size, py::call_guard<py::gil_scoped_release>());
 }
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
@@ -247,7 +275,71 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   //       .def_static("getInstance", &ThreadSafeKVStorage::getInstance,
   //                   py::return_value_policy::reference);
 
-  py::class_<ipipe::any>(m, "Any").def(py::init<>());
+  py::class_<ipipe::any>(m, "Any").def(py::init<>()).def("as_queue", [](ipipe::any& self) {
+    if (typeid(std::shared_ptr<ThreadSafeQueue<long>>) == self.type()) {
+      return py::cast(any_cast<std::shared_ptr<ThreadSafeQueue<long>>>(self));
+    } else if (typeid(std::shared_ptr<ThreadSafeQueue<int>>) == self.type()) {
+      return py::cast(any_cast<std::shared_ptr<ThreadSafeQueue<int>>>(self));
+    } else if (typeid(std::shared_ptr<ThreadSafeQueue<float>>) == self.type()) {
+      return py::cast(any_cast<std::shared_ptr<ThreadSafeQueue<float>>>(self));
+    } else if (typeid(std::shared_ptr<ThreadSafeQueue<double>>) == self.type()) {
+      return py::cast(any_cast<std::shared_ptr<ThreadSafeQueue<double>>>(self));
+    } else if (typeid(std::shared_ptr<ThreadSafeQueue<short>>) == self.type()) {
+      return py::cast(any_cast<std::shared_ptr<ThreadSafeQueue<short>>>(self));
+    } else if (typeid(std::shared_ptr<ThreadSafeQueue<unsigned int>>) == self.type()) {
+      return py::cast(any_cast<std::shared_ptr<ThreadSafeQueue<unsigned int>>>(self));
+    } else {
+      throw py::type_error(
+          std::string("The object is not a std::shared_ptr<ThreadSafeQueue<T>>, is ") +
+          self.type().name());
+    }
+  });
+
+  {
+    bind_threadsafe_queue<int>(m, "Int");
+    bind_threadsafe_queue<float>(m, "Float");
+    bind_threadsafe_queue<double>(m, "Double");
+    bind_threadsafe_queue<long>(m, "Long");
+    bind_threadsafe_queue<short>(m, "Short");
+    bind_threadsafe_queue<unsigned int>(m, "UnsignedInt");
+
+    py::class_<ThreadSafeDict, std::shared_ptr<ThreadSafeDict>>(m, "ThreadSafeDict")
+        .def(py::init<>())
+        .def("__getitem__",
+             [](ThreadSafeKVStorage& self, const std::string& path, const std::string& key) {
+               auto result = self.get(path, key);
+               if (result) {
+                 return ipipe::any2object(*result);
+               } else {
+                 return py::object(py::none());
+               }
+             })
+        .def("__setitem__", [](ThreadSafeDict& self, const std::string& key,
+                               const py::object& value) { self.set(key, object2any(value)); });
+
+    py::class_<ThreadSafeKVStorage>(m, "ThreadSafeKVStorage")
+        .def("__getitem__",
+             [](ThreadSafeKVStorage& self, const std::pair<std::string, std::string>& key_pair) {
+               //  {
+               //    py::gil_scoped_release local_guard;
+               //    result = self.get(path, key);
+               //  }
+
+               auto result = self.get(key_pair.first, key_pair.second);
+               if (result) {
+                 return ipipe::any2object(*result);
+               } else {
+                 return py::object(py::none());
+               }
+             })
+        .def("__setitem__",
+             [](ThreadSafeKVStorage& self, const std::string& path, const std::string& key,
+                pybind11::handle data) { self.set(path, key, object2any(data)); })
+        .def("clear", py::overload_cast<>(&ThreadSafeKVStorage::clear))
+        .def("clear", py::overload_cast<const std::string&>(&ThreadSafeKVStorage::clear))
+        .def_static("getInstance", &ThreadSafeKVStorage::getInstance,
+                    py::return_value_policy::reference);
+  }
 
   py::enum_<Filter::status>(m, "Status")
       .value("Run", Filter::status::Run)

@@ -55,6 +55,13 @@ class SimpleEvents {
     }
   }
 
+  bool WaitFinish(uint32_t timeout_ms) {
+    std::unique_lock<std::mutex> lk(mut);
+
+    return data_cond.wait_for(lk, std::chrono::milliseconds(timeout_ms),
+                              [this] { return (num_task == ref_count); });  //
+  }
+
   /// true: 引用计数等小于引用计数目标值时。
   bool valid() {
     std::unique_lock<std::mutex> lk(mut);
@@ -99,6 +106,7 @@ class SimpleEvents {
    * 3. 无条件唤醒一个阻塞的监听者。
    */
   void notify_one() {
+    // 放弃dict所有权
     {
       // do not remove this lock even if ref_count is atomic
       std::lock_guard<std::mutex> lk(mut);
@@ -173,12 +181,11 @@ class SimpleEvents {
       assert(false);
     }
 
-    if ((ref_count == num_task) && !callbacks_.empty()) {
-      for (auto iter = callbacks_.rbegin(); iter != callbacks_.rend(); iter++) {
-        (*iter)();
+    if ((ref_count == num_task)) {
+      while (!callbacks_.empty()) {
+        callbacks_.back()();    // Execute the last callback
+        callbacks_.pop_back();  // Remove the last callback
       }
-
-      callbacks_.clear();
     }
   }
 
@@ -189,12 +196,11 @@ class SimpleEvents {
       assert(false);
     }
 
-    if ((ref_count >= num_task) && !callbacks_.empty()) {
-      for (auto iter = callbacks_.rbegin(); iter != callbacks_.rend(); iter++) {
-        (*iter)();
+    if ((ref_count >= num_task)) {
+      while (!callbacks_.empty()) {
+        callbacks_.back()();    // Execute the last callback
+        callbacks_.pop_back();  // Remove the last callback
       }
-
-      callbacks_.clear();
     }
   }
 

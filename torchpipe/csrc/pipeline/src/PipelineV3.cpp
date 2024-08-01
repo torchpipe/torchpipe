@@ -192,8 +192,14 @@ void PipelineV3::on_finish_node(dict tmp_data) {
   if (iter != tmp_data->end()) {
     std::shared_ptr<SimpleEvents> curr_event =
         any_cast<std::shared_ptr<SimpleEvents>>(iter->second);
+    IPIPE_ASSERT((curr_event));
+    while (bInited_.load()) {
+      // call back called before notify
+      if (curr_event->WaitFinish(50)) break;
+    }
+
     tmp_data->erase(TASK_EVENT_KEY);
-    if (curr_event && curr_event->has_exception()) {
+    if (curr_event->has_exception()) {
       if (!pstack->exception)
         pstack->exception = insert_exception(
             curr_event->reset_exception(),

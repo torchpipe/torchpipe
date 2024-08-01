@@ -60,6 +60,7 @@ class IsEosTensorFilter : public SingleBackend {
 
     // input[TASK_RESULT_KEY] = input[TASK_DATA_KEY];
     if (now_token == eos_) {
+      input["is_eos"] = 1;
       input["filter"] = Filter::status::Run;
     } else {
       input["filter"] = Filter::status::Skip;
