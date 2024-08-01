@@ -69,7 +69,6 @@ class KVCacheTensor : public SingleBackend {
   std::unique_ptr<Params> params_;
   std::unique_ptr<Backend> engine_;
   // layer_index -> request_id -> k,v
-  std::unordered_map<std::string, std::unique_ptr<KVCache>> kv_caches_;
   // std::mutex mutex_;  // todo : support multiple instances
   torch::Tensor position_ids_;
 

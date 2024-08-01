@@ -45,22 +45,19 @@ class Streaming : public SingleBackend {
     auto iter = input.find("request_id");
     IPIPE_ASSERT(iter != input.end(), "request_id not found in input_dict");
     std::string request_id = any_cast<std::string>(iter->second);
-    long tensor_item = RETURN_EXCEPTION_TRACE(any_cast<long>(input.at("tensor_item")));
+    long tensor_item = RETURN_EXCEPTION_TRACE(any_cast<long>(input.at(TASK_CPU_RESULT_KEY)));
 
     std::shared_ptr<ThreadSafeQueue<long>> obj;
-    auto &ins = ThreadSafeKVStorage::getInstance();
-    auto que = ins.get(request_id, "queue");
+    static auto &ins = ThreadSafeKVStorage::getInstance();
+    auto &storage_kv = ins.get(request_id);
+    auto que = storage_kv.get("queue");
     if (que) {
       obj = any_cast<std::shared_ptr<ThreadSafeQueue<long>>>(*que);
       obj->Push(tensor_item);
     } else {
       obj = std::make_shared<ThreadSafeQueue<long>>();
       obj->Push(tensor_item);
-      ins.set(request_id, "queue", obj);
-    }
-
-    if (input.find("is_eos") != input.end()) {
-      ins.set(request_id, "is_eos", input["is_eos"]);
+      storage_kv.set("queue", obj);
     }
 
     input[TASK_RESULT_KEY] = input[TASK_DATA_KEY];

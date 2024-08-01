@@ -1,17 +1,20 @@
 #include "Backend.hpp"
 #include "params.hpp"
 #include <torch/torch.h>
+#include "threadsafe_kv_storage.hpp"
+
 namespace ipipe {
 class SampleTensor : public SingleBackend {
  public:
   virtual bool init(const std::unordered_map<std::string, std::string> &config_param,
                     dict) override {
     params_ = std::unique_ptr<Params>(
-        new Params({{"top_k", "50"}, {"top_p", "0.2"}}, {"temperature"}, {}, {}));
+        new Params({{"top_k", "50"}, {"top_p", "0.2"}, {"eos", "1"}}, {"temperature"}, {}, {}));
     if (!params_->init(config_param)) return false;
     temperature_ = std::stof(params_->at("temperature"));
     topk_ = std::stoi(params_->at("top_k"));
     topp_ = std::stof(params_->at("top_p"));
+    eos_ = std::stoi(params_->at("eos"));
     return true;
   }
   virtual void forward(dict input_dict) override {
@@ -34,8 +37,18 @@ class SampleTensor : public SingleBackend {
 
     auto next_tokens = torch::multinomial(probs, /*num_samples=*/1);
     // next_tokens = next_tokens - next_tokens + 1;
+
+    auto tensor_item = next_tokens.item<long>();
+    if (tensor_item == eos_) {
+      static auto &storage = ThreadSafeKVStorage::getInstance();
+      auto iter = input_dict->find("request_id");
+      IPIPE_ASSERT(iter != input_dict->end());
+      std::string request_id = any_cast<std::string>(iter->second);
+      storage.set(request_id, "is_eos", 1);
+    }
+
     input[TASK_RESULT_KEY] = next_tokens;
-    input["tensor_item"] = next_tokens.item<long>();
+    input[TASK_CPU_RESULT_KEY] = tensor_item;
   }
 
  private:
@@ -43,7 +56,9 @@ class SampleTensor : public SingleBackend {
   float temperature_;
   int topk_;
   float topp_;
+  int eos_{1};
 };
 
 IPIPE_REGISTER(Backend, SampleTensor, "SampleTensor")
+
 };  // namespace ipipe

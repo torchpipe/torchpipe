@@ -54,6 +54,9 @@ print(kv)
 
 
 q = kv['r0','queue'].as_queue()
-print(q, q.size())
+print('r0', q.size())
+
+q = kv['r1','queue'].as_queue()
+print('r1', q.size())
 # torchpipe.utils.test.test_from_raw_file(run,file_dir="../assets/", num_clients=2,
 #                                         total_number=1000)

@@ -35,7 +35,7 @@ Filter::status Filter::forward(dict input) {
 IPIPE_REGISTER(Filter, Filter, "swap")
 
 IPIPE_REGISTER(Filter, FilterOr, "or,else");
-IPIPE_REGISTER(Filter, Cfilter, "filter,if");
+IPIPE_REGISTER(Filter, CFilter, "filter,if");
 
 // IPIPE_REGISTER(Filter, FilterOr, "FilterOr");
 // using FilterReturn_Filter_status_skip_ = FilterReturn<Filter::status::Skip>;

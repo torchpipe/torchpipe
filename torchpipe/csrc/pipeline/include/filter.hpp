@@ -49,7 +49,7 @@ class FilterReturn : public Filter {
   status forward(dict data) { return return_status; }
 };
 
-class Cfilter : public Filter {
+class CFilter : public Filter {
  public:
   status forward(dict input) {
     auto iter = input->find("filter");

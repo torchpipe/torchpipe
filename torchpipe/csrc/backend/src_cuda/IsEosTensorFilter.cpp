@@ -18,61 +18,31 @@
 #include "reflect.h"
 #include "dict.hpp"
 #include "params.hpp"
-
+#include "threadsafe_kv_storage.hpp"
 #include "filter.hpp"
 
 namespace ipipe {
 
-class IsEosTensorFilter : public SingleBackend {
+class IsRequestEosFilter : public SingleBackend {
  public:
-  virtual bool init(const std::unordered_map<std::string, std::string>& config_param,
-                    dict) override {
-    params_ = std::unique_ptr<Params>(new Params({{"eos", "1"}}, {}, {}, {}));
-    if (!params_->init(config_param)) return false;
-
-    eos_ = std::stoi(params_->at("eos"));
-
-    return true;
-  }
-
   virtual void forward(dict input_dict) override {
+    static auto& storage = ThreadSafeKVStorage::getInstance();
+
     auto& input = *input_dict;
 
-    bool is_eos = input_dict->find("is_eos") != input_dict->end();
-    if (is_eos) {
-      SPDLOG_DEBUG("IsEosTensorFilter: is_eos is true");
-      input["filter"] = Filter::status::Run;
-      return;
-    }
+    auto iter = input_dict->find("request_id");
+    IPIPE_ASSERT(iter != input_dict->end());
+    std::string request_id = any_cast<std::string>(iter->second);
+    auto& storage_kv = storage.get(request_id);
 
-    int now_token{-1};
-    if (input.find("tensor_item") != input.end()) {
-      now_token = any_cast<long>(input["tensor_item"]);
-    } else if (input[TASK_DATA_KEY].type() == typeid(torch::Tensor)) {
-      auto* input_tensor = any_cast<torch::Tensor>(&input[TASK_DATA_KEY]);
-      now_token = input_tensor->item<long>();
-    } else {
-      SPDLOG_ERROR("IsEosTensorFilter: torch::Tensor needed; error input type: " +
-                   std::string(input[TASK_DATA_KEY].type().name()));
-      throw std::runtime_error("IsEosTensorFilter: torch::Tensor needed; error input type: " +
-                               std::string(input[TASK_DATA_KEY].type().name()));
-    }
-
-    // input[TASK_RESULT_KEY] = input[TASK_DATA_KEY];
-    if (now_token == eos_) {
-      input["is_eos"] = 1;
+    if (storage_kv.get("is_eos")) {
+      SPDLOG_DEBUG("IsRequestEosFilter: is_eos is true");
       input["filter"] = Filter::status::Run;
-    } else {
+    } else
       input["filter"] = Filter::status::Skip;
-    }
-    // input[TASK_RESULT_KEY] = input[TASK_DATA_KEY];
   }
-
- private:
-  std::unique_ptr<Params> params_;
-  int eos_{-100};
 };
 
-IPIPE_REGISTER(Backend, IsEosTensorFilter, "IsEosTensorFilter");
+IPIPE_REGISTER(Backend, IsRequestEosFilter, "IsRequestEosFilter");
 
 }  // namespace ipipe

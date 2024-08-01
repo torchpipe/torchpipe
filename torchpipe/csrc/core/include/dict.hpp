@@ -66,6 +66,7 @@ constexpr auto TASK_DATA_KEY = "data";
  * @endif
  */
 constexpr auto TASK_RESULT_KEY = "result";
+constexpr auto TASK_CPU_RESULT_KEY = "cpu_result";
 
 constexpr auto TASK_CONTEXT_KEY = "context";
 

@@ -27,6 +27,8 @@
 #include "torch_utils.hpp"
 #include "cuda_runtime_api.h"
 #include "base_logging.hpp"
+#include "threadsafe_kv_storage.hpp"
+
 namespace ipipe {
 bool KVCacheTensor::init(const std::unordered_map<std::string, std::string>& config_param,
                          dict dict_config) {
@@ -77,21 +79,14 @@ bool KVCacheTensor::init(const std::unordered_map<std::string, std::string>& con
 }
 
 void KVCacheTensor::forward(dict input_dict) {
+  static auto& storage = ThreadSafeKVStorage::getInstance();
+
   auto iter = input_dict->find("request_id");
   IPIPE_ASSERT(iter != input_dict->end());
   std::string request_id = any_cast<std::string>(iter->second);
   SPDLOG_DEBUG("KVCacheTensor request_id: {}", request_id);
 
-  auto iter_remove = input_dict->find("remove_request_id");
-  if (iter_remove != input_dict->end()) {
-    SPDLOG_INFO("KVCacheTensor remove_request_id: {}", request_id);
-    // std::lock_guard<std::mutex> lock(mutex_);
-    auto iter_cache = (kv_caches_.find(request_id));
-    // IPIPE_ASSERT(iter_cache != kv_caches_.end());
-    if (iter_cache != kv_caches_.end()) kv_caches_.erase(iter_cache);
-    engine_->forward({input_dict});
-    return;
-  }
+  auto& storage_kv = storage.get_or_insert(request_id);
 
   auto& input = *input_dict;
   std::vector<torch::Tensor>* input_tensor = nullptr;
@@ -115,15 +110,17 @@ void KVCacheTensor::forward(dict input_dict) {
   SPDLOG_DEBUG("KVCache: seq_len: {} kv_seq_len {}", seq_len, kv_seq_len);
 
   int final_past_seq_len = -1;
-  KVCache* cache = nullptr;
-  {
-    // std::lock_guard<std::mutex> lock(mutex_);
-    auto iter_kvcache = kv_caches_.find(request_id);
-    if (iter_kvcache == kv_caches_.end()) {
-      kv_caches_[request_id] = std::make_unique<KVCache>(num_layers_);
-    }
-    cache = kv_caches_[request_id].get();
-  }
+
+  auto kvcache = storage_kv.get("kvcache");
+  std::shared_ptr<KVCache> pkvcache;
+  // std::lock_guard<std::mutex> lock(mutex_);
+  if (!kvcache) {
+    pkvcache = std::make_shared<KVCache>(num_layers_);
+    storage_kv.set("kvcache", pkvcache);
+  } else
+    pkvcache = any_cast<std::shared_ptr<ipipe::KVCache>>(*kvcache);
+
+  KVCache* cache = pkvcache.get();
   auto state = cache->get_and_switch_state();
   if (cache->is_prefill()) {
     if (state == KVCache::KVCacheState::kPrepareInput) {
@@ -155,9 +152,9 @@ void KVCacheTensor::forward(dict input_dict) {
 
   if (cache->round_over()) {
     if (final_past_seq_len >= max_seq_len_ - 1) {
-      (*input_dict)["is_eos"] = 1;
       SPDLOG_DEBUG("KVCacheTensor: is eos");
-      kv_caches_.erase(request_id);
+      storage_kv.erase("kvcache");
+      storage_kv.set("is_eos", 1);
     }
   }
 
@@ -165,5 +162,22 @@ void KVCacheTensor::forward(dict input_dict) {
 }
 
 IPIPE_REGISTER(Backend, KVCacheTensor, "KVCacheTensor");
+
+// RemoveKVCache
+
+class RemoveKVCache : public SingleBackend {
+ public:
+  void forward(dict input) {
+    auto iter = input->find("request_id");
+    IPIPE_ASSERT(iter != input->end());
+    {
+      auto request_id = any_cast<std::string>(iter->second);
+      SPDLOG_INFO("RemoveKVCache: {}", request_id);
+      ThreadSafeKVStorage::getInstance().get(request_id).erase("kvcache");
+    }
+    (*input)[TASK_RESULT_KEY] = (*input)[TASK_DATA_KEY];
+  }
+};
+IPIPE_REGISTER(Backend, RemoveKVCache, "RemoveKVCache");
 
 }  // namespace ipipe

@@ -59,7 +59,11 @@ void StatefulInstanceHandler::run() {  // 确保初始化和前向处于同一�
     {
       auto succ = batched_queue_->WaitForPopWithConditionAndStatus(
           tasks, 50, [max_len, min_len](std::size_t in) {
-            return in >= min_len && in <= max_len;
+            auto re = in >= min_len && in <= max_len;
+#ifndef NDEBUG
+            if (!re) SPDLOG_WARN("(in {} < min_len {} || in > max_len {})", in, min_len, max_len);
+#endif
+            return re;
           });  // for exit this thread
       if (!succ) {
         assert(tasks.empty());
