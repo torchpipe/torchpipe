@@ -20,22 +20,6 @@ namespace ipipe {
 class Streaming : public SingleBackend {
  public:
   /**
-   * @brief Initializes the streaming backend with the given configuration parameters.
-   *
-   * @param config_param The configuration parameters for the backend.
-   * @param dict The dictionary containing additional parameters.
-   * @return True if initialization is successful, false otherwise.
-   */
-  virtual bool init(const std::unordered_map<std::string, std::string> &config_param,
-                    dict) override {
-    params_ = std::unique_ptr<Params>(new Params({{"top_k", "50"}, {"top_p", "0.2"}}, {}, {}, {}));
-    if (!params_->init(config_param)) return false;
-
-    auto topp_ = std::stof(params_->at("top_p"));
-    return true;
-  }
-
-  /**
    * @brief Performs the forward pass of the streaming backend.
    *
    * @param input_dict The input dictionary containing the input data.
@@ -64,7 +48,6 @@ class Streaming : public SingleBackend {
   }
 
  private:
-  std::unique_ptr<Params> params_;
   std::mutex mutex_;
 };
 

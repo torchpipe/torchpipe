@@ -336,7 +336,7 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
              [](ThreadSafeKVStorage& self, const std::string& path, const std::string& key,
                 pybind11::handle data) { self.set(path, key, object2any(data)); })
         .def("clear", py::overload_cast<>(&ThreadSafeKVStorage::clear))
-        .def("clear", py::overload_cast<const std::string&>(&ThreadSafeKVStorage::clear))
+        .def("erase", py::overload_cast<const std::string&>(&ThreadSafeKVStorage::erase))
         .def_static("getInstance", &ThreadSafeKVStorage::getInstance,
                     py::return_value_policy::reference);
   }

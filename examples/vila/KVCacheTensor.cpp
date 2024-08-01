@@ -28,6 +28,7 @@
 #include "cuda_runtime_api.h"
 #include "base_logging.hpp"
 #include "threadsafe_kv_storage.hpp"
+#include "exception.hpp"
 
 namespace ipipe {
 bool KVCacheTensor::init(const std::unordered_map<std::string, std::string>& config_param,
@@ -179,5 +180,20 @@ class RemoveKVCache : public SingleBackend {
   }
 };
 IPIPE_REGISTER(Backend, RemoveKVCache, "RemoveKVCache");
+
+class RemoveStorage : public SingleBackend {
+ public:
+  void forward(dict input) {
+    auto iter = input->find("request_id");
+    IPIPE_ASSERT(iter != input->end());
+    {
+      auto request_id = any_cast<std::string>(iter->second);
+      SPDLOG_INFO("RemoveStorage: {}", request_id);
+      ThreadSafeKVStorage::getInstance().erase(request_id);
+    }
+    TRACE_EXCEPTION((*input)[TASK_RESULT_KEY] = (input)->at(TASK_DATA_KEY));
+  }
+};
+IPIPE_REGISTER(Backend, RemoveStorage, "RemoveStorage");
 
 }  // namespace ipipe
