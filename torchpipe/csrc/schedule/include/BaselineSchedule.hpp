@@ -91,13 +91,13 @@ class BaselineSchedule : public Backend {
       if (iter == raw_input->end()) {
         auto event = make_event();
         events.emplace_back(event);
-        event->add_callback([guard_state]() { guard_state->del(); });
+        event->add_const_callback([guard_state]() { guard_state->del(); });
         map_data[TASK_EVENT_KEY] = event;
       } else {
         events.emplace_back(nullptr);
 
         std::shared_ptr<SimpleEvents> ev = any_cast<std::shared_ptr<SimpleEvents>>(iter->second);
-        ev->add_callback([guard_state]() { guard_state->del(); });
+        ev->add_const_callback([guard_state]() { guard_state->del(); });
       }
     }
 

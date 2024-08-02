@@ -156,7 +156,7 @@ void ScheduleV3::forward(const std::vector<dict>& raw_inputs) {
       std::make_shared<RuningStateMonitor>(runing_state_);
 
   if (events.size() == raw_inputs.size()) {
-    events.back()->add_callback([guard_state]() { guard_state->del(); });
+    events.back()->add_const_callback([guard_state]() { guard_state->del(); });
 
     // 注意：资源所有权问题， 从此刻起 对 raw_input 没有读写权限，
     // 除非event通知
@@ -166,7 +166,7 @@ void ScheduleV3::forward(const std::vector<dict>& raw_inputs) {
   IPIPE_ASSERT(events.empty(), "number of events must be 0 or inputs.size()");
 
   auto event = make_event(raw_inputs.size());
-  event->add_callback([guard_state]() { guard_state->del(); });
+  event->add_const_callback([guard_state]() { guard_state->del(); });
 
   helper.set(TASK_EVENT_KEY, event).lazy_erase(TASK_EVENT_KEY);
 

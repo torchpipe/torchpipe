@@ -417,7 +417,7 @@ void PipelineV3::on_filter_data(std::string node_name, std::shared_ptr<Stack> ps
       auto curr_event = make_event();
       std::weak_ptr<ThreadSafeQueue<dict>> local_queue =
           task_queues_[pstack->task_queue_index];  // may not exist
-      curr_event->add_unique_callback([local_queue, curr_data, pstack]() {
+      curr_event->add_callback([local_queue, curr_data, pstack]() {
         auto shared_q = local_queue.lock();
         if (shared_q) {
           (*curr_data)[TASK_STACK_KEY] = pstack;

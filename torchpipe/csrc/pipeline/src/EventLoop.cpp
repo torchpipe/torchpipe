@@ -81,7 +81,7 @@ void EventLoop::on_start_node(dict tmp_data, std::size_t task_queue_index) {
 
   //   auto curr_event = make_event();
   auto* local_queue = task_queues_[pstack->task_queue_index].get();  // may not exist
-  current_event->add_unique_callback([local_queue, tmp_data, pstack]() {
+  current_event->add_callback([local_queue, tmp_data, pstack]() {
     (*tmp_data)[TASK_STACK_KEY] = pstack;
     local_queue->Push(tmp_data);
   });
@@ -148,7 +148,7 @@ void EventLoop::on_finish_node(dict tmp_data) {
 
     //   auto curr_data = pstack->input_data;
     auto* local_queue = task_queues_[pstack->task_queue_index].get();
-    curr_event->add_unique_callback([local_queue, tmp_data, pstack]() {
+    curr_event->add_callback([local_queue, tmp_data, pstack]() {
       (*tmp_data)[TASK_STACK_KEY] = pstack;
       local_queue->Push(tmp_data);
     });

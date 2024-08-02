@@ -40,17 +40,22 @@ inputs += [{'data':input,'request_id':'r1', 'node_name':'batchful', 'trt_plugin'
 
 len_data = len(inputs)
 # async mode:
-events = [torchpipe.Event() for _ in range(len_data)]
-assert(events[0] != events[1])
+# events = [torchpipe.Event() for _ in range(len_data)]
+ev = torchpipe.Event(len_data)
+# assert(events[0] != events[1])
 for i in range(len_data):
-    inputs[i]['event'] = events[i]
+    inputs[i]['event'] = ev
 
 
 
 model(inputs)
 
-for i in range(len_data):
-    events[i].Wait()
+# for i in range(len_data):
+#     events[i].Wait()
+while (not ev.Wait(1000)):
+    pass
+
+# assert(finished)
 # events[1].Wait()
 
 

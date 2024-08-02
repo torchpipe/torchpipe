@@ -350,16 +350,29 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
       .value("Error", Filter::status::Error);
 
   pybind11::class_<SimpleEvents, std::shared_ptr<SimpleEvents>>(m, "Event")
-      .def(py::init<>())
-      .def("Wait", &SimpleEvents::Wait, py::call_guard<py::gil_scoped_release>(),
+      // .def(py::init<>())
+      .def(py::init<uint32_t>(), py::arg("num") = 1)
+      .def("Wait", py::overload_cast<>(&SimpleEvents::Wait),
+           py::call_guard<py::gil_scoped_release>(),
            R"docdelimiter(
-                    wait for exception or finish
+                      wait for exception or finish
 
-                    Parameters:
+                      Parameters:
                         
-                    Returns:
+                      Returns:
                         None.
-                )docdelimiter")
+                    )docdelimiter")
+      .def("Wait", py::overload_cast<uint32_t>(&SimpleEvents::Wait), py::arg("timeout_ms"),
+           py::call_guard<py::gil_scoped_release>(),
+           R"docdelimiter(
+                      wait for exception or finish with a timeout
+
+                      Parameters:
+                        timeout_ms (uint32_t): The timeout in milliseconds.
+                        
+                      Returns:
+                        bool: True if the event is set before the timeout, false otherwise.
+                    )docdelimiter")
       .def("time_passed", &SimpleEvents::time_passed, py::call_guard<py::gil_scoped_release>(),
            R"docdelimiter(
                     check time used

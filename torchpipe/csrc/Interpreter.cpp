@@ -209,9 +209,9 @@ void Interpreter::forward(py::list py_inputs) {
       if (!input_event->valid())
         // input_event is invalid, so we cannot use it to store the exception;
         throw py::value_error("Invalid input event. Maybe it has been used before.");
-      // add_callback need gil lock to handle py_input
+      // add_const_callback need gil lock to handle py_input
       auto py_input = py_inputs[i];
-      input_event->add_unique_callback([item, py_input]() {
+      input_event->add_callback([item, py_input]() {
         py::gil_scoped_acquire gil_lock;
         dict2py(item, py_input);
       });
@@ -244,8 +244,8 @@ void Interpreter::forward(py::dict py_input) {
     if (!input_event->valid())
       // input_event is invalid, so we cannot use it to store the exception;
       throw py::value_error("Invalid input event. Maybe it has been used before.");
-    // add_callback need gil lock to handle py_input
-    input_event->add_unique_callback([input, py_input]() {
+    // add_const_callback need gil lock to handle py_input
+    input_event->add_callback([input, py_input]() {
       py::gil_scoped_acquire gil_lock;
       dict2py(input, py_input);
     });

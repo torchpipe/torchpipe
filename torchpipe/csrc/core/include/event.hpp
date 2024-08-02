@@ -86,7 +86,7 @@ class SimpleEvents {
     }
   }
 
-  bool WaitFor(uint32_t timeout_ms) {
+  bool Wait(uint32_t timeout_ms) {
     std::unique_lock<std::mutex> lk(mut);
 
     bool done = data_cond.wait_for(lk, std::chrono::milliseconds(timeout_ms),
@@ -186,9 +186,9 @@ class SimpleEvents {
         callbacks_.back()();    // Execute the last callback
         callbacks_.pop_back();  // Remove the last callback
       }
-      if (callback_) {
-        callback_();
-        callback_ = nullptr;
+      while (!unique_callbacks_.empty()) {
+        unique_callbacks_.back()();    // Execute the last callback
+        unique_callbacks_.pop_back();  // Remove the last callback
       }
     }
   }
@@ -205,9 +205,9 @@ class SimpleEvents {
         callbacks_.back()();    // Execute the last callback
         callbacks_.pop_back();  // Remove the last callback
       }
-      if (callback_) {
-        callback_();
-        callback_ = nullptr;
+      while (!unique_callbacks_.empty()) {
+        unique_callbacks_.back()();    // Execute the last callback
+        unique_callbacks_.pop_back();  // Remove the last callback
       }
     }
   }
@@ -240,18 +240,24 @@ class SimpleEvents {
   }
 
   /// 设置回调函数
-  bool add_callback(std::function<void()> callback) {
+  bool add_const_callback(std::function<void()> callback) {
     std::unique_lock<std::mutex> lk(mut);
     // assert(!callback_);
     callbacks_.emplace_back(callback);
     return true;
   }
 
-  void add_unique_callback(std::function<void()> callback) {
+  void add_callback(std::function<void()> callback) {
     std::unique_lock<std::mutex> lk(mut);
     // assert(!callback_);
-    IPIPE_ASSERT(!callback_);
-    callback_ = callback;
+
+    unique_callbacks_.push_back(callback);
+    if (unique_callbacks_.size() > num_task) {
+      unique_callbacks_.pop_back();
+      throw std::runtime_error("The size of callbacks exceeds num_task (" +
+                               std::to_string(num_task) +
+                               "). Consider using add_const_callback instead.");
+    }
   }
 
   /// 获得从构造到现在经过的时间（单位：毫秒）。
@@ -269,7 +275,7 @@ class SimpleEvents {
   uint32_t ref_count = 0;
   uint32_t num_task;
   std::vector<std::function<void()>> callbacks_;
-  std::function<void()> callback_;
+  std::vector<std::function<void()>> unique_callbacks_;
 
   std::exception_ptr eptr_;
   std::chrono::steady_clock::time_point starttime_;
