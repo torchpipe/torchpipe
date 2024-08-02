@@ -84,7 +84,7 @@ void Jump::forward(const std::vector<dict>& input_dicts) {
         total_splits.push_back(item_in);
       }
     }
-    auto event = make_event(total_splits.size());
+    // auto event = make_event(total_splits.size());
     DictHelper local_guard(total_splits);
     // local_guard.set(TASK_EVENT_KEY, event).set("node_name", jump_);
     local_guard.set("node_name", jump_);

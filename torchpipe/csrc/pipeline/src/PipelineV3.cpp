@@ -208,11 +208,14 @@ void PipelineV3::on_finish_node(dict tmp_data) {
         curr_event->reset_exception();
       }
     }
+  } else {
+    // assert(false);
+    SPDLOG_DEBUG("PipelineV3: on finish node: no event found");
   }
 
   pstack->update_processed(node_name, tmp_data);
 
-  if (pstack->exception) {
+  if (pstack->exception) {  // todo check
     if (pstack->allStopped()) {
       // no task is running.
       pstack->input_data->erase(TASK_STACK_KEY);
@@ -340,14 +343,18 @@ void PipelineV3::forward(const std::vector<dict>& inputs) {
 
     auto exc = ev->WaitAndGetExcept();
 
-    if (exc) {
-      for (auto& item : inputs) item->erase(TASK_RESULT_KEY);
-      std::rethrow_exception(exc);
-    }
     for (auto& item : inputs) {
       item->erase(TASK_EVENT_KEY);
       assert(item->find(TASK_STACK_KEY) == item->end());
     }
+
+    if (exc) {
+      for (auto& item : inputs) {
+        item->erase(TASK_RESULT_KEY);
+      }
+      std::rethrow_exception(exc);
+    }
+
   } else {
     std::vector<dict> async_inputs;
     std::vector<dict> sync_inputs;
@@ -410,7 +417,7 @@ void PipelineV3::on_filter_data(std::string node_name, std::shared_ptr<Stack> ps
       auto curr_event = make_event();
       std::weak_ptr<ThreadSafeQueue<dict>> local_queue =
           task_queues_[pstack->task_queue_index];  // may not exist
-      curr_event->add_callback([local_queue, curr_data, pstack]() {
+      curr_event->add_unique_callback([local_queue, curr_data, pstack]() {
         auto shared_q = local_queue.lock();
         if (shared_q) {
           (*curr_data)[TASK_STACK_KEY] = pstack;

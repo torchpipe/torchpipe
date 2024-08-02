@@ -12,6 +12,7 @@ class SyncRing : public Backend {
  private:
   // std::set<std::string> ring_;
   std::unique_ptr<Params> params_;
-  std::unique_ptr<Backend> backend_;
+  std::unique_ptr<Backend> owned_backend_;
+  Backend* backend_{nullptr};
 };
 }  // namespace ipipe

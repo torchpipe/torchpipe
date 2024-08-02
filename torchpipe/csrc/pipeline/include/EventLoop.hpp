@@ -43,7 +43,8 @@ class EventLoop : public Backend {
   std::vector<std::unique_ptr<ThreadSafeQueue<dict>>> task_queues_;
   std::vector<std::thread> threads_;
   std::atomic_bool bInited_{true};
-  std::unique_ptr<Backend> backend_;
+  std::unique_ptr<Backend> owned_backend_;
+  Backend* backend_;
   std::unique_ptr<Params> params_;
   std::string continue_;
 };

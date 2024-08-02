@@ -51,26 +51,23 @@ constexpr const char* file_name(const char* path) {
     }                                                                                 \
   } while (false)
 
-#define IPIPE_ASSERT(x, ...)                 \
-  do {                                       \
-    if (!(x)) {                              \
-      throw std::runtime_error(              \
-          "\nAssertion failed:\n"            \
-          "\tFile: " +                       \
-          std::string(file_name(__FILE__)) + \
-          "\n"                               \
-          "\tLine: " +                       \
-          std::to_string(__LINE__) +         \
-          "\n"                               \
-          "\tFunction: " +                   \
-          std::string(__FUNCTION__) +        \
-          "\n"                               \
-          "\tExpression: `" +                \
-          std::string(#x) +                  \
-          "`\n"                              \
-          "\tMessage: " +                    \
-          std::string(__VA_ARGS__));         \
-    }                                        \
+#define IPIPE_ASSERT(x, ...)                                                  \
+  do {                                                                        \
+    if (!(x)) {                                                               \
+      throw std::runtime_error(                                               \
+          "\nAssertion failed:\n"                                             \
+          "\tFile: " +                                                        \
+          std::string(file_name(__FILE__)) + ":" + std::to_string(__LINE__) + \
+          "\n"                                                                \
+          "\tFunction: " +                                                    \
+          std::string(__FUNCTION__) +                                         \
+          "\n"                                                                \
+          "\tExpression: `" +                                                 \
+          std::string(#x) +                                                   \
+          "`\n"                                                               \
+          "\tMessage: " +                                                     \
+          std::string(__VA_ARGS__));                                          \
+    }                                                                         \
   } while (false)
 
 #define IPIPE_THROW(args...)                                                                      \

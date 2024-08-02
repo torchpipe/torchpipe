@@ -63,6 +63,13 @@ class TestBackend:
         with pytest.raises(RuntimeError):
             p(input)
 
+    def test_map_no_data_SyncAdapter(self):
+        p = torchpipe.pipe(
+            {"global":{"Interpreter::backend":"SyncAdapter[EventLoop]"},"a": {"next": "b"}, "b": {"map": "a[result:data1]"}})
+        input = {"data": 1}
+        with pytest.raises(RuntimeError):
+            p(input)
+            
     def test_nondirect_map(self):
         model = torchpipe.pipe("assets/nondirect_map.toml")
         data = torch.zeros(1, 3, 1, 224)
@@ -76,5 +83,6 @@ if __name__ == "__main__":
     # time.sleep(5)
     a = TestBackend()
     a.setup_class()
-    a.test_nondirect_map()
+    # a.test_nondirect_map()
+    a.test_map_no_data()
     # pytest.main([__file__])

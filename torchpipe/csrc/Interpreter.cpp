@@ -190,18 +190,44 @@ Interpreter::~Interpreter() {
 
 void Interpreter::forward(py::list py_inputs) {
   std::vector<dict> inputs;
+  std::vector<dict> async_inputs;
+  std::vector<dict> sync_inputs;
+  std::set<int> sync_index;
 
   for (std::size_t i = 0; i < py::len(py_inputs); ++i) {
     IPIPE_ASSERT(py::isinstance<py::dict>(py_inputs[i]));
     inputs.push_back(py2dict(py_inputs[i]));
   }
 
+  for (std::size_t i = 0; i < inputs.size(); ++i) {
+    const auto& item = inputs[i];
+    auto iter = item->find(TASK_EVENT_KEY);
+    if (iter != item->end()) {
+      std::shared_ptr<SimpleEvents> input_event =
+          any_cast<std::shared_ptr<SimpleEvents>>(iter->second);
+
+      if (!input_event->valid())
+        // input_event is invalid, so we cannot use it to store the exception;
+        throw py::value_error("Invalid input event. Maybe it has been used before.");
+      // add_callback need gil lock to handle py_input
+      auto py_input = py_inputs[i];
+      input_event->add_unique_callback([item, py_input]() {
+        py::gil_scoped_acquire gil_lock;
+        dict2py(item, py_input);
+      });
+      async_inputs.push_back(item);
+    } else {
+      sync_inputs.push_back(item);
+      sync_index.insert(i);
+    }
+  }
   {
     py::gil_scoped_release gil_lock;
-    forward(inputs);
+    if (!async_inputs.empty()) forward(async_inputs);
+    if (!sync_inputs.empty()) forward(sync_inputs);
   }
 
-  for (std::size_t i = 0; i < py::len(py_inputs); ++i) {
+  for (const auto& i : sync_index) {
     dict2py(inputs[i], py_inputs[i]);
   }
 
@@ -219,7 +245,7 @@ void Interpreter::forward(py::dict py_input) {
       // input_event is invalid, so we cannot use it to store the exception;
       throw py::value_error("Invalid input event. Maybe it has been used before.");
     // add_callback need gil lock to handle py_input
-    input_event->add_callback([input, py_input]() {
+    input_event->add_unique_callback([input, py_input]() {
       py::gil_scoped_acquire gil_lock;
       dict2py(input, py_input);
     });
@@ -236,7 +262,7 @@ void Interpreter::forward(py::dict py_input) {
 #endif
 
 void Interpreter::forward(const std::vector<dict>& input_dicts) {
-  if (!backend_) throw std::runtime_error("not initialized");
+  if (!backend_) throw std::runtime_error("Interpreter uninitialized");
   for (const auto& da : input_dicts) {
     auto iter = da->find(TASK_DATA_KEY);
     if (iter == da->end()) {

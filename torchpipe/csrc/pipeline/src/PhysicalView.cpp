@@ -54,6 +54,7 @@ bool PhysicalView::init(const std::unordered_map<std::string, std::string>& conf
     global_config[TASK_DEFAULT_NAME_KEY] = config;
     return init(global_config);
   }
+  SPDLOG_ERROR("PhysicalView: empty config.");
   return false;
 }
 

@@ -38,13 +38,20 @@ data = {'data':input_ones,'request_id':'r0', 'node_name':'batchful', 'trt_plugin
 inputs = [data]
 inputs += [{'data':input,'request_id':'r1', 'node_name':'batchful', 'trt_plugin':'batchless_prefill'}]
 
-model(inputs)
-print(inputs[0].keys())
-print(inputs[0]['result'])
-# import pdb; pdb.set_trace()
-print(inputs[1]['result'])
-print(inputs[0]['filter'])
+len_data = len(inputs)
+# async mode:
+events = [torchpipe.Event() for _ in range(len_data)]
+assert(events[0] != events[1])
+for i in range(len_data):
+    inputs[i]['event'] = events[i]
 
+
+
+model(inputs)
+
+for i in range(len_data):
+    events[i].Wait()
+# events[1].Wait()
 
 
 # import pdb; pdb.set_trace()
@@ -53,13 +60,17 @@ print(storage)
 # q = kv.__getitem__('r0','tensor_item').as_queue()
 
 
-q = storage['r0','queue'].as_queue()
-print('r0', q.size())
+for i in range(len_data):
+    print('***'*10)
+    request_id = inputs[i]['request_id']
+    q = storage[request_id,'queue'].as_queue()
+    print(request_id, q.size())
+    storage.erase(request_id) # kvcache has arleady been erased
 
-q = storage['r1','queue'].as_queue()
-print('r1', q.size())
+    print(inputs[i].keys())
+    print(inputs[i]['result'])
 
-storage.erase('r0') # kvcache has arleady been erased
-storage.erase('r1')
+
+
 # torchpipe.utils.test.test_from_raw_file(run,file_dir="../assets/", num_clients=2,
 #                                         total_number=1000)

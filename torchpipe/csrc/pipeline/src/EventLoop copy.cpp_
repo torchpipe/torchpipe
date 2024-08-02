@@ -1,7 +1,3 @@
-
-#include <algorithm>
-#include <execution>
-
 #include "EventLoop.hpp"
 #include "base_logging.hpp"
 #include "event.hpp"
@@ -98,14 +94,13 @@ void EventLoop::on_finish_node(dict tmp_data) {
 
   iter = tmp_data->find(TASK_EVENT_KEY);
 
-  IPIPE_ASSERT(iter != tmp_data->end());
+  assert(iter != tmp_data->end());
 
   std::shared_ptr<SimpleEvents> pre_event = any_cast<std::shared_ptr<SimpleEvents>>(iter->second);
   IPIPE_ASSERT((pre_event));
   while (bInited_.load()) {
     // call back called before notify
     if (pre_event->WaitFinish(50)) break;
-    SPDLOG_WARN("wait need to much time");
   }
 
   //   tmp_data->erase(TASK_EVENT_KEY);
@@ -121,12 +116,12 @@ void EventLoop::on_finish_node(dict tmp_data) {
   } else if (tmp_data->find(continue_) == tmp_data->end()) {
     static const std::set<std::string> ignore_keys = {TASK_STACK_KEY, TASK_EVENT_KEY,
                                                       TASK_DATA_KEY};
-    // auto& storage = ThreadSafeKVStorage::getInstance().get(pstack->request_id);
+    auto& storage = ThreadSafeKVStorage::getInstance().get(pstack->request_id);
     for (auto iter = tmp_data->begin(); iter != tmp_data->end(); ++iter) {
       if (ignore_keys.find(iter->first) == ignore_keys.end()) {
-        // SPDLOG_DEBUG("set storage: {}", iter->first);
+        SPDLOG_DEBUG("set storage: {}", iter->first);
         if (pstack->input_data != tmp_data) pstack->input_data->insert(*iter);
-        // storage.set(iter->first, iter->second);
+        storage.set(iter->first, iter->second);
       }
     }
     pstack->input_data->erase(TASK_STACK_KEY);
@@ -163,14 +158,27 @@ class SyncAdapter : public Backend {
  private:
   std::unique_ptr<Params> params_;
   std::unique_ptr<Backend> backend_;
+  std::unique_ptr<Backend> async_parser_;
+  std::unique_ptr<Backend> sync_parser_;
 
  public:
   bool init(const std::unordered_map<std::string, std::string>& config, dict dict_config) override {
-    params_ =
-        std::unique_ptr<Params>(new Params({{"SyncAdapter::backend", "EventLoop"}}, {}, {}, {}));
+    params_ = std::unique_ptr<Params>(new Params({{"SyncAdapter::backend", "PipelineV3"},
+                                                  {"async_parser", "EventLoop"},
+                                                  {"sync_parser", "SyncRing"}},
+                                                 {}, {}, {}));
     if (!params_->init(config)) return false;
     backend_ = std::unique_ptr<Backend>(IPIPE_CREATE(Backend, params_->at("SyncAdapter::backend")));
     if (!backend_ || !backend_->init(config, dict_config)) return false;
+
+    (*dict_config)["backend"] = backend_.get();
+
+    async_parser_ =
+        std::unique_ptr<Backend>(IPIPE_CREATE(Backend, params_->at("async_parser")));  // todo
+    if (!async_parser_ || !async_parser_->init(config, dict_config)) return false;
+
+    sync_parser_ = std::unique_ptr<Backend>(IPIPE_CREATE(Backend, params_->at("sync_parser")));
+    if (!sync_parser_ || !sync_parser_->init(config, dict_config)) return false;
 
     return true;
   }
@@ -179,7 +187,7 @@ class SyncAdapter : public Backend {
     std::vector<dict> evented_data;
     std::vector<dict> data;
 
-    for (auto item : inputs) {
+    for (auto& item : inputs) {
       if (item->find(TASK_EVENT_KEY) == item->end()) {
         data.push_back(item);
       } else {
@@ -187,27 +195,10 @@ class SyncAdapter : public Backend {
       }
     }
     if (!evented_data.empty()) {
-      backend_->forward(evented_data);
+      async_parser_->forward(evented_data);
     }
     if (!data.empty()) {
-      std::vector<std::shared_ptr<SimpleEvents>> events(data.size());
-      std::generate_n(events.begin(), data.size(),
-                      []() { return std::make_shared<SimpleEvents>(); });
-      for (size_t i = 0; i < data.size(); i++) {
-        (*data[i])[TASK_EVENT_KEY] = events[i];
-      }
-
-      backend_->forward(data);
-      // parse exception
-      std::vector<std::exception_ptr> exceps;
-      for (size_t i = 0; i < events.size(); i++) {
-        auto expcep = events[i]->WaitAndGetExcept();
-        if (expcep) exceps.push_back(expcep);
-        data[i]->erase(TASK_EVENT_KEY);
-      }
-      if (!exceps.empty()) {
-        std::rethrow_exception(exceps[0]);
-      }
+      sync_parser_->forward(data);
     }
   }
 };

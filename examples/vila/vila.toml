@@ -1,4 +1,5 @@
-"Interpreter::backend" = "SyncRing"
+# "Interpreter::backend" = "SyncAsyncRequestDispatcher[SyncRing, EventLoop, PipelineV3]"
+"Interpreter::backend" = "SyncAdapter[EventLoop]"
 'precision' = 'fp16'
 scheduler = "Batching"
 # [preprocess]

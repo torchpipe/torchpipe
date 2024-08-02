@@ -186,6 +186,10 @@ class SimpleEvents {
         callbacks_.back()();    // Execute the last callback
         callbacks_.pop_back();  // Remove the last callback
       }
+      if (callback_) {
+        callback_();
+        callback_ = nullptr;
+      }
     }
   }
 
@@ -200,6 +204,10 @@ class SimpleEvents {
       while (!callbacks_.empty()) {
         callbacks_.back()();    // Execute the last callback
         callbacks_.pop_back();  // Remove the last callback
+      }
+      if (callback_) {
+        callback_();
+        callback_ = nullptr;
       }
     }
   }
@@ -239,8 +247,21 @@ class SimpleEvents {
     return true;
   }
 
+  void add_unique_callback(std::function<void()> callback) {
+    std::unique_lock<std::mutex> lk(mut);
+    // assert(!callback_);
+    IPIPE_ASSERT(!callback_);
+    callback_ = callback;
+  }
+
   /// 获得从构造到现在经过的时间（单位：毫秒）。
   float time_passed();
+
+  ~SimpleEvents() {
+    // std::unique_lock<std::mutex> lk(mut);
+    // if (ref_count != num_task) {
+    // }
+  };
 
  private:
   std::mutex mut;  // mutable
@@ -248,6 +269,7 @@ class SimpleEvents {
   uint32_t ref_count = 0;
   uint32_t num_task;
   std::vector<std::function<void()>> callbacks_;
+  std::function<void()> callback_;
 
   std::exception_ptr eptr_;
   std::chrono::steady_clock::time_point starttime_;

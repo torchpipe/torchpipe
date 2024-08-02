@@ -153,7 +153,7 @@ void handle_config(mapmap& config) {
     if (item.first == "global") {
       auto iter = item.second.find("Interpreter::backend");
       if (iter != item.second.end()) {
-        brackets_split(item.second["Interpreter::backend"], item.second);
+        brackets_split(item.second["Interpreter::backend"], item.second, "Interpreter::backend");
       }
     }
 
