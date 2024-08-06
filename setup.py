@@ -473,7 +473,7 @@ def get_extensions():
 
     define_macros = [("PYBIND", None)]
 
-    extra_compile_args = {"cxx": ["-Wno-unused-parameter", "-std=c++17"]}
+    extra_compile_args = {"cxx": ['-Wno-sign-compare', "-Wno-unused-parameter", "-std=c++17"]}
 
     # if int(build_cuda_version[0]) >= 11:
     #     extra_compile_args = {
