@@ -1,10 +1,14 @@
 # Changelog
 
-## v0.6.1 (WIP)
+
+## v0.6.2(WIP)
+
+## v0.6.1 
 - docker/Dockerfilex updated to TensorRT 10.2
 - support batching for batched input. need set 'scheduler = Batching' and the size of each tensor should be smaller than the max batch size. Need set `request_size`, or set cal_request_size_method = "CalTorchBatchSize" for torch related tensor.
 - SyncAdapter[EventLoop]: Add support for iterative scheduling with asynchronous data sources.
 - Add full support for `torchpipe.Event`
+- full support for `LlamaForCausalLM`
 
 ## v0.6.0 (2024.07.19)
 - fix docker/Dockerfilex
