@@ -35,16 +35,16 @@ class SampleTensor : public SingleBackend {
 
     auto probs = torch::softmax(scores, /*dim=*/-1);
 
-    // auto next_tokens = torch::multinomial(probs, /*num_samples=*/1);
-    auto next_tokens = torch::argmax(probs);
+    auto next_tokens = torch::multinomial(probs, /*num_samples=*/1);
+    // auto next_tokens = torch::argmax(probs);
     // next_tokens = next_tokens - next_tokens + 1;
 
     // throw std::runtime_error("test");
 
     auto tensor_item = next_tokens.item<long>();
 
-    std::cout << "next_tokens" << tensor_item << std::endl;
-    throw std::runtime_error("test");
+    // std::cout << "next_tokens" << tensor_item << std::endl;
+    // throw std::runtime_error("test");
     if (tensor_item == eos_) {
       static auto &storage = ThreadSafeKVStorage::getInstance();
       auto iter = input_dict->find("request_id");

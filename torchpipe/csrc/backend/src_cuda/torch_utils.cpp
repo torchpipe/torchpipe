@@ -460,6 +460,24 @@ torch::Tensor tensor_permute(torch::Tensor input, const std::vector<int>& min_sh
   return input;
 }
 
+std::vector<torch::Tensor> get_tensors(dict input_dict, const std::string& key) {
+  auto iter = input_dict->find(key);
+  IPIPE_ASSERT(iter != input_dict->end(), "key not found: " + key);
+  std::vector<torch::Tensor> image_embeds;
+  ipipe::any& data = iter->second;
+  if (data.type() == typeid(torch::Tensor)) {
+    torch::Tensor input_tensor = any_cast<torch::Tensor>(data);
+
+    image_embeds.push_back(input_tensor);
+  } else if (data.type() == typeid(std::vector<torch::Tensor>)) {
+    image_embeds = any_cast<std::vector<torch::Tensor>>(data);
+
+  } else {
+    throw std::runtime_error("get_tensors: input is not a tensor or a list of tensors.");
+  }
+  return image_embeds;
+}
+
 torch::Tensor try_quick_cat(std::vector<torch::Tensor> resized_inputs) {
   IPIPE_ASSERT(resized_inputs.size() >= 2);
   bool share_same_storage = true;

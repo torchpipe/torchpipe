@@ -19,6 +19,7 @@
 #include "reflect.h"
 #include "dict.hpp"
 #include "params.hpp"
+#include "torch_utils.hpp"
 
 namespace {
 inline const std::string thread_id_string() {
@@ -53,7 +54,7 @@ class MultiModalEmbedsTensor : public SingleBackend {
     return true;
   }
 
-  void read(const std::string& save_name, std::vector<torch::Tensor> tensors) {
+  void read(const std::string& save_name, std::vector<torch::Tensor>& tensors) {
     std::ifstream file(save_name);
     if (!file.good()) {
       SPDLOG_ERROR("MultiModalEmbedsTensor: dir " + save_name + " not exists.");
@@ -140,6 +141,13 @@ class MultiModalEmbedsTensor : public SingleBackend {
       }
     }
     std::vector<torch::Tensor> results;
+    std::vector<torch::Tensor> tensors;
+    if (!tensors_.empty()) {
+      tensors = tensors_;
+    } else {
+      // todo
+      IPIPE_ASSERT(false);
+    }
     if (tensors.size() == image_embeds.size()) {
       for (std::size_t i = 0; i < tensors.size(); ++i) {
         results.push_back(tensors[i]);
@@ -166,17 +174,40 @@ class MultiModalEmbedsTensor : public SingleBackend {
 
 IPIPE_REGISTER(Backend, MultiModalEmbedsTensor, "MultiModalEmbedsTensor");
 
-class Append : public SingleBackend {
+class InsertTensor : public SingleBackend {
  public:
   /**
    * @param tensor_name 文件路径；
    *
    */
   virtual bool init(const std::unordered_map<std::string, std::string>& config_param,
-                    dict shared_dict) override {}
+                    dict shared_dict) override {
+    return true;
+  }
 
-  virtual void forward(dict input_dict) override {};
+  virtual void forward(dict input_dict) override {
+    // 获取输入张量
+    std::vector<torch::Tensor> input_tensor = get_tensors(input_dict, TASK_DATA_KEY);
+    std::vector<torch::Tensor> insert_tensors = get_tensors(input_dict, "insert_tensor");
+
+    std::vector<torch::Tensor> result;
+
+    IPIPE_ASSERT(input_tensor.size() >= insert_tensors.size());
+
+    for (size_t i = 0; i < input_tensor.size(); i++) {
+      result.push_back(input_tensor[i]);
+      if (i < insert_tensors.size()) result.push_back(insert_tensors[i]);
+    }
+    // 合并两个向量
+
+    // 将合并后的张量拼接成一个张量
+    torch::Tensor result_tensor = torch::cat(result, -2);
+
+    // 更新 input_dict
+    (*input_dict)[TASK_RESULT_KEY] = result_tensor;
+  }
 };
-IPIPE_REGISTER(Backend, MultiModalEmbedsTensor, "MultiModalEmbedsTensor");
+
+IPIPE_REGISTER(Backend, InsertTensor, "InsertTensor");
 
 }  // namespace ipipe

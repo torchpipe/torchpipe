@@ -1,5 +1,5 @@
 
-## Work In Process
+## VILA1.5-3B example
 In this example, we serve VILA1.5-3B(fp16) with torchpipe, with no dependency on TensorRT-LLM or Triton server. We segment layers based on whether they can be batched with respect to the sequence length's dimension. The model is divided into two parts: batchful and batchless. Model parameters are (mainly) located in the batchful part, whereas the batchless part consists of positional encoding and parameter-free self-attention.  After masking the batchless part, we perform a complete trace. 
 
 Traditional dynamic batching can be applied the batchful part. We isolate the batchless part as a separate custom sub-graph/([function](https://github.com/gramalingam/onnx/blob/main/docs/IR.md#functions) in future) and implement it using a TensorRT plugin. This plugin does nothing but  direct the batchless part to a dedicated TorchPipe server. The management and resource(e.g. kvcache) control operate entirely independently of TensorRT.
@@ -10,18 +10,23 @@ The computation for the batchless part could be implemented as a standalone CUDA
 ### Features:
 - [x] A TensorRT and trace based solution with no need for `TensorRT-LLM` and `Triton inference server`.
 - [x] flash attention
-- [x] ~~contiguous batching~~ special scheduler && load banlancing
+- [x] contiguous batching && load banlancing
 - [x] ~~PagedAttention~~ memory pool(need further thought)
 
 ### limitations:
-- tokenizer is not included in C++/torchpipe
+- tokenizer is not included in C++/torchpipe. Only LlamaForCausalLM is finished yet.
 
 ### Run && Benchmark
 ```
 export TENSORRT_PATH=/workspace/TensorRT-10.2.0.19
 export CUDA_VISIBLE_DEVICES=1
 export LD_LIBRARY_PATH=/workspace/TensorRT-10.2.0.19/targets/x86_64-linux-gnu/lib/:$LD_LIBRARY_PATH
+
+# RUN only LlamaForCausalLM: 
+# prepare the model files and input embeddings (seq_lenX2560)
 DEBUG=1 python run_vila.py
+
+# RUN visual part (WIP):
 ```
 
 ## Requirements
@@ -66,7 +71,7 @@ Model inputs: query_states,key_states, value_states,position_ids,past_key,past_v
 see [batchless part for Decoding](model_exported.md#decoding-batchlessattention).
 
 
-## Visual encoder
+## (WIP)Visual encoder
 
 Get `onnx/visual_encoder.onnx` file by [exporting visual encoder](model_exported.md#visual-encoder). You can also get it from [build_visual_engine.py](https://github.com/NVIDIA/TensorRT-LLM/tree/main/examples/multimodal)
 
@@ -95,3 +100,4 @@ decoupling of Prefilling and Decoding:
 ## Reference
 - TensorRT-LLM
 - [TensorRT-Custom-Plugin-Example](https://github.com/leimao/TensorRT-Custom-Plugin-Example)
+- [trt or trt-llm](https://github.com/NVIDIA/TensorRT/issues/3647#issuecomment-2054441577)

@@ -14,7 +14,7 @@ storage = torchpipe.ThreadSafeKVStorage.getInstance()
 # kv.write("z", 1)
 # print(kv.read("z"))
 # exit(0)
-model = torchpipe.Pipe("vila.toml")
+model = torchpipe.Pipe("LlamaForCausalLM.toml")
 
 
 # export LD_LIBRARY_PATH=/workspace/TensorRT-10.2.0.19/lib:$LD_LIBRARY_PATH
@@ -25,6 +25,11 @@ def run(inputs):
     path_img, img = inputs[0]
     input = {'data':img}
     model(input)
+
+
+
+# input_embeds_no_img = "/workspace/cur_input_embeds_no_im.pt"
+# input_llm_embeds = torch.load(input_embeds_no_img)
 
 img_path  = 'demo_images/av.png'
 img = cv2.imread(img_path)
