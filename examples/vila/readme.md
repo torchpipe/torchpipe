@@ -10,8 +10,9 @@ The computation for the batchless part could be implemented as a standalone CUDA
 ### Features:
 - [x] A TensorRT and trace based solution with no need for `TensorRT-LLM` and `Triton inference server`.
 - [x] flash attention
-- [x] contiguous batching && load banlancing
+- [x] contiguous batching && 
 - [x] ~~PagedAttention~~ memory pool(need further thought)
+- [ ] load banlancing and batching for decoding stage
 
 ### limitations:
 - tokenizer is not included in C++/torchpipe. Only LlamaForCausalLM is finished yet.
