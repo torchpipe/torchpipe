@@ -610,7 +610,7 @@ def get_extensions():
             os.path.join(extensions_dir, x, "include")
             for x in os.listdir(extensions_dir)
         ]
-        + [os.path.join(extensions_dir, x, "src") for x in os.listdir(extensions_dir)]
+        + [os.path.join(extensions_dir, x, "include") for x in os.listdir(extensions_dir)]
         + [
             os.path.join(extensions_dir, x, "src_cuda")
             for x in os.listdir(extensions_dir)

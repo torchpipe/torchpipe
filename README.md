@@ -32,9 +32,8 @@ Production-Grade：Within NetEase a massive number of calls supported by Torchpi
 
 
 
-<!-- *Latest News* 🔥
-- [2024/06] We added a [YoloV10](https://github.com/THU-MIG/yolov10) example [here](examples/yolov10). -->
-
+**Latest News** 🔥
+- [2024/08] Full support for [LlamaForCausalLM](https://github.com/torchpipe/torchpipe/tree/develop/examples/vila) is available. The VILA example is still in progress.
 
 ## Installation
 
