@@ -58,7 +58,7 @@ void EventLoop::forward(const std::vector<dict>& inputs) {
     //   (*item)[TASK_EVENT_KEY] = make_event();
     // }
 
-    IPIPE_ASSERT(item->find("request_id") != item->end());
+    IPIPE_ASSERT(item->find("request_id") != item->end(), "request_id is needed for EventLoop");
     task_queues_[std::rand() % task_queues_size]->Push(item);
   }
 }

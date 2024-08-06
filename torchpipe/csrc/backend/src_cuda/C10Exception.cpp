@@ -48,4 +48,16 @@ class RuntimeError : public SingleBackend {
   void forward(dict) { throw std::runtime_error("RuntimeError throwed. Used in Test"); }
 };
 IPIPE_REGISTER(Backend, RuntimeError, "RuntimeError");
+
+class InvalidArgumentError : public SingleBackend {
+ public:
+  /**
+   * @exception std::invalid_argument 用于测试。
+   */
+  void forward(dict) {
+    throw std::invalid_argument("invalid_argument Exception throwed. Used in Test");
+  }
+};
+IPIPE_REGISTER(Backend, InvalidArgumentError, "InvalidArgumentError");
+
 }  // namespace ipipe

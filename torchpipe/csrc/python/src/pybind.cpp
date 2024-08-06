@@ -133,6 +133,14 @@ void bind_threadsafe_queue(py::module& m, const std::string& typestr) {
             }
           },
           py::call_guard<py::gil_scoped_release>())
+      .def(
+          "pop_all",
+          [](Queue& q) {
+            std::vector<T> all_data = q.PopAll();
+            py::gil_scoped_acquire local_guard;
+            return py::cast(all_data);
+          },
+          py::call_guard<py::gil_scoped_release>())
       .def("empty", &Queue::empty, py::call_guard<py::gil_scoped_release>())
       .def("size", &Queue::size, py::call_guard<py::gil_scoped_release>());
 }

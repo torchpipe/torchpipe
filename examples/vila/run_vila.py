@@ -29,14 +29,16 @@ def run(inputs):
 img_path  = 'demo_images/av.png'
 img = cv2.imread(img_path)
 input = torch.from_numpy(img)
-input_ones = torch.ones((1000,2560)).to(torch.float16).cuda()
 pt = "/workspace/VILA/inputs_embeds.pt"
+
+inputs=[]
 if os.path.exists(pt):
     input = torch.load(pt).squeeze(0).cuda()
-data = {'data':input_ones,'request_id':'r0', 'node_name':'batchful', 'trt_plugin':'batchless_prefill'}
-
-inputs = [data]
-inputs += [{'data':input,'request_id':'r1', 'node_name':'batchful', 'trt_plugin':'batchless_prefill'}]
+    inputs += [{'data':input,'request_id':'r1', 'node_name':'batchful', 'trt_plugin':'batchless_prefill'}]
+else:
+    input_ones = torch.ones((1000,2560)).to(torch.float16).cuda()
+    data = {'data':input_ones,'request_id':'r0', 'node_name':'batchful', 'trt_plugin':'batchless_prefill'}
+    inputs += [data]
 
 len_data = len(inputs)
 # async mode:
@@ -74,6 +76,9 @@ for i in range(len_data):
 
     print(inputs[i].keys())
     print(inputs[i]['result'])
+    
+    
+    print(q.pop_all())
 
 
 

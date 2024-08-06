@@ -36,6 +36,9 @@ class TestBackend:
 
         self.interpreter_pipe = torchpipe.pipe(
             {"Interpreter::backend": "C10Exception"})
+        
+        self.event_loop  =  torchpipe.pipe({ "global": {"backend": "InvalidArgumentError", "Interpreter::backend":"SyncAdapter[EventLoop]"}})
+
 
     def test_infer(self):
         data = torch.rand((3, 1, 1))
@@ -49,6 +52,10 @@ class TestBackend:
         with pytest.raises(IndexError):
             self.interpreter_pipe({"data": 1})
 
+    def test_event_loop(self):
+        input = {"data": 1,'request_id':"1"}
+        with pytest.raises(RuntimeError):
+            self.event_loop(input)
     def test_node_name(self):
         input = {"data": 1}
         with pytest.raises(IndexError):
@@ -78,5 +85,6 @@ if __name__ == "__main__":
     # time.sleep(5)
     a = TestBackend()
     a.setup_class()
-    a.test_nested()
+    # a.test_nested()
+    a.test_event_loop ()
     # pytest.main([__file__])

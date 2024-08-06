@@ -13,6 +13,8 @@ The computation for the batchless part could be implemented as a standalone CUDA
 - [x] ~~contiguous batching~~ special scheduler && load banlancing
 - [x] ~~PagedAttention~~ memory pool(need further thought)
 
+### limitations:
+- tokenizer is not included in C++/torchpipe
 
 ### Run && Benchmark
 ```

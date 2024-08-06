@@ -45,13 +45,15 @@ class MultiModalEmbedsTensor : public SingleBackend {
       SPDLOG_INFO("MultiModalEmbedsTensor: input_embeds is empty. Skip loading.");
       return true;
     }
-
-    read(save_name);
-    // IPIPE_ASSERT(tensors_.size() == 2);
+    if (!save_name.empty()) {
+      read(save_name, tensors_);
+      SPDLOG_INFO("MultiModalEmbedsTensor: load input embeds from " + save_name);
+    }
+    // IPIPE_ASSERT(tensorstensors.size() == 2);
     return true;
   }
 
-  void read(const std::string& save_name) {
+  void read(const std::string& save_name, std::vector<torch::Tensor> tensors) {
     std::ifstream file(save_name);
     if (!file.good()) {
       SPDLOG_ERROR("MultiModalEmbedsTensor: dir " + save_name + " not exists.");
@@ -71,12 +73,12 @@ class MultiModalEmbedsTensor : public SingleBackend {
       throw std::runtime_error(
           "MultiModalEmbedsTensor: input is a tensor, but we need a list of tensors.");
     } else if (data_loaded.isTensorList()) {
-      tensors_ = data_loaded.toTensorVector();  // c10::List
+      tensors = data_loaded.toTensorVector();  // c10::List
     } else if (data_loaded.isTuple()) {
       const auto& ivalue_vector = data_loaded.toTupleRef().elements().vec();
       for (const auto& ivalue : ivalue_vector) {
         if (ivalue.isTensor()) {
-          tensors_.push_back(ivalue.toTensor());
+          tensors.push_back(ivalue.toTensor());
         } else {
           // Handle the case where the IValue is not a Tensor
           throw std::runtime_error(
@@ -88,7 +90,7 @@ class MultiModalEmbedsTensor : public SingleBackend {
       for (const auto& item : ivalue_vector) {
         const auto& ivalue = item.get();
         if (ivalue.isTensor()) {
-          tensors_.push_back(ivalue.toTensor());
+          tensors.push_back(ivalue.toTensor());
         } else {
           // Handle the case where the IValue is not a Tensor
           throw std::runtime_error(
@@ -103,7 +105,7 @@ class MultiModalEmbedsTensor : public SingleBackend {
     std::stringstream ss;
 
     ss << "Load tensor(s) from " << save_name << ". Shape: ";
-    for (auto& item : tensors_) {
+    for (auto& item : tensors) {
       if (item.sizes().size() == 2) {
         item = item.unsqueeze(0);
       }
@@ -138,17 +140,17 @@ class MultiModalEmbedsTensor : public SingleBackend {
       }
     }
     std::vector<torch::Tensor> results;
-    if (tensors_.size() == image_embeds.size()) {
-      for (std::size_t i = 0; i < tensors_.size(); ++i) {
-        results.push_back(tensors_[i]);
+    if (tensors.size() == image_embeds.size()) {
+      for (std::size_t i = 0; i < tensors.size(); ++i) {
+        results.push_back(tensors[i]);
         results.push_back(image_embeds[i]);
       }
-    } else if (tensors_.size() == image_embeds.size() + 1) {
+    } else if (tensors.size() == image_embeds.size() + 1) {
       for (std::size_t i = 0; i < image_embeds.size(); ++i) {
-        results.push_back(tensors_[i]);
+        results.push_back(tensors[i]);
         results.push_back(image_embeds[i]);
       }
-      results.push_back(tensors_.back());
+      results.push_back(tensors.back());
     } else {
       throw std::runtime_error(
           "MultiModalEmbedsTensor: number of image_embeds and llm_embeds  not match.");
@@ -162,6 +164,19 @@ class MultiModalEmbedsTensor : public SingleBackend {
   std::vector<torch::Tensor> tensors_;
 };
 
+IPIPE_REGISTER(Backend, MultiModalEmbedsTensor, "MultiModalEmbedsTensor");
+
+class Append : public SingleBackend {
+ public:
+  /**
+   * @param tensor_name 文件路径；
+   *
+   */
+  virtual bool init(const std::unordered_map<std::string, std::string>& config_param,
+                    dict shared_dict) override {}
+
+  virtual void forward(dict input_dict) override {};
+};
 IPIPE_REGISTER(Backend, MultiModalEmbedsTensor, "MultiModalEmbedsTensor");
 
 }  // namespace ipipe

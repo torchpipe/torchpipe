@@ -1,14 +1,43 @@
 # "Interpreter::backend" = "SyncAsyncRequestDispatcher[SyncRing, EventLoop, PipelineV3]"
 "Interpreter::backend" = "SyncAdapter[EventLoop]"
+# todo: "Interpreter::backend" = "Composite[SyncAdapter[EventLoop],PipelineV3,Batching]"
+
 'precision' = 'fp16'
 scheduler = "Batching"
-# [preprocess]
-# 'backend' = 'S[DecodeMat,CvtColorMat,ResizeMat,Mat2Tensor,SyncTensor]'
-# 'color' = 'rgb'
-# instance_num = 2
-# next = 'siglip'
-# 'resize_h' = '384'
-# 'resize_w' = '384'
+
+[preprocess]
+'backend' = 'S[DecodeMat,CvtColorMat,ResizeMat,Mat2Tensor,SyncTensor]'
+'color' = 'rgb'
+instance_num = 2
+next = 'visual_encoder'
+'resize_h' = '384'
+'resize_w' = '384'
+
+[visual_encoder]
+# PluginCacher is used to cache parameters and input data for (tensorrt) plugin
+'backend' = 'SyncTensor[TensorrtTensor]'
+
+# cal_request_size_method = "CalTorchBatchSize" # calc. request_size according to torch tensor size
+instance_num = 2
+max = '1x3x384x384'
+'mean' = '127.5,127.5,127.5'
+'model' = '/workspace/VILA/onnx/visual_encoder.onnx'
+'model::cache' = './visual_encoder.trt'
+
+'std' = '127.5,127.5,127.5'
+
+# [multimodal]
+# backend = 'SyncTensor[MultiModalEmbedsTensor]'
+# input_embeds = '../cur_input_embeds_no_im.pt'
+# next = 'llm'
+
+# [llm]
+# 'backend' = 'SyncTensor[TensorrtTensor]'
+# batch_process = 'CpuTensor'
+# 'model' = '../onnx/llm.onnx'
+# 'model::cache' = '../onnx/llm.trt'
+
+# next = 'sample'
 
 [batchful]
 # PluginCacher is used to cache parameters and input data for (tensorrt) plugin
@@ -20,6 +49,7 @@ max = '2047'
 'model' = '/workspace/VILA/onnx/decode_batchful.onnx'
 'model::cache' = './batchful.trt'
 next = 'sample'
+# save_dir = "./tmp"
 
 # [batchless_prefill]
 [batchless_prefill]
@@ -35,24 +65,6 @@ min = '1x1x2560,1x1x2560,1x1x2560,1x1'
 backend = "S[KVCacheTensor,SyncTensor]" 
 max_seq_len = 2048 # out_put : reach_max_seq_len
 num_layers = 1 # for debug. 32 for llama.  Auto set?
-# [siglip]
-# 'backend' = 'SyncTensor[TensorrtTensor]'
-# 'mean' = '127.5,127.5,127.5'
-# 'model' = '../onnx/visual_encoder.onnx'
-# 'model::cache' = '../onnx/visual_encoder.trt'
-# next = 'multimodal'
-# 'std' = '127.5,127.5,127.5'
-
-# [multimodal]
-# backend = 'SyncTensor[MultiModalEmbedsTensor]'
-# input_embeds = '../cur_input_embeds_no_im.pt'
-# next = 'llm'
-
-# [llm]
-# 'backend' = 'SyncTensor[TensorrtTensor]'
-# batch_process = 'CpuTensor'
-# 'model' = '../onnx/llm.onnx'
-# 'model::cache' = '../onnx/llm.trt'
 
 [batchless_decode]
 # backend = "RuntimeError"
@@ -67,7 +79,7 @@ min = '1x1x2560,1x1x2560,1x1x2560,1x1,1x20x1x128,1x20x1x128'
 
 [sample]
 backend = 'S[SampleTensor,Streaming,SyncTensor]'
-eos = 1
+eos = 2
 next = 'check_eos'
 temperature = 0.2
 

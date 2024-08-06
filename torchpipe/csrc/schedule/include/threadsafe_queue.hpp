@@ -117,6 +117,16 @@ class ThreadSafeQueue {
     return true;
   }
 
+  std::vector<T> PopAll() {
+    std::unique_lock<std::mutex> lk(mut_);
+    std::vector<T> result;
+    while (!data_queue_.empty()) {
+      result.push_back(data_queue_.front());
+      data_queue_.pop();
+    }
+    return result;
+  }
+
   void Wait(int time_out) {
     std::unique_lock<std::mutex> lk(mut_);
     data_cond_.wait_for(lk, std::chrono::milliseconds(int(time_out)),

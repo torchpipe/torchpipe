@@ -221,6 +221,11 @@ void PipelineV3::on_finish_node(dict tmp_data) {
       pstack->input_data->erase(TASK_STACK_KEY);
       pstack->input_data->erase(TASK_RESULT_KEY);
 
+      if (pstack->input_event)  // todo: check
+      {
+        (*pstack->input_data)[TASK_EVENT_KEY] = pstack->input_event;
+      }
+
       pstack->input_event->set_exception_and_notify_all(pstack->exception);
       pstack->clear();
     }
@@ -383,7 +388,11 @@ void PipelineV3::forward(dict input, std::size_t task_queues_index,
     auto iter = input->find("node_name");
     if (iter == input->end()) {
       if (root_nodes.size() > 1) {
-        throw std::out_of_range("node_name not set");
+        std::ostringstream errr;
+        for (const auto& node : root_nodes) {
+          errr << node << " ";  // 假设每个节点有一个 name() 方法
+        }
+        throw std::out_of_range("node_name not set. existing: " + errr.str());
       }
       node_name = *root_nodes.begin();
     } else {
