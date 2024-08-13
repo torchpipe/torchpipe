@@ -27,7 +27,7 @@ class TorchAllocator : public nvinfer1::IGpuAllocator {
   TorchAllocator() = default;
 
   void* allocate(uint64_t size, uint64_t alignment, uint32_t flags) noexcept override;
-#if NV_TENSORRT_MAJOR < 10
+#if NV_TENSORRT_MAJOR < 9
   void free(void* const memory) noexcept override;
 #endif
   bool deallocate(void* const memory) noexcept;  // override;

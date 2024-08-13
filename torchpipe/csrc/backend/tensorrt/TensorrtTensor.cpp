@@ -16,7 +16,7 @@
 
 #include "tensorrt_utils.hpp"
 
-#if NV_TENSORRT_MAJOR < 10
+#if NV_TENSORRT_MAJOR < 9
 
 #include <torch/torch.h>
 #include <nppcore.h>
