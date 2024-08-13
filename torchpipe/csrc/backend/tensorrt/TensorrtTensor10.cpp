@@ -262,8 +262,12 @@ void TensorrtTensor::parse_context(dict dict_config, int _independent_thread_ind
     IPIPE_ASSERT(output_reorder_.size() == n_outputs);
   } else {
     output_reorder_.resize(n_outputs);
-    // std::iota(output_reorder_.rbegin(), output_reorder_.rend(), 0);
+//
+#if NV_TENSORRT_MAJOR >= 10
     std::iota(output_reorder_.begin(), output_reorder_.end(), 0);
+#else
+    std::iota(output_reorder_.rbegin(), output_reorder_.rend(), 0);
+#endif
   }
 
   std::vector<std::pair<std::string, std::string>> inputs_ss(input_reorder_.size());
