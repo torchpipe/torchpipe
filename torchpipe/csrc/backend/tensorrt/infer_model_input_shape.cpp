@@ -6,7 +6,7 @@
 #include "params.hpp"
 namespace ipipe {
 
-#if NV_TENSORRT_MAJOR < 8
+#if NV_TENSORRT_MAJOR < 9
 std::vector<std::vector<int>> infer_shape(std::shared_ptr<CudaEngineWithRuntime> engine) {
   const unsigned n_profiles = engine->engine->getNbOptimizationProfiles();
   const unsigned n_inputsOutputs = engine->engine->getNbBindings() / n_profiles;
