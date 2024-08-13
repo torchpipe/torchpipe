@@ -254,11 +254,10 @@ void TensorrtTensor::parse_context(dict dict_config, int _independent_thread_ind
                              std::shared_ptr<CudaEngineWithRuntime> engine) {
     std::map<std::string, int> name2index;
     for (size_t index = 0; index < reorder.size(); ++index) {
-      name2index[engine->engine->getIOTensorName(j)] = j;
+      name2index[engine->engine->getIOTensorName(index)] = index;
     }
     auto name2index_it = name2index.begin();
-    for (size_t i = 0; i < index.size() && name2index_it != name2index.end();
-         ++i, ++name2index_it) {
+    for (size_t i = 0; name2index_it != name2index.end(); ++i, ++name2index_it) {
       reorder[i] = name2index_it->second;
     }
   };
