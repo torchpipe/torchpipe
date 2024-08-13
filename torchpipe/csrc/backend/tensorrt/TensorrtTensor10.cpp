@@ -15,7 +15,7 @@
 #ifdef WITH_TENSORRT
 
 #include "tensorrt_utils.hpp"
-#if NV_TENSORRT_MAJOR >= 8
+#if NV_TENSORRT_MAJOR >= 9
 
 #include <torch/torch.h>
 #include <nppcore.h>
@@ -297,10 +297,12 @@ void TensorrtTensor::parse_context(dict dict_config, int _independent_thread_ind
     const auto tensorType = engine_->engine->getTensorIOMode(name);
 
     IPIPE_ASSERT(tensorType == nvinfer1::TensorIOMode::kINPUT);
+
     nvinfer1::Dims min_dims =
         engine_->engine->getProfileShape(name, profile_index_, nvinfer1::OptProfileSelector::kMIN);
     nvinfer1::Dims max_dims =
         engine_->engine->getProfileShape(name, profile_index_, nvinfer1::OptProfileSelector::kMAX);
+
     mins_.emplace_back(min_dims.d, min_dims.d + min_dims.nbDims);
     maxs_.emplace_back(max_dims.d, max_dims.d + max_dims.nbDims);
     IPIPE_ASSERT(context_->setInputShape(name, min_dims));
