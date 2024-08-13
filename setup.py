@@ -36,9 +36,9 @@ from distutils.version import StrictVersion
 
 import torch
 
-if StrictVersion(torch.__version__.split("+")[0]) < "1.10.1a0":
+if StrictVersion(torch.__version__.split("+")[0]) < "1.10.0a0":
     raise RuntimeError(
-        f"torch's version should >= 1.10.1a0, but get {torch.__version__}"
+        f"torch's version should >= 1.10.0a0, but get {torch.__version__}"
     )
 
 if sys.version_info < (3, 7, 0):
