@@ -2,7 +2,7 @@
 
 
 ## v0.6.2(WIP)
-- docker/Dockerfilex updated to TensorRT 10.2
+- docker/Dockerfilex updated to TensorRT 10.3
 
 ## v0.6.1 
 - Support batching for already batched input. Set `scheduler = Batching` and ensure the size of each tensor is smaller than the max batch size. Set `request_size` or use `cal_request_size_method = "CalTorchBatchSize"` for torch-related tensors.

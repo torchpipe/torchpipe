@@ -70,7 +70,7 @@ cd examples/resnet18 && python resnet18.py
     <summary>From Dockerfile</summary>
 
 ```bash
-# build docker image by yourself: 
+# build docker image by yourself(Dockerfilex for trt10, Dockerfile for trt9): 
 docker build --network=host -f ./docker/Dockerfilex -t trt thirdparty/
 export img_name=trt
 ```

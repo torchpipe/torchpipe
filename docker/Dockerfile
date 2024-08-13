@@ -9,7 +9,7 @@ FROM nvcr.io/nvidia/cuda:11.6.2-cudnn8-runtime-ubuntu20.04 as base
 # nvidia/ 前缀也可以
 
 
-LABEL maintainer "zhangshiyang"
+LABEL maintainer "tp-nan"
 WORKDIR /app
 
 
