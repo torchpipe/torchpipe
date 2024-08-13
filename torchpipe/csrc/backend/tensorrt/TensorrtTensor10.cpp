@@ -251,10 +251,10 @@ void TensorrtTensor::parse_context(dict dict_config, int _independent_thread_ind
   }
 
   auto reorder_by_alpha = [](std::vector<int>& reorder,
-                             std::shared_ptr<CudaEngineWithRuntime> engine) {
+                             std::shared_ptr<CudaEngineWithRuntime> engine, int offset) {
     std::map<std::string, int> name2index;
     for (size_t index = 0; index < reorder.size(); ++index) {
-      name2index[engine->engine->getIOTensorName(index)] = index;
+      name2index[engine->engine->getIOTensorName(index + offset)] = index;
     }
     auto name2index_it = name2index.begin();
     for (size_t i = 0; name2index_it != name2index.end(); ++i, ++name2index_it) {
@@ -272,7 +272,7 @@ void TensorrtTensor::parse_context(dict dict_config, int _independent_thread_ind
 #if NV_TENSORRT_MAJOR >= 10
     std::iota(input_reorder_.begin(), input_reorder_.end(), 0);
 #else
-    reorder_by_alpha(input_reorder_, engine_);
+    reorder_by_alpha(input_reorder_, engine_, 0);
 #endif
   }
   if (!output_reorder_.empty()) {
@@ -283,7 +283,7 @@ void TensorrtTensor::parse_context(dict dict_config, int _independent_thread_ind
 #if NV_TENSORRT_MAJOR >= 10
     std::iota(output_reorder_.begin(), output_reorder_.end(), 0);
 #else
-    reorder_by_alpha(output_reorder_, engine_);
+    reorder_by_alpha(output_reorder_, engine_, input_reorder_.size());
 #endif
   }
 
