@@ -360,10 +360,15 @@ void TensorrtTensor::parse_context(dict dict_config, int _independent_thread_ind
   current_order.pop_back();
   current_order += " reset by `input_reorder`)";
 
-  for (std::size_t i = 0; i < outputs_ss.size(); ++i) {
-    ss << "\n\t\t" << output_reorder_[i] << ". " << outputs_ss[i].first << "\t"
-       << outputs_ss[i].second;
+  for (std::size_t i = 0; i < output_reorder_.size(); ++i) {
+    ss << "\n\t\t" << output_reorder_[i] << ". " << outputs_ss[output_reorder_[i]].first << "\t"
+       << outputs_ss[output_reorder_[i]].second;
   }
+
+  // for (std::size_t i = 0; i < outputs_ss.size(); ++i) {
+  //   ss << "\n\t\t" << output_reorder_[i] << ". " << outputs_ss[i].first << "\t"
+  //      << outputs_ss[i].second;
+  // }
 
   if (_independent_thread_index == 0 && (n_inputsOutputs - maxs_.size() > 1 || (maxs_.size() > 1)))
     SPDLOG_INFO("Engine {}, Profile {}: Order of inputs{} and outputs:\n" + colored(ss.str()),
