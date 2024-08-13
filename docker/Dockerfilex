@@ -3,7 +3,7 @@
 
 # docker build --network=host -f ./docker/Dockerfilex -t trt-10 thirdparty/
 ARG TRT_VER=10.3.0.26
-ARG TRT_VER=https://developer.nvidia.com/downloads/compute/machine-learning/tensorrt/10.3.0/tars/TensorRT-10.3.0.26.Linux.x86_64-gnu.cuda-11.8.tar.gz
+ARG TRT_URL=https://developer.nvidia.com/downloads/compute/machine-learning/tensorrt/10.3.0/tars/TensorRT-10.3.0.26.Linux.x86_64-gnu.cuda-11.8.tar.gz
 # 
 # export TRT_VER=10.3.0.26
 # export TRT_URL=https://developer.nvidia.com/downloads/compute/machine-learning/tensorrt/10.3.0/tars/TensorRT-10.3.0.26.Linux.x86_64-gnu.cuda-11.8.tar.gz
@@ -58,9 +58,9 @@ RUN cd opencv-4.5.4/ && sed -i '1a add_definitions(-D_GLIBCXX_USE_CXX11_ABI=0)' 
             -D BUILD_opencv_dnn=OFF \
             -DBUILD_opencv_java=OFF \
             -DBUILD_opencv_python2=OFF \
-            -DBUILD_opencv_python3=ON \
-            -D BUILD_NEW_PYTHON_SUPPORT=ON \
-            -D BUILD_PYTHON_SUPPORT=ON \
+            -DBUILD_opencv_python3=OFF \
+            -D BUILD_NEW_PYTHON_SUPPORT=OFF \
+            -D BUILD_PYTHON_SUPPORT=OFF \
             -D PYTHON_DEFAULT_EXECUTABLE=/usr/bin/python3 \
             -DBUILD_opencv_java_bindings_generator=OFF \
             -DBUILD_opencv_python_bindings_generator=ON \
