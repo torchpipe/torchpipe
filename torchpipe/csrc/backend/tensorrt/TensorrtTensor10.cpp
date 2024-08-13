@@ -284,7 +284,7 @@ void TensorrtTensor::parse_context(dict dict_config, int _independent_thread_ind
 #if NV_TENSORRT_MAJOR >= 10
     std::iota(output_reorder_.begin(), output_reorder_.end(), 0);
 #else
-    reorder_by_alpha(input_reorder_, engine_);
+    reorder_by_alpha(output_reorder_, engine_);
 #endif
   }
 
