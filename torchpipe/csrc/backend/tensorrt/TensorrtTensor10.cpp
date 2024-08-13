@@ -15,7 +15,7 @@
 #ifdef WITH_TENSORRT
 
 #include "tensorrt_utils.hpp"
-#if NV_TENSORRT_MAJOR >= 9
+#if NV_TENSORRT_MAJOR >= 8
 
 #include <torch/torch.h>
 #include <nppcore.h>
@@ -298,10 +298,14 @@ void TensorrtTensor::parse_context(dict dict_config, int _independent_thread_ind
 
     IPIPE_ASSERT(tensorType == nvinfer1::TensorIOMode::kINPUT);
 
+    // #ifdef NV_TENSORRT_MAJOR> 8
     nvinfer1::Dims min_dims =
         engine_->engine->getProfileShape(name, profile_index_, nvinfer1::OptProfileSelector::kMIN);
     nvinfer1::Dims max_dims =
         engine_->engine->getProfileShape(name, profile_index_, nvinfer1::OptProfileSelector::kMAX);
+    // #else
+    // todo
+    // #endif
 
     mins_.emplace_back(min_dims.d, min_dims.d + min_dims.nbDims);
     maxs_.emplace_back(max_dims.d, max_dims.d + max_dims.nbDims);
@@ -341,9 +345,12 @@ void TensorrtTensor::parse_context(dict dict_config, int _independent_thread_ind
   for (int j = 0; j < input_reorder_.size(); j++) {
     // tensorrt is inverted order
     const auto name = engine_->engine->getIOTensorName(input_reorder_[j]);
+    // #ifdef NV_TENSORRT_MAJOR> 8
     nvinfer1::Dims max_dims =
         engine_->engine->getProfileShape(name, profile_index_, nvinfer1::OptProfileSelector::kMAX);
-
+    // #else
+    // todo
+    // #endif
     IPIPE_ASSERT(context_->setInputShape(name, max_dims));
   }
 
