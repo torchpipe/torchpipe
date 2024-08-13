@@ -53,7 +53,8 @@ cd torchpipe/ && git submodule update --init --recursive
 
 Then start the container and if your machine supports [a higher version of the image](https://catalog.ngc.nvidia.com/orgs/nvidia/containers/pytorch/tags), you can use the updated version of the Pytorch image.
 ```bash
-img_name=nvcr.io/nvidia/pytorch:23.08-py3  # for tensort8.6.1, LayerNorm
+img_name=nvcr.io/nvidia/pytorch:24.07-py3  # for tensort10.2
+# img_name=nvcr.io/nvidia/pytorch:23.08-py3  # for tensort8.6.1, LayerNorm. Support 1080ti
 # img_name=nvcr.io/nvidia/pytorch:22.12-py3  # For driver version lower than 510
 docker run --rm --gpus=all --ipc=host  --network=host -v `pwd`:/workspace  --shm-size 1G  --ulimit memlock=-1 --ulimit stack=67108864  --privileged=true  -w/workspace -it $img_name /bin/bash
 

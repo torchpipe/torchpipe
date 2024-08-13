@@ -74,6 +74,9 @@ bool TensorrtTensor::init(const std::unordered_map<std::string, std::string>& co
 #elif NV_TENSORRT_MAJOR == 7 && NV_TENSORRT_MINOR < 2
   SPDLOG_WARN("tensorrt version should >= 7.2 but got {}.{}", NV_TENSORRT_MAJOR, NV_TENSORRT_MINOR);
 
+#elif NV_TENSORRT_MAJOR == 8
+  SPDLOG_WARN("tensorrt 8 is deprecated, please use tensorrt 9.0 - 10.3. Got {}.{}",
+              NV_TENSORRT_MAJOR, NV_TENSORRT_MINOR);
 #endif
 
   if (!params_->init(config_param)) return false;
