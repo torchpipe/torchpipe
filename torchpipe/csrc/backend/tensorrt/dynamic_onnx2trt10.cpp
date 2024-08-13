@@ -440,7 +440,7 @@ std::shared_ptr<CudaEngineWithRuntime> onnx2trt(
     SPDLOG_INFO("use tensorrt's PreviewFeature: kPROFILE_SHARING_0806");
 #endif
 
-    auto reorder_input_by_alpha = [](std::vector<int>& reorder, decltype(network) network) {
+    auto reorder_input_by_alpha = [](std::vector<int>& reorder, decltype(network)& network) {
       std::map<std::string, int> name2index;
       for (size_t index = 0; index < reorder.size(); ++index) {
         name2index[network->getInput(index)->getName()] = index;
