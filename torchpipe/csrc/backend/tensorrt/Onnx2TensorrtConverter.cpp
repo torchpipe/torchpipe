@@ -45,7 +45,8 @@ bool Onnx2TensorrtConverter::init(const std::unordered_map<std::string, std::str
                                                 {"max_workspace_size", "1024"},
                                                 {"allocator", "torch"},
                                                 {"log_level", "verbose"},
-                                                {"input_reorder", ""}},
+                                                {"input_reorder", ""},
+                                                {"output_reorder", ""}},
                                                {}, {}, {}));
 
   if (!params_->init(config_param)) return false;
@@ -238,6 +239,10 @@ bool Onnx2TensorrtConverter::init(const std::unordered_map<std::string, std::str
     if (!params_->at("input_reorder").empty()) {
       onnxp.input_reorder = str2int(params_->at("input_reorder"), ',');
       IPIPE_ASSERT(onnxp.input_reorder.size() > 0);
+    }
+    if (!params_->at("output_reorder").empty()) {
+      onnxp.output_reorder = str2int(params_->at("output_reorder"), ',');
+      IPIPE_ASSERT(onnxp.output_reorder.size() > 0);
     }
 
     if (onnxp.precision.empty()) {

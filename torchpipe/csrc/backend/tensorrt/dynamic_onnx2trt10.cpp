@@ -440,14 +440,51 @@ std::shared_ptr<CudaEngineWithRuntime> onnx2trt(
     SPDLOG_INFO("use tensorrt's PreviewFeature: kPROFILE_SHARING_0806");
 #endif
 
+    auto reorder_input_by_alpha = [](std::vector<int>& reorder, decltype(network) network) {
+      std::map<std::string, int> name2index;
+      for (size_t index = 0; index < reorder.size(); ++index) {
+        name2index[network->getInput(index)->getName()] = index;
+      }
+      auto name2index_it = name2index.begin();
+      for (size_t i = 0; name2index_it != name2index.end(); ++i, ++name2index_it) {
+        reorder[i] = name2index_it->second;
+      }
+    };
+
     if (!input_reorder.empty()) {
       IPIPE_ASSERT(input_reorder.size() == network->getNbInputs());
     } else {
-      // [DEAFULT] set input_reorder to n_inputs-1, ... , 0
       input_reorder.resize(network->getNbInputs());
-      // std::iota(input_reorder.rbegin(), input_reorder.rend(), 0);
+
+#if NV_TENSORRT_MAJOR >= 10
       std::iota(input_reorder.begin(), input_reorder.end(), 0);
+#else
+      reorder_input_by_alpha(input_reorder, network);
+#endif
     }
+    // output order is not needed for building
+    //     if (!output_reorder.empty()) {
+    //       IPIPE_ASSERT(output_reorder.size() == network->getNbOutputs());
+    //     } else {
+    //       output_reorder.resize(network->getNbOutputs());
+
+    // #if NV_TENSORRT_MAJOR >= 10
+    //       std::iota(output_reorder.begin(), output_reorder.end(), 0);
+    // #else
+    //       auto reorder_output_by_alpha = [](std::vector<int>& reorder, decltype(network) network)
+    //       {
+    //         std::map<std::string, int> name2index;
+    //         for (size_t index = 0; index < reorder.size(); ++index) {
+    //           name2index[network->getOutput(index)->getName()] = index;
+    //         }
+    //         auto name2index_it = name2index.begin();
+    //         for (size_t i = 0; name2index_it != name2index.end(); ++i, ++name2index_it) {
+    //           reorder[i] = name2index_it->second;
+    //         }
+    //       };
+    //       reorder_output_by_alpha(output_reorder, network);
+    // #endif
+    //     }
 
     std::vector<std::pair<std::string, nvinfer1::Dims>> net_inputs_ordered_dims;
     // std::vector<uint32_t> new_location;

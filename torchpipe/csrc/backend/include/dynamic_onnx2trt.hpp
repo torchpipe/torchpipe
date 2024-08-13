@@ -38,6 +38,7 @@ struct OnnxParams {
   std::string allocator;
   std::string log_level;
   std::vector<int> input_reorder;
+  std::vector<int> output_reorder;
 };
 
 std::shared_ptr<CudaEngineWithRuntime> onnx2trt(
