@@ -63,9 +63,9 @@ class TestBackend:
         with pytest.raises(RuntimeError):
             p(input)
 
-    def test_map_no_data_SyncAdapter(self):
+    def test_map_no_data_EnsureInputHasEvent(self):
         p = torchpipe.pipe(
-            {"global":{"Interpreter::backend":"SyncAdapter[EventLoop]"},"a": {"next": "b"}, "b": {"map": "a[result:data1]"}})
+            {"global":{"Interpreter::backend":"EnsureInputHasEvent[EventLoop]"},"a": {"next": "b"}, "b": {"map": "a[result:data1]"}})
         input = {"data": 1}
         with pytest.raises(RuntimeError):
             p(input)

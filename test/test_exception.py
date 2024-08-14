@@ -37,7 +37,7 @@ class TestBackend:
         self.interpreter_pipe = torchpipe.pipe(
             {"Interpreter::backend": "C10Exception"})
         
-        self.event_loop  =  torchpipe.pipe({ "global": {"backend": "InvalidArgumentError", "Interpreter::backend":"SyncAdapter[EventLoop]"}})
+        self.event_loop  =  torchpipe.pipe({ "global": {"backend": "InvalidArgumentError", "Interpreter::backend":"EnsureInputHasEvent[EventLoop]"}})
 
 
     def test_infer(self):

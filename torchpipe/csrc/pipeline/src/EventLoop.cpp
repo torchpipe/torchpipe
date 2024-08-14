@@ -159,17 +159,18 @@ void EventLoop::on_finish_node(dict tmp_data) {
 
 IPIPE_REGISTER(Backend, EventLoop, "EventLoop");
 
-class SyncAdapter : public Backend {
+class EnsureInputHasEvent : public Backend {
  private:
   std::unique_ptr<Params> params_;
   std::unique_ptr<Backend> backend_;
 
  public:
   bool init(const std::unordered_map<std::string, std::string>& config, dict dict_config) override {
-    params_ =
-        std::unique_ptr<Params>(new Params({{"SyncAdapter::backend", "EventLoop"}}, {}, {}, {}));
+    params_ = std::unique_ptr<Params>(
+        new Params({{"EnsureInputHasEvent::backend", "EventLoop"}}, {}, {}, {}));
     if (!params_->init(config)) return false;
-    backend_ = std::unique_ptr<Backend>(IPIPE_CREATE(Backend, params_->at("SyncAdapter::backend")));
+    backend_ = std::unique_ptr<Backend>(
+        IPIPE_CREATE(Backend, params_->at("EnsureInputHasEvent::backend")));
     if (!backend_ || !backend_->init(config, dict_config)) return false;
 
     return true;
@@ -205,12 +206,23 @@ class SyncAdapter : public Backend {
         if (expcep) exceps.push_back(expcep);
         data[i]->erase(TASK_EVENT_KEY);
       }
-      if (!exceps.empty()) {
+      if (exceps.size() == 1) {
         std::rethrow_exception(exceps[0]);
+      } else if (exceps.size() > 1) {
+        // throw runtime_error with concated message
+        std::string msg;
+        for (auto& e : exceps) {
+          try {
+            std::rethrow_exception(e);
+          } catch (const std::exception& e) {
+            msg += e.what();
+          }
+        }
+        throw std::runtime_error(msg);
       }
     }
   }
 };
 
-IPIPE_REGISTER(Backend, SyncAdapter, "SyncAdapter");
+IPIPE_REGISTER(Backend, EnsureInputHasEvent, "EnsureInputHasEvent");
 }  // namespace ipipe
