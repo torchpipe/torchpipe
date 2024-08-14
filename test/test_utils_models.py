@@ -19,7 +19,9 @@ import torchvision
 import os
 import tempfile
 
-
+import pytest
+timm = pytest.importorskip("timm")
+            
 class TestUtilsModels:
     @classmethod
     def setup_class(self):
