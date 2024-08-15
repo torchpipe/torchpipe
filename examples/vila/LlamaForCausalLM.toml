@@ -1,6 +1,5 @@
-# "Interpreter::backend" = "SyncAsyncRequestDispatcher[SyncRing, EventLoop, PipelineV3]"
-"Interpreter::backend" = "EnsureInputHasEvent[EventLoop]"
-# todo: "Interpreter::backend" = "Composite[EnsureInputHasEvent[EventLoop],PipelineV3,Batching]"
+"Interpreter::backend" = "Ring"
+# todo: "Interpreter::backend" = "Composite[Ring,PipelineV3]"
 
 'precision' = 'fp16'
 scheduler = "Batching"

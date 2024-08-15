@@ -9,8 +9,10 @@
 #include "exception.hpp"
 namespace ipipe {
 bool EventLoop::init(const std::unordered_map<std::string, std::string>& config, dict dict_config) {
-  params_ = std::unique_ptr<Params>(new Params(
-      {{"EventLoop::backend", "PipelineV3"}, {"continue", TASK_RESTART_KEY}}, {}, {}, {}));
+  std::string class_name_backend = IPIPE_GET_REGISTER_NAME(Backend, EventLoop, this);
+  class_name_backend += "::backend";
+  params_ = std::unique_ptr<Params>(
+      new Params({{class_name_backend, "PipelineV3"}, {"continue", TASK_RESTART_KEY}}, {}, {}, {}));
   if (!params_->init(config)) return false;
   continue_ = params_->at("continue");
   constexpr auto N = 2;  // M:N
@@ -21,12 +23,13 @@ bool EventLoop::init(const std::unordered_map<std::string, std::string>& config,
   }
 
   auto iter = dict_config->find("backend");
+  IPIPE_ASSERT(iter == dict_config->end());
   if (iter != dict_config->end()) {
     backend_ = any_cast<Backend*>(iter->second);
     assert(backend_);
   } else {
     owned_backend_ =
-        std::unique_ptr<Backend>(IPIPE_CREATE(Backend, params_->at("EventLoop::backend")));
+        std::unique_ptr<Backend>(IPIPE_CREATE(Backend, params_->at(class_name_backend)));
     if (!owned_backend_ || !owned_backend_->init(config, dict_config)) return false;
     backend_ = owned_backend_.get();
   }
@@ -157,7 +160,8 @@ void EventLoop::on_finish_node(dict tmp_data) {
   }
 }
 
-IPIPE_REGISTER(Backend, EventLoop, "EventLoop");
+IPIPE_REGISTER(Backend, EventLoop, "EventLoop,Ring");
+IPIPE_SET_DEFAULT_FRONTEND("Ring,EventLoop", "EnsureInputHasEvent");
 
 class EnsureInputHasEvent : public Backend {
  private:
@@ -225,4 +229,5 @@ class EnsureInputHasEvent : public Backend {
 };
 
 IPIPE_REGISTER(Backend, EnsureInputHasEvent, "EnsureInputHasEvent");
+
 }  // namespace ipipe

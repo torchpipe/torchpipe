@@ -182,7 +182,7 @@ bool Onnx2TensorrtConverter::init(const std::unordered_map<std::string, std::str
 
   if (!params_->at("model::cache").empty()) {
     if (Is_File_Exist(params_->at("model::cache"))) {
-      SPDLOG_INFO("Using cached model [{}]. {}", params_->at("model::cache"),
+      SPDLOG_WARN("Using cached model [{}]. {}", params_->at("model::cache"),
                   "Delete it to regenerate.\n");
       model = params_->at("model::cache");
     } else {

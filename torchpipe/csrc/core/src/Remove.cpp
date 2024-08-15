@@ -98,7 +98,7 @@ class Add : public SingleBackend {
  public:
   virtual bool init(const std::unordered_map<std::string, std::string>& config,
                     dict /*dict_config*/) {
-    const std::string name = IPIPE_GET_REGISTER_NAME(Backend, this) + "::backend";
+    const std::string name = IPIPE_GET_REGISTER_NAME(Backend, Add, this) + "::backend";
     params_ = std::unique_ptr<Params>(new Params({}, {name}, {}, {}));
 
     if (!params_->init(config)) return false;
@@ -131,7 +131,7 @@ class Copy : public SingleBackend {
  public:
   virtual bool init(const std::unordered_map<std::string, std::string>& config,
                     dict /*dict_config*/) {
-    const std::string name = IPIPE_GET_REGISTER_NAME(Backend, this) + "::backend";
+    const std::string name = IPIPE_GET_REGISTER_NAME(Backend, Copy, this) + "::backend";
     params_ = std::unique_ptr<Params>(new Params({}, {name}, {}, {}));
 
     if (!params_->init(config)) return false;
@@ -166,7 +166,7 @@ class Move : public SingleBackend {
  public:
   virtual bool init(const std::unordered_map<std::string, std::string>& config,
                     dict /*dict_config*/) {
-    const std::string name = IPIPE_GET_REGISTER_NAME(Backend, this) + "::backend";
+    const std::string name = IPIPE_GET_REGISTER_NAME(Backend, Move, this) + "::backend";
     params_ = std::unique_ptr<Params>(new Params({}, {name}, {}, {}));
 
     if (!params_->init(config)) return false;
@@ -202,7 +202,7 @@ class Remove : public SingleBackend {
  public:
   virtual bool init(const std::unordered_map<std::string, std::string>& config,
                     dict /*dict_config*/) {
-    const std::string name = IPIPE_GET_REGISTER_NAME(Backend, this) + "::backend";
+    const std::string name = IPIPE_GET_REGISTER_NAME(Backend, Remove, this) + "::backend";
     params_ = std::unique_ptr<Params>(new Params({}, {name}, {}, {}));
 
     if (!params_->init(config)) return false;

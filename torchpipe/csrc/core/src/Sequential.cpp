@@ -60,7 +60,7 @@ std::unordered_map<std::string, std::string> get_config(
 
 bool Sequential::init(const std::unordered_map<std::string, std::string>& config_param,
                       dict dict_config) {
-  register_name_ = IPIPE_GET_REGISTER_NAME(Backend, this);
+  register_name_ = IPIPE_GET_REGISTER_NAME(Backend, Sequential, this);
   if (register_name_.empty()) register_name_ = "Sequential";
   params_ = std::unique_ptr<Params>(new Params({}, {register_name_ + "::backend"}, {}, {}));
   if (!params_->init(config_param)) return false;
@@ -92,10 +92,13 @@ bool Sequential::init(const std::unordered_map<std::string, std::string>& config
         pre_str = "Run";
       } else {
         pre_str = "swap";
-        SPDLOG_WARN(
-            "Using the `swap` filter (default for non-root backend in Sequential)."
-            " This will cause a 'Break' status if no TASK_RESULT_KEY was found. Please "
-            "ensure you are using the correct filter.");
+        static auto tmp = []() {
+          SPDLOG_WARN(
+              "Using the `swap` filter (default for non-root backend in Sequential)."
+              " This will cause a 'Break' status if no TASK_RESULT_KEY was found. Please "
+              "ensure you are using the correct filter.");
+          return 0;
+        }();
       }
     }
     filters_.emplace_back(IPIPE_CREATE(Filter, pre_str));

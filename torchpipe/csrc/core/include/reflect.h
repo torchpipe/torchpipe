@@ -135,14 +135,18 @@ class IPIPE_EXPORT ClassRegistryBase {
     return result;
   }
 
-  std::string GetObjectName(ClassName* name) {
+  std::string GetObjectName(ClassName* name, const char* default_name = nullptr) {
     std::lock_guard<std::mutex> guard(class_name_map_mutex_);
     auto iter = class_name_map_.find(name);
     if (iter != class_name_map_.end()) {
       return iter->second;
-    } else {
-      return "";
+    } else if (default_name)
+      return default_name;
+    else {
+      printlog_and_throw("GetObjectName: not found: " + std::string(default_name));
+      // return "";
     }
+    return "";
   }
 
   // ClassMap& IpipeGetMap(const std::string class_name) const { return getter_map_; }
@@ -166,11 +170,14 @@ class IPIPE_EXPORT ClassRegisterer {
   ClassRegisterer(typename ClassRegistryBase<BaseClassName>::ObjectGetter getterraw,
                   std::string class_name, std::initializer_list<std::string> names) {
     ipipe_load();
-    if (names.size() > 1) {
-      for (auto iter = names.begin() + 1; iter != names.end(); ++iter)
-        ClassRegistryInstance<BaseClassName>().DoAddClass(*iter, getterraw);
-    } else {
+    if (names.size() >= 2) {
+      ClassRegistryInstance<BaseClassName>().DoAddClass(*(names.begin() + 1), getterraw);
+    } else if (names.size() == 1) {
       ClassRegistryInstance<BaseClassName>().DoAddClass(class_name, getterraw);
+    }
+    if (names.size() >= 3) {
+      printlog_and_throw("ClassRegisterer: too many parameters.");
+      // ClassRegistryInstance<BaseClassName>().DoAddClass(names[2], getterraw);
     }
   }
 
@@ -189,10 +196,70 @@ class IPIPE_EXPORT ClassRegisterer {
 #define IPIPE_CREATE(base_class_type, register_name) \
   ipipe::reflect::ClassRegistryInstance<base_class_type>().DoGetObject(register_name)
 
-#define IPIPE_GET_REGISTER_NAME(base_class_type, obj_ptr) \
-  ipipe::reflect::ClassRegistryInstance<base_class_type>().GetObjectName(obj_ptr)
+#define IPIPE_GET_REGISTER_NAME(base_class_type, sub_class_type, obj_ptr) \
+  ipipe::reflect::ClassRegistryInstance<base_class_type>().GetObjectName(obj_ptr, #sub_class_type)
 
 #define IPIPE_ALL_NAMES(base_class_type) \
   ipipe::reflect::ClassRegistryInstance<base_class_type>().IpipeGetAll()
+
+/// ************************************************************************************************
+namespace ipipe {
+namespace reflect {
+
+template <typename T>
+class Frontend {
+ public:
+  Frontend() = default;
+  void set(const std::string& class_name, const std::string& frontend) {
+    auto class_names = inline_str_split(class_name, ',');
+    std::lock_guard<std::mutex> guard(mutex_);
+    for (const auto& item : class_names) class_name_map_[item] = frontend;
+  }
+  std::string get(const std::string& class_name) {
+    std::lock_guard<std::mutex> guard(mutex_);
+    auto iter = class_name_map_.find(class_name);
+    if (iter != class_name_map_.end()) {
+      return iter->second;
+    } else {
+      return "";
+    }
+  }
+
+ private:
+  std::mutex mutex_;
+  std::unordered_map<std::string, std::string> class_name_map_;
+};
+
+template <typename T>
+Frontend<T>& ClassInstance() {
+  static Frontend<T> frontend;
+  return frontend;
+}
+
+template <typename T>
+class IPIPE_EXPORT IpipeClassRegister {
+ public:
+  IpipeClassRegister(const std::string& class_name, const std::string& frontend) {
+    ipipe::reflect::ClassInstance<T>().set(class_name, frontend);
+  }
+};
+
+class FrontendTag {};
+class BackendTag {};
+
+}  // namespace reflect
+}  // namespace ipipe
+
+#define IPIPE_SET_DEFAULT_FRONTEND(base_class_str, front_class_name)                       \
+  static ipipe::reflect::IpipeClassRegister<ipipe::reflect::FrontendTag> IpipeSetFrontTag( \
+      base_class_str, front_class_name);
+#define IPIPE_GET_DEFAULT_FRONTEND(base_class_str) \
+  ipipe::reflect::ClassInstance<ipipe::reflect::FrontendTag>().get(base_class_str)
+
+#define IPIPE_SET_DEFAULT_BACKEND(base_class_str, backend_class_name)                     \
+  static ipipe::reflect::IpipeClassRegister<ipipe::reflect::BackendTag> IpipeSetFrontTag( \
+      base_class_str, backend_class_name);
+#define IPIPE_GET_DEFAULT_BACKEND(base_class_str) \
+  ipipe::reflect::ClassInstance<ipipe::reflect::BackendTag>().get(base_class_str)
 
 #endif

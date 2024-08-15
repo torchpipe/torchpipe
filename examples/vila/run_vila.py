@@ -82,8 +82,8 @@ for i in range(len_data):
     print(inputs[i].keys())
     print(inputs[i]['result'])
     
-    
-    print(q.pop_all())
+    re = q.pop_all()
+    print(f'len = {len(re)} data = ', re[:5], '...', re[-5:])
 
 
 

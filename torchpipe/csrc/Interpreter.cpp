@@ -118,6 +118,19 @@ void Interpreter::init(mapmap config) {
   // 如果配置了主引擎，根据配置创建主引擎。
   else {
     SPDLOG_INFO("main engine: {}", iter_main->second);
+    std::string main_frontend = IPIPE_GET_DEFAULT_FRONTEND(iter_main->second);
+    if (!main_frontend.empty()) {
+      // std::swap(main_frontend, iter_main->second);
+
+      config["global"]["Composite::backend"] = main_frontend;
+      config["global"][main_frontend + "::backend"] = iter_main->second;
+      SPDLOG_INFO(
+          "Switch to composite mode as the main engine, {}, requires the {} "
+          "frontend.",
+          iter_main->second, main_frontend);
+      iter_main->second = main_frontend;
+    }
+
     backend_ = std::unique_ptr<Backend>(IPIPE_CREATE(Backend, iter_main->second));
   }
 
@@ -148,6 +161,9 @@ void Interpreter::init(mapmap config) {
   }
   (*shared_dict)["config"] = config;
   (*shared_dict)["Interpreter"] = (Backend*)this;
+  if (static_config.empty()) {
+    static_config = config.at("global");
+  }
   if (!backend_ || !backend_->init(static_config, shared_dict)) {
     backend_ = nullptr;
     throw std::runtime_error("Interpreter init failed");
