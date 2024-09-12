@@ -2,7 +2,7 @@
 #include <mutex>
 #include <unordered_map>
 #include <cassert>
-
+#include "base_logging.hpp"
 namespace ipipe {
 template <typename T>
 class ForwardGuard {

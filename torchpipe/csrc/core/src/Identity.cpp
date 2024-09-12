@@ -23,8 +23,12 @@ class Identity : public SingleBackend {
     (*input_dict)[TASK_RESULT_KEY] = (*input_dict)[TASK_DATA_KEY];
   }
 };
+class Empty : public Backend {
+ public:
+  void forward(const std::vector<dict>& input_dicts) override final {}
+};
 
 IPIPE_REGISTER(Backend, Identity, "Identity");
-using Empty = Identity;
+
 IPIPE_REGISTER(Backend, Empty, "Empty");
 }  // namespace ipipe

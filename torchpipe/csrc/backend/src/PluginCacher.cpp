@@ -29,6 +29,7 @@ bool PluginCacher::init(const std::unordered_map<std::string, std::string>& conf
 
   IPIPE_ASSERT(dict_config);
   pack_config_param_ = BackendConfig{.config = config_param, .dict_config = dict_config};
+  SPDLOG_DEBUG("PluginCacher::add: {}", (long)c10::cuda::getCurrentCUDAStream().stream());
   config_.add(pack_config_param_, (void*)c10::cuda::getCurrentCUDAStream().stream());
 
   engine_ = std::unique_ptr<Backend>(IPIPE_CREATE(Backend, params_->at("PluginCacher::backend")));
@@ -62,7 +63,7 @@ const std::vector<dict>& PluginCacher::query_input(void* stream) {
   return *re;
 }
 const BackendConfig& PluginCacher::query_config(void* stream) {
-  const auto* re = PluginCacher::config_.query((void*)stream);
+  const auto* re = PluginCacher::config_.query(stream);
   IPIPE_ASSERT(re != nullptr);
   return *re;
 }
@@ -70,5 +71,50 @@ const BackendConfig& PluginCacher::query_config(void* stream) {
 ResourceGuard<BackendConfig> PluginCacher::config_;
 
 IPIPE_REGISTER(Backend, PluginCacher, "PluginCacher");
+
+thread_local std::unordered_map<std::string, std::string> ThreadLocalCacher::config_;
+thread_local dict ThreadLocalCacher::dict_config_;
+thread_local const std::vector<dict>* ThreadLocalCacher::input_dicts_ = nullptr;
+
+bool ThreadLocalCacher::init(const std::unordered_map<std::string, std::string>& config_param,
+                             dict dict_config) {
+  params_ = std::unique_ptr<Params>(new Params({}, {"ThreadLocalCacher::backend"}, {}, {}));
+
+  if (!params_->init(config_param)) return false;
+
+  IPIPE_ASSERT(dict_config);
+  config_ = config_param;
+  dict_config_ = dict_config;
+
+  engine_ =
+      std::unique_ptr<Backend>(IPIPE_CREATE(Backend, params_->at("ThreadLocalCacher::backend")));
+
+  auto config_param_new = config_param;
+  config_param_new.erase("ThreadLocalCacher::backend");
+
+  if (!engine_ || !engine_->init(config_param_new, dict_config)) {
+    return false;
+  }
+
+  return true;
+}
+
+void ThreadLocalCacher::forward(const std::vector<dict>& input_dicts) {
+  input_dicts_ = &input_dicts;
+  engine_->forward(input_dicts);
+}
+
+const std::vector<dict>& ThreadLocalCacher::query_input() {
+  IPIPE_ASSERT(input_dicts_ != nullptr);
+  return *input_dicts_;
+}
+
+const std::unordered_map<std::string, std::string>& ThreadLocalCacher::query_config() {
+  return config_;
+}
+
+dict ThreadLocalCacher::query_dict_config() { return dict_config_; }
+
+IPIPE_REGISTER(Backend, ThreadLocalCacher, "ThreadLocalCacher");
 
 }  // namespace ipipe

@@ -425,8 +425,9 @@ torch::Tensor tensor_permute(torch::Tensor input, const std::vector<int>& min_sh
       throw std::runtime_error(ss.str());
     }
   } else {
-    throw std::runtime_error("input data's dim not match model's. input = " +
-                             std::to_string(input.sizes().size()));
+    throw std::runtime_error(
+        "input data's dim not match model's. input = " + std::to_string(input.sizes().size()) +
+        ", model = " + std::to_string(max_shape.size()));
   }
   need_permute = false;
   std::vector<int64_t> permute_vector{0};

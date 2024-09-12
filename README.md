@@ -33,7 +33,7 @@ Production-Grade：Within NetEase a massive number of calls supported by Torchpi
 
 
 **Latest News** 🔥
-- [2024/08] Initial support for [LlamaForCausalLM](https://github.com/torchpipe/torchpipe/tree/develop/examples/vila) is available. The VILA example is still in progress.
+
 
 ## Installation
 

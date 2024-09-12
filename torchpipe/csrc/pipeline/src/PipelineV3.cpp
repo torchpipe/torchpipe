@@ -130,6 +130,10 @@ bool PipelineV3::init(mapmap config) {
     std::unique_ptr<Filter> filter;
 
     if (iter_filter != iter_next.second.end()) {
+      if (graph_->is_root(iter_next.first)) {
+        SPDLOG_ERROR("root node {} should not have filter", iter_next.first);
+        return false;
+      }
       brackets_split(iter_next.second, "filter");
       filters_[iter_next.first] =
           std::unique_ptr<Filter>(IPIPE_CREATE(Filter, iter_next.second["filter"]));
@@ -288,11 +292,19 @@ void PipelineV3::on_start_node(dict tmp_data, std::size_t task_queue_index) {
 
   try {
     const auto& root_nodes = graph_->get_roots();
-    assert(root_nodes.count(node_name) != 0);
+    const auto& sortted = graph_->get_sortted();
+    if (std::find(sortted.begin(), sortted.end(), node_name) == sortted.end()) {
+      throw std::out_of_range(node_name + " isn't in the graph.");
+    }
     // create a new stack
     // 作为输入， 需要确保 TASK_EVENT_KEY 一定在
-
     pstack->graph = graph_;
+    if (root_nodes.count(node_name) == 0) {
+      pstack->graph = pstack->graph->as_root(node_name);
+      // filters_[node_name] = std::unique_ptr<Filter>(IPIPE_CREATE(Filter, "Run"));
+    }
+
+    // assert(root_nodes.count(node_name) != 0);
 
     pstack->non_waiting_nodes.insert(node_name);
     pstack->update_status();
@@ -398,7 +410,12 @@ void PipelineV3::forward(dict input, std::size_t task_queues_index,
     } else {
       node_name = any_cast<std::string>(iter->second);
       if (root_nodes.find(node_name) == root_nodes.end()) {
-        throw std::out_of_range(node_name + " isn't one of root nodes.");
+        // throw std::out_of_range(node_name + " isn't one of root nodes.");
+        SPDLOG_DEBUG(node_name + " isn't one of root nodes. treat it as root node.");
+        // graph_->as_root(node_name);
+        if (!graph_->is_valid(node_name)) {
+          throw std::out_of_range(node_name + " isn't in the graph.");
+        }
       }
     }
     (*input)["node_name"] = node_name;
@@ -412,10 +429,13 @@ void PipelineV3::forward(dict input, std::size_t task_queues_index,
 void PipelineV3::on_filter_data(std::string node_name, std::shared_ptr<Stack> pstack,
                                 dict curr_data) {
   auto filter_result = Filter::status::Error;
-  auto iter_filter = filters_.find(node_name);  // must have one
-  assert(iter_filter != filters_.end());
-
-  filter_result = iter_filter->second->forward(curr_data);
+  if (pstack->graph->is_root(node_name)) {
+    filter_result = Filter::status::Run;
+  } else {
+    auto iter_filter = filters_.find(node_name);  // must have one
+    assert(iter_filter != filters_.end());
+    filter_result = iter_filter->second->forward(curr_data);
+  }
 
   pstack->set_filter_status(node_name, filter_result);
   switch (filter_result) {
@@ -426,7 +446,7 @@ void PipelineV3::on_filter_data(std::string node_name, std::shared_ptr<Stack> ps
       auto curr_event = make_event();
       std::weak_ptr<ThreadSafeQueue<dict>> local_queue =
           task_queues_[pstack->task_queue_index];  // may not exist
-      curr_event->add_callback([local_queue, curr_data, pstack]() {
+      curr_event->set_final_callback([local_queue, curr_data, pstack]() {
         auto shared_q = local_queue.lock();
         if (shared_q) {
           (*curr_data)[TASK_STACK_KEY] = pstack;

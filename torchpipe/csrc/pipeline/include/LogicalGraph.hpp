@@ -156,6 +156,14 @@ class LogicalGraph {
     }
   }
 
+  void del_nodes(const std::set<std::string>& del_nodes) {
+    for (const auto& del_item : del_nodes) {
+      auto iter = node_configs_.find(del_item);
+      IPIPE_ASSERT(iter != node_configs_.end());
+      node_configs_.erase(iter);
+    }
+  }
+
   std::shared_ptr<LogicalGraph> clone() { return std::make_shared<LogicalGraph>(*this); }
   std::shared_ptr<LogicalGraph> update(
       const std::unordered_map<std::string, std::set<std::string>>& next_config,
@@ -217,6 +225,21 @@ class LogicalGraph {
       assert(false);
       return nullptr;
     }
+    return new_graph;
+  }
+
+  std::shared_ptr<LogicalGraph> as_root(std::string node_name) {
+    auto new_graph = clone();
+    auto previous = new_graph->get_all_previous(node_name);
+    // new_graph->del_relation(previous);
+    new_graph->del_relation({node_name});
+    new_graph->del_nodes(previous);
+
+    if (!new_graph->finalize()) {
+      assert(false);
+      return nullptr;
+    }
+
     return new_graph;
   }
 
@@ -315,6 +338,10 @@ class LogicalGraph {
   const std::set<std::string>& get_roots() const { return roots_; }
   bool is_root(const std::string& node_name) const {
     return roots_.find(node_name) != roots_.end();
+  }
+
+  bool is_valid(const std::string& node_name) const {
+    return node_configs_.find(node_name) != node_configs_.end();
   }
   const std::set<std::string>& get_previous(const std::string& node_name) const noexcept {
     auto iter = node_configs_.find(node_name);

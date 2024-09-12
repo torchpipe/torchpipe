@@ -3,6 +3,8 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/cast.h>
 #include <pybind11/stl.h>
+#include <pybind11/functional.h>
+
 #if PYBIND11_VERSION_MAJOR == 2
 #if PYBIND11_VERSION_MINOR < 7
 #error "This code requires pybind11 version 2.7 or greater"
@@ -389,7 +391,14 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
                         void
                     Returns:
                         float.
-                )docdelimiter");
+                )docdelimiter")
+      .def("set_callback", &SimpleEvents::set_callback, py::call_guard<py::gil_scoped_release>(),
+           py::arg("callback"))
+      .def("set_final_callback", &SimpleEvents::set_final_callback,
+           py::call_guard<py::gil_scoped_release>(), py::arg("callback"))
+      .def("get_exception", &SimpleEvents::get_exception, py::call_guard<py::gil_scoped_release>())
+      .def("try_throw", &SimpleEvents::try_throw, py::call_guard<py::gil_scoped_release>());
+
 #ifdef WITH_TENSORRT
   m.def("infer_shape", py::overload_cast<const std::string&>(&infer_shape),
         py::call_guard<py::gil_scoped_release>(), py::arg("model_path"));

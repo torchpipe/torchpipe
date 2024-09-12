@@ -703,8 +703,8 @@ def get_extensions():
                 break
 
         if not found:
-            print("TensorRT not found. You may need to set TENSORRT_PATH")
-            raise RuntimeError("TensorRT not found. You may need to set TENSORRT_PATH")
+            print("ERROR: TensorRT not found. You may need to set TENSORRT_PATH")
+            raise RuntimeError("ERROR: TensorRT not found. You may need to set TENSORRT_PATH")
         
     if WITH_CUDA:
         thirdpart_libs += ["nppc", "nppig", "nvrtc", "nvjpeg"]

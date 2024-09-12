@@ -21,6 +21,7 @@
 #include <iostream>
 #include <memory>
 #include <mutex>
+#include <shared_mutex>
 #include <unordered_map>
 #include <vector>
 #include "time_utils.hpp"
@@ -64,7 +65,7 @@ class SimpleEvents {
 
   /// true: 引用计数等小于引用计数目标值时。
   bool valid() {
-    std::unique_lock<std::mutex> lk(mut);
+    std::lock_guard<std::mutex> lk(mut);
     return num_task > ref_count;
   }
 
@@ -112,6 +113,7 @@ class SimpleEvents {
       std::lock_guard<std::mutex> lk(mut);
       ref_add();
     }
+    try_callback();
 
     data_cond.notify_one();
   }
@@ -122,6 +124,7 @@ class SimpleEvents {
       std::lock_guard<std::mutex> lk(mut);
       ref_add(num);
     }
+    try_callback();
 
     data_cond.notify_one();
   }
@@ -135,6 +138,7 @@ class SimpleEvents {
       std::lock_guard<std::mutex> lk(mut);
       ref_add();
     }
+    try_callback();
 
     data_cond.notify_all();
   }
@@ -145,6 +149,7 @@ class SimpleEvents {
       std::lock_guard<std::mutex> lk(mut);
       ref_add(num);
     }
+    try_callback();
 
     data_cond.notify_all();
   }
@@ -171,6 +176,7 @@ class SimpleEvents {
       if (!eptr_) eptr_ = eptr;
       ref_add();
     }
+    try_callback();
 
     data_cond.notify_one();
   }
@@ -180,17 +186,6 @@ class SimpleEvents {
     else {
       assert(false);
     }
-
-    if ((ref_count == num_task)) {
-      while (!callbacks_.empty()) {
-        callbacks_.back()();    // Execute the last callback
-        callbacks_.pop_back();  // Remove the last callback
-      }
-      while (!unique_callbacks_.empty()) {
-        unique_callbacks_.back()();    // Execute the last callback
-        unique_callbacks_.pop_back();  // Remove the last callback
-      }
-    }
   }
 
   void ref_add(int num) {
@@ -199,17 +194,7 @@ class SimpleEvents {
     else {
       assert(false);
     }
-
-    if ((ref_count >= num_task)) {
-      while (!callbacks_.empty()) {
-        callbacks_.back()();    // Execute the last callback
-        callbacks_.pop_back();  // Remove the last callback
-      }
-      while (!unique_callbacks_.empty()) {
-        unique_callbacks_.back()();    // Execute the last callback
-        unique_callbacks_.pop_back();  // Remove the last callback
-      }
-    }
+    assert(ref_count <= num_task);
   }
 
   /**
@@ -222,9 +207,41 @@ class SimpleEvents {
     return re;
   }
 
+  std::exception_ptr get_exception() {
+    std::lock_guard<std::mutex> lk(mut);
+
+    return eptr_;
+  }
+
+  void try_throw() {
+    std::lock_guard<std::mutex> lk(mut);
+
+    if (eptr_) {
+      std::rethrow_exception(eptr_);
+    }
+  }
+
   void task_add(int num) {
     std::lock_guard<std::mutex> lk(mut);
     num_task += num;
+  }
+  void try_callback() {
+    bool should_try = false;
+    {
+      std::lock_guard<std::mutex> lk(mut);
+      should_try = (ref_count == num_task);
+    }
+
+    if (should_try) {
+      while (!callbacks_.empty()) {
+        callbacks_.back()();    // Execute the last callback
+        callbacks_.pop_back();  // Remove the last callback
+      }
+      while (!latest_callbacks_.empty()) {
+        latest_callbacks_.back()();    // Execute the last callback
+        latest_callbacks_.pop_back();  // Remove the last callback
+      }
+    }
   }
 
   /// 参见 @ref SimpleEvents::set_exception_and_notify_one
@@ -235,28 +252,33 @@ class SimpleEvents {
       if (!eptr_) eptr_ = eptr;
       ref_add();
     }
+    try_callback();
 
     data_cond.notify_all();
   }
 
   /// 设置回调函数
-  bool add_const_callback(std::function<void()> callback) {
-    std::unique_lock<std::mutex> lk(mut);
+  void add_const_callback(std::function<void()> callback) {
+    std::lock_guard<std::mutex> lk(mut);
     // assert(!callback_);
     callbacks_.emplace_back(callback);
-    return true;
   }
 
-  void add_callback(std::function<void()> callback) {
-    std::unique_lock<std::mutex> lk(mut);
+  void set_callback(std::function<void()> callback) {
+    std::lock_guard<std::mutex> lk(mut);
+    // assert(!callback_);
+    { latest_callbacks_.push_back(callback); }
+  }
+
+  void set_final_callback(std::function<void()> callback) {
+    std::lock_guard<std::mutex> lk(mut);
     // assert(!callback_);
 
-    unique_callbacks_.push_back(callback);
-    if (unique_callbacks_.size() > num_task) {
-      unique_callbacks_.pop_back();
-      throw std::runtime_error("The size of callbacks exceeds num_task (" +
-                               std::to_string(num_task) +
-                               "). Consider using add_const_callback instead.");
+    latest_callbacks_.push_back(callback);
+    if (latest_callbacks_.size() > 1) {
+      latest_callbacks_.pop_back();
+      throw std::runtime_error(
+          "The callback stack is not empty. Consider using set_callback instead.");
     }
   }
 
@@ -264,7 +286,7 @@ class SimpleEvents {
   float time_passed();
 
   ~SimpleEvents() {
-    // std::unique_lock<std::mutex> lk(mut);
+    // std::lock_guard<std::mutex> lk(mut);
     // if (ref_count != num_task) {
     // }
   };
@@ -275,7 +297,7 @@ class SimpleEvents {
   uint32_t ref_count = 0;
   uint32_t num_task;
   std::vector<std::function<void()>> callbacks_;
-  std::vector<std::function<void()>> unique_callbacks_;
+  std::vector<std::function<void()>> latest_callbacks_;
 
   std::exception_ptr eptr_;
   std::chrono::steady_clock::time_point starttime_;

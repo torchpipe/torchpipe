@@ -42,7 +42,7 @@ bool Onnx2TensorrtConverter::init(const std::unordered_map<std::string, std::str
                                                 {"model::timingcache", ""},
                                                 {"preprocessor", ""},
                                                 {"model_type", ""},
-                                                {"max_workspace_size", "1024"},
+                                                {"max_workspace_size", "4096"},
                                                 {"allocator", "torch"},
                                                 {"log_level", "verbose"},
                                                 {"input_reorder", ""}},

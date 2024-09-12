@@ -227,7 +227,7 @@ void Interpreter::forward(py::list py_inputs) {
         throw py::value_error("Invalid input event. Maybe it has been used before.");
       // add_const_callback need gil lock to handle py_input
       auto py_input = py_inputs[i];
-      input_event->add_callback([item, py_input]() {
+      input_event->set_callback([item, py_input]() {
         py::gil_scoped_acquire gil_lock;
         dict2py(item, py_input);
       });
@@ -249,6 +249,21 @@ void Interpreter::forward(py::list py_inputs) {
 
   return;
 }
+
+template <typename T>
+class GILDestroyGuard {
+ public:
+  GILDestroyGuard(T t) { t_ = std::make_shared<T>(t); }
+  ~GILDestroyGuard() {
+    py::gil_scoped_acquire gil_lock;
+    t_ = nullptr;
+  }
+  T& get() { return *t_.get(); }
+
+ private:
+  std::shared_ptr<T> t_;
+};
+
 void Interpreter::forward(py::dict py_input) {
   dict input = py2dict(py_input);
 
@@ -261,9 +276,10 @@ void Interpreter::forward(py::dict py_input) {
       // input_event is invalid, so we cannot use it to store the exception;
       throw py::value_error("Invalid input event. Maybe it has been used before.");
     // add_const_callback need gil lock to handle py_input
-    input_event->add_callback([input, py_input]() {
+    GILDestroyGuard<py::dict> py_release_guard(py_input);
+    input_event->set_callback([input, py_release_guard]() mutable {
       py::gil_scoped_acquire gil_lock;
-      dict2py(input, py_input);
+      dict2py(input, py_release_guard.get());
     });
     py::gil_scoped_release gil_lock;
     forward({input});

@@ -190,8 +190,13 @@ std::shared_ptr<CudaEngineWithRuntime> loadEngineFromBuffer(const std::string& e
   bool using_default_stream =
       c10::cuda::getCurrentCUDAStream() == c10::cuda::getDefaultCUDAStream();
   if (value == nullptr && !using_default_stream) {
+#if NV_TENSORRT_MAJOR < 10
     SPDLOG_INFO("use torch allocator");
     en_with_rt->allocator = new TorchAllocator();
+#else
+    SPDLOG_INFO("use torch async allocator");
+    en_with_rt->allocator = new TorchAsyncAllocator();
+#endif
     en_with_rt->runtime->setGpuAllocator(en_with_rt->allocator);
   }
 #endif
@@ -404,7 +409,7 @@ std::shared_ptr<CudaEngineWithRuntime> onnx2trt(
 #else
     config->setMaxWorkspaceSize(precision.max_workspace_size);
 #endif
-    if (precision.max_workspace_size != 1024)
+    if (precision.max_workspace_size != 4096)
       SPDLOG_INFO("max workspace size setted to {}M",
                   precision.max_workspace_size / 1024.0 / 1024.0);
     if ((fp16_enable.count(precision.precision)) && builder->platformHasFastFp16()) {
@@ -524,8 +529,12 @@ std::shared_ptr<CudaEngineWithRuntime> onnx2trt(
     current_order.pop_back();
     current_order += ")";
 
-    SPDLOG_INFO(colored("use this information to set ranges(batchsizes) of profiles: \n" +
-                        ss.str() + "\nreset order by setting `input_reorder`." + current_order));
+    std::string pr = "use this information to set ranges(batchsizes) of profiles: \n" + ss.str();
+    if (input_reorder.size() > 1) {
+      pr += "\nreset order by setting `input_reorder`." + current_order;
+    }
+
+    SPDLOG_INFO(colored(pr));
 
     nvinfer1::ITensor* input = network->getInput(0);
 

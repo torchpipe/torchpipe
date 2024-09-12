@@ -30,7 +30,7 @@ class DictHelper {
         dicts_[i]->erase(key);
       }
       for (const auto& item : keep_) {
-        if (item.second[i].has_value()) (*dicts_[i])[item.first] = item.second[i];
+        if (item.second[i]) (*dicts_[i])[item.first] = *item.second[i];
       }
     }
   };
@@ -61,16 +61,42 @@ class DictHelper {
     return *this;
   }
   DictHelper& keep(const std::string& key) {
-    std::vector<any> keeped;
+    std::vector<std::optional<any>> keeped;
     for (const auto& da : dicts_) {
       auto iter = da->find(key);
       if (iter == da->end()) {
-        // throw std::out_of_range(key + ": not exists");
-        keeped.emplace_back(any());
-      } else
+        keeped.emplace_back(std::nullopt);
+      } else {
         keeped.emplace_back(iter->second);
+      }
     }
     keep_[key] = keeped;
+    return *this;
+  }
+
+  DictHelper& lazy_copy(const std::string& key, const std::string& target_key) {
+    std::vector<std::optional<any>> keeped;
+    for (const auto& da : dicts_) {
+      auto iter = da->find(key);
+      if (iter == da->end()) {
+        keeped.emplace_back(std::nullopt);
+      } else {
+        keeped.emplace_back(iter->second);
+      }
+    }
+    keep_[target_key] = keeped;
+    return *this;
+  }
+
+  DictHelper& copy(const std::string& key, const std::string& target_key) {
+    std::vector<std::optional<any>> keeped;
+    for (auto& da : dicts_) {
+      auto iter = da->find(key);
+      if (iter == da->end()) {
+      } else {
+        (*da)[target_key] = iter->second;
+      }
+    }
     return *this;
   }
 
@@ -90,7 +116,7 @@ class DictHelper {
  private:
   const std::vector<dict>& dicts_;
   std::vector<std::string> lazy_clear_keys_;
-  std::unordered_map<std::string, std::vector<any>> keep_;
+  std::unordered_map<std::string, std::vector<std::optional<any>>> keep_;
   std::unordered_map<std::string, std::vector<any>> keep_alive_;
 };
 }  // namespace ipipe

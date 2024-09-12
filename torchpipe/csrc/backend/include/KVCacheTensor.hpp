@@ -48,6 +48,10 @@ class KVCache {
     std::swap(kv_cache_[(current_layer_++) % num_layer_], input);
   }
 
+  void prefill_push(std::vector<torch::Tensor> input) {
+    std::swap(kv_cache_[(current_layer_++) % num_layer_], input);
+  }
+
   bool round_over() { return current_layer_ % num_layer_ == 0; }
 
   std::size_t get_current_layer() { return current_layer_; }
@@ -57,6 +61,29 @@ class KVCache {
   std::vector<std::vector<torch::Tensor>> kv_cache_;  // 32x2: layer index && k,v
   std::size_t current_layer_ = 0;
   const int num_layer_;
+};
+
+class KVCacheV2 {
+ public:
+  std::vector<torch::Tensor> pop() {
+    std::vector<torch::Tensor> tmp;
+    std::swap(tmp, kv_cache_[current_layer_ % kv_cache_.size()]);
+    return tmp;
+  }
+  void decode_push(std::vector<torch::Tensor> input) {
+    std::swap(kv_cache_[(current_layer_++) % kv_cache_.size()], input);
+  }
+
+  void prefill_push(std::vector<torch::Tensor> input) {
+    kv_cache_.push_back(input);
+    ++current_layer_;
+  }
+
+  std::size_t get_current_layer() { return current_layer_; }
+
+ private:
+  std::vector<std::vector<torch::Tensor>> kv_cache_;  // 32x2: layer index && k,v
+  std::size_t current_layer_ = 0;
 };
 
 class KVCacheTensor : public SingleBackend {
@@ -74,5 +101,16 @@ class KVCacheTensor : public SingleBackend {
 
   int num_layers_{0};
   int max_seq_len_{0};
+};
+
+class PrefillKVCacheTensor : public SingleBackend {
+ public:
+  virtual bool init(const std::unordered_map<std::string, std::string>&, dict) override;
+
+  virtual void forward(dict) override;
+
+ private:
+  std::unique_ptr<Params> params_;
+  std::unique_ptr<Backend> engine_;
 };
 }  // namespace ipipe

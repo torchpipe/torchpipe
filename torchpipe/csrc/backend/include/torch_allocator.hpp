@@ -14,21 +14,34 @@
 
 #pragma once
 
-#include "NvInferRuntimeCommon.h"
+#include "NvInferRuntime.h"
 #include <unordered_map>
 #include <torch/torch.h>
 #include <mutex>
 
 #include <c10/cuda/CUDACachingAllocator.h>
 
+// GLake: Optimizing GPU memory management & IO transmission
+// vattention
+// https://github.com/intelligent-machine-learning/glake
+// https://github.com/intelligent-machine-learning/glake/issues/12
 namespace ipipe {
 class TorchAllocator : public nvinfer1::IGpuAllocator {
  public:
   TorchAllocator() = default;
 
-  void* allocate(uint64_t size, uint64_t alignment, uint32_t flags) noexcept override;
+  void* allocate(uint64_t const size, uint64_t const alignment,
+                 uint32_t const flags) noexcept override;
+
+#if NV_TENSORRT_MAJOR >= 10
+  void* allocateAsync(uint64_t const size, uint64_t const alignment, uint32_t const flags,
+                      cudaStream_t) noexcept override;
+  bool deallocateAsync(void* const memory, cudaStream_t) noexcept override;  // override;
+
+#endif
+
 #if NV_TENSORRT_MAJOR < 10
-  void free(void* const memory) noexcept override;
+  void free(void* const memory) noexcept override { deallocate(memory); }
 #endif
   bool deallocate(void* const memory) noexcept;  // override;
 
@@ -37,12 +50,37 @@ class TorchAllocator : public nvinfer1::IGpuAllocator {
   std::mutex mutex_;
 };
 
+#if NV_TENSORRT_MAJOR >= 10
+class TorchAsyncAllocator : public nvinfer1::IGpuAsyncAllocator {
+ public:
+  void* allocateAsync(uint64_t const size, uint64_t const alignment,
+                      nvinfer1::AllocatorFlags const flags, cudaStream_t) noexcept override;
+  bool deallocateAsync(void* const memory, cudaStream_t) noexcept override;  // override;
+
+ private:
+  std::unordered_map<void*, torch::Tensor> data_;
+  std::mutex mutex_;
+};
+#endif
+
 int static inline dev_malloc(void** p, size_t s) {
-  *p = c10::cuda::CUDACachingAllocator::raw_alloc(s);
+  *p = c10::cuda::CUDACachingAllocator::raw_alloc_with_stream(s, nullptr);
+  // c10::cuda::getCurrentCUDAStream().synchronize();
   return 0;
 }
 
 int static inline dev_free(void* p) {
+  assert(p != nullptr);
+  c10::cuda::CUDACachingAllocator::raw_delete(p);
+  return 0;
+}
+
+int static inline dev_malloc_async(void* ctx, void** p, size_t size, cudaStream_t stream) {
+  *p = c10::cuda::CUDACachingAllocator::raw_alloc_with_stream(size, stream);
+  return 0;
+}
+
+int static inline dev_free_async(void* ctx, void* p, size_t size, cudaStream_t stream) {
   assert(p != nullptr);
   c10::cuda::CUDACachingAllocator::raw_delete(p);
   return 0;

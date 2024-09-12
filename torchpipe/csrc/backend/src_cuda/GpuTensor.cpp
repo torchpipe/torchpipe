@@ -40,9 +40,10 @@ class GpuTensor : public SingleBackend {
     }
     auto input_tensor = any_cast<torch::Tensor>(input[TASK_DATA_KEY]);
 
-    if (!is_cpu_tensor(input_tensor)) {
-      SPDLOG_ERROR("input_tensor should be cpu tensor");
-      throw std::runtime_error("input_tensor should be cpu tensor");
+    if (input_tensor.is_cpu()) {
+      // SPDLOG_ERROR("input_tensor should be cpu tensor");
+      // throw std::runtime_error("input_tensor should be cpu tensor");
+      input[TASK_RESULT_KEY] = input_tensor;
     }
 
     input[TASK_RESULT_KEY] = input_tensor.cuda();
@@ -127,6 +128,35 @@ class FloatTensor : public SingleBackend {
 };
 
 IPIPE_REGISTER(Backend, FloatTensor, "FloatTensor");
+
+/**
+ * @brief to float
+ */
+class LongItemTensor : public SingleBackend {
+ public:
+  /**
+   */
+
+  /**
+   * @brief to float
+   * @param TASK_RESULT_KEY input[TASK_RESULT_KEY] = input[TASK_DATA_KEY].float()
+   */
+  virtual void forward(dict input_dict) override {
+    auto& input = *input_dict;
+    if (input[TASK_DATA_KEY].type() != typeid(torch::Tensor)) {
+      SPDLOG_ERROR("LongItemTensor: torch::Tensor needed; error input type: " +
+                   std::string(input[TASK_DATA_KEY].type().name()));
+      throw std::runtime_error("LongItemTensor: torch::Tensor needed; error input type: " +
+                               std::string(input[TASK_DATA_KEY].type().name()));
+    }
+    auto input_tensor = any_cast<torch::Tensor>(input[TASK_DATA_KEY]);
+    IPIPE_ASSERT(input_tensor.numel() == 1);
+
+    input[TASK_RESULT_KEY] = input_tensor.item<long>();
+  }
+};
+
+IPIPE_REGISTER(Backend, LongItemTensor, "LongItemTensor");
 
 class NCHWTensor : public SingleBackend {
  public:

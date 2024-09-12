@@ -92,13 +92,13 @@ class EmbedTokensTensor : public SingleBackend {
    */
   virtual bool init(const std::unordered_map<std::string, std::string>& config_param,
                     dict) override {
-    params_ = std::unique_ptr<Params>(new Params({}, {"tensor"}, {}, {}));
+    params_ = std::unique_ptr<Params>(new Params({}, {"embed_tokens"}, {}, {}));
     if (!params_->init(config_param)) return false;
 
-    SPDLOG_INFO("load " + params_->at("tensor"));
-    std::ifstream file(params_->at("tensor").c_str());
+    SPDLOG_INFO("load " + params_->at("embed_tokens"));
+    std::ifstream file(params_->at("embed_tokens").c_str());
     if (!file.good()) {
-      throw std::invalid_argument(params_->at("tensor") + " not exists.");
+      throw std::invalid_argument(params_->at("embed_tokens") + " not exists.");
     }
     file.seekg(0, file.end);
     int length = file.tellg();
@@ -118,7 +118,17 @@ class EmbedTokensTensor : public SingleBackend {
   virtual void forward(dict input_dict) override {
     torch::Tensor input = any_cast<torch::Tensor>(input_dict->at(TASK_DATA_KEY));
     // slice   tensor from input
+    if (input.is_cpu()) {
+      input = input.cuda();
+    }
+    bool need_batch = false;
+    if (input.dim() == 2) {
+      need_batch = true;
+      IPIPE_ASSERT(input.size(0) == 1);
+      input = input.squeeze(0);
+    }
     torch::Tensor data_loaded = tensor_.index_select(0, input);
+    if (need_batch) data_loaded = data_loaded.unsqueeze(0);
     (*input_dict)[TASK_RESULT_KEY] = data_loaded;
   }
 

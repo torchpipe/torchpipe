@@ -21,7 +21,7 @@
 
 #if (NV_TENSORRT_MAJOR >= 9 || (NV_TENSORRT_MAJOR >= 8 && NV_TENSORRT_MINOR >= 6))
 #define USE_TORCH_ALLOCATOR
-#include "NvInferRuntimeCommon.h"
+#include "NvInferRuntime.h"
 #endif
 
 namespace ipipe {

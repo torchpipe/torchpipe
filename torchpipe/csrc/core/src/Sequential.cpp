@@ -87,6 +87,11 @@ bool Sequential::init(const std::unordered_map<std::string, std::string>& config
     brackets_split(backend, new_config);
     engines_.emplace_back(IPIPE_CREATE(Backend, new_config.at("backend")));
 
+    if (engines_.size() == engine_names_.size() && !pre_str.empty()) {
+      throw std::invalid_argument("root node " + new_config.at("backend") +
+                                  " should not have a filter.");
+    }
+
     if (pre_str.empty()) {
       if (engines_.size() == engine_names_.size()) {
         pre_str = "Run";
@@ -95,8 +100,7 @@ bool Sequential::init(const std::unordered_map<std::string, std::string>& config
         static auto tmp = []() {
           SPDLOG_WARN(
               "Using the `swap` filter (default for non-root backend in Sequential)."
-              " This will cause a 'Break' status if no TASK_RESULT_KEY was found. Please "
-              "ensure you are using the correct filter.");
+              " This will cause a 'Break' status if no TASK_RESULT_KEY was found. ");
           return 0;
         }();
       }
@@ -231,5 +235,160 @@ void Sequential::forward(const std::vector<dict>& input_dicts) {
 
 IPIPE_REGISTER(Backend, Sequential, "Sequential,S");
 // IPIPE_REGISTER(Backend, Sequential, "S");
+
+class Result2Other : public Backend {
+ private:
+  std::unique_ptr<Params> params_;
+  std::unique_ptr<Backend> backend_;
+  std::string other_;
+
+ public:
+  bool init(const std::unordered_map<std::string, std::string>& config_param,
+            dict dict_config) override {
+    params_ = std::unique_ptr<Params>(
+        new Params({{"Result2Other::backend", "Identity"}, {"other", "other"}}, {}, {}, {}));
+    if (!params_->init(config_param)) return false;
+    other_ = params_->at("other");
+    backend_ =
+        std::unique_ptr<Backend>(IPIPE_CREATE(Backend, params_->at("Result2Other::backend")));
+    if (!backend_ || !backend_->init(config_param, dict_config)) return false;
+    return true;
+  }
+  uint32_t max() const override { return backend_->max(); }
+  uint32_t min() const override { return backend_->min(); }
+  void forward(const std::vector<dict>& inputs) override {
+    ipipe::DictHelper dicts_guard(inputs);
+    dicts_guard.lazy_copy(TASK_DATA_KEY, TASK_RESULT_KEY);
+    backend_->forward(inputs);
+    dicts_guard.copy(TASK_RESULT_KEY, other_);
+  }
+};
+
+IPIPE_REGISTER(Backend, Result2Other, "Result2Other");
+
+class Result2Key : public Backend {
+ private:
+  std::unique_ptr<Params> params_;
+  std::unique_ptr<Backend> backend_;
+  std::string other_;
+
+ public:
+  bool init(const std::unordered_map<std::string, std::string>& config_param,
+            dict dict_config) override {
+    params_ = std::unique_ptr<Params>(
+        new Params({{"Result2Key::backend", "Identity"}, {"key", "key"}}, {}, {}, {}));
+    if (!params_->init(config_param)) return false;
+    other_ = params_->at("key");
+    backend_ = std::unique_ptr<Backend>(IPIPE_CREATE(Backend, params_->at("Result2Key::backend")));
+    if (!backend_ || !backend_->init(config_param, dict_config)) return false;
+    return true;
+  }
+  uint32_t max() const override { return backend_->max(); }
+  uint32_t min() const override { return backend_->min(); }
+  void forward(const std::vector<dict>& inputs) override {
+    ipipe::DictHelper dicts_guard(inputs);
+    dicts_guard.lazy_copy(TASK_DATA_KEY, TASK_RESULT_KEY);
+    backend_->forward(inputs);
+    dicts_guard.copy(TASK_RESULT_KEY, other_);
+  }
+};
+
+IPIPE_REGISTER(Backend, Result2Key, "Result2Key");
+
+class KeyA2KeyB : public Backend {
+ private:
+  std::unique_ptr<Params> params_;
+  // std::unique_ptr<Backend> backend_;
+  std::string key_a_;
+  std::string key_b_;
+  // std::string other_;
+
+ public:
+  bool init(const std::unordered_map<std::string, std::string>& config_param,
+            dict dict_config) override {
+    params_ = std::unique_ptr<Params>(new Params({}, {"key_a", "key_b"}, {}, {}));
+    if (!params_->init(config_param)) return false;
+    // other_ = params_->at("key");
+    key_a_ = params_->at("key_a");
+    key_b_ = params_->at("key_b");
+    IPIPE_ASSERT(key_a_ != TASK_RESULT_KEY && !key_a_.empty());
+    IPIPE_ASSERT(key_b_ != TASK_DATA_KEY && !key_b_.empty());
+    // backend_ = std::unique_ptr<Backend>(IPIPE_CREATE(Backend,
+    // params_->at("Result2Key::backend"))); if (!backend_ || !backend_->init(config_param,
+    // dict_config)) return false;
+    return true;
+  }
+  // uint32_t max() const override { return Uin; }
+  // uint32_t min() const override { 1; }
+  void forward(const std::vector<dict>& inputs) override {
+    ipipe::DictHelper dicts_guard(inputs);
+
+    dicts_guard.copy(key_a_, key_b_);
+    dicts_guard.copy(TASK_DATA_KEY, TASK_RESULT_KEY);
+  }
+};
+
+IPIPE_REGISTER(Backend, KeyA2KeyB, "KeyA2KeyB");
+
+class CompareKey : public SingleBackend {
+ private:
+  std::unique_ptr<Params> params_;
+  std::vector<std::unique_ptr<Backend>> backends_;
+  std::string other_;
+  long compare_target_;
+
+ public:
+  bool init(const std::unordered_map<std::string, std::string>& config_param,
+            dict dict_config) override {
+    params_ = std::unique_ptr<Params>(
+        new Params({{"key", "key"}}, {"compare_target", "CompareKey::backend"}, {}, {}));
+    if (!params_->init(config_param)) return false;
+    other_ = params_->at("key");
+    compare_target_ = std::stol(params_->at("compare_target"));
+
+    // std::vector<std::string> backend_names = str_split(params_->at("CompareKey::backend"),
+    // ',');
+
+    auto backend_names =
+        str_split_brackets_match(params_->at("CompareKey::backend"), ',', '[', ']');
+    std::unordered_map<std::string, std::unordered_map<std::string, std::string>> config_map;
+    for (auto& item : backend_names) {
+      auto new_config = config_param;
+      brackets_split(item, new_config);
+      auto t = new_config.find("backend");
+      config_map[new_config.at("backend")] = new_config;
+      item = new_config.at("backend");
+    }
+    if (backend_names.empty()) {
+      SPDLOG_ERROR("Usage: CompareKey[A,B].");
+      return false;
+    } else if (backend_names.size() == 1) {
+      backend_names.push_back("Identity");  // or Empty?
+      config_map[backend_names.back()] = config_param;
+      SPDLOG_WARN("CompareKey::backend: append {} as the second choice.", backend_names.back());
+    } else if (backend_names.size() > 2) {
+      SPDLOG_ERROR("Usage: CompareKey[A,B]. size must be 2, get {}", backend_names.size());
+      return false;
+    }
+    for (const auto& item : backend_names) {
+      auto backend = std::unique_ptr<Backend>(IPIPE_CREATE(Backend, item));
+      if (!backend || !backend->init(config_map[item], dict_config)) return false;
+      IPIPE_ASSERT(backend->max() == 1);
+      backends_.emplace_back(std::move(backend));
+    }
+    return true;
+  }
+
+  void forward(dict input) override {
+    long target = dict_get<long>(input, other_);
+    if (target == compare_target_) {
+      backends_[0]->forward({input});
+    } else {
+      backends_[1]->forward({input});
+    }
+  }
+};
+
+IPIPE_REGISTER(Backend, CompareKey, "CompareKey");
 
 }  // namespace ipipe

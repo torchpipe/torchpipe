@@ -87,6 +87,8 @@ class TorchPlugin : public IPluginV3,
  private:
   ipipe::Backend* interpreter_ = nullptr;
   ipipe::BackendConfig config_;
+  std::unordered_map<std::string, std::string> config_param_;
+  ipipe::dict dict_config_;
   std::mutex interpreter_mutex_;
   // TensorRT plugin parameters.
   TorchPluginParameters mParams;

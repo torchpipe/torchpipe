@@ -42,4 +42,11 @@ void throw_wrong_type(const char* need_type, const char* input_type) {
   throw std::invalid_argument(ss.str());
 }
 
+void throw_not_exist(std::string key) {
+  std::stringstream ss;
+  ss << "key " << key << " not exist.";
+  SPDLOG_ERROR(ss.str());
+  throw std::invalid_argument(ss.str());
+}
+
 }  // namespace ipipe

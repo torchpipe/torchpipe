@@ -80,9 +80,9 @@ class CalTorchBatchSize : public SingleBackend {
       input[TASK_REQUEST_SIZE_KEY] = request_size;
       SPDLOG_DEBUG("CalTorchBatchSize: request_size: {}", request_size);
     } else {
-      SPDLOG_ERROR("SoftmaxArgMaxTensor: torch::Tensor needed; error input type: " +
+      SPDLOG_ERROR(": torch::Tensor needed; error input type: " +
                    std::string(input[TASK_DATA_KEY].type().name()));
-      throw std::runtime_error("SoftmaxArgMaxTensor: torch::Tensor needed; error input type: " +
+      throw std::runtime_error(": torch::Tensor needed; error input type: " +
                                std::string(input[TASK_DATA_KEY].type().name()));
     }
   }
@@ -93,39 +93,22 @@ IPIPE_REGISTER(Backend, CalTorchBatchSize, "CalTorchBatchSize");
 /**
  * @brief cpu->gpu
  */
-class ArgMaxTensor : public Backend {
+class ArgMaxTensor : public Backend {  // CatSplitTensor/BatchingRequestTensor
  public:
   /**
    * @brief cpu->gpu
    * @param TASK_RESULT_KEY input[TASK_RESULT_KEY] = input[TASK_DATA_KEY].cuda()
    */
   virtual void forward(const std::vector<dict>& input_dicts) override {
-    auto& input = *input_dicts[0];
-    if (input[TASK_DATA_KEY].type() != typeid(torch::Tensor)) {
-      SPDLOG_ERROR("ArgMaxTensor: torch::Tensor needed; error input type: " +
-                   std::string(input[TASK_DATA_KEY].type().name()));
-      throw std::runtime_error("ArgMaxTensor: torch::Tensor needed; error input type: " +
-                               std::string(input[TASK_DATA_KEY].type().name()));
+    for (const auto item : input_dicts) {
+      auto input_tensor = dict_get<torch::Tensor>(item, TASK_DATA_KEY);
+
+      // IPIPE_ASSERT(input_tensor.sizes().size() == 2);
+      // torch::Tensor output = input_tensor.softmax(-1);
+      auto max_index = torch::argmax(input_tensor, -1);
+
+      (*item)[TASK_RESULT_KEY] = max_index;
     }
-    auto input_tensor = any_cast<torch::Tensor>(input[TASK_DATA_KEY]);
-
-    // IPIPE_ASSERT(input_tensor.sizes().size() == 2);
-    torch::Tensor output = input_tensor.softmax(-1);
-    auto max_values_and_indices = torch::max(output, -1);
-
-    torch::Tensor max_values = std::get<0>(max_values_and_indices).cpu();
-    torch::Tensor max_indices = std::get<1>(max_values_and_indices).cpu();
-
-    // for (std::size_t i = 0; i < 1; ++i) {
-    float max_score = max_values.item<float>();
-    long argmax = max_indices.item<long>();
-    if (argmax > 10000) {
-    }
-
-    input["score"] = max_score;
-    input["class"] = static_cast<int>(argmax);
-    input[TASK_RESULT_KEY] = static_cast<int>(argmax);
-    // }
   }
 };
 

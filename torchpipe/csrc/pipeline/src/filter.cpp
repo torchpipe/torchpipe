@@ -24,7 +24,7 @@ Filter::status Filter::forward(dict input) {
     SPDLOG_DEBUG(
         "Entered the `swap` filter (default for non-root node/backend), but no TASK_RESULT_KEY was "
         "found. This will cause a "
-        "'Break' status to be returned. Please ensure you are using the correct filter.");
+        "'Break' status to be returned.");
     return status::Break;
   }
   (*input)[TASK_DATA_KEY] = (*input)[TASK_RESULT_KEY];
@@ -124,6 +124,62 @@ class result2key_1 : public Filter {
 };
 
 IPIPE_REGISTER(Filter, result2key_1, "result2key_1")
+
+class IsKeyExistFilter : public Filter {
+ public:
+  virtual bool init(const std::unordered_map<std::string, std::string>& config,
+                    dict /*dict_config*/) {
+    params_ = std::unique_ptr<Params>(new Params({{"key", "key"}}, {}, {}, {}));
+    if (!params_->init(config)) return false;
+    other_ = params_->at("key");
+    return true;
+  };
+
+  virtual status forward(dict input) {
+    if (input->find(TASK_RESULT_KEY) == input->end()) {
+      return status::Skip;
+    }
+    auto iter = input->find(other_);
+    if (iter == input->end()) return status::Skip;
+    (*input)[TASK_DATA_KEY] = (*input)[TASK_RESULT_KEY];
+
+    return status::Run;
+  }
+
+ private:
+  std::unique_ptr<Params> params_;
+  std::string other_;
+};
+
+IPIPE_REGISTER(Filter, IsKeyExistFilter, "IsKeyExistFilter")
+
+class IsOtherExistFilter : public Filter {
+ public:
+  virtual bool init(const std::unordered_map<std::string, std::string>& config,
+                    dict /*dict_config*/) {
+    params_ = std::unique_ptr<Params>(new Params({{"other", "other"}}, {}, {}, {}));
+    if (!params_->init(config)) return false;
+    other_ = params_->at("other");
+    return true;
+  };
+
+  virtual status forward(dict input) {
+    if (input->find(TASK_RESULT_KEY) == input->end()) {
+      return status::Skip;
+    }
+    (*input)[TASK_DATA_KEY] = (*input)[TASK_RESULT_KEY];
+    auto iter = input->find(other_);
+    if (iter != input->end()) return status::Run;
+
+    return status::Skip;
+  }
+
+ private:
+  std::unique_ptr<Params> params_;
+  std::string other_;
+};
+
+IPIPE_REGISTER(Filter, IsOtherExistFilter, "IsOtherExistFilter")
 
 class result2other : public Filter {
  public:

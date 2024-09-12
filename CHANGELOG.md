@@ -1,6 +1,8 @@
 # Changelog
 
 ## v0.6.3 
+- Add lots of key-value base instruction backends
+- non-root node can be used as the entry node now
 
 ## v0.6.2 (2023.08.14)
 - docker/Dockerfilex updated to TensorRT 10.3

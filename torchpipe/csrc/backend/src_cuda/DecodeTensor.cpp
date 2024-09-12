@@ -51,10 +51,14 @@ bool DecodeTensor::init(const std::unordered_map<std::string, std::string>& conf
 
   auto tmp = torch::empty({1, 1}, torch::TensorOptions().device(torch::kCUDA, -1));
   nvjpegDevAllocator_t dev_allocator = {&dev_malloc, &dev_free};
+  // nvjpegDevAllocatorV2_t dev_allocator_async = {&dev_malloc_async, &dev_free_async};
 
   nvjpegBackend_t backend = NVJPEG_BACKEND_DEFAULT;
+  // todo nvjpegDevAllocatorV2_t nvjpegCreateExV2
+  if (!check_nvjpeg_result(nvjpegCreateEx(backend, &dev_allocator, nullptr, 0, &handle)))
 
-  if (!check_nvjpeg_result(nvjpegCreateEx(backend, &dev_allocator, nullptr, backend, &handle)))
+    // if (!check_nvjpeg_result(nvjpegCreateExV2(backend, &dev_allocator_async, nullptr, 0,
+    // &handle)))
     return false;
   if (!check_nvjpeg_result(nvjpegJpegStateCreate(handle, &state))) return false;
 

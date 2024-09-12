@@ -23,6 +23,7 @@
 #include <mutex>
 #include <unordered_map>
 #include <vector>
+#include <optional>
 
 #include "any.hpp"
 
@@ -132,7 +133,7 @@ struct Request {
 };
 
 extern void throw_wrong_type(const char* need_type, const char* input_type);
-
+extern void throw_not_exist(const std::string& key);
 template <typename T = std::string>
 T dict_get(dict data, const std::string& key, bool return_default = false) {
   auto iter = data->find(key);
@@ -147,6 +148,36 @@ T dict_get(dict data, const std::string& key, bool return_default = false) {
     else {
       throw std::invalid_argument("dict_get: can not found key: " + key);
     }
+  }
+}
+
+template <typename T = std::string>
+std::vector<T> dict_gets(dict data, const std::string& key) {
+  auto iter = data->find(key);
+  if (iter != data->end()) {
+    if (iter->second.type() == typeid(T)) {
+      T* result = any_cast<T>(&iter->second);
+      return std::vector<T>{*result};
+    } else if (iter->second.type() == typeid(std::vector<T>)) {
+      return *any_cast<std::vector<T>>(&iter->second);
+    } else {
+      throw_wrong_type(typeid(T).name(), iter->second.type().name());
+    }
+  } else {
+    throw std::invalid_argument("dict_get: can not found key: " + key);
+  }
+  return std::vector<T>();  // make gcc happy
+}
+
+template <typename T>
+std::optional<T> try_get(dict data, const std::string& key) {
+  auto iter = data->find(key);
+  if (iter != data->end()) {
+    if (iter->second.type() != typeid(T)) return std::nullopt;
+    T* result = any_cast<T>(&iter->second);
+    return *result;
+  } else {
+    throw_not_exist(key);
   }
 }
 
