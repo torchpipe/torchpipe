@@ -452,6 +452,8 @@ def main(model: str, output_dir: str = 'model_files/', export: str = None, num_l
         save_decode_batchless(model, output_dir)
     elif export == 'embed_tokens':
         save_embed_tokens(model, output_dir)
+    elif export == "tokenizer":
+        tokenizer.save_pretrained(output_dir)
     elif test:
         text = input# "San Francisco is a"
         
