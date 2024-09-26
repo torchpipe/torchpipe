@@ -8,14 +8,16 @@
 
     export NUM_LAYER=32 # set to 2 if using 2-layer model for debug on 12GB-GPU etc.
     # inference
-    python export_llama2.py --model meta-llama/Llama-2-7b-chat-hf --test --num_layers $NUM_LAYER
-    # San Francisco is a totalitéaletoreignersbyMSран (if number of layers is 2)
+    python export_llama2.py --model meta-llama/Llama-2-7b-chat-hf --input "San Francisco is a" --test --num_layers $NUM_LAYER
+    #NUM_LAYER = 2: San Francisco is a totalitéaletoreignersbyMSран
+    #NUM_LAYER = 32:  San Francisco is a city in Northern California that is known
 ```
 
 ## Export llama2 models
 ```bash
 # batchful part
-    python export_llama2.py --model meta-llama/Llama-2-7b-chat-hf --output_dir model_files/ --export batchful --num_layers $NUM_LAYER --input "San Francisco is a"
+    python export_llama2.py --model meta-llama/Llama-2-7b-chat-hf --output_dir model_files/ --export batchful --num_layers $NUM_LAYER --device cuda
+    ## you can use cpu for export if you do not have enough GPU memory, but it will be slow.
 
 # batchless part
     python export_llama2.py --model meta-llama/Llama-2-7b-chat-hf --output_dir model_files/ --export prefill_batchless --num_layers $NUM_LAYER2
@@ -31,4 +33,5 @@
 # tensorrt engine will be automatically generated and cached. Please make sure there are enough GPU memory, or you can generate the engines multiple times.
     python run_llama2.py --model meta-llama/Llama-2-7b-chat-hf --input "San Francisco is a" 
     #NUM_LAYER = 2:  San Francisco is a totalitéaletoreignersbyMSран
+    #NUM_LAYER = 32:  San Francisco is a city in Northern California that is known
 ```

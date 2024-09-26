@@ -429,7 +429,7 @@ def save_embed_tokens(model, save_dir = 'model_files/'):
     torch.save(tensor, save_name)
     print(f"Embedding tokens saved to {save_name}")
 
-def main(model: str, output_dir: str = 'model_files/', export: str = None, num_layers: int = 32, test: bool = False, input = "San Francisco is a"):
+def main(model: str, output_dir: str = 'model_files/', export: str = None, num_layers: int = 32, test: bool = False, input = "San Francisco is a", device = None):
     # Load the model and tokenizer
     tokenizer = AutoTokenizer.from_pretrained(model)
     model = AutoModelForCausalLM.from_pretrained(model, attn_implementation='eager', torch_dtype="float16")
@@ -438,6 +438,11 @@ def main(model: str, output_dir: str = 'model_files/', export: str = None, num_l
     # Modify the model if num_layers is specified.
     model.model.layers = model.model.layers[:num_layers]
 
+    if not device:
+        device = model.model.device
+    elif device != "cpu":
+        model.to(device)
+        device = model.model.device
     # Export the model based on the specified export type
     if export == 'batchful':
         save_batchful(model, num_layers, output_dir, return_last_seq_len=True)
@@ -449,7 +454,7 @@ def main(model: str, output_dir: str = 'model_files/', export: str = None, num_l
         save_embed_tokens(model, output_dir)
     elif test:
         text = input# "San Francisco is a"
-        device = model.model.device
+        
         inputs = tokenizer(text, return_tensors="pt").to(device)
         output = inference(model, inputs)
         generated_text = tokenizer.decode(output, skip_special_tokens=True)

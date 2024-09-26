@@ -61,12 +61,10 @@ other = 'input_tokens'
 # temperature = 0.2
 
 [batchless_prefill]
-max_workspace_size = 6000
-# 'precision' = 'fp32'
-# request_id node_name 
 backend = "S[AppendOtherTensor,PrintTensor,TensorrtTensor,PushKVCacheTensor,SyncTensor]" #
 instance_num = 1 
 max = '1x2048x4096,1x2048x4096,1x2048x4096,1x2048x128,1x2048x128,1x1x2048x2048' 
+max_workspace_size = 6000 
 # q k v cos sin mask
 min = '1x1x4096,1x1x4096,1x1x4096,1x1x128,1x1x128,1x1x1x1'
 'model' = 'model_files/batchless_prefill.onnx'
