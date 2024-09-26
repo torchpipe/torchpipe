@@ -6,7 +6,7 @@
     pip install transformers==4.44.2 fire
     
 
-    export NUM_LAYER=2 # set to 2 if using 2-layer model for debug on 12GB-GPU etc.
+    export NUM_LAYER=32 # set to 2 if using 2-layer model for debug on 12GB-GPU.
     # inference
     python export_llama2.py --model meta-llama/Llama-2-7b-chat-hf --input "San Francisco is a" --test --num_layers $NUM_LAYER 
     #NUM_LAYER = 2: San Francisco is a totalitéaletoreignersbyMSран
