@@ -522,6 +522,7 @@ def get_extensions():
         extra_compile_args["cxx"] += [("-DWITH_CUDA")]
     if os.environ.get("PYTORCH_NO_CUDA_MEMORY_CACHING", "0") == "1":
         extra_compile_args["cxx"] += [("-DPYTORCH_NO_CUDA_MEMORY_CACHING")]
+
     if debug_mode:
         print("Compile in debug mode")
         extra_compile_args["cxx"].append("-g")
@@ -544,7 +545,7 @@ def get_extensions():
         "-Werror=return-type",
     ]  # +["-fvisibility=hidden"]
 
-    extra_link_args += ["-Wl,-Bsymbolic-functions"]
+    extra_link_args += ["-Wl,-Bsymbolic-functions", "-rdynamic"]
 
     not_catch_subthread_exception = os.getenv("NCATCH_SUB", "0") == "1"
     if not_catch_subthread_exception:

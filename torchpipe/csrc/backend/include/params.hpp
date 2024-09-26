@@ -193,6 +193,8 @@ void brackets_split(const std::string& strtem, std::unordered_map<std::string, s
                     std::string key = "backend", char left = '[', char right = ']');
 
 std::string pre_parentheses_split(const std::string& strtem, std::string& pre_str);
+std::string post_parentheses_split(const std::string& strtem, std::string& post_str);
+
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 void brackets_split(std::unordered_map<std::string, std::string>& config,
                     std::string key = "backend", char left = '[', char right = ']');

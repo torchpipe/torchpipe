@@ -1,8 +1,6 @@
 "Interpreter::backend" = "Ring"
-# todo: "Interpreter::backend" = "Composite[Ring,PipelineV3]"
 
 'precision' = 'fp16'
-scheduler = "Batching"
 
 # [multimodal]
 # backend = 'SyncTensor[MultiModalEmbedsTensor]'
@@ -20,6 +18,7 @@ scheduler = "Batching"
 [batchful]
 # PluginCacher is used to cache parameters and input data for (tensorrt) plugin
 'backend' = 'S[PluginCacher[TensorrtTensor],SyncTensor]'
+scheduler = "Batching"
 
 cal_request_size_method = "CalTorchBatchSize" # calc. request_size according to torch tensor size
 
@@ -42,7 +41,7 @@ min = '1x1x2560,1x1x2560,1x1x2560,1x1'
 [kvcache]
 backend = "S[KVCacheTensor,SyncTensor]" 
 max_seq_len = 2048 # out_put : reach_max_seq_len
-num_layers = 32 # for debug. 32 for llama.  Auto set?
+num_layers = 1 # for debug. 32 for llama.  Auto set?
 
 [batchless_decode]
 # backend = "RuntimeError"

@@ -171,6 +171,8 @@ class IsOtherExistFilter : public Filter {
     auto iter = input->find(other_);
     if (iter != input->end()) return status::Run;
 
+    SPDLOG_DEBUG("IsOtherExistFilter: {} not exist", other_);
+
     return status::Skip;
   }
 

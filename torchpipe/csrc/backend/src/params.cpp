@@ -653,11 +653,28 @@ std::string pre_parentheses_split(const std::string& strtem, std::string& pre_st
   constexpr auto right = ')';
   auto iter = strtem.find(left);
   auto iter_right = strtem.find_last_of(right, strtem.find('['));
-  if (iter == std::string::npos || iter_right == std::string::npos) {
+  if (iter != 0 || iter_right == std::string::npos) {
     return strtem;
   } else {
     pre_str = strtem.substr(iter + 1, iter_right - 1);
     return strtem.substr(iter_right + 1);
+  }
+}
+
+std::string post_parentheses_split(const std::string& strtem, std::string& post) {
+  constexpr auto left = '(';
+  constexpr auto right = ')';
+  auto iter = strtem.find(left);
+  auto iter_right = strtem.find_last_of(right, strtem.find('['));
+
+  if (iter == std::string::npos) {
+    IPIPE_ASSERT(iter_right == std::string::npos);
+    return strtem;
+  } else {
+    IPIPE_ASSERT(iter != 0);
+    IPIPE_ASSERT(iter_right != std::string::npos);
+    post = strtem.substr(iter + 1, iter_right - 1 - iter);
+    return strtem.substr(0, iter) + strtem.substr(iter_right + 1);
   }
 }
 

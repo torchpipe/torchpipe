@@ -74,16 +74,29 @@ bool Sequential::init(const std::unordered_map<std::string, std::string>& config
   std::reverse(engine_names_.begin(), engine_names_.end());
   std::size_t num_one = 0;
   std::size_t num_special_max = 0;
+  // '|': deprecated
   auto configs = split_config(config_param, '|', engine_names_.size());
   configs.erase(register_name_ + "::backend");
 
   for (std::size_t i = 0; i < engine_names_.size(); ++i) {
     const auto& engine = engine_names_[i];
-    std::string pre_str;
+
+    std::string pre_str, post_str;
+    // handle S[(filter=z)A]
     auto backend = pre_parentheses_split(engine, pre_str);
     // auto new_config = config_param;
     auto new_config = get_config(configs, i);
 
+    // handle S[A(params1=a)]
+    backend = post_parentheses_split(backend, post_str);
+    if (!post_str.empty()) {
+      auto iter = post_str.find("=");
+      IPIPE_ASSERT(iter != 0);
+      std::string key = (iter == std::string::npos) ? "" : post_str.substr(0, iter);
+      new_config[key] = post_str.substr(iter + 1);
+      SPDLOG_INFO("backend : {} pre: `{}` post: `{}={}`", engine, pre_str, key, new_config[key]);
+    }
+    // handle S[A[B]]
     brackets_split(backend, new_config);
     engines_.emplace_back(IPIPE_CREATE(Backend, new_config.at("backend")));
 
@@ -330,7 +343,7 @@ class KeyA2KeyB : public Backend {
 
 IPIPE_REGISTER(Backend, KeyA2KeyB, "KeyA2KeyB");
 
-class CompareKey : public SingleBackend {
+class CompareLongKey : public SingleBackend {
  private:
   std::unique_ptr<Params> params_;
   std::vector<std::unique_ptr<Backend>> backends_;
@@ -341,16 +354,16 @@ class CompareKey : public SingleBackend {
   bool init(const std::unordered_map<std::string, std::string>& config_param,
             dict dict_config) override {
     params_ = std::unique_ptr<Params>(
-        new Params({{"key", "key"}}, {"compare_target", "CompareKey::backend"}, {}, {}));
+        new Params({{"key", "key"}}, {"compare_target", "CompareLongKey::backend"}, {}, {}));
     if (!params_->init(config_param)) return false;
     other_ = params_->at("key");
     compare_target_ = std::stol(params_->at("compare_target"));
 
-    // std::vector<std::string> backend_names = str_split(params_->at("CompareKey::backend"),
+    // std::vector<std::string> backend_names = str_split(params_->at("CompareLongKey::backend"),
     // ',');
 
     auto backend_names =
-        str_split_brackets_match(params_->at("CompareKey::backend"), ',', '[', ']');
+        str_split_brackets_match(params_->at("CompareLongKey::backend"), ',', '[', ']');
     std::unordered_map<std::string, std::unordered_map<std::string, std::string>> config_map;
     for (auto& item : backend_names) {
       auto new_config = config_param;
@@ -360,14 +373,14 @@ class CompareKey : public SingleBackend {
       item = new_config.at("backend");
     }
     if (backend_names.empty()) {
-      SPDLOG_ERROR("Usage: CompareKey[A,B].");
+      SPDLOG_ERROR("Usage: CompareLongKey[A,B].");
       return false;
     } else if (backend_names.size() == 1) {
       backend_names.push_back("Identity");  // or Empty?
       config_map[backend_names.back()] = config_param;
-      SPDLOG_WARN("CompareKey::backend: append {} as the second choice.", backend_names.back());
+      SPDLOG_WARN("CompareLongKey::backend: append {} as the second choice.", backend_names.back());
     } else if (backend_names.size() > 2) {
-      SPDLOG_ERROR("Usage: CompareKey[A,B]. size must be 2, get {}", backend_names.size());
+      SPDLOG_ERROR("Usage: CompareLongKey[A,B]. size must be 2, get {}", backend_names.size());
       return false;
     }
     for (const auto& item : backend_names) {
@@ -382,6 +395,64 @@ class CompareKey : public SingleBackend {
   void forward(dict input) override {
     long target = dict_get<long>(input, other_);
     if (target == compare_target_) {
+      SPDLOG_DEBUG("CompareLongKey: {} == {}", target, compare_target_);
+      backends_[0]->forward({input});
+    } else {
+      SPDLOG_DEBUG("CompareLongKey: {} != {}", target, compare_target_);
+      backends_[1]->forward({input});
+    }
+  }
+};
+
+IPIPE_REGISTER(Backend, CompareLongKey, "CompareLongKey");
+
+class ExistKey : public SingleBackend {
+ private:
+  std::unique_ptr<Params> params_;
+  std::vector<std::unique_ptr<Backend>> backends_;
+  std::string other_;
+  long compare_target_;
+
+ public:
+  bool init(const std::unordered_map<std::string, std::string>& config_param,
+            dict dict_config) override {
+    params_ = std::unique_ptr<Params>(
+        new Params({{"key", "key"}}, {"compare_target", "ExistKey::backend"}, {}, {}));
+    if (!params_->init(config_param)) return false;
+    other_ = params_->at("key");
+
+    auto backend_names = str_split_brackets_match(params_->at("ExistKey::backend"), ',', '[', ']');
+    std::unordered_map<std::string, std::unordered_map<std::string, std::string>> config_map;
+    for (auto& item : backend_names) {
+      auto new_config = config_param;
+      brackets_split(item, new_config);
+      auto t = new_config.find("backend");
+      config_map[new_config.at("backend")] = new_config;
+      item = new_config.at("backend");
+    }
+    if (backend_names.empty()) {
+      SPDLOG_ERROR("Usage: ExistKey[A,B].");
+      return false;
+    } else if (backend_names.size() == 1) {
+      backend_names.push_back("Identity");  // or Empty?
+      config_map[backend_names.back()] = config_param;
+      SPDLOG_WARN("ExistKey::backend: append {} as the second choice.", backend_names.back());
+    } else if (backend_names.size() > 2) {
+      SPDLOG_ERROR("Usage: ExistKey[A,B]. size must be 2, get {}", backend_names.size());
+      return false;
+    }
+    for (const auto& item : backend_names) {
+      auto backend = std::unique_ptr<Backend>(IPIPE_CREATE(Backend, item));
+      if (!backend || !backend->init(config_map[item], dict_config)) return false;
+      IPIPE_ASSERT(backend->max() == 1);
+      backends_.emplace_back(std::move(backend));
+    }
+    return true;
+  }
+
+  void forward(dict input) override {
+    auto iter = input->find(other_);
+    if (iter != input->end()) {
       backends_[0]->forward({input});
     } else {
       backends_[1]->forward({input});
@@ -389,6 +460,6 @@ class CompareKey : public SingleBackend {
   }
 };
 
-IPIPE_REGISTER(Backend, CompareKey, "CompareKey");
+IPIPE_REGISTER(Backend, ExistKey, "ExistKey");
 
 }  // namespace ipipe

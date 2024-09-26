@@ -1,0 +1,96 @@
+"Interpreter::backend" = "Ring"
+
+'precision' = 'fp16'
+'precision_fp32' = 'softmax,pow'
+
+[input]
+backend = "S[GpuTensor,KeyA2KeyB,SyncTensor]"
+key_a = "data"
+key_b = "input_tokens"
+next = "embed_tokens"
+
+[embed_tokens]
+backend = "S[EmbedTokensTensor,Result2Other[GenerateCosSinMaskTensor],SyncTensor]" # ,Jump[batchful]] 
+# restart = "batchful" 
+next = "batchful"
+
+# torch.save(self.embed_tokens.weight.detach(),'model_files/embed_tokens.pt')
+embed_tokens = "model_files/embed_tokens.pt"
+# key = "input_tokens"
+
+# [multimodal]
+# backend = 'SyncTensor[MultiModalEmbedsTensor]'
+# input_embeds = '../cur_input_embeds_no_im.pt'
+# next = 'llm'
+
+# [llm]
+# 'backend' = 'SyncTensor[TensorrtTensor]'
+# batch_process = 'CpuTensor'
+# 'model' = '../model_files/llm.onnx'
+# 'model::cache' = '../model_files/llm.trt'
+
+# next = 'sample'
+
+[batchful]
+max_workspace_size = 6000
+# PluginCacher is used to cache parameters and input data for (tensorrt) plugin
+'backend' = 'S[ThreadLocalCacher[TensorrtTensor],ArgMaxTensor,SyncTensor]'
+scheduler = "Batching"
+
+cal_request_size_method = "CalTorchBatchSize" # calc. request_size according to torch tensor size
+
+max = '1024'
+'model' = 'model_files/batchful.onnx'
+'model::cache' = 'model_files/batchful.trt'
+next = 'cache'
+
+[cache]
+backend = "S[Append2OtherTensor,Result2Key[LongItemTensor],KeyA2KeyB,CheckOtherSeqLenTensor,SyncTensor]"
+key_a = 'input_tokens'
+key_b = 'input_tokens_result'
+max_new_tokens = 7
+max_seq_len = 4096
+next = 'check_eos'
+other = 'input_tokens'
+# save_dir = "./tmp"
+
+# [sample]
+# backend = 'S[SampleTensor,Streaming,SyncTensor]'
+# eos = 2
+# next = 'check_eos'
+# temperature = 0.2
+
+[batchless_prefill]
+max_workspace_size = 6000
+# 'precision' = 'fp32'
+# request_id node_name 
+backend = "S[AppendOtherTensor,PrintTensor,TensorrtTensor,PushKVCacheTensor,SyncTensor]" #
+instance_num = 1 
+max = '1x2048x4096,1x2048x4096,1x2048x4096,1x2048x128,1x2048x128,1x1x2048x2048' 
+# q k v cos sin mask
+min = '1x1x4096,1x1x4096,1x1x4096,1x1x128,1x1x128,1x1x1x1'
+'model' = 'model_files/batchless_prefill.onnx'
+'model::cache' = 'model_files/batchless_prefill.trt'
+
+[check_eos]
+backend = 'S[Identity,(IsOtherExistFilter)CompareLongKey[RemoveKVCache, Add[restart:embed_tokens,trt_plugin:batchless_decode]],ExistKey(key=restart)[Identity,RemoveKVCache]]'
+compare_target = 2
+other = "input_tokens"
+# [check_seq_len]
+# backend = 'S[Append2OtherTensor]]'
+# map = "embed_tokens[input_tokens:data],batchful[result:other]"
+
+[batchless_decode]
+max_workspace_size = 6000
+# 'precision' = 'fp32'
+# request_id node_name 
+backend = "S[AppendOtherTensor,Result2Other(other=tmpkey)[PopKVCacheTensor],AppendOtherTensor(other=tmpkey), TensorrtTensor,PushKVCacheTensor,SyncTensor]" #
+instance_num = 1 
+max = '1x1x4096,1x1x4096,1x1x4096,1x1x128,1x1x128,1x1x1x2048,1x32x2047x128,1x32x2047x128' 
+# q k v cos sin mask
+min = '1x1x4096,1x1x4096,1x1x4096,1x1x128,1x1x128,1x1x1x1,1x32x1x128,1x32x1x128'
+'model' = 'model_files/batchless_decode.onnx'
+'model::cache' = './model_files/batchless_decode.trt'
+
+[remove_storage]
+backend = "RemoveStorage"

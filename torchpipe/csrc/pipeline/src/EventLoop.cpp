@@ -5,7 +5,7 @@
 #include "EventLoop.hpp"
 #include "base_logging.hpp"
 #include "event.hpp"
-#include "threadsafe_kv_storage.hpp"
+// #include "threadsafe_kv_storage.hpp"
 #include "exception.hpp"
 namespace ipipe {
 bool EventLoop::init(const std::unordered_map<std::string, std::string>& config, dict dict_config) {
@@ -73,8 +73,8 @@ void EventLoop::on_start_node(dict tmp_data, std::size_t task_queue_index) {
   pstack->input_event = any_cast<std::shared_ptr<SimpleEvents>>(tmp_data->at(TASK_EVENT_KEY));
   pstack->request_id = any_cast<std::string>(tmp_data->at("request_id"));
 
-  auto& kv_storage = ThreadSafeKVStorage::getInstance();
-  kv_storage.set(pstack->request_id, TASK_EVENT_KEY, pstack->input_event);
+  // auto& kv_storage = ThreadSafeKVStorage::getInstance();
+  // kv_storage.set(pstack->request_id, TASK_EVENT_KEY, pstack->input_event);
 
   auto current_event = make_event();
   (*tmp_data)[TASK_EVENT_KEY] = current_event;

@@ -1,0 +1,4 @@
+*.log
+onnx/*
+model_files/*
+model_files/*.trt

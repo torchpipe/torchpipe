@@ -243,7 +243,7 @@ def load(
     import torch
 
     if name == "" and len(sources) >= 1:
-        name = sources[0].split(".")[0]
+        name = "plugin" +  sources[0].split(".")[0]
 
     from torch.utils.cpp_extension import _get_build_directory
 

@@ -30,11 +30,11 @@ if os.path.exists("./torchpipe"):
 
 from .version import __version__, __torch_version__
 
-assert (
-    __torch_version__ == torch.__version__
-), "PyTorch version mismatch when compiling TorchPipe. Expected version {}, but got version {}.".format(
-    __torch_version__, torch.__version__
-)
+if __torch_version__ != torch.__version__:
+    logging.warning(
+        "PyTorch version mismatch when compiling TorchPipe. Expected version %s, but got version %s.",
+        __torch_version__, torch.__version__
+    )
 
 try:
     from torchpipe.libipipe import Interpreter

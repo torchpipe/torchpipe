@@ -22,67 +22,66 @@
 
 namespace ipipe {
 class Params;
-class KVCache {
- public:
-  enum class KVCacheState { kPrepareInput, kUpdateoutput };
+// class KVCache {
+//  public:
+//   enum class KVCacheState { kPrepareInput, kUpdateoutput };
 
-  KVCache(int num_layers) : num_layer_(num_layers) { kv_cache_.resize(num_layers); }
+//   KVCache(int num_layers) : num_layer_(num_layers) { kv_cache_.resize(num_layers); }
 
-  KVCacheState get_and_switch_state() {
-    if (state_ == KVCacheState::kPrepareInput) {
-      state_ = KVCacheState::kUpdateoutput;
-      return KVCacheState::kPrepareInput;
-    }
-    state_ = KVCacheState::kPrepareInput;
-    return KVCacheState::kUpdateoutput;
-  }
-  bool is_prefill() { return current_layer_ < num_layer_; }
+//   KVCacheState get_and_switch_state() {
+//     if (state_ == KVCacheState::kPrepareInput) {
+//       state_ = KVCacheState::kUpdateoutput;
+//       return KVCacheState::kPrepareInput;
+//     }
+//     state_ = KVCacheState::kPrepareInput;
+//     return KVCacheState::kUpdateoutput;
+//   }
+//   bool is_prefill() { return current_layer_ < num_layer_; }
 
-  std::vector<torch::Tensor> pop() {
-    std::vector<torch::Tensor> tmp;
-    std::swap(tmp, kv_cache_[current_layer_ % num_layer_]);
-    return tmp;
-  }
-  // const std::vector<torch::Tensor>& current() { return kv_cache_[current_layer_ % num_layer_]; }
-  void push(std::vector<torch::Tensor> input) {
-    std::swap(kv_cache_[(current_layer_++) % num_layer_], input);
-  }
+//   std::vector<torch::Tensor> pop() {
+//     std::vector<torch::Tensor> tmp;
+//     std::swap(tmp, kv_cache_[current_layer_ % num_layer_]);
+//     return tmp;
+//   }
+//   // const std::vector<torch::Tensor>& current() { return kv_cache_[current_layer_ % num_layer_];
+//   } void push(std::vector<torch::Tensor> input) {
+//     std::swap(kv_cache_[(current_layer_++) % num_layer_], input);
+//   }
 
-  void prefill_push(std::vector<torch::Tensor> input) {
-    std::swap(kv_cache_[(current_layer_++) % num_layer_], input);
-  }
+//   void push(std::vector<torch::Tensor> input) {
+//     std::swap(kv_cache_[(current_layer_++) % num_layer_], input);
+//   }
 
-  bool round_over() { return current_layer_ % num_layer_ == 0; }
+//   bool round_over() { return current_layer_ % num_layer_ == 0; }
 
-  std::size_t get_current_layer() { return current_layer_; }
+//   std::size_t get_current_layer() { return current_layer_; }
 
- private:
-  KVCacheState state_ = KVCacheState::kPrepareInput;
-  std::vector<std::vector<torch::Tensor>> kv_cache_;  // 32x2: layer index && k,v
-  std::size_t current_layer_ = 0;
-  const int num_layer_;
-};
+//  private:
+//   KVCacheState state_ = KVCacheState::kPrepareInput;
+//   std::vector<std::vector<torch::Tensor>> kv_cache_;  // 32x2: layer index && k,v
+//   std::size_t current_layer_ = 0;
+//   const int num_layer_;
+// };
 
 class KVCacheV2 {
  public:
   std::vector<torch::Tensor> pop() {
     std::vector<torch::Tensor> tmp;
-    std::swap(tmp, kv_cache_[current_layer_ % kv_cache_.size()]);
+    std::swap(tmp, kv_cache_.front());
+    kv_cache_.pop();
     return tmp;
   }
-  void decode_push(std::vector<torch::Tensor> input) {
-    std::swap(kv_cache_[(current_layer_++) % kv_cache_.size()], input);
+
+  template <typename T>
+  void push(T&& input) {
+    kv_cache_.push(std::forward<T>(input));
+    // ++current_layer_;
   }
 
-  void prefill_push(std::vector<torch::Tensor> input) {
-    kv_cache_.push_back(input);
-    ++current_layer_;
-  }
-
-  std::size_t get_current_layer() { return current_layer_; }
+  std::size_t size() { return kv_cache_.size(); }
 
  private:
-  std::vector<std::vector<torch::Tensor>> kv_cache_;  // 32x2: layer index && k,v
+  std::queue<std::vector<torch::Tensor>> kv_cache_;  // 32x2: layer index && k,v
   std::size_t current_layer_ = 0;
 };
 
@@ -103,7 +102,18 @@ class KVCacheTensor : public SingleBackend {
   int max_seq_len_{0};
 };
 
-class PrefillKVCacheTensor : public SingleBackend {
+class PushKVCacheTensor : public SingleBackend {
+ public:
+  virtual bool init(const std::unordered_map<std::string, std::string>&, dict) override;
+
+  virtual void forward(dict) override;
+
+ private:
+  std::unique_ptr<Params> params_;
+  std::unique_ptr<Backend> engine_;
+};
+
+class PopKVCacheTensor : public SingleBackend {
  public:
   virtual bool init(const std::unordered_map<std::string, std::string>&, dict) override;
 

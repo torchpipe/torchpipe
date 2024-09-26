@@ -8,8 +8,8 @@
 #include <mutex>
 #include <unordered_map>
 #include <shared_mutex>
-
 #include "any.hpp"
+// #include "ipipe_common.hpp"
 namespace ipipe {
 
 class ThreadSafeDict {
@@ -55,18 +55,7 @@ class ThreadSafeKVStorage {
     throw std::out_of_range("ThreadSafeKVStorage: Key not found: " + path);
   }
 
-  ThreadSafeDict& get_or_insert(const std::string& path) {
-    {
-      std::shared_lock<std::shared_mutex> lock(mutex_);
-      auto it = disk_.find(path);
-      if (it != disk_.end()) {
-        return *it->second;
-      }
-    }
-    std::unique_lock<std::shared_mutex> lock(mutex_);
-    auto [it, inserted] = disk_.emplace(path, std::make_shared<ThreadSafeDict>());
-    return *it->second;
-  }
+  ThreadSafeDict& get_or_insert(const std::string& path);
 
   // 读取数据
   std::optional<ipipe::any> get(const std::string& path, const std::string& key);

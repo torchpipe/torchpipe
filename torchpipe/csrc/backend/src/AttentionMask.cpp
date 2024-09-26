@@ -18,12 +18,23 @@
 #include "base_logging.hpp"
 #include "params.hpp"
 namespace {
-std::tuple<torch::Tensor, torch::Tensor> generate_prefill_fp16_mask(int64_t sequence_length,
-                                                                    int64_t target_length) {
-  // torch.finfo(torch.float16).min
-  auto min_dtype = -65504.;
+std::tuple<torch::Tensor, torch::Tensor> generate_simple_llama2_fp16_mask(int64_t sequence_length,
+                                                                          int64_t target_length,
+                                                                          bool is_prefill = true) {
   auto dtype = torch::kFloat16;
   auto device = torch::kCUDA;
+
+  if (!is_prefill) {
+    auto causal_mask = torch::zeros({1, 1, sequence_length, target_length},
+                                    torch::TensorOptions().dtype(dtype).device(device));
+    SPDLOG_DEBUG("{} {}", sequence_length, target_length);
+    auto cache_position = torch::arange(target_length - sequence_length, target_length,
+                                        torch::TensorOptions().device(device))
+                              .unsqueeze(0);
+    return std::make_tuple(causal_mask, cache_position);
+  }
+
+  auto min_dtype = -65504.;  // torch.finfo(torch.float16).min
 
   auto cache_position = torch::arange(sequence_length, torch::TensorOptions().device(device));
   auto causal_mask = torch::full({sequence_length, target_length}, min_dtype,
@@ -109,7 +120,7 @@ namespace ipipe {
 //     auto sequence_length = data.size(-2);
 //     auto target_length = sequence_length;
 //     IPIPE_ASSERT(torch::kFloat16 == data.dtype(), "data.dtype() must be torch.float16");
-//     auto result = generate_prefill_fp16_mask(sequence_length, target_length);
+//     auto result = generate_simple_llama2_fp16_mask(sequence_length, target_length);
 
 //     auto cs = llamaRotaryEmbedding_->forward(data, std::get<1>(result));
 //     input_dict->operator[](TASK_RESULT_KEY) =
@@ -141,7 +152,7 @@ class AppendCosSinMaskTensor : public SingleBackend {
     auto seq_len = data[0].size(-2);
     auto target_length = seq_len;
     IPIPE_ASSERT(torch::kFloat16 == data[0].dtype(), "data.dtype() must be torch.float16");
-    auto result = generate_prefill_fp16_mask(seq_len, target_length);
+    auto result = generate_simple_llama2_fp16_mask(seq_len, target_length);
 
     auto cs = llamaRotaryEmbedding_->forward(data[0], std::get<1>(result));
     data.push_back(std::get<0>(cs));
@@ -165,10 +176,28 @@ class GenerateCosSinMaskTensor : public SingleBackend {
  public:
   void forward(dict input_dict) override {
     torch::Tensor data = dict_get<torch::Tensor>(input_dict, TASK_DATA_KEY);
+    std::vector<torch::Tensor> input_tokens;
+    if (input_dict->find("input_tokens") != input_dict->end()) {
+      input_tokens = dict_gets<torch::Tensor>(input_dict, "input_tokens");
+    }
+    auto target_length = 0;
+    bool is_prefill = false;
 
     auto seq_len = data.size(-2);
-    auto target_length = seq_len;
-    auto result = generate_prefill_fp16_mask(seq_len, target_length);
+    if (input_tokens.empty()) {
+      target_length = seq_len;
+      is_prefill = true;
+    } else {
+      for (const auto& item : input_tokens) {
+        target_length += item.size(-1);
+      }
+      is_prefill = (input_tokens.size() == 1);
+
+      // SPDLOG_INFO("{} {} {}", target_length, seq_len, input_tokens.size());
+      IPIPE_ASSERT(target_length == input_tokens[0].size(-1) + input_tokens.size() - 1);
+    }
+
+    auto result = generate_simple_llama2_fp16_mask(seq_len, target_length, is_prefill);
 
     auto cs = llamaRotaryEmbedding_->forward(data[0], std::get<1>(result));
     std::vector<torch::Tensor> final_result;
@@ -209,7 +238,7 @@ class AppendOtherTensor : public SingleBackend {
     auto data = dict_gets<torch::Tensor>(input_dict, TASK_DATA_KEY);
 
     auto other = dict_gets<torch::Tensor>(input_dict, other_);
-
+    SPDLOG_DEBUG("{} + {}", data.size(), other.size());
     data.insert(data.end(), other.begin(), other.end());
     input_dict->operator[](TASK_RESULT_KEY) = data;
   }
@@ -220,7 +249,7 @@ class AppendOtherTensor : public SingleBackend {
 
 IPIPE_REGISTER(Backend, AppendOtherTensor);
 
-class Cache2OtherTensor : public SingleBackend {
+class Append2OtherTensor : public SingleBackend {
  private:
   std::string other_;
   std::unique_ptr<Params> params_;
@@ -242,13 +271,15 @@ class Cache2OtherTensor : public SingleBackend {
 
     auto other = dict_gets<torch::Tensor>(input_dict, other_);
 
+    SPDLOG_DEBUG("Append2OtherTensor data.size() = {} other.size() = {}", data.size(),
+                 other.size());
     other.insert(other.end(), data.begin(), data.end());
     input_dict->operator[](other_) = other;
     input_dict->operator[](TASK_RESULT_KEY) = (*input_dict)[TASK_DATA_KEY];
   }
 };
 
-IPIPE_REGISTER(Backend, Cache2OtherTensor);
+IPIPE_REGISTER(Backend, Append2OtherTensor);
 
 class PrintTensor : public SingleBackend {
  public:
