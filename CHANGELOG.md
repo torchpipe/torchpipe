@@ -1,12 +1,12 @@
 # Changelog
 
-## v0.6.3 
+## v0.6.3 (2024.09.27)
 - Add lots of key-value base instruction backends
 - non-root node can be used as the entry node now
 - Support `S[A(key=value)[B]]` grammar
 - fix the default max_workspace_size
 
-## v0.6.2 (2023.08.14)
+## v0.6.2 (2024.08.14)
 - docker/Dockerfilex updated to TensorRT 10.3
 - input_reorder/output_reorder/batch_process is also supported for TensorRT 9 now. previously only TensorRT 10 is supported.
 
