@@ -230,7 +230,7 @@ bool Onnx2TensorrtConverter::init(const std::unordered_map<std::string, std::str
 
     OnnxParams onnxp;
     auto max_workspace_size = std::stoi(params_->at("max_workspace_size"));
-    onnxp.max_workspace_size = 1024 * 1024 * max_workspace_size;
+    onnxp.max_workspace_size = 1024 * 1024 * (size_t)max_workspace_size;
     IPIPE_ASSERT(max_workspace_size >= 1);
     onnxp.timecache = params_->at("model::timingcache");
     onnxp.precision = params_->at("precision");

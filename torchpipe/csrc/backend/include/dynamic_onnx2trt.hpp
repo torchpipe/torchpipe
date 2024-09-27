@@ -34,7 +34,7 @@ struct OnnxParams {
   std::set<std::string> precision_output_fp32;
   std::set<std::string> precision_output_fp16;
   std::string timecache;
-  uint32_t max_workspace_size;
+  size_t max_workspace_size;
   std::string allocator;
   std::string log_level;
   std::vector<int> input_reorder;
