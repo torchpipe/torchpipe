@@ -37,29 +37,41 @@ class RegisterPython {
  public:
   void registe(const std::string& name, py::object obj) {
     std::lock_guard<std::mutex> tmp(lock_);
-    objects_[name] = obj;
+    objects_[name] = (obj);
     SPDLOG_INFO("Register Python backend: {}", name);
   }
+  void unregister() {
+    std::lock_guard<std::mutex> tmp(lock_);
+    objects_.clear();
+    filters_.clear();
+  }
+
   void registe_filter(const std::string& name, py::object obj) {
     std::lock_guard<std::mutex> tmp(lock_);
-    filters_[name] = obj;
+    filters_[name] = (obj);
     SPDLOG_INFO("Register Python filter: {}", name);
   }
-  py::object create(const std::string& name) {
+  PyObjectPtr create(const std::string& name) {
     std::lock_guard<std::mutex> tmp(lock_);
     auto iter = objects_.find(name);
     if (iter == objects_.end()) {
       throw std::runtime_error("Register of Python: " + name + " not found");
     }
-    return objects_[name]();
+    return make_py_object(objects_[name]());
   }
-  py::object create_filter(const std::string& name) {
+  PyObjectPtr create_filter(const std::string& name) {
     std::lock_guard<std::mutex> tmp(lock_);
     auto iter = filters_.find(name);
     if (iter == filters_.end()) {
       throw std::runtime_error("Register of Python filter: " + name + " not found");
     }
-    return iter->second();
+    return make_py_object(iter->second());
+  }
+
+  void clear() {
+    std::lock_guard<std::mutex> tmp(lock_);
+    objects_.clear();
+    filters_.clear();
   }
 
  private:
@@ -79,17 +91,22 @@ void register_py(py::object class_def, const std::string& name) {
   register_python.registe(name, class_def);
 }
 
+void unregister() {
+  RegisterPython register_python;
+  register_python.unregister();
+}
+
 void register_py_filter(py::object class_def, const std::string& name) {
   RegisterPython register_python;
   register_python.registe_filter(name, class_def);
 }
 
-py::object create_py(const std::string& name) {
+PyObjectPtr create_py(const std::string& name) {
   RegisterPython register_python;
   return register_python.create(name);
 }
 
-py::object create_py_filter(const std::string& name) {
+PyObjectPtr create_py_filter(const std::string& name) {
   RegisterPython register_python;
   return register_python.create_filter(name);
 }
@@ -105,8 +122,8 @@ bool Python::init(const std::unordered_map<std::string, std::string>& config_par
 
   py::gil_scoped_acquire gil_lock;
   TRACE_EXCEPTION(py_backend_ = create_py(params_->at("Python::backend")));
-  IPIPE_ASSERT(!py_backend_.is(py::none()));
-  if (!py_backend_.attr("init")(config_param)) {
+  IPIPE_ASSERT(!py_backend_->is(py::none()));
+  if (!py_backend_->attr("init")(config_param)) {
     SPDLOG_ERROR(params_->at("Python::backend") + " init failed");
     return false;
   }
@@ -124,7 +141,7 @@ void Python::forward(const std::vector<ipipe::dict>& input_dicts) {
     py_inputs.append(py_input);
   }
 
-  py_backend_.attr("forward")(py_inputs);
+  py_backend_->attr("forward")(py_inputs);
   std::vector<dict> results;
 
   for (std::size_t i = 0; i < py::len(py_inputs); ++i) {
@@ -145,15 +162,15 @@ void Python::forward(const std::vector<ipipe::dict>& input_dicts) {
 
 uint32_t Python::max() const {
   py::gil_scoped_acquire gil_lock;
-  if (py::hasattr(py_backend_, "max")) {
-    return py::cast<int>(py_backend_.attr("max")());
+  if (py::hasattr(*py_backend_, "max")) {
+    return py::cast<int>(py_backend_->attr("max")());
   }
   return 1;
 }
 
 Python::~Python() {
-  py::gil_scoped_acquire gil_lock;
-  py_backend_ = py::none();
+  // py::gil_scoped_acquire gil_lock;
+  // py_backend_.reset();
 }
 
 IPIPE_REGISTER(Backend, Python, "Python");
@@ -168,10 +185,10 @@ bool PyFilter::init(const std::unordered_map<std::string, std::string>& config_p
 
   py::gil_scoped_acquire gil_lock;
   TRACE_EXCEPTION(py_backend_ = create_py_filter(params_->at("Python::backend")));
-  IPIPE_ASSERT(!py_backend_.is(py::none()));
+  IPIPE_ASSERT(!py_backend_->is(py::none()));
   pybind11::dict result_dict;
   // dict2py(dict_config, result_dict, true);
-  if (!py_backend_.attr("init")(config_param)) {
+  if (!py_backend_->attr("init")(config_param)) {
     SPDLOG_ERROR(params_->at("Python::backend") + " init failed");
     return false;
   }
@@ -186,7 +203,7 @@ Filter::status PyFilter::forward(ipipe::dict input_dict) {
   py::dict py_input;
   dict2py(input_dict, py_input, true);
 
-  auto final_status = py_backend_.attr("forward")(py_input);
+  auto final_status = py_backend_->attr("forward")(py_input);
   std::vector<dict> results;
 
   dict result = py2dict(py_input);
@@ -198,8 +215,11 @@ Filter::status PyFilter::forward(ipipe::dict input_dict) {
   return py::cast<Filter::status>(final_status);
 }
 PyFilter::~PyFilter() {
-  py::gil_scoped_acquire gil_lock;
-  py_backend_ = py::none();
+  // py::gil_scoped_acquire gil_lock;
+  // py_backend_.reset();
+
+  // RegisterPython register_python;
+  // register_python.clear();
 }
 
 IPIPE_REGISTER(Filter, PyFilter, "Python");

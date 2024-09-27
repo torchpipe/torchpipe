@@ -182,7 +182,9 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
 
   m.def("register_backend", &register_backend, py::arg("class_def"), py::arg("register_name"));
   m.def("register_filter", &register_filter, py::arg("class_def"), py::arg("register_name"));
+  m.def("unregister", &unregister);
 
+  m.add_object("_cleanup", py::capsule(unregister));
   /**
    * @brief c++ Interpreter wrapper
    */

@@ -42,7 +42,7 @@ class TestBackend:
     def setup_class(self):
         import tempfile
         tmpdir = tempfile.gettempdir()
-        self.out_file = os.path.join(tmpdir, "identity.onnx")
+        self.out_file = os.path.join(tmpdir, "py_max_identity.onnx")
         dummy_input = torch.randn(1, 3, 224, 224)
 
         model = IdentityModel().eval()

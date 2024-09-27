@@ -27,6 +27,18 @@ namespace py = pybind11;
 namespace ipipe {
 void register_py(py::object class_def, const std::string& name);
 void register_py_filter(py::object class_def, const std::string& name);
+void unregister();
+// Custom deleter to ensure GIL is held during destruction
+struct PyObjectDeleter {
+  void operator()(py::object* obj) const {
+    py::gil_scoped_acquire acquire;
+    delete obj;
+  }
+};
+
+// Define a type alias for the smart pointer with custom deleter
+using PyObjectPtr = std::unique_ptr<py::object, PyObjectDeleter>;
+inline PyObjectPtr make_py_object(py::object obj) { return PyObjectPtr(new py::object(obj)); }
 
 class Params;
 
@@ -54,7 +66,7 @@ class Python : public Backend {
  private:
   std::unique_ptr<Params> params_;
   uint32_t max_{1};
-  py::object py_backend_;
+  PyObjectPtr py_backend_;
 
   // static py::scoped_interpreter python_;
 };
@@ -69,7 +81,7 @@ class PyFilter : public Filter {
 
  private:
   std::unique_ptr<Params> params_;
-  py::object py_backend_;
+  PyObjectPtr py_backend_;
 };
 
 };  // namespace ipipe

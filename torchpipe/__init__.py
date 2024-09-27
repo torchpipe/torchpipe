@@ -67,6 +67,7 @@ from torchpipe.libipipe import (
     # any,
     register_backend,
     register_filter,
+    unregister,
     WITH_CUDA,
     WITH_OPENVINO,
     Status,

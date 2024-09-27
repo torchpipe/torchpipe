@@ -35,7 +35,8 @@ class AnyPythonFilter:
         self.add = int(config_param["config"])
 
     def forward(self, data: [Dict[str, Any]]) -> None:
-        if self.add == data["data"]:
+        if self.add == data["result"]:
+            data["data"] = data["result"]
             return torchpipe.Status.Run
         else:
             return torchpipe.Status.Error
@@ -60,19 +61,21 @@ class TestBackend:
 
     def test_register_filter(self):
         self.model_trt = torchpipe.pipe(
-            {"a":{"filter": "Python[py_filter]","config":1},"b":{}})
+            {"root": {"next":"a"}, "a":{"filter": "Python[py_filter]","config":1},"b":{}})
         with pytest.raises(RuntimeError):
-            input = {"data":2,'node_name':'a'}
+            input = {"data":2,'node_name':'root'}
             self.model_trt([input])
-        input = {"data":1,'node_name':'a'}
+        input = {"data":1,'node_name':'root'}
         self.model_trt([input])
         assert input["result"] == 1
 
-        
+    def unregister(self):
+        torchpipe.unregister()
  
 if __name__ == "__main__":
     # test_test_random(dir = "assets/norm_jpg/")
-
+    import time
+    # time.sleep(1)
     # test_all_files(file_dir = "../examples/ocr_poly_v2/test_img/", num_clients=10)
     a = TestBackend()
     a.setup_class()
