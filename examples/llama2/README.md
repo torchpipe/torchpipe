@@ -14,7 +14,7 @@
 ```
 
 ## Export llama2 models
-> This step can be done on CPU if you do not have enough GPU memory.
+> These steps can be done on CPU (by remove `--device cuda`) if you do not have enough GPU memory.
 
 ```bash
 # batchful part
