@@ -1,4 +1,17 @@
 # Non-Streaming Inference with Llama2
+
+> WARNING
+This project is still in the experimental stage. Do not use it in production environments. 
+
+<details>
+<summary>Goal</summary>
+The final goal is that, we want serve LLM mainly with TensorRT, but with no dependency on TensorRT-LLM or Triton server. We segment layers based on whether they can be batched with respect to the sequence length's dimension. The model is divided into two parts: batchful and batchless. Model parameters are (mainly) located in the batchful part, whereas the batchless part consists of positional encoding and parameter-free self-attention. After masking the batchless part, we perform a complete trace.
+
+Traditional dynamic batching can be applied the batchful part. We isolate the batchless part as a separate custom sub-graph/(function in future) and implement it using a TensorRT plugin. This plugin does nothing but direct the batchless part to a dedicated TorchPipe server. The management and resource(e.g. kvcache) control operate entirely independently of TensorRT.
+
+The computation for the batchless part could be implemented as a standalone CUDA kernel. However, for simplicity, we have chosen to trace and implement it using TensorRT. TensorRT may internally optimize computations by matching flash attention patterns. The verbose information from TensorRT indicates that it has identified and reassigned Myelin backends for Self-Attention nodes (i.e., /MatMul_1, /Softmax, /MatMul).
+</details>
+
 ## Prepare llama2 models
 > Only test on transformers=4.44.2
     
@@ -22,9 +35,9 @@
     ## you can use cpu for export, but it will be slow.
 
 # batchless part
-    python export_llama2.py --model meta-llama/Llama-2-7b-chat-hf --output_dir model_files/ --export prefill_batchless --num_layers $NUM_LAYER2
+    python export_llama2.py --model meta-llama/Llama-2-7b-chat-hf --output_dir model_files/ --export prefill_batchless  
 
-    python export_llama2.py --model meta-llama/Llama-2-7b-chat-hf --output_dir model_files/ --export decode_batchless --num_layers $NUM_LAYER
+    python export_llama2.py --model meta-llama/Llama-2-7b-chat-hf --output_dir model_files/ --export decode_batchless  
 
 # export embed_tokens.pt
     python export_llama2.py --model meta-llama/Llama-2-7b-chat-hf --output_dir model_files/ --export embed_tokens
@@ -41,3 +54,8 @@
     #NUM_LAYER = 2:  San Francisco is a totalitéaletoreignersbyMSран
     #NUM_LAYER = 32:  San Francisco is a city in Northern California that is known
 ```
+
+
+
+# Streaming Inference with Llama2
+WIP
