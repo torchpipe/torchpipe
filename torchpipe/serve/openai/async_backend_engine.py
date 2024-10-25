@@ -3,10 +3,13 @@ import os
 import queue
 from typing import List, Optional
 
-from scalellm._C import (LLMHandler, Message, Priority, RequestOutput,
-                         SamplingParams, Status, StatusCode, SequenceOutput, Usage)
-from scalellm.downloader import download_hf_model
-from scalellm.errors import ValidationError
+# from scalellm._C import (LLMHandler, Message, Priority,
+#                         Status, StatusCode, SequenceOutput, Usage)
+# from scalellm.downloader import download_hf_model
+
+from torchpipe.serve.output import RequestOutput
+
+from torchpipe.serve.errors import ValidationError
 
 import sys
 import threading
@@ -71,8 +74,8 @@ class OutputAsyncStream:
             raise item
         return item
 
-from scalellm.serve.api_protocol import (ChatCompletionRequest,
-                                         CompletionRequest)
+# from torchpipe.serve.api_protocol import (ChatCompletionRequest,
+#                                          CompletionRequest)
 
 # 获取环境变量 BACKEND_ENGINE_PATH 的值
 backend_engine_path = os.getenv('BACKEND_ENGINE_PATH', '.')
@@ -96,8 +99,8 @@ class AsyncEngine:
     async def schedule_async(
         self,
         prompt: str,
-        sampling_params: SamplingParams,
-        priority: Priority = Priority.NORMAL,
+        sampling_params,
+        priority: None,
         stream: bool = False,
     ) -> OutputAsyncStream:
         output_stream = OutputAsyncStream()
@@ -107,12 +110,11 @@ class AsyncEngine:
             return output_stream.put(output)
 
         # use default sampling parameters if not provided
-        sampling_params = sampling_params or SamplingParams()
         # self._handler.schedule_async(
         #     prompt, sampling_params, priority, stream, callback
         # )
         try:
-            self.backend.forward_async({'prompt': prompt, 'sampling_params': sampling_params, 'priority': priority, 'stream': stream, 'callback': callback})
+            self.backend.forward_async({'prompt': prompt, 'priority': priority, 'stream': stream, 'callback': callback})
         except Exception as e:
             output_stream.error(str(e))
         return output_stream
