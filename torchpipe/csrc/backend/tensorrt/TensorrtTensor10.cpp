@@ -15,8 +15,8 @@
 #ifdef WITH_TENSORRT
 
 #include "tensorrt_utils.hpp"
-#if NV_TENSORRT_MAJOR >= 9
-
+// #if NV_TENSORRT_MAJOR >= 9
+#if (NV_TENSORRT_MAJOR == 8 && NV_TENSORRT_MINOR >= 5) || (NV_TENSORRT_MAJOR >= 9)
 #include <torch/torch.h>
 #include <nppcore.h>
 #include <fstream>
@@ -50,6 +50,15 @@ namespace ipipe {
 
 bool TensorrtTensor::init(const std::unordered_map<std::string, std::string>& config_param,
                           dict dict_config) {
+  SPDLOG_WARN(
+      "TensorRT <= 8.4 is deprecated, and torchpipe behavior follows the old version "
+      "mode, which may be slightly different from the behavior in the higher version mode. Please "
+      "use TensorRT >= 8.5. Got {}.{}",
+      NV_TENSORRT_MAJOR, NV_TENSORRT_MINOR);
+#if NV_TENSORRT_MAJOR < 8
+  SPDLOG_ERROR("tensorrt version should >= 8 but got {}.{}", NV_TENSORRT_MAJOR, NV_TENSORRT_MINOR);
+  return false;
+#endif
   if (torch_is_using_default_stream()) {
     SPDLOG_WARN(
         "TensorrtTensor runs in default stream. This would cause error if downstream nodes use "
@@ -68,11 +77,6 @@ bool TensorrtTensor::init(const std::unordered_map<std::string, std::string>& co
                                                 {"input_reorder", ""},
                                                 {"output_reorder", ""}},
                                                {}, {}, {}));
-
-#if NV_TENSORRT_MAJOR < 8
-  SPDLOG_ERROR("tensorrt version should >= 8 but got {}.{}", NV_TENSORRT_MAJOR, NV_TENSORRT_MINOR);
-  return false;
-#endif
 
   if (!params_->init(config_param)) return false;
   if (!dict_config) {
@@ -269,7 +273,7 @@ void TensorrtTensor::parse_context(dict dict_config, int _independent_thread_ind
     input_reorder_.resize(n_inputs);
 // std::iota(input_reorder_.rbegin(), input_reorder_.rend(), 0);
 // std::iota(input_reorder_.begin(), input_reorder_.end(), 0);
-#if NV_TENSORRT_MAJOR >= 10
+#if NV_TENSORRT_MAJOR >= 8
     std::iota(input_reorder_.begin(), input_reorder_.end(), 0);
 #else
     reorder_by_alpha(input_reorder_, engine_, 0);
@@ -280,7 +284,7 @@ void TensorrtTensor::parse_context(dict dict_config, int _independent_thread_ind
   } else {
     output_reorder_.resize(n_outputs);
 //
-#if NV_TENSORRT_MAJOR >= 10
+#if NV_TENSORRT_MAJOR >= 8
     std::iota(output_reorder_.begin(), output_reorder_.end(), 0);
 #else
     reorder_by_alpha(output_reorder_, engine_, input_reorder_.size());
@@ -298,14 +302,21 @@ void TensorrtTensor::parse_context(dict dict_config, int _independent_thread_ind
 
     IPIPE_ASSERT(tensorType == nvinfer1::TensorIOMode::kINPUT);
 
-    // #ifdef NV_TENSORRT_MAJOR> 8
+#if 1
     nvinfer1::Dims min_dims =
         engine_->engine->getProfileShape(name, profile_index_, nvinfer1::OptProfileSelector::kMIN);
     nvinfer1::Dims max_dims =
         engine_->engine->getProfileShape(name, profile_index_, nvinfer1::OptProfileSelector::kMAX);
-    // #else
-    // todo
-    // #endif
+#else
+    std::string post_name;
+    if (profile_index_) {
+      post_name + " [profile " + std::to_string(profile_index_) + "]";
+    }
+    nvinfer1::Dims min_dims = engine_->engine->getProfileShape(name + post_name, profile_index_,
+                                                               nvinfer1::OptProfileSelector::kMIN);
+    nvinfer1::Dims max_dims = engine_->engine->getProfileShape(name + post_name, profile_index_,
+                                                               nvinfer1::OptProfileSelector::kMAX);
+#endif
 
     mins_.emplace_back(min_dims.d, min_dims.d + min_dims.nbDims);
     maxs_.emplace_back(max_dims.d, max_dims.d + max_dims.nbDims);
