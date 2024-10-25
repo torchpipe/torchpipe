@@ -17,7 +17,9 @@
 #include "NvInferPlugin.h"
 #include "NvOnnxParser.h"
 
-#if NV_TENSORRT_MAJOR < 9
+// #if NV_TENSORRT_MAJOR < 8
+#if (NV_TENSORRT_MAJOR == 8 && NV_TENSORRT_MINOR < 5) || (NV_TENSORRT_MAJOR < 8)
+
 #include "time_utils.hpp"
 #include "tensorrt_utils.hpp"
 #include "ipipe_common.hpp"

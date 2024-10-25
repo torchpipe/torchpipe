@@ -4,6 +4,7 @@
 #include <pybind11/cast.h>
 #include <pybind11/stl.h>
 #include <pybind11/functional.h>
+#include <pybind11/stl_bind.h>
 
 #if PYBIND11_VERSION_MAJOR == 2
 #if PYBIND11_VERSION_MINOR < 7
@@ -45,35 +46,36 @@ struct type_caster<ipipe::any> {
   // C++ -> Python
   static handle cast(const ipipe::any& src, return_value_policy /* policy */, handle /* parent */) {
     return ipipe::any2object(src).release();
+    // return py::cast(data).release();
   }
 };
 
-template <>
-struct type_caster<ipipe::dict> {
- public:
-  PYBIND11_TYPE_CASTER(ipipe::dict, _("ipipe::dict"));
+// template <>
+// struct type_caster<ipipe::dict> {
+//  public:
+//   PYBIND11_TYPE_CASTER(ipipe::dict, _("ipipe::dict"));
 
-  // Python -> C++
-  bool load(handle src, bool) {
-    auto dict = src.cast<py::dict>();
-    auto map = std::make_shared<std::unordered_map<std::string, ipipe::any>>();
-    for (auto item : dict) {
-      (*map)[item.first.cast<std::string>()] = ipipe::object2any(item.second);
-    }
-    value = map;
-    return true;
-  }
+//   // Python -> C++
+//   bool load(handle src, bool) {
+//     auto dict = src.cast<py::dict>();
+//     auto map = std::make_shared<std::unordered_map<std::string, ipipe::any>>();
+//     for (auto item : dict) {
+//       (*map)[item.first.cast<std::string>()] = ipipe::object2any(item.second);
+//     }
+//     value = map;
+//     return true;
+//   }
 
-  // C++ -> Python
-  static handle cast(const ipipe::dict& src, return_value_policy /* policy */,
-                     handle /* parent */) {
-    py::dict dict;
-    for (const auto& item : *src) {
-      dict[item.first.c_str()] = ipipe::any2object(item.second);
-    }
-    return dict.release();
-  }
-};
+//   // C++ -> Python
+//   static handle cast(const ipipe::dict& src, return_value_policy /* policy */,
+//                      handle /* parent */) {
+//     py::dict dict;
+//     for (const auto& item : *src) {
+//       dict[item.first.c_str()] = ipipe::any2object(item.second);
+//     }
+//     return dict.release();
+//   }
+// };
 
 }  // namespace detail
 }  // namespace pybind11
@@ -287,25 +289,52 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   //       .def_static("getInstance", &ThreadSafeKVStorage::getInstance,
   //                   py::return_value_policy::reference);
 
-  py::class_<ipipe::any>(m, "Any").def(py::init<>()).def("as_queue", [](ipipe::any& self) {
-    if (typeid(std::shared_ptr<ThreadSafeQueue<long>>) == self.type()) {
-      return py::cast(any_cast<std::shared_ptr<ThreadSafeQueue<long>>>(self));
-    } else if (typeid(std::shared_ptr<ThreadSafeQueue<int>>) == self.type()) {
-      return py::cast(any_cast<std::shared_ptr<ThreadSafeQueue<int>>>(self));
-    } else if (typeid(std::shared_ptr<ThreadSafeQueue<float>>) == self.type()) {
-      return py::cast(any_cast<std::shared_ptr<ThreadSafeQueue<float>>>(self));
-    } else if (typeid(std::shared_ptr<ThreadSafeQueue<double>>) == self.type()) {
-      return py::cast(any_cast<std::shared_ptr<ThreadSafeQueue<double>>>(self));
-    } else if (typeid(std::shared_ptr<ThreadSafeQueue<short>>) == self.type()) {
-      return py::cast(any_cast<std::shared_ptr<ThreadSafeQueue<short>>>(self));
-    } else if (typeid(std::shared_ptr<ThreadSafeQueue<unsigned int>>) == self.type()) {
-      return py::cast(any_cast<std::shared_ptr<ThreadSafeQueue<unsigned int>>>(self));
-    } else {
-      throw py::type_error(
-          std::string("The object is not a std::shared_ptr<ThreadSafeQueue<T>>, is ") +
-          self.type().name());
-    }
-  });
+  py::class_<ipipe::any>(m, "Any")
+      .def(py::init<>())
+      .def("as_str", [](ipipe::any& self) { return any_cast<std::string>(self); })
+      .def("as_bytes",
+           [](ipipe::any& self) {
+             const std::string* result = any_cast<std::string>(&self);
+             if (result) {
+               return py::bytes(*result);
+             } else {
+               std::string tmp = any_cast<std::string>(self);  // let it throw
+               return py::bytes(tmp);
+             }
+           })
+      .def("as_int", [](ipipe::any& self) { return any_cast<int>(self); })
+      .def("as_float", [](ipipe::any& self) { return any_cast<float>(self); })
+      .def("as_double", [](ipipe::any& self) { return any_cast<double>(self); })
+      .def("as_bool", [](ipipe::any& self) { return any_cast<bool>(self); })
+      .def("as_vector_float", [](ipipe::any& self) { return any_cast<std::vector<float>>(self); })
+      .def("as_vector_int", [](ipipe::any& self) { return any_cast<std::vector<int>>(self); })
+      .def("as_vector_str",
+           [](ipipe::any& self) { return any_cast<std::vector<std::string>>(self); })
+      .def("cast",
+           [](ipipe::any& self) {
+             if (self.type().type() == typeid(std::string))
+               return py::object(py::bytes(any_cast<std::string>(self)));
+             return any2object(self);
+           })
+      .def("as_queue", [](ipipe::any& self) {
+        if (typeid(std::shared_ptr<ThreadSafeQueue<long>>) == self.type()) {
+          return py::cast(any_cast<std::shared_ptr<ThreadSafeQueue<long>>>(self));
+        } else if (typeid(std::shared_ptr<ThreadSafeQueue<int>>) == self.type()) {
+          return py::cast(any_cast<std::shared_ptr<ThreadSafeQueue<int>>>(self));
+        } else if (typeid(std::shared_ptr<ThreadSafeQueue<float>>) == self.type()) {
+          return py::cast(any_cast<std::shared_ptr<ThreadSafeQueue<float>>>(self));
+        } else if (typeid(std::shared_ptr<ThreadSafeQueue<double>>) == self.type()) {
+          return py::cast(any_cast<std::shared_ptr<ThreadSafeQueue<double>>>(self));
+        } else if (typeid(std::shared_ptr<ThreadSafeQueue<short>>) == self.type()) {
+          return py::cast(any_cast<std::shared_ptr<ThreadSafeQueue<short>>>(self));
+        } else if (typeid(std::shared_ptr<ThreadSafeQueue<unsigned int>>) == self.type()) {
+          return py::cast(any_cast<std::shared_ptr<ThreadSafeQueue<unsigned int>>>(self));
+        } else {
+          throw py::type_error(
+              std::string("The object is not a std::shared_ptr<ThreadSafeQueue<T>>, is ") +
+              self.type().name());
+        }
+      });
 
   {
     bind_threadsafe_queue<int>(m, "Int");
@@ -346,7 +375,7 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
              })
         .def("__setitem__",
              [](ThreadSafeKVStorage& self, const std::string& path, const std::string& key,
-                pybind11::handle data) { self.set(path, key, object2any(data)); })
+                pybind11::handle data) { self.set_and_notify(path, key, object2any(data)); })
         .def("clear", py::overload_cast<>(&ThreadSafeKVStorage::clear))
         .def("erase", py::overload_cast<const std::string&>(&ThreadSafeKVStorage::erase))
         .def_static("getInstance", &ThreadSafeKVStorage::getInstance,
@@ -400,6 +429,35 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
            py::call_guard<py::gil_scoped_release>(), py::arg("callback"))
       .def("get_exception", &SimpleEvents::get_exception, py::call_guard<py::gil_scoped_release>())
       .def("try_throw", &SimpleEvents::try_throw, py::call_guard<py::gil_scoped_release>());
+
+  py::class_<CustomDict>(m, "Dict")
+      .def(py::init<>())
+      .def("__getitem__",
+           [](const CustomDict& d, const std::string& key) {
+             auto result = d->find(key);
+             if (result == d->end()) throw py::key_error("not found: " + key);
+             return result->second;
+           })
+      .def("__setitem__", [](CustomDict& d, const std::string& key,
+                             const ipipe::any& value) { d->insert({key, value}); })
+      .def("__delitem__", [](CustomDict& d, const std::string& key) { d->erase(key); })
+      .def("__contains__",
+           [](const CustomDict& d, const std::string& key) { return d->find(key) != d->end(); })
+      .def("__len__", [](const CustomDict& d) { return d->size(); })
+      .def(
+          "__iter__",
+          [](const CustomDict& d) { return py::make_key_iterator(d->begin(), d->end()); },
+          py::keep_alive<0, 1>())  // Keep object alive while iterator exists
+      .def(
+          "keys", [](const CustomDict& d) { return py::make_key_iterator(d->begin(), d->end()); },
+          py::keep_alive<0, 1>())  // Keep object alive while iterator exists
+      .def(
+          "values",
+          [](const CustomDict& d) { return py::make_value_iterator(d->begin(), d->end()); },
+          py::keep_alive<0, 1>())  // Keep object alive while iterator exists
+      .def(
+          "items", [](const CustomDict& d) { return py::make_iterator(d->begin(), d->end()); },
+          py::keep_alive<0, 1>());  // Keep object alive while iterator exists
 
 #ifdef WITH_TENSORRT
   m.def("infer_shape", py::overload_cast<const std::string&>(&infer_shape),

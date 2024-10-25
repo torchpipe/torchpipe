@@ -36,9 +36,9 @@ from scalellm.serve.api_protocol import (CompletionLogProbs, CompletionRequest,
                                          CompletionResponseChoice,
                                          CompletionResponseStreamChoice,
                                          CompletionStreamResponse)
-import sys
-sys.path.append('.')
-from async_backend_engine import AsyncEngine
+
+
+from torchpipe.serve.openai.async_backend_engine import AsyncEngine
 from scalellm.serve.server_args import parse_args
 
 app = fastapi.FastAPI(docs_url='/')
@@ -56,12 +56,12 @@ def create_error_response(
 
 
 def check_model(request) -> Optional[JSONResponse]:
-    if request.model not in models:
-        return create_error_response(
-            message=f"The model `{request.model}` does not exist.",
-            code=404,
-            status_code=HTTPStatus.NOT_FOUND,
-        )
+    # if request.model not in models:
+    #     return create_error_response(
+    #         message=f"The model `{request.model}` does not exist.",
+    #         code=404,
+    #         status_code=HTTPStatus.NOT_FOUND,
+    #     )
     return None
 
 
@@ -158,7 +158,7 @@ async def generate_completion_stream_response(
                                 logprobs=to_api_logprobs(
                                     seq_output.logprobs, cur_offset
                                 ),
-                                finish_reason=None,
+                                finish_reason=seq_output.finish_reason,
                             )
                         ],
                     )
@@ -167,24 +167,24 @@ async def generate_completion_stream_response(
                     yield f"data: {jsonify_model(response)}\n\n"
 
                 # send seperate chunk with finish reason
-                if seq_output.finish_reason:
-                    response = CompletionStreamResponse(
-                        id=request_id,
-                        object=chunk_object_type,
-                        created=created_time,
-                        model=model,
-                        choices=[
-                            CompletionResponseStreamChoice(
-                                index=seq_output.index,
-                                text="",
-                                logprobs=None,
-                                finish_reason=seq_output.finish_reason,
-                            )
-                        ],
-                    )
-                    if include_usage:
-                        response.usage = None
-                    yield f"data: {jsonify_model(response)}\n\n"
+                # if seq_output.finish_reason:
+                #     response = CompletionStreamResponse(
+                #         id=request_id,
+                #         object=chunk_object_type,
+                #         created=created_time,
+                #         model=model,
+                #         choices=[
+                #             CompletionResponseStreamChoice(
+                #                 index=seq_output.index,
+                #                 text="",
+                #                 logprobs=None,
+                #                 finish_reason=seq_output.finish_reason,
+                #             )
+                #         ],
+                #     )
+                #     if include_usage:
+                #         response.usage = None
+                #     yield f"data: {jsonify_model(response)}\n\n"
             # record last usage info
             if output.usage:
                 usage = output.usage
@@ -218,7 +218,7 @@ async def create_completion(request: CompletionRequest):
     if request.stream:
         return await generate_completion_stream_response(request, llm_engine)
     return create_error_response(
-            message=f"non-streaming completions are not supported",
+            message=f"non-streaming completions are not supported yet",
             code=404,
             status_code=HTTPStatus.METHOD_NOT_ALLOWED,
         )
@@ -227,7 +227,8 @@ async def create_completion(request: CompletionRequest):
 
 
  
-if __name__ == "__main__":
+def main():
+    global models, llm_engine
     args = parse_args()
     # set the model_id
     if args.model_id is not None:
@@ -256,6 +257,7 @@ if __name__ == "__main__":
 
     try:
         llm_engine.start()
+        print("Server start.")
         uvicorn.run(
             app,
             host=args.host,
@@ -269,3 +271,7 @@ if __name__ == "__main__":
     finally:
         # stop the LLM engine
         llm_engine.stop()
+    print(f"Server stop.")
+
+if __name__ == "__main__":
+    main()

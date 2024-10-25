@@ -11,9 +11,9 @@ plugin=torchpipe.utils.cpp_extension.load(name="plugin", sources=glob.glob("cpp/
                                    is_python_module=False)
   
 from transformers import AutoTokenizer, AutoModelForCausalLM
+from backend_engine import BackendEngine
 
-
-def main(model: str = 'model_files/', input: str = "San Francisco is a"):
+def _main(model: str = 'model_files/', input: str = "San Francisco is a"):
     tp_model = torchpipe.Pipe("config/llama2.toml")
 
     tokenizer = AutoTokenizer.from_pretrained(model)
@@ -41,4 +41,6 @@ def main(model: str = 'model_files/', input: str = "San Francisco is a"):
  
 if __name__ == '__main__':
     import fire
-    fire.Fire(main)
+    # fire.Fire(main)
+    from torchpipe.serve.openai.openai_server_scalellm import main
+    main()

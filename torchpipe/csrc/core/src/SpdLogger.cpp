@@ -58,9 +58,10 @@ class SpdLogger : public EmptyForwardSingleBackend {
       spdlog::default_logger()->set_pattern(iter_logger->second);
     } else {
 #ifndef NDEBUG
-      spdlog::default_logger()->set_pattern("[%L][%m/%d %H:%M:%S][%s:%# %!]: %v");
+      spdlog::default_logger()->set_pattern("[%L][%s:%# %!]: %v");
 #else
-      spdlog::default_logger()->set_pattern("[%l][%m/%d %H:%M:%S]: %v");
+      // spdlog::default_logger()->set_pattern("[%l][%m/%d %H:%M:%S]: %v");
+      spdlog::default_logger()->set_pattern("[%l]: %v");
 #endif
     }
 

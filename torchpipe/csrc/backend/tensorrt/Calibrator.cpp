@@ -89,6 +89,9 @@ void Calibrator::writeCalibrationCache(const void* cache, size_t length) noexcep
 
 bool Calibrator::init(const std::unordered_map<std::string, std::string>& config_param,
                       dict dict_config) {
+  SPDLOG_WARN(
+      "Implicit calibration is deprecated. Please use explicit calibration: "
+      "https://github.com/NVIDIA/TensorRT-Model-Optimizer.");
   params_ = std::unique_ptr<Params>(new Params({{"calibrate_cache", ""}, {"calibrate_input", ""}},
                                                {"calibrate_batchsize"}, {}, {}));
   if (!params_->init(config_param)) return false;

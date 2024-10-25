@@ -9,6 +9,7 @@
 #include <unordered_map>
 #include <shared_mutex>
 #include "any.hpp"
+#include <condition_variable>
 // #include "ipipe_common.hpp"
 namespace ipipe {
 
@@ -24,6 +25,11 @@ class ThreadSafeDict {
       return std::nullopt;
     }
     return map_[key];
+  }
+
+  bool has(const std::string& key) {
+    std::shared_lock<std::shared_mutex> lock(mutex_);
+    return map_.find(key) != map_.end();
   }
 
   void set(const std::string& key, const ipipe::any& value) {
@@ -60,12 +66,14 @@ class ThreadSafeKVStorage {
   // 读取数据
   std::optional<ipipe::any> get(const std::string& path, const std::string& key);
 
+  ipipe::any wait(const std::string& path, const std::string& key);
+
   // 写入数据
-  void set(const std::string& path, const std::string& key, ipipe::any data);
+  void set_and_notify(const std::string& path, const std::string& key, ipipe::any data);
 
   template <typename T>
-  void set(const std::string& path, const std::string& key, T data) {
-    set(path, key, ipipe::any(data));
+  void set_and_notify(const std::string& path, const std::string& key, T data) {
+    set_and_notify(path, key, ipipe::any(data));
   }
 
   // 清空数据
@@ -78,7 +86,8 @@ class ThreadSafeKVStorage {
 
   // any has a pybind11 binding： Any
   std::unordered_map<std::string, std::shared_ptr<ThreadSafeDict>> disk_;
-  std::shared_mutex mutex_;
+  mutable std::shared_mutex mutex_;
+  std::condition_variable_any cv_;
 };
 
 }  // namespace ipipe

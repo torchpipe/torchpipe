@@ -84,7 +84,7 @@ def get_dist(pkgname):
 
 cwd = os.path.dirname(os.path.abspath(__file__))
 
-version_txt = os.path.join(cwd, "version.txt")
+version_txt = os.path.join(cwd, "VERSION")
 with open(version_txt) as f:
     version = f.readline().strip()
 sha = "Unknown"

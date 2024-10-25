@@ -54,6 +54,11 @@ backend = 'S[Identity,(IsOtherExistFilter)CompareLongKey[RemoveKVCache, Add[rest
 compare_target = 2
 other = "input_tokens"
 
+next = 'python_callback'
+
+[python_callback]
+backend = "S[PyIdentity[PyStream]]"
+
 [batchless_decode]
 backend = "S[AppendOtherTensor,Result2Key(key=tmpkey)[PopKVCacheTensor],AppendKeyTensor(key=tmpkey), TensorrtTensor,PushKVCacheTensor,SyncTensor]" #
 instance_num = 1 

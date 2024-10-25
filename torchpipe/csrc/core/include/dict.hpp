@@ -30,8 +30,36 @@
 namespace ipipe {
 // using namespace nonstd;  // for any, any_cast
 
+class CustomDict {
+ public:
+  explicit CustomDict(std::unordered_map<std::string, ipipe::any>* ptr = nullptr) : data_(ptr) {}
+  explicit CustomDict(std::shared_ptr<std::unordered_map<std::string, ipipe::any>> ptr)
+      : data_(ptr) {}
+  ~CustomDict() = default;
+
+  // Smart pointer operations
+  void reset(std::unordered_map<std::string, ipipe::any>* ptr = nullptr) { data_.reset(ptr); }
+
+  std::unordered_map<std::string, ipipe::any>* get() const { return data_.get(); }
+
+  void swap(CustomDict& other) noexcept { data_.swap(other.data_); }
+
+  operator bool() const { return static_cast<bool>(data_); }
+
+  std::unordered_map<std::string, ipipe::any>& operator*() { return *data_; }
+  const std::unordered_map<std::string, ipipe::any>& operator*() const { return *data_; }
+  std::unordered_map<std::string, ipipe::any>* operator->() { return data_.get(); }
+  const std::unordered_map<std::string, ipipe::any>* operator->() const { return data_.get(); }
+
+  // Implicit conversion to std::shared_ptr
+  operator std::shared_ptr<std::unordered_map<std::string, ipipe::any>>() const { return data_; }
+
+ private:
+  std::shared_ptr<std::unordered_map<std::string, ipipe::any>> data_;
+};
+
 #ifdef CUSTOM_DICT
-// todo : custom dict binding to python
+using dict = CustomDict;
 #else
 using dict = std::shared_ptr<std::unordered_map<std::string, ipipe::any>>;
 #endif

@@ -17,18 +17,30 @@ ThreadSafeKVStorage& ThreadSafeKVStorage::getInstance() {
 
 std::optional<ipipe::any> ThreadSafeKVStorage::get(const std::string& path,
                                                    const std::string& key) {
-  std::shared_ptr<ThreadSafeDict> dict;
+  std::shared_ptr<ThreadSafeDict> dict_data;
   {
     std::shared_lock<std::shared_mutex> lock(mutex_);
     auto it = disk_.find(path);
     if (it != disk_.end()) {
-      dict = it->second;
+      dict_data = it->second;
     } else {
       return std::nullopt;
     }
   }
 
-  return dict->get(key);
+  return dict_data->get(key);
+}
+
+ipipe::any ThreadSafeKVStorage::wait(const std::string& path, const std::string& key) {
+  {
+    std::unique_lock<std::shared_mutex> lock(mutex_);
+    cv_.wait(lock, [this, path, key] {
+      auto it = this->disk_.find(path);
+      return it != disk_.end() && it->second->has(key);
+    });
+  }
+
+  return get(path, key);
 }
 
 // bool ThreadSafeKVStorage::has(const std::string& path) {
@@ -54,7 +66,8 @@ ThreadSafeDict& ThreadSafeKVStorage::get_or_insert(const std::string& path) {
   return *it->second;
 }
 // 写入数据
-void ThreadSafeKVStorage::set(const std::string& path, const std::string& key, ipipe::any value) {
+void ThreadSafeKVStorage::set_and_notify(const std::string& path, const std::string& key,
+                                         ipipe::any value) {
   std::shared_ptr<ThreadSafeDict> data;
   {
     // Use a shared lock for reading
@@ -80,6 +93,7 @@ void ThreadSafeKVStorage::set(const std::string& path, const std::string& key, i
     std::unique_lock<std::shared_mutex> lock(mutex_);
     disk_[path] = data;
   }
+  cv_.notify_all();
 }
 
 void ThreadSafeKVStorage::clear() {

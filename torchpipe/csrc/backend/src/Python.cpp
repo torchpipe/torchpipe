@@ -123,10 +123,13 @@ bool Python::init(const std::unordered_map<std::string, std::string>& config_par
   py::gil_scoped_acquire gil_lock;
   TRACE_EXCEPTION(py_backend_ = create_py(params_->at("Python::backend")));
   IPIPE_ASSERT(!py_backend_->is(py::none()));
-  if (!py_backend_->attr("init")(config_param)) {
-    SPDLOG_ERROR(params_->at("Python::backend") + " init failed");
-    return false;
+  if (py::hasattr(*py_backend_, "init")) {
+    if (!py_backend_->attr("init")(config_param)) {
+      SPDLOG_ERROR(params_->at("Python::backend") + " init failed");
+      return false;
+    }
   }
+
   return true;
   // return py_wrapper_->init(params_->at("module_name"), params_->at("backend_name"));
 }
@@ -160,6 +163,52 @@ void Python::forward(const std::vector<ipipe::dict>& input_dicts) {
   return;
 }
 
+bool PyIdentity::init(const std::unordered_map<std::string, std::string>& config_param,
+                      dict dict_config) {
+  params_ = std::unique_ptr<Params>(new Params({}, {"PyIdentity::backend"}, {}, {}));
+
+  if (!params_->init(config_param)) {
+    return false;
+  }
+
+  py::gil_scoped_acquire gil_lock;
+  TRACE_EXCEPTION(py_backend_ = create_py(params_->at("PyIdentity::backend")));
+  IPIPE_ASSERT(!py_backend_->is(py::none()));
+  if (py::hasattr(*py_backend_, "init")) {
+    if (!py_backend_->attr("init")(config_param)) {
+      SPDLOG_ERROR(params_->at("PyIdentity::backend") + " init failed");
+      return false;
+    }
+  }
+
+  return true;
+}
+
+void PyIdentity::forward(ipipe::dict input_dict) {
+  // params_->check_and_update(input_dict);
+
+  // py::list py_inputs;
+  // for (const auto& input_dict : input_dicts) {
+  //   py::dict py_input;
+  //   dict2py(input_dict, py_input, true);
+  //   py_inputs.append(py_input);
+  // }
+  auto data = (*input_dict)[TASK_DATA_KEY];
+  input_dict->erase(TASK_RESULT_KEY);
+
+  {
+    py::gil_scoped_acquire gil_lock;
+    py_backend_->attr("forward")(py::cast(CustomDict(input_dict)));
+  }
+
+#ifdef DEBUG
+  const auto& item = *input_dict;
+#endif
+  if (input_dict->find(TASK_RESULT_KEY) == input_dict->end()) (*input_dict)[TASK_RESULT_KEY] = data;
+
+  return;
+}
+
 uint32_t Python::max() const {
   py::gil_scoped_acquire gil_lock;
   if (py::hasattr(*py_backend_, "max")) {
@@ -174,6 +223,7 @@ Python::~Python() {
 }
 
 IPIPE_REGISTER(Backend, Python, "Python");
+IPIPE_REGISTER(Backend, PyIdentity, "PyIdentity");
 
 bool PyFilter::init(const std::unordered_map<std::string, std::string>& config_param,
                     dict dict_config) {

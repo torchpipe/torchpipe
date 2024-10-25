@@ -2,8 +2,8 @@
 # FROM nvcr.io/nvidia/cuda:11.6.0-runtime-ubuntu20.04 as base
 
 # docker build --network=host -f ./docker/Dockerfilex -t trt-10 thirdparty/
-ARG TRT_VER=10.3.0.26
-ARG TRT_URL=https://developer.nvidia.com/downloads/compute/machine-learning/tensorrt/10.3.0/tars/TensorRT-10.3.0.26.Linux.x86_64-gnu.cuda-11.8.tar.gz
+ARG TRT_VER=10.5.0.18
+ARG TRT_URL=https://developer.nvidia.com/downloads/compute/machine-learning/tensorrt/10.5.0/tars/TensorRT-10.5.0.18.Linux.x86_64-gnu.cuda-11.8.tar.gz
 # 
 # export TRT_VER=10.3.0.26
 # export TRT_URL=https://developer.nvidia.com/downloads/compute/machine-learning/tensorrt/10.3.0/tars/TensorRT-10.3.0.26.Linux.x86_64-gnu.cuda-11.8.tar.gz

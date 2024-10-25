@@ -249,6 +249,37 @@ class AppendOtherTensor : public SingleBackend {
 
 IPIPE_REGISTER(Backend, AppendOtherTensor);
 
+class AppendKeyTensor : public SingleBackend {
+ private:
+  std::string other_;
+  std::unique_ptr<Params> params_;
+
+ public:
+  bool init(const std::unordered_map<std::string, std::string>& config_param,
+            dict dict_config) override {
+    params_ = std::unique_ptr<Params>(new Params({{"key", "key"}}, {}, {}, {}));
+    if (!params_->init(config_param)) return false;
+    other_ = params_->at("key");
+    // backend_ = std::unique_ptr<Backend>(IPIPE_CREATE(Backend,
+    // params_->at("Result2Key::backend")));
+    // if (!backend_ || !backend_->init(config_param, dict_config)) return false;
+    return true;
+  }
+  void forward(dict input_dict) override {
+    auto data = dict_gets<torch::Tensor>(input_dict, TASK_DATA_KEY);
+
+    auto other = dict_gets<torch::Tensor>(input_dict, other_);
+    SPDLOG_DEBUG("{} + {}", data.size(), other.size());
+    data.insert(data.end(), other.begin(), other.end());
+    input_dict->operator[](TASK_RESULT_KEY) = data;
+  }
+
+ private:
+  //   llamaRotaryEmbedding.forward(causal_mask, cache_position);
+};
+
+IPIPE_REGISTER(Backend, AppendKeyTensor);
+
 class Append2OtherTensor : public SingleBackend {
  private:
   std::string other_;
