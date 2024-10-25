@@ -8,6 +8,7 @@ from scalellm._C import (LLMHandler, Message, Priority, RequestOutput,
 from scalellm.downloader import download_hf_model
 from scalellm.errors import ValidationError
 
+import sys
 import threading
  
 
@@ -72,9 +73,15 @@ class OutputAsyncStream:
 
 from scalellm.serve.api_protocol import (ChatCompletionRequest,
                                          CompletionRequest)
-import sys
-sys.path.append('.')
-from backend_engine import  BackendEngine
+
+# 获取环境变量 BACKEND_ENGINE_PATH 的值
+backend_engine_path = os.getenv('BACKEND_ENGINE_PATH', '.')
+
+# 将 BACKEND_ENGINE_PATH 添加到 sys.path
+sys.path.append(backend_engine_path)
+
+# 导入 BackendEngine 模块
+from backend_engine import BackendEngine
 
         
 class AsyncEngine:
@@ -83,7 +90,7 @@ class AsyncEngine:
         args: dict,
     ) -> None:
         self.config = args
-        self.backend = BackendEngine(args)
+        self.backend = BackendEngine()
 
     # schedule a request to the engine, and return a stream to receive output
     async def schedule_async(

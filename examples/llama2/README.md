@@ -59,3 +59,8 @@ The computation for the batchless part could be implemented as a standalone CUDA
 
 # Streaming Inference with Llama2
 WIP
+
+
+```
+BACKEND_ENGINE_PATH=./ python run_llama2_streaming.py 
+```

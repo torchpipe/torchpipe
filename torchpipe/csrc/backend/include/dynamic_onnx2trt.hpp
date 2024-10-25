@@ -38,6 +38,7 @@ struct OnnxParams {
   std::string allocator;
   std::string log_level;
   std::vector<int> input_reorder;
+  int force_layer_norm_pattern_fp32;
 };
 
 std::shared_ptr<CudaEngineWithRuntime> onnx2trt(

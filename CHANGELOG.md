@@ -1,4 +1,6 @@
 # Changelog
+## v0.6.4 (2024.10.18)
+- Add force_layer_norm_pattern_fp32 (tensorrt >= 9, default to 0)
 
 ## v0.6.3 (2024.09.27)
 - Add lots of key-value base instruction backends

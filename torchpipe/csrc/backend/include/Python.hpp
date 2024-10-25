@@ -71,6 +71,24 @@ class Python : public Backend {
   // static py::scoped_interpreter python_;
 };
 
+class PyIdentity : public SingleBackend {
+ public:
+  virtual bool init(const std::unordered_map<std::string, std::string>&, dict) override;
+
+  /**
+   * @param TASK_DATA_KEY cv::Mat, 数据类型不限，通道顺序支持 hwc, c==3.
+   * @todo 支持的通道顺序与CropTensor对齐
+   * @param[out] TASK_RESULT_KEY cv::Mat
+   */
+  virtual void forward(dict input_dict) override;
+
+ private:
+  std::unique_ptr<Params> params_;
+  PyObjectPtr py_backend_;
+
+  // static py::scoped_interpreter python_;
+};
+
 class PyFilter : public Filter {
  public:
   virtual bool init(const std::unordered_map<std::string, std::string>& config,

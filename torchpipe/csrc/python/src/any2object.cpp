@@ -104,7 +104,17 @@ py::object cast_arithmetic(const any& data) {
 py::object cast_other(const any& data) {
   const auto& type = data.type().type();
   if (type == typeid(std::string)) {
-    return py::bytes(py_cast<std::string>(data));
+    // return py::str(str_data);
+    return py_cast<std::string>(data);
+    // std::string str_data = ;
+    // return py::cast(data);
+    // try {
+    //   // 尝试将字符串解码为 UTF-8
+    //   return py::str(str_data);
+    // } catch (const std::exception&) {
+    //   // 如果解码失败，则将其作为二进制数据处理
+    // return py::bytes(py::cast<std::string>(data));
+    // }
   }
 #ifdef WITH_OPENCV
   else if (type == typeid(cv::Mat)) {

@@ -45,7 +45,8 @@ bool Onnx2TensorrtConverter::init(const std::unordered_map<std::string, std::str
                                                 {"max_workspace_size", "2048"},
                                                 {"allocator", "torch"},
                                                 {"log_level", "verbose"},
-                                                {"input_reorder", ""}},
+                                                {"input_reorder", ""},
+                                                {"force_layer_norm_pattern_fp32", "0"}},
                                                {}, {}, {}));
 
   if (!params_->init(config_param)) return false;
@@ -235,6 +236,7 @@ bool Onnx2TensorrtConverter::init(const std::unordered_map<std::string, std::str
     onnxp.timecache = params_->at("model::timingcache");
     onnxp.precision = params_->at("precision");
     onnxp.allocator = params_->at("allocator");
+    onnxp.force_layer_norm_pattern_fp32 = std::stoi(params_->at("force_layer_norm_pattern_fp32"));
     if (!params_->at("input_reorder").empty()) {
       onnxp.input_reorder = str2int(params_->at("input_reorder"), ',');
       IPIPE_ASSERT(onnxp.input_reorder.size() > 0);

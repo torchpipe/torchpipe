@@ -1,0 +1,72 @@
+"Interpreter::backend" = "Ring"
+
+'precision' = 'fp16'
+'precision_fp32' = 'softmax,pow'
+
+max_workspace_size = 24000
+
+[input]
+backend = "S[GpuTensor,KeyA2KeyB,SyncTensor]"
+key_a = "data"
+key_b = "input_tokens"
+next = "embed_tokens"
+
+[embed_tokens]
+backend = "S[EmbedTokensTensor,Result2Other[GenerateCosSinMaskTensor],SyncTensor]" # ,Jump[batchful]] 
+# restart = "batchful" 
+next = "batchful"
+
+# torch.save(model.model.embed_tokens.weight.requires_grad_(False).data.cpu(), "embed_tokens.pt")
+embed_tokens = "model_files/embed_tokens.pt"
+
+[batchful]
+# PluginCacher is used to cache parameters and input data for (tensorrt) plugin
+'backend' = 'S[ThreadLocalCacher[TensorrtTensor],ArgMaxTensor,SyncTensor]'
+scheduler = "Batching"
+
+cal_request_size_method = "CalTorchBatchSize" # calc. request_size according to torch tensor size
+
+max = '1024'
+'model' = 'model_files/batchful.onnx'
+'model::cache' = 'model_files/batchful.trt'
+next = 'cache'
+
+[cache]
+backend = "S[Append2OtherTensor,Result2Key[LongItemTensor],KeyA2KeyB,CheckOtherSeqLenTensor,SyncTensor]"
+key_a = 'input_tokens'
+key_b = 'input_tokens_result'
+max_new_tokens = 7
+max_seq_len = 4096
+next = 'check_eos'
+other = 'input_tokens'
+
+[batchless_prefill]
+backend = "S[AppendOtherTensor,TensorrtTensor,PushKVCacheTensor,SyncTensor]" #
+instance_num = 1 
+max = '1x2048x4096,1x2048x4096,1x2048x4096,1x2048x128,1x2048x128,1x1x2048x2048' 
+# q k v cos sin mask
+min = '1x1x4096,1x1x4096,1x1x4096,1x1x128,1x1x128,1x1x1x1'
+'model' = 'model_files/batchless_prefill.onnx'
+'model::cache' = 'model_files/batchless_prefill.trt'
+
+[check_eos]
+backend = 'S[Identity,(IsOtherExistFilter)CompareLongKey[RemoveKVCache, Add[restart:embed_tokens,trt_plugin:batchless_decode]],ExistKey(key=restart)[Identity,RemoveKVCache]]'
+compare_target = 2
+other = "input_tokens"
+
+next = 'python_callback'
+
+[python_callback]
+backend = "S[PyIdentity[PyStream]]"
+
+[batchless_decode]
+backend = "S[AppendOtherTensor,Result2Key(key=tmpkey)[PopKVCacheTensor],AppendKeyTensor(key=tmpkey), TensorrtTensor,PushKVCacheTensor,SyncTensor]" #
+instance_num = 1 
+max = '1x1x4096,1x1x4096,1x1x4096,1x1x128,1x1x128,1x1x1x2048,1x32x2047x128,1x32x2047x128' 
+# q k v cos sin mask
+min = '1x1x4096,1x1x4096,1x1x4096,1x1x128,1x1x128,1x1x1x1,1x32x1x128,1x32x1x128'
+'model' = 'model_files/batchless_decode.onnx'
+'model::cache' = './model_files/batchless_decode.trt'
+
+[remove_storage]
+backend = "RemoveStorage"
