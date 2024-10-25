@@ -123,4 +123,16 @@ class PopKVCacheTensor : public SingleBackend {
   std::unique_ptr<Params> params_;
   std::unique_ptr<Backend> engine_;
 };
+
+class RequestTimeStamp : public SingleBackend {
+ public:
+  virtual bool init(const std::unordered_map<std::string, std::string>&, dict) override;
+
+  virtual void forward(dict) override;
+
+ private:
+  std::unique_ptr<Params> params_;
+  std::unique_ptr<Backend> engine_;
+};
+
 }  // namespace ipipe

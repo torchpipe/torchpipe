@@ -22,11 +22,9 @@
 #include "any.hpp"
 
 namespace ipipe {
-using namespace nonstd; // for any, any_cast
+using namespace nonstd;  // for any, any_cast
 
-std::chrono::steady_clock::time_point inline now() {
-  return std::chrono::steady_clock::now();
-}
+std::chrono::steady_clock::time_point inline now() { return std::chrono::steady_clock::now(); }
 
 float inline time_passed(decltype(now()) time_old) {
   std::chrono::duration<float, std::milli> fp_ms = now() - time_old;
@@ -49,10 +47,7 @@ float inline time_passed(any time_old) {
 /// 辅助的RAII型计时工具
 class time_guard {
  public:
-  time_guard(
-      std::string message = "",
-      bool print = true,
-      uint32_t time_out = UINT32_MAX /*ms*/)
+  time_guard(std::string message = "", bool print = true, uint32_t time_out = UINT32_MAX /*ms*/)
       : starttime_(now()), message_(message), time_out_(time_out) {
     bPrint = print;
 
@@ -62,22 +57,15 @@ class time_guard {
   time_guard& operator=(const time_guard&) = delete;
   time_guard(const time_guard&) = delete;
 
-  ~time_guard() {
-    stop();
-  }
+  ~time_guard() { stop(); }
   time_guard& add(const std::string& info) {
     message_ += " || " + info;
     return *this;
   }
-  void silence() {
-    bStopped = true;
-  }
-  float time() {
-    return time_passed(starttime_);
-  }
-  void stop()  /*超时强制宕机*/ {
-    if (bStopped)
-      return;
+  void silence() { bStopped = true; }
+  float time() { return time_passed(starttime_); }
+  void stop() /*超时强制宕机*/ {
+    if (bStopped) return;
     bStopped = true;
 
     auto time_used = time_passed(starttime_);
@@ -87,8 +75,7 @@ class time_guard {
       message_ += " || time used: " + str_time;
     else
       message_ += str_time;
-    if (bPrint)
-      std::cout << message_ << std::endl;
+    if (bPrint) std::cout << message_ << std::endl;
     // if (time_used > time_out_)
     //   throw std::runtime_error("timeout: " + message_); // 强制宕机
   }
@@ -103,7 +90,7 @@ class time_guard {
     bStopped = false;
   }
 
-  const std::string& release()  {
+  const std::string& release() {
     bPrint = false;
     time_out_ = UINT32_MAX;
     stop();
@@ -119,4 +106,4 @@ class time_guard {
   uint32_t time_out_;
 };
 
-} // namespace ipipe
+}  // namespace ipipe

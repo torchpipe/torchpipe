@@ -48,21 +48,58 @@ bool PushKVCacheTensor::init(const std::unordered_map<std::string, std::string>&
     return false;
   }
 
-  // auto instance_num = std::stoi(params_->at("instance_num"));
-  // IPIPE_ASSERT(instance_num == 1);
+  return true;
+}
 
-  // todo
-  //  int _independent_thread_index = 0;
+bool RequestTimeStamp::init(const std::unordered_map<std::string, std::string>& config_param,
+                            dict dict_config) {
+  params_ =
+      std::unique_ptr<Params>(new Params({{"RequestTimeStamp::backend", "Identity"}}, {}, {}, {}));
 
-  //  if (!params_->at("_independent_thread_index").empty()) {
-  //    TRACE_EXCEPTION(_independent_thread_index =
-  //                        std::stoi(params_->at("_independent_thread_index")));
-  //  } else {
-  //    _independent_thread_index = 0;
-  //  }
+  if (!params_->init(config_param)) return false;
+
+  engine_ =
+      std::unique_ptr<Backend>(IPIPE_CREATE(Backend, params_->at("RequestTimeStamp::backend")));
+
+  auto config_param_new = config_param;
+  config_param_new.erase("RequestTimeStamp::backend");
+
+  if (!engine_ || !engine_->init(config_param_new, dict_config)) {
+    return false;
+  }
 
   return true;
 }
+
+void RequestTimeStamp::forward(dict input_dict) {
+  static auto& storage = ThreadSafeKVStorage::getInstance();
+
+  auto iter = input_dict->find("request_id");
+  IPIPE_ASSERT(iter != input_dict->end());
+  std::string request_id = any_cast<std::string>(iter->second);
+  SPDLOG_DEBUG("RequestTimeStamp request_id: {}", request_id);
+
+  auto& storage_kv = storage.get_or_insert(request_id);
+
+  auto& input = *input_dict;
+
+  auto time_stamp = storage_kv.get("time_stamp");
+
+  auto now_time = time_passed();
+  if (!time_stamp) {
+    storage_kv.set("time_stamp", std::make_shared<std::vector<decltype(now_time)>>(1, now_time));
+  } else {
+    std::shared_ptr<std::vector<decltype(now_time)>> ptime_stamp =
+        any_cast<std::shared_ptr<std::vector<decltype(now_time)>>>(*time_stamp);
+    SPDLOG_INFO("request({}, {}) time: {}", ptime_stamp->size() - 1, request_id,
+                now_time - ptime_stamp->back());
+    ptime_stamp->push_back(now_time);
+  }
+
+  engine_->forward({input_dict});
+}
+
+IPIPE_REGISTER(Backend, RequestTimeStamp, "RequestTimeStamp");
 
 void PushKVCacheTensor::forward(dict input_dict) {
   static auto& storage = ThreadSafeKVStorage::getInstance();
