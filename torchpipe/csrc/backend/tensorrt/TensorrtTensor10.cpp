@@ -50,11 +50,6 @@ namespace ipipe {
 
 bool TensorrtTensor::init(const std::unordered_map<std::string, std::string>& config_param,
                           dict dict_config) {
-  SPDLOG_WARN(
-      "TensorRT <= 8.4 is deprecated, and torchpipe behavior follows the old version "
-      "mode, which may be slightly different from the behavior in the higher version mode. Please "
-      "use TensorRT >= 8.5. Got {}.{}",
-      NV_TENSORRT_MAJOR, NV_TENSORRT_MINOR);
 #if NV_TENSORRT_MAJOR < 8
   SPDLOG_ERROR("tensorrt version should >= 8 but got {}.{}", NV_TENSORRT_MAJOR, NV_TENSORRT_MINOR);
   return false;

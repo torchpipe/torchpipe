@@ -1,6 +1,10 @@
 # Changelog
+
+## v0.6.6 (WIP)
+
+
 ## v0.6.5 (2024.10.25)
-- Add force_layer_norm_pattern_fp32 (tensorrt >= 9, default to 0)
+- Add force_layer_norm_pattern_fp32 
 - Implemented partial streaming openai interface.
 - Consolidate the code supporting TensorRT >= 8.5, 9, and 10.
 - TensorRT <= 8.4 is deprecated now

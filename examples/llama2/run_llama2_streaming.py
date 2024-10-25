@@ -42,5 +42,5 @@ def _main(model: str = 'model_files/', input: str = "San Francisco is a"):
 if __name__ == '__main__':
     import fire
     # fire.Fire(main)
-    from torchpipe.serve.openai.openai_server_scalellm import main
+    from torchpipe.serve.openai.openai_server_api import main
     main()

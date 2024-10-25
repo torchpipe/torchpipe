@@ -3,9 +3,10 @@ import queue
 import threading
 import shortuuid
 
-from scalellm._C import (LLMHandler, Message, Priority, RequestOutput,
-                         SamplingParams, Status, StatusCode, SequenceOutput, Usage)
+# from scalellm._C import (LLMHandler, Message, Priority, RequestOutput,
+#                          SamplingParams, Status, StatusCode, SequenceOutput, Usage)
 
+from torchpipe.serve.output import RequestOutput, SequenceOutput,  Status, StatusCode
 import torchpipe as tp
 
  

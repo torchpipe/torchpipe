@@ -18,20 +18,33 @@ import fastapi
 import uvicorn
 from fastapi.responses import JSONResponse, Response
 
-from scalellm import LogProb, ValidationError
+from torchpipe.serve.output import LogProb
+from torchpipe.serve.errors import ValidationError
 # , get_metrics
-from scalellm.serve.api_protocol import (ChatCompletionRequest,
+from torchpipe.serve.api_protocol import (ChatCompletionRequest,
                                          CompletionRequest, ErrorResponse,
                                          ModelCard, ModelList, ModelPermission)
 # from scalellm.serve.chat_handler import (generate_chat_response,
 #                                          generate_chat_stream_response)
 # from scalellm.serve.completion_handler import (
 #     generate_completion_response, generate_completion_stream_response)
-from scalellm.serve.streaming_response import SafeStreamingResponse
-from scalellm.serve.common import (get_printable_token, jsonify_model,
-                                   to_api_usage, to_priority)
+from torchpipe.serve.streaming_response import SafeStreamingResponse
+# from scalellm.serve.common import (get_printable_token, jsonify_model,
+#                                    to_api_usage, to_priority)
 
-from scalellm.serve.api_protocol import (CompletionLogProbs, CompletionRequest,
+def jsonify_model(obj):
+    return obj.model_dump_json(exclude_unset=True)
+
+def get_printable_token(logprob) -> str:
+    return (
+        logprob.token
+        if logprob.finished_token
+        else "".join(
+            f"\\x{byte:02x}" for byte in logprob.token.encode("utf-8", errors="replace")
+        )
+    )
+    
+from torchpipe.serve.api_protocol import (CompletionLogProbs, CompletionRequest,
                                          CompletionResponse,
                                          CompletionResponseChoice,
                                          CompletionResponseStreamChoice,
@@ -39,7 +52,7 @@ from scalellm.serve.api_protocol import (CompletionLogProbs, CompletionRequest,
 
 
 from torchpipe.serve.openai.async_backend_engine import AsyncEngine
-from scalellm.serve.server_args import parse_args
+from torchpipe.serve.server_args import parse_args
 
 app = fastapi.FastAPI(docs_url='/')
 llm_engine: AsyncEngine = None
@@ -126,11 +139,11 @@ async def generate_completion_stream_response(
     model = request.model
 
     # sampling_params = to_sampling_params(request)
-    priority = to_priority(request.priority)
+    # priority = to_priority(request.priority)
     output_stream = await engine.schedule_async(
         request.prompt,
         sampling_params=None,
-        priority=priority,
+        priority=None,
         stream=request.stream,
     )
 
@@ -165,6 +178,7 @@ async def generate_completion_stream_response(
                     if include_usage:
                         response.usage = None
                     yield f"data: {jsonify_model(response)}\n\n"
+                    # yield f"data: {response.model_dump_json(exclude_unset=True)}"
 
                 # send seperate chunk with finish reason
                 # if seq_output.finish_reason:
@@ -197,7 +211,7 @@ async def generate_completion_stream_response(
                 created=created_time,
                 model=model,
                 choices=[],
-                usage=to_api_usage(usage),
+                usage=None,
             )
             yield f"data: {jsonify_model(response)}\n\n"
         yield "data: [DONE]\n\n"
