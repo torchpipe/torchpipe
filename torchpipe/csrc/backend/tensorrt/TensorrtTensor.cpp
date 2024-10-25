@@ -49,6 +49,22 @@ namespace ipipe {
 
 bool TensorrtTensor::init(const std::unordered_map<std::string, std::string>& config_param,
                           dict dict_config) {
+  SPDLOG_WARN(
+      "TensorRT <= 8.4 is deprecated, and torchpipe behavior follows the old version "
+      "mode, which may be slightly different from the behavior in the higher version mode. Please "
+      "use TensorRT >= 8.5. Got {}.{}",
+      NV_TENSORRT_MAJOR, NV_TENSORRT_MINOR);
+
+#if NV_TENSORRT_MAJOR < 7
+  SPDLOG_ERROR("tensorrt version should >= 7.2 but got {}.{}", NV_TENSORRT_MAJOR,
+               NV_TENSORRT_MINOR);
+  return false;
+
+#elif NV_TENSORRT_MAJOR == 7 && NV_TENSORRT_MINOR < 2
+  SPDLOG_WARN("tensorrt version should >= 7.2 but got {}.{}", NV_TENSORRT_MAJOR, NV_TENSORRT_MINOR);
+  return false;
+#endif
+
   if (torch_is_using_default_stream()) {
     SPDLOG_WARN(
         "TensorrtTensor runs in default stream. This would cause error if downstream nodes use "
@@ -65,19 +81,6 @@ bool TensorrtTensor::init(const std::unordered_map<std::string, std::string>& co
                                                 {"force_range", ""},
                                                 {"batch_process", ""}},
                                                {}, {}, {}));
-
-#if NV_TENSORRT_MAJOR < 7
-  SPDLOG_ERROR("tensorrt version should >= 7.2 but got {}.{}", NV_TENSORRT_MAJOR,
-               NV_TENSORRT_MINOR);
-  return false;
-
-#elif NV_TENSORRT_MAJOR == 7 && NV_TENSORRT_MINOR < 2
-  SPDLOG_WARN("tensorrt version should >= 7.2 but got {}.{}", NV_TENSORRT_MAJOR, NV_TENSORRT_MINOR);
-
-#elif NV_TENSORRT_MAJOR == 8
-  SPDLOG_WARN("tensorrt 8 is deprecated, please use tensorrt 9.0 - 10.3. Got {}.{}",
-              NV_TENSORRT_MAJOR, NV_TENSORRT_MINOR);
-#endif
 
   if (!params_->init(config_param)) return false;
   if (!dict_config) {
