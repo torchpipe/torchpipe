@@ -14,9 +14,7 @@ async def fetch_completion(session, url, headers, data):
             yield line.decode('utf-8')
 
 
-async def main():
-    prompts = ["San Francisco is a",
-              "Do you know the book Traction by Gino Wickman"]
+async def main(prompt="San Francisco is a", max_tokens=7):
     url = "http://0.0.0.0:8080/v1/completions"
     headers = {
         'accept': 'application/json',
@@ -24,11 +22,11 @@ async def main():
     }
     data = {
         "model": "string",
-        "prompt": prompts[-1],
+        "prompt": prompt,
         "priority": "default",
         "n": 1,
         "best_of": 0,
-        "max_tokens": 132,
+        "max_tokens": max_tokens,
         "stream": True,
         "stream_options": {
             "include_usage": True
@@ -62,4 +60,6 @@ async def main():
         print("Time taken for each request: ", [int(1000*(times[i] - times[i-1])) for i in range(1, len(times))])
         print(f"total: {times[-1] - times[0]}")
 if __name__ == "__main__":
-    asyncio.run(main())
+    # asyncio.run(main())
+    import fire
+    fire.Fire(main)

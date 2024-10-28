@@ -78,6 +78,8 @@ only support partiqular model and prompt for now.
  
 
 BACKEND_ENGINE_PATH=./ python run_llama2_streaming.py 
+
+python chat_client.py
 ```
 
 
