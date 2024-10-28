@@ -16,7 +16,7 @@
 #include <torch/torch.h>
 #include "PluginCacher.hpp"
 #include "dict_helper.hpp"
-
+#include "time_utils.hpp"
 #define PLUGIN_ASSERT(val) reportAssertion((val), #val, __FILE__, __LINE__)
 
 namespace {
@@ -328,6 +328,7 @@ int32_t TorchPlugin::enqueue(PluginTensorDesc const* inputDesc, PluginTensorDesc
     if (ret != cudaSuccess) return ret;
 
     try {
+      ipipe::time_guard guard("TorchPlugin:interpreter_->forward");
       interpreter_->forward(user_datas);
     } catch (std::exception const& e) {
       caughtError(e);

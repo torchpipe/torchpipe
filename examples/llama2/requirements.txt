@@ -3,3 +3,4 @@ shortuuid
 fire
 fastapi
 uvicorn
+aiohttp
