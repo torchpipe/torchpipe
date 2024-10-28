@@ -2,6 +2,7 @@
 import queue
 import threading
 import shortuuid
+import time
 
 # from scalellm._C import (LLMHandler, Message, Priority, RequestOutput,
 #                          SamplingParams, Status, StatusCode, SequenceOutput, Usage)
@@ -43,7 +44,10 @@ class PyStream:
             seq.finish_reason = "stop"
             output.finished = True 
         else:
+            
+            # start = time.perf_counter()
             text = self.tokenizer.decode(input['key'], skip_special_tokens=True)
+            # print(f"Time taken to decode: {time.perf_counter() - start}")
             print(f"text = ", text, input['key'])
             
             seq.text = text  # input['result'].decode('utf-8')+ " good"
@@ -81,16 +85,19 @@ class BackendEngine:
         
         ev = tp.Event()
         input = data['prompt']#{'data': data['prompt'], 'event': ev, 'request_id': request_id}
+        max_tokens = data['max_tokens']
         
+        # start = time.perf_counter()
         inputs = self.tokenizer(input, return_tensors="pt")
-
+        # print(f"Time taken to tokenize: {time.perf_counter() - start}")
         # print(inputs["input_ids"])
-
+        print(f'max_tokens={max_tokens}')
         inputs = {
             'data': inputs["input_ids"][0],
             'node_name': 'input',
             'trt_plugin': 'batchless_prefill',
-            'event': ev, 'request_id': request_id
+            'event': ev, 'request_id': request_id,
+            "max_tokens":max_tokens, 
         }
         
         request_state[request_id] = (ev, request_callback)

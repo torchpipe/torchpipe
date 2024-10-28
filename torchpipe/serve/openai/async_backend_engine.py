@@ -10,7 +10,7 @@ from typing import List, Optional
 from torchpipe.serve.output import RequestOutput
 
 from torchpipe.serve.errors import ValidationError
-
+from torchpipe.serve.api_protocol import CompletionRequest
 import sys
 import threading
  
@@ -102,6 +102,7 @@ class AsyncEngine:
         sampling_params,
         priority: None,
         stream: bool = False,
+        request: CompletionRequest = None,
     ) -> OutputAsyncStream:
         output_stream = OutputAsyncStream()
 
@@ -114,7 +115,9 @@ class AsyncEngine:
         #     prompt, sampling_params, priority, stream, callback
         # )
         try:
-            self.backend.forward_async({'prompt': prompt, 'priority': priority, 'stream': stream, 'callback': callback})
+            self.backend.forward_async({'prompt': prompt, 'priority': priority,
+                                        'stream': stream, 'callback': callback,
+                                        'max_tokens': request.max_tokens})
         except Exception as e:
             output_stream.error(str(e))
         return output_stream

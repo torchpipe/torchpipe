@@ -64,6 +64,7 @@ class TimeGuard {
   }
   void silence() { bStopped = true; }
   float time() { return time_passed(starttime_); }
+  float elapsed() { return time_passed(starttime_); }
   void stop() /*超时强制宕机*/ {
     if (bStopped) return;
     bStopped = true;

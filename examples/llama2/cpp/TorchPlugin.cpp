@@ -330,6 +330,7 @@ int32_t TorchPlugin::enqueue(PluginTensorDesc const* inputDesc, PluginTensorDesc
     try {
       ipipe::TimeGuard guard("TorchPlugin:interpreter_->forward");
       interpreter_->forward(user_datas);
+      if (guard.elapsed() < 1) guard.silence();
     } catch (std::exception const& e) {
       caughtError(e);
       return -1;

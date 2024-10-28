@@ -53,6 +53,17 @@ The computation for the batchless part could be implemented as a standalone CUDA
     python run_llama2.py --model model_files/ --input "San Francisco is a" 
     #NUM_LAYER = 2:  San Francisco is a totalitéaletoreignersbyMSран
     #NUM_LAYER = 32:  San Francisco is a city in Northern California that is known
+
+
+    # python run_llama2.py --model model_files/ --input "Do you know the book Traction by Gino Wickman" --max_tokens 132
+    
+#     Do you know the book Traction by Gino Wickman?
+
+# Traction is a book written by Gino Wickman, a business coach and author, that provides a framework for creating a successful business. The book focuses on the importance of having a clear vision, establishing a strong leadership team, and implementing a set of core values that guide decision-making.
+
+# The book introduces the concept of the "EOS (Entrepreneurial Operating System)," which is a set of tools and processes that help businesses achieve their goals and create a sustainable, successful organization. The EOS framework includes six key components:
+
+# 1. Vision: Develop
 ```
 
 
@@ -62,9 +73,48 @@ WIP
 
 
 ```
+
+only support partiqular model and prompt for now.
+ 
+
 BACKEND_ENGINE_PATH=./ python run_llama2_streaming.py 
 ```
 
 
 
 # Benchmark
+
+
+
+### vllm results(qps=2, A10)
+
+```bash
+python3 -m vllm.entrypoints.openai.api_server -tp 1 -pp 1 --gpu-memory-utilization 0.95         --model ../Llama-2-7b-chat-hf/ --port 8000 --disable-log-stats --disable-log-requests 
+
+ python3 benchmark_serving.py --backend vllm  --model ../Llama-2-7b-chat-hf/         --dataset-name sharegpt --dataset-path ../ShareGPT_V3_unfiltered_cleaned_split.json         --num-prompts 500 --port 8000 --save-result --result-dir results/ --result-filename vllm_llama7B_tp1_qps_2.json --request-rate 2   
+```
+
+```bash
+============ Serving Benchmark Result ============
+Successful requests:                     500       
+Benchmark duration (s):                  277.76    
+Total input tokens:                      117316    
+Total generated tokens:                  105842    
+Request throughput (req/s):              1.80      
+Input token throughput (tok/s):          422.36    
+Output token throughput (tok/s):         381.05    
+---------------Time to First Token----------------
+Mean TTFT (ms):                          98.79     
+Median TTFT (ms):                        69.11     
+P99 TTFT (ms):                           541.40    
+-----Time per Output Token (excl. 1st token)------
+Mean TPOT (ms):                          52.21     
+Median TPOT (ms):                        51.64     
+P99 TPOT (ms):                           73.41     
+---------------Inter-token Latency----------------
+Mean ITL (ms):                           52.88     
+Median ITL (ms):                         44.33     
+P99 ITL (ms):                            239.62    
+==================================================
+```
+

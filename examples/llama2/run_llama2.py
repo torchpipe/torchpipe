@@ -13,7 +13,7 @@ plugin=torchpipe.utils.cpp_extension.load(name="plugin", sources=glob.glob("cpp/
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
 
-def main(model: str = 'model_files/', input: str = "San Francisco is a"):
+def main(model: str = 'model_files/', input: str = "San Francisco is a", max_tokens: int = 7):
     tp_model = torchpipe.Pipe("config/llama2.toml")
 
     tokenizer = AutoTokenizer.from_pretrained(model)
@@ -25,7 +25,8 @@ def main(model: str = 'model_files/', input: str = "San Francisco is a"):
         'data': inputs["input_ids"][0],
         'request_id': 'r0',
         'node_name': 'input',
-        'trt_plugin': 'batchless_prefill'
+        'trt_plugin': 'batchless_prefill',
+        'max_tokens': max_tokens
     }
 
     tp_model(inputs)

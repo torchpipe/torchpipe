@@ -405,13 +405,13 @@ def save_decode_batchless(model, save_path = 'model_files/'):
     
     llama_model.layers[0].self_attn.forward = origin_forward
     
-def inference(model, inputs):
+def inference(model, inputs, max_tokens):
     
     
     with torch.no_grad():
         outputs = model.generate(
             inputs["input_ids"],
-            max_new_tokens=7,
+            max_new_tokens=max_tokens,
             do_sample=False,
             temperature=0.0,
         )
@@ -429,7 +429,7 @@ def save_embed_tokens(model, save_dir = 'model_files/'):
     torch.save(tensor, save_name)
     print(f"Embedding tokens saved to {save_name}")
 
-def main(model: str, output_dir: str = 'model_files/', export: str = None, num_layers: int = 32, test: bool = False, input = "San Francisco is a", device = None):
+def main(model: str, output_dir: str = 'model_files/', export: str = None, num_layers: int = 32, test: bool = False, input = "San Francisco is a", device = None, max_tokens = 7):
     # Load the model and tokenizer
     tokenizer = AutoTokenizer.from_pretrained(model)
     model = AutoModelForCausalLM.from_pretrained(model, attn_implementation='eager', torch_dtype="float16")
@@ -458,7 +458,7 @@ def main(model: str, output_dir: str = 'model_files/', export: str = None, num_l
         text = input# "San Francisco is a"
         
         inputs = tokenizer(text, return_tensors="pt").to(device)
-        output = inference(model, inputs)
+        output = inference(model, inputs, max_tokens)
         generated_text = tokenizer.decode(output, skip_special_tokens=True)
         print(f"{generated_text}") 
     else:

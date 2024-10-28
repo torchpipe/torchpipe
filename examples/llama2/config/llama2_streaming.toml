@@ -32,11 +32,11 @@ max = '1024'
 next = 'cache'
 
 [cache]
-backend = "S[Append2OtherTensor,Result2Key[LongItemTensor],KeyA2KeyB,CheckOtherSeqLenTensor,SyncTensor]"
+backend = "S[Append2OtherTensor,Result2Key[LongItemTensor],KeyA2KeyB,RemoveOtherSeqLenTensor,SyncTensor]"
 key_a = 'input_tokens'
 key_b = 'input_tokens_result'
-max_new_tokens = 7
 max_seq_len = 4096
+max_tokens = 7
 next = 'check_eos'
 other = 'input_tokens'
 

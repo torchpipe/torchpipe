@@ -145,6 +145,7 @@ async def generate_completion_stream_response(
         sampling_params=None,
         priority=None,
         stream=request.stream,
+        request= request,
     )
 
     include_usage = request.stream_options and request.stream_options.include_usage

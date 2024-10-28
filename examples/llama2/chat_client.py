@@ -13,7 +13,10 @@ async def fetch_completion(session, url, headers, data):
             # print(line)
             yield line.decode('utf-8')
 
+
 async def main():
+    prompts = ["San Francisco is a",
+              "Do you know the book Traction by Gino Wickman"]
     url = "http://0.0.0.0:8080/v1/completions"
     headers = {
         'accept': 'application/json',
@@ -21,11 +24,11 @@ async def main():
     }
     data = {
         "model": "string",
-        "prompt": "San Francisco is a",
+        "prompt": prompts[-1],
         "priority": "default",
         "n": 1,
         "best_of": 0,
-        "max_tokens": 7,
+        "max_tokens": 132,
         "stream": True,
         "stream_options": {
             "include_usage": True

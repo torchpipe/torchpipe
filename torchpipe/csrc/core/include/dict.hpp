@@ -197,6 +197,18 @@ std::vector<T> dict_gets(dict data, const std::string& key) {
   return std::vector<T>();  // make gcc happy
 }
 
+// template <typename T>
+// std::optional<T> try_get(dict data, const std::string& key) {
+//   auto iter = data->find(key);
+//   if (iter != data->end()) {
+//     if (iter->second.type() != typeid(T)) return std::nullopt;
+//     T* result = any_cast<T>(&iter->second);
+//     return *result;
+//   } else {
+//     throw_not_exist(key);
+//   }
+// }
+
 template <typename T>
 std::optional<T> try_get(dict data, const std::string& key) {
   auto iter = data->find(key);
@@ -204,9 +216,8 @@ std::optional<T> try_get(dict data, const std::string& key) {
     if (iter->second.type() != typeid(T)) return std::nullopt;
     T* result = any_cast<T>(&iter->second);
     return *result;
-  } else {
-    throw_not_exist(key);
   }
+  return std::nullopt;
 }
 
 template <typename Container = std::vector<dict>>

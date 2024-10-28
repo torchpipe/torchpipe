@@ -224,44 +224,51 @@ class RemoveStorage : public SingleBackend {
 };
 IPIPE_REGISTER(Backend, RemoveStorage, "RemoveStorage");
 
-class CheckOtherSeqLenTensor : public SingleBackend {
+class RemoveOtherSeqLenTensor : public SingleBackend {
  private:
   std::unique_ptr<Params> params_;
 
   std::string other_;
   int max_seq_len_;
-  int max_new_tokens_;
+  int max_tokens_;
 
  public:
   bool init(const std::unordered_map<std::string, std::string>& config_param,
             dict dict_config) override {
-    params_ = std::unique_ptr<Params>(new Params(
-        {{"other", "other"}, {"max_seq_len", "-1"}, {"max_new_tokens", "-1"}}, {}, {}, {}));
+    params_ = std::unique_ptr<Params>(
+        new Params({{"other", "other"}, {"max_seq_len", "-1"}, {"max_tokens", "-1"}}, {}, {}, {}));
     if (!params_->init(config_param)) return false;
     other_ = params_->at("other");
     max_seq_len_ = std::stoi(params_->at("max_seq_len"));
-    max_new_tokens_ = std::stoi(params_->at("max_new_tokens"));
+    max_tokens_ = std::stoi(params_->at("max_tokens"));
     if (max_seq_len_ <= 0) {
       max_seq_len_ = INT32_MAX;
     }
-    if (max_new_tokens_ <= 0) {
-      max_new_tokens_ = INT32_MAX;
+    if (max_tokens_ <= 0) {
+      max_tokens_ = INT32_MAX;
     }
+    IPIPE_ASSERT(max_tokens_ > 0 || max_seq_len_ > 0);
     return true;
   }
 
   void forward(dict input_dict) override {
     auto other = dict_gets<torch::Tensor>(input_dict, other_);
+
+    int max_tokens = max_tokens_;
+    auto iter_max_tokens = input_dict->find("max_tokens");
+    if (iter_max_tokens != input_dict->end()) {
+      max_tokens = any_cast<int>(iter_max_tokens->second);
+    }
     IPIPE_ASSERT(other.size() >= 2);
     int new_tokens = other.size() - 1;
     int seq_len = other[0].size(0) + new_tokens;
-    SPDLOG_DEBUG("CheckOtherSeqLenTensor: seq_len: {}, new_tokens: {}", seq_len, new_tokens);
-    if (seq_len >= max_seq_len_ || new_tokens >= max_new_tokens_) {
+    SPDLOG_DEBUG("RemoveOtherSeqLenTensor: seq_len: {}, new_tokens: {}", seq_len, new_tokens);
+    if (seq_len >= max_seq_len_ || new_tokens >= max_tokens) {
       input_dict->erase(other_);
     }
     (*input_dict)[TASK_RESULT_KEY] = input_dict->operator[](TASK_DATA_KEY);
   }
 };
-IPIPE_REGISTER(Backend, CheckOtherSeqLenTensor, "CheckOtherSeqLenTensor");
+IPIPE_REGISTER(Backend, RemoveOtherSeqLenTensor, "RemoveOtherSeqLenTensor");
 
 }  // namespace ipipe
