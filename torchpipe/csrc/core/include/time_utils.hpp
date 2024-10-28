@@ -45,20 +45,20 @@ float inline time_passed(any time_old) {
 }
 
 /// 辅助的RAII型计时工具
-class time_guard {
+class TimeGuard {
  public:
-  time_guard(std::string message = "", bool print = true, uint32_t time_out = UINT32_MAX /*ms*/)
+  TimeGuard(std::string message = "", bool print = true, uint32_t time_out = UINT32_MAX /*ms*/)
       : starttime_(now()), message_(message), time_out_(time_out) {
     bPrint = print;
 
     bStopped = false;
     index = 0;
   }
-  time_guard& operator=(const time_guard&) = delete;
-  time_guard(const time_guard&) = delete;
+  TimeGuard& operator=(const TimeGuard&) = delete;
+  TimeGuard(const TimeGuard&) = delete;
 
-  ~time_guard() { stop(); }
-  time_guard& add(const std::string& info) {
+  ~TimeGuard() { stop(); }
+  TimeGuard& add(const std::string& info) {
     message_ += " || " + info;
     return *this;
   }

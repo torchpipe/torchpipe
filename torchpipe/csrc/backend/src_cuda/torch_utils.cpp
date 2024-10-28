@@ -176,7 +176,7 @@ class TestRun {
   //     std::cout << "before cudaMemcpyAsync data_= " << data_ << " src[99] "
   //               << src[99] << std::endl;
   //     {
-  //       time_guard z("cudaMemcpyAsync");
+  //       TimeGuard z("cudaMemcpyAsync");
   //       // cudaMemcpyAsync(device_data, src, 1000000*sizeof(int),
   //       // cudaMemcpyHostToDevice, stream);
   //       cudaMemcpy(
@@ -185,7 +185,7 @@ class TestRun {
   //     if (true) {
   //       delete src;
   //       {
-  //         time_guard z("synchronize");
+  //         TimeGuard z("synchronize");
   //         stream.synchronize(); // todo 此处 d
   //       }
 

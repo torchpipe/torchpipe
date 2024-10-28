@@ -328,7 +328,7 @@ int32_t TorchPlugin::enqueue(PluginTensorDesc const* inputDesc, PluginTensorDesc
     if (ret != cudaSuccess) return ret;
 
     try {
-      ipipe::time_guard guard("TorchPlugin:interpreter_->forward");
+      ipipe::TimeGuard guard("TorchPlugin:interpreter_->forward");
       interpreter_->forward(user_datas);
     } catch (std::exception const& e) {
       caughtError(e);
