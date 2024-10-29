@@ -610,7 +610,7 @@ void TensorrtTensor::forward(const std::vector<dict>& raw_inputs) {
 #if TRT_USER_MANAGED_MEM
   const size_t mem_size = engine_->engine->getDeviceMemorySizeForProfileV2(profile_index_);
   const double mem_size_mb = static_cast<double>(mem_size) / (1024 * 1024);
-  SPDLOG_INFO("mem_size: {} MB", mem_size_mb);
+  SPDLOG_DEBUG("mem_size: {} MB", mem_size_mb);
   torch::Tensor mem = torch_allocate(mem_size);
   context_->setDeviceMemoryV2(mem.data_ptr(), mem_size);
 #endif

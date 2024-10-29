@@ -1,7 +1,7 @@
 "Interpreter::backend" = "Ring"
 
 'precision' = 'fp16'
-'precision_fp32' = 'softmax,pow'
+# 'precision_fp32' = 'softmax,pow'
 
 force_layer_norm_pattern_fp32 = 1
 max_workspace_size = 24000
@@ -26,11 +26,11 @@ scheduler = "Batching"
 
 cal_request_size_method = "CalTorchBatchSize" # calc. request_size according to torch tensor size
 
-fake_instance_num = 2
+fake_instance_num = 4
 instance_num = 1
 # max = '1024'
-max = '8;1024'
-min = '1;9'
+max = '8;128;512;1024'
+min = '1;9;129;513'
 'model' = 'model_files/batchful.onnx'
 'model::cache' = 'model_files/batchful.trt'
 next = 'cache'
