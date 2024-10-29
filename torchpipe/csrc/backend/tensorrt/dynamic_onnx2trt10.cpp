@@ -343,8 +343,8 @@ std::shared_ptr<CudaEngineWithRuntime> onnx2trt(
   if (precision.weight_streaming_percentage > 0) {
     explicitBatch |=
         1U << static_cast<uint32_t>(nvinfer1::NetworkDefinitionCreationFlag::kSTRONGLY_TYPED);
-    builder->setFlag(nvinfer1::BuilderFlag::kWEIGHT_STREAM);
-    SPDLOG_INFO("nvinfer1::IBuilder: setFlag kWEIGHT_STREAM({}%)",
+    builder->setFlag(nvinfer1::BuilderFlag::kWEIGHT_STREAMING);
+    SPDLOG_INFO("nvinfer1::IBuilder: setFlag kWEIGHT_STREAMING({}%)",
                 precision.weight_streaming_percentage);
   }
 #endif

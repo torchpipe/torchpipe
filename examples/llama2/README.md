@@ -52,6 +52,7 @@ The computation for the batchless part could be implemented as a standalone CUDA
 # tensorrt engine will be automatically generated and cached. Please make sure there are enough GPU memory, or you can generate the engines multiple times.
     export CUDA_VISIBLE_DEVICES=1
 
+    # tensorrt >= 10.5 needed
     python run_llama2.py --model model_files/ --input "San Francisco is a" 
     #NUM_LAYER = 2:  San Francisco is a totalitéaletoreignersbyMSран
     #NUM_LAYER = 32:  San Francisco is a city in Northern California that is known
