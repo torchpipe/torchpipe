@@ -1,9 +1,9 @@
 "Interpreter::backend" = "Ring"
 
 'precision' = 'fp16'
-'precision_fp32' = 'softmax,pow'
+# 'precision_fp32' = 'softmax,pow'
 
-# force_layer_norm_pattern_fp32 = 1
+force_layer_norm_pattern_fp32 = 1
 max_workspace_size = 24000
 [input]
 backend = "S[GpuTensor,KeyA2KeyB,SyncTensor]"
@@ -31,7 +31,7 @@ min = '1;4'
 'model' = 'model_files/batchful.onnx' 
 'model::cache' = 'model_files/batchful.trt' 
 next = 'cache' 
-weight_streaming_percentage = 100 
+# weight_streaming_percentage = 50 
 
 [cache]
 backend = "S[Append2OtherTensor,Result2Key[LongItemTensor],KeyA2KeyB,RemoveOtherSeqLenTensor,SyncTensor]"
