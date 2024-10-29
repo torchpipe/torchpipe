@@ -450,8 +450,12 @@ std::shared_ptr<CudaEngineWithRuntime> onnx2trt(
                             nvinfer1::DataType::kFLOAT, true);
     modify_layers_precision(precision.precision_output_fp16, network.get(),
                             nvinfer1::DataType::kHALF, true);
-    IPIPE_ASSERT(precision.force_layer_norm_pattern_fp32 ||
-                 precision.weight_streaming_percentage == 0);
+
+    if (precision.weight_streaming_percentage != 0) {
+      IPIPE_ASSERT(
+          precision.force_layer_norm_pattern_fp32 == 0,
+          "force_layer_norm_pattern_fp32 must be false when weight_streaming_percentage > 0");
+    }
     if ((!use_only_fp32) && precision.force_layer_norm_pattern_fp32) parse_ln(network.get());
 #if (NV_TENSORRT_MAJOR == 8 && NV_TENSORRT_MINOR >= 5)
     config->setPreviewFeature(nvinfer1::PreviewFeature::kFASTER_DYNAMIC_SHAPES_0805, true);
