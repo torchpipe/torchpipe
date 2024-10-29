@@ -69,7 +69,8 @@ bool TensorrtTensor::init(const std::unordered_map<std::string, std::string>& co
                                                 {"force_range", ""},
                                                 {"batch_process", ""},
                                                 {"input_reorder", ""},
-                                                {"output_reorder", ""}},
+                                                {"output_reorder", ""},
+                                                {"weight_streaming_percentage", "0"}},
                                                {}, {}, {}));
 
   if (!params_->init(config_param)) return false;
@@ -110,6 +111,7 @@ bool TensorrtTensor::init(const std::unordered_map<std::string, std::string>& co
     _independent_thread_index = 0;
   }
 
+  weight_streaming_percentage_ = std::stoi(params_->at("weight_streaming_percentage"));
   independent_thread_index_ = _independent_thread_index;
   int instance_num = std::stoi(params_->at("instance_num"));
   if (instance_num <= _independent_thread_index) {
@@ -218,6 +220,16 @@ void TensorrtTensor::parse_context(dict dict_config, int _independent_thread_ind
     config.erase("_engine");
     // config.erase("_engine_raw");
   }
+
+#if USE_WEIGHT_STREAMING
+  if (weight_streaming_percentage_ > 0 && profile_index_ == 0 &&
+      engine_->engine->getStreamableWeightsSize() > 0) {
+    size_t wsBudget = weight_streaming_percentage / 100.0 * engine->getStreamableWeightsSize();
+    IPIPE_ASSERT(engine_->engine->setWeightStreamingBudgetV2(wsBudget));
+    SPDLOG_INFO("Using WeightStreaming, Budget: {}% = {} MB", weight_streaming_percentage_,
+                wsBudget / 1024.0 / 1024.0);
+  }
+#endif
 
 #if USER_MANAGED_MEM
   // USE_OUT_MEM
@@ -597,7 +609,8 @@ void TensorrtTensor::forward(const std::vector<dict>& raw_inputs) {
 
 #if USER_MANAGED_MEM
   const size_t mem_size = engine_->engine->getDeviceMemorySizeForProfileV2(profile_index_);
-  SPDLOG_INFO("mem_size: {}", mem_size);
+  const double mem_size_mb = static_cast<double>(mem_size) / (1024 * 1024);
+  SPDLOG_INFO("mem_size: {} MB", mem_size_mb);
   torch::Tensor mem = torch_allocate(mem_size);
   context_->setDeviceMemoryV2(mem.data_ptr(), mem_size);
 #endif

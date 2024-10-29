@@ -335,9 +335,18 @@ std::shared_ptr<CudaEngineWithRuntime> onnx2trt(
   const static std::unordered_set<std::string> int8_enable{"int8", "best"};
   const static std::unordered_set<std::string> fp16_enable{"fp16", "int8", "best"};
 
-  constexpr auto explicitBatch =
+  auto explicitBatch =
       1U << static_cast<uint32_t>(nvinfer1::NetworkDefinitionCreationFlag::kEXPLICIT_BATCH);
   unique_ptr_destroy<nvinfer1::IBuilder> builder{nvinfer1::createInferBuilder(gLogger_inplace)};
+
+#if USE_WEIGHT_STREAMING
+  if (precision.weight_streaming_percentage > 0) {
+    explicitBatch |= 1U << static_cast<uint32_t>(NetworkDefinitionCreationFlag::kSTRONGLY_TYPED);
+    builder->setFlag(nvinfer1::BuilderFlag::kWEIGHT_STREAM);
+    SPDLOG_INFO("nvinfer1::IBuilder: setFlag kWEIGHT_STREAM({}%)",
+                precision.weight_streaming_percentage);
+  }
+#endif
 
 #ifdef USE_TORCH_ALLOCATOR
   const char* value = std::getenv("PYTORCH_NO_CUDA_MEMORY_CACHING");

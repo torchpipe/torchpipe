@@ -30,6 +30,12 @@
 #define USER_MANAGED_MEM 0
 #endif
 
+#if (NV_TENSORRT_MAJOR == 10 && NV_TENSORRT_MINOR >= 5) || (NV_TENSORRT_MAJOR >= 11)
+#define USE_WEIGHT_STREAMING 1
+#else
+#define USE_WEIGHT_STREAMING 0
+#endif
+
 namespace ipipe {
 
 struct destroy_nvidia_pointer {
