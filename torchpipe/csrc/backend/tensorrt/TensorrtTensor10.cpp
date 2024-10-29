@@ -222,9 +222,9 @@ void TensorrtTensor::parse_context(dict dict_config, int _independent_thread_ind
   }
 
 #if USE_WEIGHT_STREAMING
-  if (weight_streaming_percentage_ > 0 && profile_index_ == 0 &&
-      engine_->engine->getStreamableWeightsSize() > 0) {
-    size_t wsBudget = weight_streaming_percentage / 100.0 * engine->getStreamableWeightsSize();
+  const auto streamable_weights_size = engine_->engine->getStreamableWeightsSize();
+  if (weight_streaming_percentage_ > 0 && profile_index_ == 0 && streamable_weights_size > 0) {
+    size_t wsBudget = weight_streaming_percentage / 100.0 * streamable_weights_size;
     IPIPE_ASSERT(engine_->engine->setWeightStreamingBudgetV2(wsBudget));
     SPDLOG_INFO("Using WeightStreaming, Budget: {}% = {} MB", weight_streaming_percentage_,
                 wsBudget / 1024.0 / 1024.0);
