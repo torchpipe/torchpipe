@@ -3,7 +3,7 @@
 'precision' = 'fp16'
 'precision_fp32' = 'softmax,pow'
 
-force_layer_norm_pattern_fp32 = 1
+# force_layer_norm_pattern_fp32 = 1
 max_workspace_size = 24000
 [input]
 backend = "S[GpuTensor,KeyA2KeyB,SyncTensor]"

@@ -378,11 +378,6 @@ std::shared_ptr<CudaEngineWithRuntime> onnx2trt(
   SPDLOG_INFO("nvinfer1::IBuilder: setMaxThreads {}.", hardware_concurrency);
 #endif
 
-#if ((NV_TENSORRT_MAJOR >= 8 && NV_TENSORRT_MINOR >= 6) || (NV_TENSORRT_MAJOR >= 9))
-  // config->setMaxAuxStreams(4); // auto managed by trt
-  // SPDLOG_INFO("nvinfer1::IBuilder: setMaxAuxStreams {}.", 4);
-#endif
-
 #if NV_TENSORRT_MAJOR >= 8
   std::unique_ptr<nvinfer1::ITimingCache> time_cache;
   if (!precision.timecache.empty()) {
@@ -455,6 +450,8 @@ std::shared_ptr<CudaEngineWithRuntime> onnx2trt(
                             nvinfer1::DataType::kFLOAT, true);
     modify_layers_precision(precision.precision_output_fp16, network.get(),
                             nvinfer1::DataType::kHALF, true);
+    IPIPE_ASSERT(precision.force_layer_norm_pattern_fp32 ||
+                 precision.weight_streaming_percentage == 0);
     if ((!use_only_fp32) && precision.force_layer_norm_pattern_fp32) parse_ln(network.get());
 #if (NV_TENSORRT_MAJOR == 8 && NV_TENSORRT_MINOR >= 5)
     config->setPreviewFeature(nvinfer1::PreviewFeature::kFASTER_DYNAMIC_SHAPES_0805, true);
@@ -570,9 +567,10 @@ std::shared_ptr<CudaEngineWithRuntime> onnx2trt(
       // modified from
       // https://github.com/wang-xinyu/tensorrtx/blob/d9bdd7e59f19fe1fcc33de64e61ab54345f3e31c/ibnnet/layers.cpp
 
-      nvinfer1::ITensor* pre_input = MeanStd(
-          network.get(), input, _mean.empty() ? nullptr : _mean.data(),
-          _std.empty() ? nullptr : _std.data(), new_layers, int8_enable.count(precision.precision));
+      nvinfer1::ITensor* pre_input =
+          MeanStd(network.get(), input, _mean.empty() ? nullptr : _mean.data(),
+                  _std.empty() ? nullptr : _std.data(), new_layers,
+                  (int8_enable.count(precision.precision)));
 
       // pre_input->setPrecision(nvinfer1::DataType:: kFLOAT);
 
