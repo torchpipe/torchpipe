@@ -221,17 +221,17 @@ void TensorrtTensor::parse_context(dict dict_config, int _independent_thread_ind
     // config.erase("_engine_raw");
   }
 
-#if USE_WEIGHT_STREAMING
+#if TRT_WEIGHT_STREAMING
   const auto streamable_weights_size = engine_->engine->getStreamableWeightsSize();
   if (weight_streaming_percentage_ > 0 && profile_index_ == 0 && streamable_weights_size > 0) {
-    size_t wsBudget = weight_streaming_percentage / 100.0 * streamable_weights_size;
+    size_t wsBudget = weight_streaming_percentage_ / 100.0 * streamable_weights_size;
     IPIPE_ASSERT(engine_->engine->setWeightStreamingBudgetV2(wsBudget));
     SPDLOG_INFO("Using WeightStreaming, Budget: {}% = {} MB", weight_streaming_percentage_,
                 wsBudget / 1024.0 / 1024.0);
   }
 #endif
 
-#if USER_MANAGED_MEM
+#if TRT_USER_MANAGED_MEM
   // USE_OUT_MEM
   context_ =
       unique_ptr_destroy<nvinfer1::IExecutionContext>(engine_->engine->createExecutionContext(
@@ -607,7 +607,7 @@ void TensorrtTensor::forward(const std::vector<dict>& raw_inputs) {
     IPIPE_ASSERT(status);
   }
 
-#if USER_MANAGED_MEM
+#if TRT_USER_MANAGED_MEM
   const size_t mem_size = engine_->engine->getDeviceMemorySizeForProfileV2(profile_index_);
   const double mem_size_mb = static_cast<double>(mem_size) / (1024 * 1024);
   SPDLOG_INFO("mem_size: {} MB", mem_size_mb);
@@ -617,7 +617,7 @@ void TensorrtTensor::forward(const std::vector<dict>& raw_inputs) {
 
   IPIPE_ASSERT(context_->enqueueV3(c10::cuda::getCurrentCUDAStream()));
 
-#if USER_MANAGED_MEM
+#if TRT_USER_MANAGED_MEM
   // mem.record_stream(c10::cuda::getCurrentCUDAStream());  // 似乎不需要
 #endif
 

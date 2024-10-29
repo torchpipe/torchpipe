@@ -339,13 +339,10 @@ std::shared_ptr<CudaEngineWithRuntime> onnx2trt(
       1U << static_cast<uint32_t>(nvinfer1::NetworkDefinitionCreationFlag::kEXPLICIT_BATCH);
   unique_ptr_destroy<nvinfer1::IBuilder> builder{nvinfer1::createInferBuilder(gLogger_inplace)};
 
-#if USE_WEIGHT_STREAMING
+#if TRT_WEIGHT_STREAMING
   if (precision.weight_streaming_percentage > 0) {
     explicitBatch |=
         1U << static_cast<uint32_t>(nvinfer1::NetworkDefinitionCreationFlag::kSTRONGLY_TYPED);
-    builder->setFlag(nvinfer1::BuilderFlag::kWEIGHT_STREAMING);
-    SPDLOG_INFO("nvinfer1::IBuilder: setFlag kWEIGHT_STREAMING({}%)",
-                precision.weight_streaming_percentage);
   }
 #endif
 
@@ -366,6 +363,13 @@ std::shared_ptr<CudaEngineWithRuntime> onnx2trt(
       nvonnxparser::createParser(*network, gLogger_inplace)};
   unique_ptr_destroy<nvinfer1::IBuilderConfig> config{builder->createBuilderConfig()};
 
+#if TRT_WEIGHT_STREAMING
+  if (precision.weight_streaming_percentage > 0) {
+    config->setFlag(nvinfer1::BuilderFlag::kWEIGHT_STREAMING);
+    SPDLOG_INFO("nvinfer1::IBuilder: setFlag kWEIGHT_STREAMING({}%)",
+                precision.weight_streaming_percentage);
+  }
+#endif
 #if ((NV_TENSORRT_MAJOR >= 8 && NV_TENSORRT_MINOR >= 4) || (NV_TENSORRT_MAJOR >= 9))
   auto hardware_concurrency = std::thread::hardware_concurrency();
   if (hardware_concurrency == 0) hardware_concurrency = 4;
