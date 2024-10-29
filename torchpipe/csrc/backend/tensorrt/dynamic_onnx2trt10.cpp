@@ -364,6 +364,11 @@ std::shared_ptr<CudaEngineWithRuntime> onnx2trt(
   SPDLOG_INFO("nvinfer1::IBuilder: setMaxThreads {}.", hardware_concurrency);
 #endif
 
+#if ((NV_TENSORRT_MAJOR >= 8 && NV_TENSORRT_MINOR >= 6) || (NV_TENSORRT_MAJOR >= 9))
+  // config->setMaxAuxStreams(4); // auto managed by trt
+  // SPDLOG_INFO("nvinfer1::IBuilder: setMaxAuxStreams {}.", 4);
+#endif
+
 #if NV_TENSORRT_MAJOR >= 8
   std::unique_ptr<nvinfer1::ITimingCache> time_cache;
   if (!precision.timecache.empty()) {

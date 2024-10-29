@@ -43,7 +43,6 @@
 #include "MultipleConcatPreprocess.hpp"
 // https://github.com/NVIDIA/Torch-TensorRT/blob/3a98a8b198a071e622c43283caea7416fe8a8a1a/core/runtime/register_trt_op.cpp
 
-// #define USE_OUT_MEM
 namespace ipipe {
 // record stream;
 // https://dev-discuss.pytorch.org/t/fsdp-cudacachingallocator-an-outsider-newb-perspective/1486/5
@@ -220,16 +219,19 @@ void TensorrtTensor::parse_context(dict dict_config, int _independent_thread_ind
     // config.erase("_engine_raw");
   }
 
-#ifdef USE_OUT_MEM
-  context_ = unique_ptr_destroy<nvinfer1::IExecutionContext>(
-      engine_->engine->createExecutionContextWithoutDeviceMemory());
-  auto mem = torch_allocate(engine_->engine->getDeviceMemorySize());
-  context_->setDeviceMemory(mem.data_ptr());
+#if USER_MANAGED_MEM
+  // USE_OUT_MEM
+  context_ =
+      unique_ptr_destroy<nvinfer1::IExecutionContext>(engine_->engine->createExecutionContext(
+          nvinfer1::ExecutionContextAllocationStrategy::kUSER_MANAGED));
+// auto mem = torch_allocate(engine_->engine->getDeviceMemorySize());
+//   context_->setDeviceMemory(mem.data_ptr());
 #else
   context_ =
       unique_ptr_destroy<nvinfer1::IExecutionContext>(engine_->engine->createExecutionContext());
-  context_->setOptimizationProfileAsync(profile_index_, c10::cuda::getCurrentCUDAStream());
 #endif
+
+  context_->setOptimizationProfileAsync(profile_index_, c10::cuda::getCurrentCUDAStream());
 
   // const int n_profiles = engine_->engine->getNbOptimizationProfiles();
   // const int n_inputsOutputs = engine_->engine->getNbBindings() / n_profiles;
@@ -351,7 +353,7 @@ void TensorrtTensor::parse_context(dict dict_config, int _independent_thread_ind
   for (int j = 0; j < input_reorder_.size(); j++) {
     // tensorrt is inverted order
     const auto name = engine_->engine->getIOTensorName(input_reorder_[j]);
-    // #ifdef NV_TENSORRT_MAJOR> 8
+    // #if NV_TENSORRT_MAJOR> 8
     nvinfer1::Dims max_dims =
         engine_->engine->getProfileShape(name, profile_index_, nvinfer1::OptProfileSelector::kMAX);
     // #else
@@ -466,7 +468,11 @@ torch::Tensor guard_contiguous_type_and_device(torch::Tensor input_data,
   return input_data;
 }
 void TensorrtTensor::forward(const std::vector<dict>& raw_inputs) {
-  assert(raw_inputs.size() <= max() && raw_inputs.size() >= min());
+  const auto size = get_request_size(raw_inputs);
+  if (size > max() || size < min()) {
+    SPDLOG_ERROR("size {} > max(){} || size < min(): {} ", size, max(), min());
+    throw std::runtime_error("size > max() || size < min()");
+  }
   if (raw_inputs.empty()) return;
 
   auto node_name = dict_get<std::string>(raw_inputs[0], "node_name", true);
@@ -589,12 +595,18 @@ void TensorrtTensor::forward(const std::vector<dict>& raw_inputs) {
     IPIPE_ASSERT(status);
   }
 
-#ifdef USE_OUT_MEM
-  auto mem = torch_allocate(engine_->engine->getDeviceMemorySize());
-  context_->setDeviceMemory(mem.data_ptr());
+#if USER_MANAGED_MEM
+  const size_t mem_size = engine_->engine->getDeviceMemorySizeForProfileV2(profile_index_);
+  SPDLOG_INFO("mem_size: {}", mem_size);
+  torch::Tensor mem = torch_allocate(mem_size);
+  context_->setDeviceMemoryV2(mem.data_ptr(), mem_size);
 #endif
 
   IPIPE_ASSERT(context_->enqueueV3(c10::cuda::getCurrentCUDAStream()));
+
+#if USER_MANAGED_MEM
+  // mem.record_stream(c10::cuda::getCurrentCUDAStream());  // 似乎不需要
+#endif
 
   if (batch_process_) {
     dict batched = std::make_shared<std::unordered_map<std::string, any>>();

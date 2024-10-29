@@ -3,8 +3,8 @@
 'precision' = 'fp16'
 'precision_fp32' = 'softmax,pow'
 
+force_layer_norm_pattern_fp32 = 1
 max_workspace_size = 24000
-
 [input]
 backend = "S[GpuTensor,KeyA2KeyB,SyncTensor]"
 key_a = "data"
@@ -21,12 +21,16 @@ embed_tokens = "model_files/embed_tokens.pt"
 
 [batchful]
 # PluginCacher is used to cache parameters and input data for (tensorrt) plugin
-'backend' = 'S[ThreadLocalCacher[TensorrtTensor],ArgMaxTensor,SyncTensor]'
+'backend' = 'S[ThreadLocalCacher[FakeInstances[TensorrtTensor]],ArgMaxTensor,SyncTensor]'
 scheduler = "Batching"
 
 cal_request_size_method = "CalTorchBatchSize" # calc. request_size according to torch tensor size
 
-max = '1024'
+fake_instance_num = 2
+instance_num = 1
+# max = '1024'
+max = '8;1024'
+min = '1;9'
 'model' = 'model_files/batchful.onnx'
 'model::cache' = 'model_files/batchful.trt'
 next = 'cache'

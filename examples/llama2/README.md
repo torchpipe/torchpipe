@@ -79,7 +79,7 @@ only support partiqular model and prompt for now.
 
 BACKEND_ENGINE_PATH=./ python run_llama2_streaming.py 
 
-python chat_client.py
+python chat_client.py --prompt="Do you know the book Traction by Gino Wickman?" --max_tokens 132  
 ```
 
 

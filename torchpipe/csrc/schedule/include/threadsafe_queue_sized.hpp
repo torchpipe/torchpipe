@@ -146,6 +146,7 @@ class ThreadSafeSizedQueue {
     value = data_queue_.front();
     data_queue_.pop();
 
+    lk.unlock();
     poped_cond_.notify_all();
     return true;
   }

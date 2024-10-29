@@ -40,7 +40,7 @@ void Batching::run() {  // only one Batching thread
   std::vector<dict> input_data;
 
   while (bThreadInited_.load()) {
-    if (!batched_queue_.WaitForWaiting(50)) continue;
+    if (!batched_queue_.WaitForWaiting(100)) continue;
     auto input_data_size = get_request_size(input_data);
 
     const auto data_size = input_queue_.size();

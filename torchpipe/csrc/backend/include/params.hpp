@@ -60,6 +60,8 @@ class Params {
    */
   bool init(const std::unordered_map<std::string, std::string>& config);
 
+  void check(const std::unordered_map<std::string, std::string>& config);
+
   /**
    * @brief 更新前向参数，主要作用在于：
    * * 将前向可选参数（forward_optinal_params）保存到_config中(
