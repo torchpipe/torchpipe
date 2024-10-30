@@ -15,7 +15,7 @@
 # throughput and lantecy test
 from __future__ import annotations
 
-version = "20240522"
+version = "20241030"
 
 """! @package test-tools
 # update 0.0.1 2022-03-15 整理出基础版本。 by zsy
@@ -40,6 +40,7 @@ version = "20240522"
 # update 2023-11-09  增加gpu使用率中位数输出;                        
 # update 2024-04-24  恢复为单文件，并增加 ProcessAdaptor
 # update 2024-05-22  使用request_batch取代batch_size参数。但保持兼容性
+# update 2024-10-30  fix test_thrift_from_raw_file 读图过多耗时过长的问题
 """
 
 
@@ -806,6 +807,55 @@ def test_function(
 
 # import torchpipe
 
+class ProcessAdaptor:
+    def __init__(self, class_def, args):
+        from multiprocessing import Process, Queue, Event
+
+        self.class_def = class_def
+        self.args = args
+
+        self.queue = Queue()
+        self.event = Event()
+        self.instance = Process(target=self.run)
+        self.alive = Event()
+
+        self.instance.start()
+
+    def forward(self, data):
+        self.queue.put(data)
+        # while not self.queue.empty():
+        self.event.wait()
+        self.event.clear()
+
+    def run(self):
+        self.target = self.class_def(self.args)
+        while not self.alive.is_set():
+            try:
+                p = self.queue.get(block=True, timeout=2)
+                if p is None:
+                    continue
+            except:
+                continue
+            self.target.forward(p)
+            self.event.set()
+
+    def close(self):
+        self.alive.set()
+        self.instance.join()
+
+    @staticmethod
+    def close_all(clients):
+
+        from concurrent.futures import ThreadPoolExecutor
+
+        def close_client(client):
+            if hasattr(client, "close"):
+                client.close()
+
+        # Assuming clients is a list of your client objects
+        with ThreadPoolExecutor() as executor:
+            executor.map(close_client, clients)
+
 
 def parse_arguments(argv):
     import argparse
@@ -909,52 +959,3 @@ if __name__ == "__main__":
         total_number=total_number,
     )
 
-
-class ProcessAdaptor:
-    def __init__(self, class_def, args):
-        from multiprocessing import Process, Queue, Event
-
-        self.class_def = class_def
-        self.args = args
-
-        self.queue = Queue()
-        self.event = Event()
-        self.instance = Process(target=self.run)
-        self.alive = Event()
-
-        self.instance.start()
-
-    def forward(self, data):
-        self.queue.put(data)
-        # while not self.queue.empty():
-        self.event.wait()
-        self.event.clear()
-
-    def run(self):
-        self.target = self.class_def(self.args)
-        while not self.alive.is_set():
-            try:
-                p = self.queue.get(block=True, timeout=2)
-                if p is None:
-                    continue
-            except:
-                continue
-            self.target.forward(p)
-            self.event.set()
-
-    def close(self):
-        self.alive.set()
-        self.instance.join()
-
-    @staticmethod
-    def close_all(clients):
-
-        from concurrent.futures import ThreadPoolExecutor
-
-        def close_client(client):
-            if hasattr(client, "close"):
-                client.close()
-
-        # Assuming clients is a list of your client objects
-        with ThreadPoolExecutor() as executor:
-            executor.map(close_client, clients)
