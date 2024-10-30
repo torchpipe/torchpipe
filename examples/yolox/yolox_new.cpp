@@ -348,7 +348,7 @@ class PostProcYolox : public Backend {
 };
 
 // using PostProcYolox_45_30 = PostProcYolox;
-// IPIPE_REGISTER(PostProcessor<torch::Tensor>, PostProcYolox_45_30, "PostProcYolox_45_30");
+// IPIPE_REGISTER(TorchPostProcessor, PostProcYolox_45_30, "PostProcYolox_45_30");
 IPIPE_REGISTER(Backend, PostProcYolox, "PostProcYolox");
 namespace ipipe {
 class FilterScore : public Filter {

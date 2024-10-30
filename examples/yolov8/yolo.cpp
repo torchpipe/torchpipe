@@ -304,5 +304,5 @@ class PostProcYoloV8 : public Backend {
   int net_w_;
 };
 // using PostProcYoloV8_45_30 = PostProcYoloV8;
-// IPIPE_REGISTER(PostProcessor<torch::Tensor>, PostProcYoloV8_45_30, "PostProcYoloV8_45_30");
+// IPIPE_REGISTER(TorchPostProcessor, PostProcYoloV8_45_30, "PostProcYoloV8_45_30");
 IPIPE_REGISTER(Backend, PostProcYoloV8, "PostProcYoloV8");

@@ -3,10 +3,8 @@
 
 namespace ipipe {
 
-template <>
-void PostProcessor<torch::Tensor>::forward(std::vector<torch::Tensor> net_outputs,
-                                           std::vector<dict> inputs,
-                                           const std::vector<torch::Tensor>& net_inputs) {
+void TorchPostProcessor::forward(std::vector<torch::Tensor> net_outputs, std::vector<dict> inputs,
+                                 const std::vector<torch::Tensor>& net_inputs) {
   SPDLOG_DEBUG("PostProcessor input size:{}, request size:{}, output[0] size[0]:{}", inputs.size(),
                get_request_size(inputs), net_outputs[0].sizes()[0]);
   if (inputs.size() == 1) {
@@ -27,7 +25,11 @@ void PostProcessor<torch::Tensor>::forward(std::vector<torch::Tensor> net_output
     for (std::size_t i = 0; i < inputs.size(); ++i) {
       std::vector<torch::Tensor> single_result;
       for (const auto& item : net_outputs) {
-        single_result.push_back(item.index({torch::indexing::Slice(shapes[i], shapes[i + 1])}));
+        if (only_keep_last_batch_) {
+          single_result.push_back(
+              item.index({torch::indexing::Slice(shapes[i + 1] - 1, shapes[i + 1])}));
+        } else
+          single_result.push_back(item.index({torch::indexing::Slice(shapes[i], shapes[i + 1])}));
       }
       if (single_result.size() == 1) {
         (*inputs[i])[TASK_RESULT_KEY] = single_result[0];  // 返回torch::Tensor

@@ -29,12 +29,13 @@ cal_request_size_method = "CalTorchBatchSize" # calc. request_size according to 
 fake_instance_num = 4
 instance_num = 1
 # max = '1024'
-batch_process = "LastBatchTensor"
+
 max = '8;128;512;1024'
 min = '1;9;129;513'
 'model' = 'model_files/batchful.onnx'
 'model::cache' = '/workspace/batchful.trt'
 next = 'cache'
+only_keep_last_batch = 1
 
 [cache]
 backend = "S[Append2OtherTensor,Result2Key[LongItemTensor],KeyA2KeyB,RemoveOtherSeqLenTensor,SyncTensor]"

@@ -135,8 +135,8 @@ bool TensorrtTensor::init(const std::unordered_map<std::string, std::string>& co
   /********post*****/
   std::string batch_post = params_->at("postprocessor");
 
-  postprocessor_ = std::unique_ptr<PostProcessor<torch::Tensor>>(
-      IPIPE_CREATE(PostProcessor<torch::Tensor>, batch_post));
+  postprocessor_ =
+      std::unique_ptr<TorchPostProcessor>(IPIPE_CREATE(TorchPostProcessor, batch_post));
   try {
     if (!postprocessor_ || !postprocessor_->init(config_param, dict_config)) {
       SPDLOG_ERROR("error postprocessor: " + batch_post);

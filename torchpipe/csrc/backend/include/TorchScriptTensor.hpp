@@ -45,7 +45,7 @@ class TorchScriptTensor : public Backend {
   torch::jit::script::Module module_;
   std::unique_ptr<Params> params_;
   std::unique_ptr<PreProcessor<torch::Tensor>> preprocessor_;
-  std::unique_ptr<PostProcessor<torch::Tensor>> postprocessor_;
+  std::unique_ptr<TorchPostProcessor> postprocessor_;
 
   int num_inputs_{0};
   u_int32_t max_{1};

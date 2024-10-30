@@ -101,7 +101,7 @@ class TensorrtTensor : public Backend {
 
   int profile_index_{0};
 
-  std::unique_ptr<PostProcessor<torch::Tensor>> postprocessor_;
+  std::unique_ptr<TorchPostProcessor> postprocessor_;
   std::unique_ptr<PreProcessor<torch::Tensor>> preprocessor_;
 
   std::map<std::string, int> sorted_index_inputs_;

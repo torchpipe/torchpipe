@@ -50,6 +50,6 @@ for k, v in result.items():
 
 
 # PreProcessor<torch::Tensor> 2
-# PostProcessor<torch::Tensor> 4
+# TorchPostProcessor 4
 
 # Filter 17

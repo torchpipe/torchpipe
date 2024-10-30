@@ -348,7 +348,7 @@ class PostProcYolox : public Backend {
 };
 
 // using PostProcYolox_45_30 = PostProcYolox;
-// IPIPE_REGISTER(PostProcessor<torch::Tensor>, PostProcYolox_45_30, "PostProcYolox_45_30");
+// IPIPE_REGISTER(TorchPostProcessor, PostProcYolox_45_30, "PostProcYolox_45_30");
 namespace ipipe {
 IPIPE_REGISTER(Backend, PostProcYolox, "PostProcYolox");
 class ToScore : public SingleBackend {
@@ -392,7 +392,7 @@ namespace ipipe {
 
 // stuff we know about the network and the input/output blobs
 template <int NMS_THRESH = 45, int BBOX_CONF_THRESH = 30>
-class BatchingPostProcYolox : public PostProcessor<torch::Tensor> {
+class BatchingPostProcYolox : public TorchPostProcessor {
  public:
   virtual void forward(std::vector<torch::Tensor> net_outputs, std::vector<dict> input,
                        const std::vector<torch::Tensor>& net_inputs) override {
@@ -646,6 +646,5 @@ class BatchingPostProcYolox : public PostProcessor<torch::Tensor> {
 };
 
 using BatchingPostProcYolox_45_30 = BatchingPostProcYolox<45, 30>;
-IPIPE_REGISTER(PostProcessor<torch::Tensor>, BatchingPostProcYolox_45_30,
-               "BatchingPostProcYolox_45_30");
+IPIPE_REGISTER(TorchPostProcessor, BatchingPostProcYolox_45_30, "BatchingPostProcYolox_45_30");
 }  // namespace ipipe

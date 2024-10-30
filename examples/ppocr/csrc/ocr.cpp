@@ -78,7 +78,7 @@ class ResizeImgType0Mat : public SingleBackend {
 
 IPIPE_REGISTER(Backend, ResizeImgType0Mat, "ResizeImgType0Mat");
 
-class DBNetPost : public PostProcessor<torch::Tensor> {
+class DBNetPost : public TorchPostProcessor {
  private:
   PaddleOCR::PostProcessor post_processor_;
   double det_db_thresh_ = 0.3;
@@ -125,13 +125,13 @@ class DBNetPost : public PostProcessor<torch::Tensor> {
     }
     return;
 
-    return PostProcessor<torch::Tensor>::forward(net_outputs, input, net_inputs);
+    return TorchPostProcessor::forward(net_outputs, input, net_inputs);
   }
 };
 
-IPIPE_REGISTER(PostProcessor<torch::Tensor>, DBNetPost, "dbnet");
+IPIPE_REGISTER(TorchPostProcessor, DBNetPost, "dbnet");
 
-class RotatePost : public PostProcessor<torch::Tensor> {
+class RotatePost : public TorchPostProcessor {
  private:
   float cls_thresh_ = 0.5;
 
@@ -155,9 +155,9 @@ class RotatePost : public PostProcessor<torch::Tensor> {
   }
 };
 
-IPIPE_REGISTER(PostProcessor<torch::Tensor>, RotatePost, "rotate");
+IPIPE_REGISTER(TorchPostProcessor, RotatePost, "rotate");
 
-class RecPost : public PostProcessor<torch::Tensor> {
+class RecPost : public TorchPostProcessor {
  private:
   std::vector<std::string> label_list_;
 
@@ -224,5 +224,5 @@ class RecPost : public PostProcessor<torch::Tensor> {
   }
 };
 
-IPIPE_REGISTER(PostProcessor<torch::Tensor>, RecPost, "RecPost");
+IPIPE_REGISTER(TorchPostProcessor, RecPost, "RecPost");
 }  // namespace ipipe

@@ -16,7 +16,8 @@
 #include "Backend.hpp"
 #include "dict.hpp"
 #include <torch/torch.h>
-
+#include <memory>
+#include "params.hpp"
 namespace ipipe {
 /**
  * @brief @ref TensorrtTensor 提供的后处理操作的扩展，
@@ -32,37 +33,35 @@ namespace ipipe {
   model = "/app/src/models/ex_model.onnx"
   instance_num = 2
   postprocessor = "resnet_post"
-  IPIPE_REGISTER(PostProcessor<torch::Tensor>, YOUR_POST_IMPLEMENTION,
+  IPIPE_REGISTER(TorchPostProcessor, YOUR_POST_IMPLEMENTION,
  "resnet_post")
   ```
  *
  */
-template <typename T>
+
 class PostProcessor {
  public:
   /**
    * @brief 初始化函数
    *
    */
-  virtual bool init(const std::unordered_map<std::string, std::string>& /*config*/,
+  virtual bool init(const std::unordered_map<std::string, std::string>& config,
                     dict /*dict_config*/) {
+    params_ = std::unique_ptr<Params>(new Params({{"only_keep_last_batch", "0"}}, {}, {}, {}));
+    if (!params_->init(config)) return false;
+    only_keep_last_batch_ = std::stoi(params_->at("only_keep_last_batch"));
     return true;
   };
-  virtual void forward(std::vector<T> net_outputs, std::vector<dict> inputs,
-                       const std::vector<T>& net_inputs) {
-    throw std::runtime_error("Not implemented");
-  };
+  virtual void forward(std::vector<torch::Tensor> net_outputs, std::vector<dict> inputs,
+                       const std::vector<torch::Tensor>& net_inputs);
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
   virtual ~PostProcessor() = default;
 #endif
+ private:
+  std::unique_ptr<Params> params_;
+  bool only_keep_last_batch_{false};
 };
-
-// 声明特化
-template <>
-void PostProcessor<torch::Tensor>::forward(std::vector<torch::Tensor> net_outputs,
-                                           std::vector<dict> inputs,
-                                           const std::vector<torch::Tensor>& net_inputs);
 
 /**
  * @brief 自定义前处理，由 @ref TensorrtTensor 后端扩展的功能
