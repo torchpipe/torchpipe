@@ -738,6 +738,7 @@ def test_from_raw_file(
     if request_batch > 0:
         batch_size = request_batch
 
+    print(f"file_dir = {file_dir}, num_clients = {num_clients}, batch_size = {batch_size}, total_number = {total_number}")
     assert len(data) > 0
     if num_preload <= 0:
         total_number = len(data)
@@ -895,6 +896,7 @@ if __name__ == "__main__":
             img_dir,
             num_clients,
             batch_size,
+            -1,
             total_number,
         )
 

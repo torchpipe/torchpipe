@@ -5,3 +5,5 @@ fire
 fastapi
 uvicorn
 aiohttp
+onnx
+onnx-simplifier
