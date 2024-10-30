@@ -99,10 +99,10 @@ class Batching : public Backend {
 
   void forward(const std::vector<dict>& raw_inputs) {
     if (cal_request_size_method_) {
-      if (!bThreadInited_.load()) {
-        SPDLOG_ERROR("cal_request_size_method_ is not supported when no batching needed");
-        abort();
-      }
+      // if (!bThreadInited_.load()) {
+      //   SPDLOG_ERROR("cal_request_size_method_ is not supported when no batching needed");
+      //   abort();
+      // }
       for (const auto& item : raw_inputs) cal_request_size_method_->forward({item});
     }
     std::vector<std::shared_ptr<SimpleEvents>> events;  // 注意，
