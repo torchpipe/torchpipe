@@ -1,7 +1,5 @@
 #include "prepost.hpp"
-#ifndef NDEBUG
 #include "base_logging.hpp"
-#endif
 
 namespace ipipe {
 
