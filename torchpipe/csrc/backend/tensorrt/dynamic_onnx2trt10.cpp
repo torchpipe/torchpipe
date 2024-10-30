@@ -231,10 +231,10 @@ std::shared_ptr<CudaEngineWithRuntime> loadCudaBackend(std::string const& trtMod
       return nullptr;
     }
   } else if (model_type == ".trt") {
-    std::ifstream file(trtModelPath, std::ios::binary);
+    std::ifstream file(trtModelPath, std::ios::binary | std::ios::ate);
     if (file.good()) {
       size_t size{0};
-      file.seekg(0, file.end);
+      // file.seekg(0, file.end);
       size = file.tellg();
       file.seekg(0, file.beg);
       trtModelStream.resize(size);

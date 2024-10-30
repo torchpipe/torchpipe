@@ -128,9 +128,9 @@ class Logger : public EmptyForwardSingleBackend {
       spdlog::default_logger()->set_pattern(iter_logger->second);
     } else {
 #ifndef NDEBUG
-      spdlog::default_logger()->set_pattern("[%l][%m/%d %H:%M:%S][%s:%# %!]: %v");
+      spdlog::default_logger()->set_pattern("[%^[%l]%$][%m/%d %H:%M:%S][%s:%# %!]: %v");
 #else
-      spdlog::default_logger()->set_pattern("[%l][%m/%d %H:%M:%S][%s:%#]: %v");
+      spdlog::default_logger()->set_pattern("[%^[%l]%$][%m/%d %H:%M:%S][%s:%#]: %v");
 #endif
     }
 

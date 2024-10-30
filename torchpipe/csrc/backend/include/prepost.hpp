@@ -16,7 +16,9 @@
 #include "Backend.hpp"
 #include "dict.hpp"
 #include <torch/torch.h>
-
+#ifdef DEBUG
+#include "base_logging.hpp"
+#endif
 namespace ipipe {
 /**
  * @brief @ref TensorrtTensor 提供的后处理操作的扩展，
@@ -70,6 +72,8 @@ class PostProcessor {
    */
   virtual void forward(std::vector<T> net_outputs, std::vector<dict> inputs,
                        const std::vector<T>& net_inputs) {
+    SPDLOG_DEBUG("PostProcessor input size:{}, request size:{}, output[0] size[0]:{}",
+                 inputs.size(), get_request_size(inputs), net_outputs[0].sizes()[0]);
     if (inputs.size() == 1) {
       if (net_outputs.size() == 1)
         (*inputs[0])[TASK_RESULT_KEY] = net_outputs[0];

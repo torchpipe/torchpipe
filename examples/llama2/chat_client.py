@@ -21,7 +21,7 @@ async def main(prompt="San Francisco is a", max_tokens=7):
         'Content-Type': 'application/json'
     }
     data = {
-        "model": "string",
+        "model": "",
         "prompt": prompt,
         "priority": "default",
         "n": 1,
