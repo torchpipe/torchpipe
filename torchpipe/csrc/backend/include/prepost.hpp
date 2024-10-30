@@ -39,7 +39,7 @@ namespace ipipe {
  *
  */
 
-class PostProcessor {
+class TorchPostProcessor {
  public:
   /**
    * @brief 初始化函数
@@ -56,7 +56,7 @@ class PostProcessor {
                        const std::vector<torch::Tensor>& net_inputs);
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-  virtual ~PostProcessor() = default;
+  virtual ~TorchPostProcessor() = default;
 #endif
  private:
   std::unique_ptr<Params> params_;
