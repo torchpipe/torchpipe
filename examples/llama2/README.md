@@ -17,6 +17,7 @@ The computation for the batchless part could be implemented as a standalone CUDA
     
 ```bash
     pip install transformers==4.44.2 fire
+    pip install --upgrade torch==2.4.0 --index-url https://download.pytorch.org/whl/cu118
     
 
     export NUM_LAYER=32 # set to 2 if using 2-layer model for debug on 12GB-GPU.
@@ -85,7 +86,7 @@ BACKEND_ENGINE_PATH=./ python run_llama2_streaming.py
 python chat_client.py --prompt="Do you know the book Traction by Gino Wickman?" --max_tokens 132  
 
 
- python3 benchmark_serving.py --backend vllm  --model ../Llama-2-7b-chat-hf/         --dataset-name sharegpt --dataset-path ../ShareGPT_V3_unfiltered_cleaned_split.json         --num-prompts 500 --port 8080 --save-result --result-dir results/ --result-filename vllm_llama7B_tp1_qps_2.json --request-rate 1   
+ python3 benchmark_serving.py --backend vllm  --model ../Llama-2-7b-chat-hf/         --dataset-name sharegpt --dataset-path ../ShareGPT_V3_unfiltered_cleaned_split.json         --num-prompts 50 --port 8080 --save-result --result-dir results/ --result-filename vllm_llama7B_tp1_qps_2.json --request-rate 1   
 
 
 

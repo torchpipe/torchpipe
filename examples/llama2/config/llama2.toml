@@ -32,6 +32,7 @@ min = '1;4'
 'model::cache' = 'model_files/batchful.trt' 
 next = 'cache' 
 # weight_streaming_percentage = 50 
+batch_process = "LastBatchTensor"
 
 [cache]
 backend = "S[Append2OtherTensor,Result2Key[LongItemTensor],KeyA2KeyB,RemoveOtherSeqLenTensor,SyncTensor]"

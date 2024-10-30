@@ -29,24 +29,25 @@ cal_request_size_method = "CalTorchBatchSize" # calc. request_size according to 
 fake_instance_num = 4
 instance_num = 1
 # max = '1024'
+batch_process = "LastBatchTensor"
 max = '8;128;512;1024'
 min = '1;9;129;513'
 'model' = 'model_files/batchful.onnx'
-'model::cache' = 'model_files/batchful.trt'
+'model::cache' = '/workspace/batchful.trt'
 next = 'cache'
 
 [cache]
 backend = "S[Append2OtherTensor,Result2Key[LongItemTensor],KeyA2KeyB,RemoveOtherSeqLenTensor,SyncTensor]"
 key_a = 'input_tokens'
 key_b = 'input_tokens_result'
-max_seq_len = 4096
+max_seq_len = 2048
 max_tokens = 7
 next = 'check_eos'
 other = 'input_tokens'
 
 [batchless_prefill]
 backend = "S[AppendOtherTensor,TensorrtTensor,PushKVCacheTensor,SyncTensor]" #
-instance_num = 4 
+instance_num = 1 
 max = '1x2048x4096,1x2048x4096,1x2048x4096,1x2048x128,1x2048x128,1x1x2048x2048' 
 # q k v cos sin mask
 min = '1x1x4096,1x1x4096,1x1x4096,1x1x128,1x1x128,1x1x1x1'
@@ -65,7 +66,7 @@ backend = "S[PyIdentity[PyStream]]"
 
 [batchless_decode]
 backend = "S[AppendOtherTensor,Result2Key(key=tmpkey)[PopKVCacheTensor],AppendKeyTensor(key=tmpkey), TensorrtTensor,PushKVCacheTensor,SyncTensor]" #
-instance_num = 2 
+instance_num = 4 
 max = '1x1x4096,1x1x4096,1x1x4096,1x1x128,1x1x128,1x1x1x2048,1x32x2047x128,1x32x2047x128' 
 # q k v cos sin mask
 min = '1x1x4096,1x1x4096,1x1x4096,1x1x128,1x1x128,1x1x1x1,1x32x1x128,1x32x1x128'

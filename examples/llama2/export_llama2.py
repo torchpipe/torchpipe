@@ -445,7 +445,7 @@ def main(model: str, output_dir: str = 'model_files/', export: str = None, num_l
         device = model.model.device
     # Export the model based on the specified export type
     if export == 'batchful':
-        save_batchful(model, num_layers, output_dir, return_last_seq_len=True)
+        save_batchful(model, num_layers, output_dir, return_last_seq_len=False)
     elif export == 'prefill_batchless':
         save_prefill_batchless(model, output_dir)
     elif export == 'decode_batchless':
