@@ -135,7 +135,7 @@ class ThreadSafeSizedQueue {
 
     if (data_queue_.empty() || !check(data_queue_.front_size())) {
       num_waiting_++;
-      SPDLOG_INFO("WaitForPopWithConditionAndStatus: num_waiting_ = {}", num_waiting_);
+      // SPDLOG_INFO("WaitForPopWithConditionAndStatus: num_waiting_ = {}", num_waiting_);
       // lk.unlock();
       waiting_cond_.notify_all();
       // lk.lock();
@@ -143,7 +143,7 @@ class ThreadSafeSizedQueue {
         return !data_queue_.empty() && check(data_queue_.front_size());
       });
       num_waiting_--;
-      SPDLOG_INFO("WaitForPopWithConditionAndStatus: num_waiting_ = {}", num_waiting_);
+      // SPDLOG_INFO("WaitForPopWithConditionAndStatus finish: num_waiting_ = {}", num_waiting_);
       if (!re) return false;
     }
 
@@ -161,7 +161,7 @@ class ThreadSafeSizedQueue {
     auto re = waiting_cond_.wait_for(lk, std::chrono::milliseconds(time_out),
                                      [this] { return num_waiting_ > 0; });
     if (!re) return false;
-    SPDLOG_INFO("WaitForWaiting: num_waiting_ = {}", num_waiting_);
+    // SPDLOG_INFO("WaitForWaiting: num_waiting_ = {}", num_waiting_);
     return true;
   }
 
