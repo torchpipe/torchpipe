@@ -203,11 +203,8 @@ class MultiInstances : public Backend {
  public:
   bool init(const std::unordered_map<std::string, std::string>& config, dict dict_config) override;
 
-  void forward(const std::vector<dict>& inputs_data) override {
-    const auto size = get_request_size(inputs_data);
-    SPDLOG_INFO("MultiInstances: request size={}", size);
-    batched_queue_->Push(inputs_data, size);
-  }
+  void forward(const std::vector<dict>& inputs_data) override;
+
   uint32_t max() const override { return max_; }
 
   /// 子Backend的下限最小值

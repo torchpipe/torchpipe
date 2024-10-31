@@ -309,5 +309,11 @@ bool MultiInstances::init(const std::unordered_map<std::string, std::string>& co
   return true;
 }
 
+void MultiInstances::forward(const std::vector<dict>& inputs_data) {
+  const auto size = get_request_size(inputs_data);
+  SPDLOG_INFO("MultiInstances: request size={}", size);
+  batched_queue_->Push(inputs_data, size);
+}
+
 IPIPE_REGISTER(Backend, FakeInstances, "FakeInstances");
 }  // namespace ipipe
