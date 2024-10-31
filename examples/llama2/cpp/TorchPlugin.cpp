@@ -330,7 +330,7 @@ int32_t TorchPlugin::enqueue(PluginTensorDesc const* inputDesc, PluginTensorDesc
     try {
       // ipipe::TimeGuard guard("TorchPlugin:interpreter_->forward");
       interpreter_->forward(user_datas);
-      auto time_pass = guard.elapsed();
+      // auto time_pass = guard.elapsed();
       // if (time_pass > 0.2) {
       //   SPDLOG_WARN("TorchPlugin:interpreter_->forward too slow: {}", time_pass);
       // }
