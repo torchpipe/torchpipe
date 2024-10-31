@@ -12,7 +12,7 @@ key_b = "input_tokens"
 next = "embed_tokens"
 
 [embed_tokens]
-backend = "S[RequestTimeStamp(key=embed_tokens),EmbedTokensTensor,Result2Other[GenerateCosSinMaskTensor],SyncTensor]" # ,Jump[batchful]] 
+backend = "S[EmbedTokensTensor,Result2Other[GenerateCosSinMaskTensor],SyncTensor,RequestTimeStamp(key=embed_finish)]" # ,Jump[batchful]] 
 # restart = "batchful" 
 next = "batchful"
 
