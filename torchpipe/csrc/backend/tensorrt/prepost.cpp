@@ -22,8 +22,8 @@ void TorchPostProcessor::forward(std::vector<torch::Tensor> net_outputs, std::ve
         if (only_keep_last_batch_) {
           single_result.push_back(
               item.index({torch::indexing::Slice(shapes[i + 1] - 1, shapes[i + 1])}));
-          SPDLOG_INFO("only_keep_last_batch, {}-{} from {}", shapes[i + 1] - 1, shapes[i + 1],
-                      item.sizes()[0]);
+          // SPDLOG_INFO("only_keep_last_batch, {}-{} from {}", shapes[i + 1] - 1, shapes[i + 1],
+          //             item.sizes()[0]);
         } else
           single_result.push_back(item.index({torch::indexing::Slice(shapes[i], shapes[i + 1])}));
       }

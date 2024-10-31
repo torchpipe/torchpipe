@@ -2,7 +2,7 @@ import time
 import asyncio
 import aiohttp
 
-AIOHTTP_TIMEOUT = aiohttp.ClientTimeout(total=60)
+AIOHTTP_TIMEOUT = aiohttp.ClientTimeout(total=100)
 
 async def fetch_completion(session, url, headers, data):
     async with session.post(url, headers=headers, json=data) as response:
