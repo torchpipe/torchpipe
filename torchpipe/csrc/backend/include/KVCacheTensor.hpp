@@ -133,6 +133,7 @@ class RequestTimeStamp : public SingleBackend {
  private:
   std::unique_ptr<Params> params_;
   std::unique_ptr<Backend> engine_;
+  std::string key_;
 };
 
 }  // namespace ipipe

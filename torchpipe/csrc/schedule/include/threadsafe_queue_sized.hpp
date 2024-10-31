@@ -22,7 +22,7 @@
 #include <vector>
 #include "sized_queue.hpp"
 
-#include "base_logging.hpp"
+// #include "base_logging.hpp"
 namespace ipipe {
 
 template <typename T>

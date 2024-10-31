@@ -53,14 +53,15 @@ bool PushKVCacheTensor::init(const std::unordered_map<std::string, std::string>&
 
 bool RequestTimeStamp::init(const std::unordered_map<std::string, std::string>& config_param,
                             dict dict_config) {
-  params_ =
-      std::unique_ptr<Params>(new Params({{"RequestTimeStamp::backend", "Identity"}}, {}, {}, {}));
+  params_ = std::unique_ptr<Params>(
+      new Params({{"RequestTimeStamp::backend", "Identity"}, {"key", ""}}, {}, {}, {}));
 
   if (!params_->init(config_param)) return false;
 
   engine_ =
       std::unique_ptr<Backend>(IPIPE_CREATE(Backend, params_->at("RequestTimeStamp::backend")));
 
+  key_ = params_->at("key");
   auto config_param_new = config_param;
   config_param_new.erase("RequestTimeStamp::backend");
 
@@ -91,8 +92,13 @@ void RequestTimeStamp::forward(dict input_dict) {
   } else {
     std::shared_ptr<std::vector<decltype(now_time)>> ptime_stamp =
         any_cast<std::shared_ptr<std::vector<decltype(now_time)>>>(*time_stamp);
-    SPDLOG_INFO("request({}, {}) time: {}", ptime_stamp->size() - 1, request_id,
-                now_time - ptime_stamp->back());
+    if (key_.empty()) {
+      SPDLOG_INFO("request({}, {}) time: {}", ptime_stamp->size() - 1, request_id,
+                  now_time - ptime_stamp->back());
+    } else {
+      SPDLOG_INFO("request(key={}, index={}, {}) time: {}", key_, ptime_stamp->size() - 1,
+                  request_id, now_time - ptime_stamp->back());
+    }
     ptime_stamp->push_back(now_time);
   }
 

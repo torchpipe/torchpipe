@@ -65,7 +65,8 @@ void StatefulInstanceHandler::run() {  // 确保初始化和前向处于同一�
 #endif
             return re;
           });  // for exit this thread
-      // SPDLOG_INFO("StatefulInstanceHandler({}): request tasks = {}", succ, get_request_size(tasks));
+      // SPDLOG_INFO("StatefulInstanceHandler({}): request tasks = {}", succ,
+      // get_request_size(tasks));
       if (!succ) {
         assert(tasks.empty());
         continue;
