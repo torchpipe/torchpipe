@@ -37,7 +37,7 @@ class Batching : public Backend {
   bool init(const std::unordered_map<std::string, std::string>& config, dict dict_config) {
     params_ = std::unique_ptr<Params>(
         new Params({{"multiple_instances", ""},
-                    {"batching_timeout", "2"},
+                    {"batching_timeout", "1"},
                     {"cal_request_size_method", ""},  // AddRequestSizeTensor
                     {"node_name", ""}},
                    {}, {}, {}));

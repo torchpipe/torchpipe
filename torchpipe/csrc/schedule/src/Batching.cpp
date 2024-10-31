@@ -41,14 +41,14 @@ void Batching::run() {  // only one Batching thread
 
   while (bThreadInited_.load()) {
     {
-      TimeGuard guard;
+      // TimeGuard guard;
       if (!batched_queue_.WaitForWaiting(100)) continue;
 
-      auto time_pass = guard.elapsed();
-      if (time_pass > 16) {
-        SPDLOG_WARN("WaitForWaiting too slow: {}", time_pass);
-      }
-      guard.silence();
+      // auto time_pass = guard.elapsed();
+      // if (time_pass > 16) {
+      //   SPDLOG_WARN("WaitForWaiting too slow: {}", time_pass);
+      // }
+      // guard.silence();
     }
 
     auto input_data_size = get_request_size(input_data);
