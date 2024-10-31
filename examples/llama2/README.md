@@ -86,7 +86,7 @@ BACKEND_ENGINE_PATH=./ python run_llama2_streaming.py
 python chat_client.py --prompt="Do you know the book Traction by Gino Wickman?" --max_tokens 132  
 
 
- python3 benchmark_serving.py --backend vllm  --model ../Llama-2-7b-chat-hf/         --dataset-name sharegpt --dataset-path ../ShareGPT_V3_unfiltered_cleaned_split.json         --num-prompts 50 --port 8080 --save-result --result-dir results/ --result-filename vllm_llama7B_tp1_qps_2.json --request-rate 1   
+ python3 benchmark_serving.py --backend vllm  --model ../Llama-2-7b-chat-hf/         --dataset-name sharegpt --dataset-path ../ShareGPT_V3_unfiltered_cleaned_split.json         --num-prompts 50 --port 8080 --save-result --result-dir results/ --result-filename vllm_llama7B_tp1_qps_2.json --request-rate 2   
 
 
 
@@ -128,5 +128,8 @@ Mean ITL (ms):                           52.88
 Median ITL (ms):                         44.33     
 P99 ITL (ms):                            239.62    
 ==================================================
+
 ```
+
+
 
