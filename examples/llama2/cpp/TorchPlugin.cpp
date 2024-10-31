@@ -328,13 +328,13 @@ int32_t TorchPlugin::enqueue(PluginTensorDesc const* inputDesc, PluginTensorDesc
     if (ret != cudaSuccess) return ret;
 
     try {
-      ipipe::TimeGuard guard("TorchPlugin:interpreter_->forward");
+      // ipipe::TimeGuard guard("TorchPlugin:interpreter_->forward");
       interpreter_->forward(user_datas);
       auto time_pass = guard.elapsed();
-      if (time_pass > 0.2) {
-        SPDLOG_WARN("TorchPlugin:interpreter_->forward too slow: {}", time_pass);
-      }
-      guard.silence();
+      // if (time_pass > 0.2) {
+      //   SPDLOG_WARN("TorchPlugin:interpreter_->forward too slow: {}", time_pass);
+      // }
+      // guard.silence();
     } catch (std::exception const& e) {
       caughtError(e);
       return -1;

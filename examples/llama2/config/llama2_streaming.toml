@@ -38,7 +38,7 @@ next = 'cache'
 only_keep_last_batch = 1
 
 [cache]
-backend = "S[RequestTimeStamp(key=cache),Append2OtherTensor,Result2Key[LongItemTensor],KeyA2KeyB,RemoveOtherSeqLenTensor,SyncTensor]"
+backend = "S[Append2OtherTensor,Result2Key[LongItemTensor],KeyA2KeyB,RemoveOtherSeqLenTensor,SyncTensor]"
 key_a = 'input_tokens'
 key_b = 'input_tokens_result'
 max_seq_len = 2048

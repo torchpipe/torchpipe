@@ -13,7 +13,7 @@
 // limitations under the License.
 
 #include "Batching.hpp"
-
+#include "time_utils.hpp"
 #include <chrono>
 #include <functional>
 #include <sstream>
@@ -40,7 +40,17 @@ void Batching::run() {  // only one Batching thread
   std::vector<dict> input_data;
 
   while (bThreadInited_.load()) {
-    if (!batched_queue_.WaitForWaiting(100)) continue;
+    {
+      TimeGuard guard;
+      if (!batched_queue_.WaitForWaiting(100)) continue;
+
+      auto time_pass = guard.elapsed();
+      if (time_pass > 16) {
+        SPDLOG_WARN("WaitForWaiting too slow: {}", time_pass);
+      }
+      guard.silence();
+    }
+
     auto input_data_size = get_request_size(input_data);
 
     const auto data_size = input_queue_.size();
