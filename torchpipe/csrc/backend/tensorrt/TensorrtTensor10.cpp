@@ -112,7 +112,7 @@ bool TensorrtTensor::init(const std::unordered_map<std::string, std::string>& co
   }
 
   weight_streaming_percentage_ = std::stoi(params_->at("weight_streaming_percentage"));
-  IPIPE_ASSERT(weight_streaming_percentage_>=0);
+  IPIPE_ASSERT(weight_streaming_percentage_ >= 0);
   independent_thread_index_ = _independent_thread_index;
   int instance_num = std::stoi(params_->at("instance_num"));
   if (instance_num <= _independent_thread_index) {
@@ -123,6 +123,10 @@ bool TensorrtTensor::init(const std::unordered_map<std::string, std::string>& co
 
 #if TRT_WEIGHT_STREAMING
   const auto streamable_weights_size = engine_->engine->getStreamableWeightsSize();
+  if (streamable_weights_size == 0 && weight_streaming_percentage_ != 0) {
+    SPDLOG_WARN("streamable weights size == 0, but weight_streaming_percentage = {}",
+                weight_streaming_percentage_);
+  }
   if (weight_streaming_percentage_ != 0 && _independent_thread_index == 0 &&
       streamable_weights_size > 0) {
     size_t wsBudget = weight_streaming_percentage_ / 100.0 * streamable_weights_size;

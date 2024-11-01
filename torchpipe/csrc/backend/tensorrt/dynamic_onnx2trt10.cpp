@@ -366,8 +366,7 @@ std::shared_ptr<CudaEngineWithRuntime> onnx2trt(
 #if TRT_WEIGHT_STREAMING
   if (precision.weight_streaming_percentage != 0) {
     config->setFlag(nvinfer1::BuilderFlag::kWEIGHT_STREAMING);
-    SPDLOG_INFO("nvinfer1::IBuilder: setFlag kWEIGHT_STREAMING({}%)",
-                precision.weight_streaming_percentage);
+    SPDLOG_INFO("nvinfer1::IBuilder: setFlag kWEIGHT_STREAMING");
   }
 #endif
 #if ((NV_TENSORRT_MAJOR >= 8 && NV_TENSORRT_MINOR >= 4) || (NV_TENSORRT_MAJOR >= 9))
@@ -429,7 +428,7 @@ std::shared_ptr<CudaEngineWithRuntime> onnx2trt(
     SPDLOG_INFO("max workspace size setted to {}M", precision.max_workspace_size / 1024.0 / 1024.0);
     if ((fp16_enable.count(precision.precision)) && builder->platformHasFastFp16()) {
       SPDLOG_INFO("platformHasFastFp16. FP16 will be used");
-      if (precision.weight_streaming_percentage != 0) {
+      if (precision.weight_streaming_percentage == 0) {
         config->setFlag(nvinfer1::BuilderFlag::kFP16);
       } else {
         SPDLOG_WARN(
