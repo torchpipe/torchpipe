@@ -275,20 +275,6 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
                 )docdelimiter",
            py::arg("data"));
 
-  //   py::class_<ThreadSafeKVStorage>(m, "ThreadSafeKVStorage")
-  //       .def("read",
-  //            [](ThreadSafeKVStorage& self, const std::string& path) {
-  //              py::dict py_input;
-  //              ipipe::dict2py(self.read(path), py_input, true);
-  //              return py_input;
-  //            })
-  //       .def("write", [](ThreadSafeKVStorage& self, const std::string& path,
-  //                        py::dict data) { self.write(path, py2dict(data)); })
-  //       .def("clear", py::overload_cast<>(&ThreadSafeKVStorage::clear))
-  //       .def("clear", py::overload_cast<const std::string&>(&ThreadSafeKVStorage::clear))
-  //       .def_static("getInstance", &ThreadSafeKVStorage::getInstance,
-  //                   py::return_value_policy::reference);
-
   py::class_<ipipe::any>(m, "Any")
       .def(py::init<>())
       .def("as_str", [](ipipe::any& self) { return any_cast<std::string>(self); })
@@ -358,6 +344,10 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
         .def("__setitem__", [](ThreadSafeDict& self, const std::string& key,
                                const py::object& value) { self.set(key, object2any(value)); });
 
+    py::enum_<ThreadSafeKVStorage::POOL>(m, "POOL")
+        .value("REQUEST_ID", ThreadSafeKVStorage::POOL::REQUEST_ID)
+        .value("USER_DEFINED", ThreadSafeKVStorage::POOL::USER_DEFINED)
+        .export_values();
     py::class_<ThreadSafeKVStorage>(m, "ThreadSafeKVStorage")
         .def("__getitem__",
              [](ThreadSafeKVStorage& self, const std::pair<std::string, std::string>& key_pair) {
@@ -375,10 +365,11 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
              })
         .def("__setitem__",
              [](ThreadSafeKVStorage& self, const std::string& path, const std::string& key,
-                pybind11::handle data) { self.set_and_notify(path, key, object2any(data)); })
+                pybind11::handle data) { self.set(path, key, object2any(data)); })
         .def("clear", py::overload_cast<>(&ThreadSafeKVStorage::clear))
-        .def("erase", py::overload_cast<const std::string&>(&ThreadSafeKVStorage::erase))
+        .def("remove", py::overload_cast<const std::string&>(&ThreadSafeKVStorage::remove))
         .def_static("getInstance", &ThreadSafeKVStorage::getInstance,
+                    py::arg("pool") = ThreadSafeKVStorage::POOL::REQUEST_ID,
                     py::return_value_policy::reference);
   }
 

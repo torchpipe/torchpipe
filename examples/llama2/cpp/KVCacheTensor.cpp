@@ -223,7 +223,7 @@ class RemoveStorage : public SingleBackend {
     {
       auto request_id = any_cast<std::string>(iter->second);
       SPDLOG_INFO("RemoveStorage: {}", request_id);
-      ThreadSafeKVStorage::getInstance().erase(request_id);
+      ThreadSafeKVStorage::getInstance().remove(request_id);
     }
     TRACE_EXCEPTION((*input)[TASK_RESULT_KEY] = (input)->at(TASK_DATA_KEY));
   }

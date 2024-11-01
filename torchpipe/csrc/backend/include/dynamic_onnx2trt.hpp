@@ -48,7 +48,7 @@ std::shared_ptr<CudaEngineWithRuntime> onnx2trt(
     std::vector<std::vector<std::vector<int>>>&
         mins,  // multiple profiles - multiple inputs - multiDims
     std::vector<std::vector<std::vector<int>>>& maxs, std::string& engine_plan,
-    const OnnxParams& precision, const std::unordered_map<std::string, std::string>& int8_param,
+    OnnxParams& precision, const std::unordered_map<std::string, std::string>& int8_param,
     std::vector<float> means, std::vector<float> stds);
 
 bool initPlugins();

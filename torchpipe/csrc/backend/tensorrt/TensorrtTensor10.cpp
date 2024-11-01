@@ -112,6 +112,7 @@ bool TensorrtTensor::init(const std::unordered_map<std::string, std::string>& co
   }
 
   weight_streaming_percentage_ = std::stoi(params_->at("weight_streaming_percentage"));
+  IPIPE_ASSERT(weight_streaming_percentage_>=0);
   independent_thread_index_ = _independent_thread_index;
   int instance_num = std::stoi(params_->at("instance_num"));
   if (instance_num <= _independent_thread_index) {
@@ -119,6 +120,22 @@ bool TensorrtTensor::init(const std::unordered_map<std::string, std::string>& co
                  " <= " + std::to_string(_independent_thread_index));
     return false;
   }
+
+#if TRT_WEIGHT_STREAMING
+  const auto streamable_weights_size = engine_->engine->getStreamableWeightsSize();
+  if (weight_streaming_percentage_ != 0 && _independent_thread_index == 0 &&
+      streamable_weights_size > 0) {
+    size_t wsBudget = weight_streaming_percentage_ / 100.0 * streamable_weights_size;
+    SPDLOG_INFO("Using WeightStreaming, Budget: {}% = {} MB", weight_streaming_percentage_,
+                wsBudget / 1024.0 / 1024.0);
+#if (NV_TENSORRT_MAJOR == 10 && NV_TENSORRT_MINOR <= 4)
+
+    IPIPE_ASSERT(engine_->engine->setWeightStreamingBudget(wsBudget));
+#else
+    IPIPE_ASSERT(engine_->engine->setWeightStreamingBudgetV2(wsBudget));
+#endif
+  }
+#endif
 
   if (engine_->engine->getNbOptimizationProfiles() < instance_num &&
       _independent_thread_index == 0) {
@@ -220,16 +237,6 @@ void TensorrtTensor::parse_context(dict dict_config, int _independent_thread_ind
     config.erase("_engine");
     // config.erase("_engine_raw");
   }
-
-#if TRT_WEIGHT_STREAMING
-  const auto streamable_weights_size = engine_->engine->getStreamableWeightsSize();
-  if (weight_streaming_percentage_ > 0 && profile_index_ == 0 && streamable_weights_size > 0) {
-    size_t wsBudget = weight_streaming_percentage_ / 100.0 * streamable_weights_size;
-    IPIPE_ASSERT(engine_->engine->setWeightStreamingBudgetV2(wsBudget));
-    SPDLOG_INFO("Using WeightStreaming, Budget: {}% = {} MB", weight_streaming_percentage_,
-                wsBudget / 1024.0 / 1024.0);
-  }
-#endif
 
 #if TRT_USER_MANAGED_MEM
   // USE_OUT_MEM
@@ -608,11 +615,19 @@ void TensorrtTensor::forward(const std::vector<dict>& raw_inputs) {
   }
 
 #if TRT_USER_MANAGED_MEM
+#if NV_TENSORRT_MAJOR == 10 && NV_TENSORRT_MINOR <= 4
+  const size_t mem_size = engine_->engine->getDeviceMemorySizeForProfile(profile_index_);
+#else
   const size_t mem_size = engine_->engine->getDeviceMemorySizeForProfileV2(profile_index_);
+#endif
   const double mem_size_mb = static_cast<double>(mem_size) / (1024 * 1024);
   SPDLOG_DEBUG("mem_size: {} MB", mem_size_mb);
   torch::Tensor mem = torch_allocate(mem_size);
+#if NV_TENSORRT_MAJOR == 10 && NV_TENSORRT_MINOR <= 4
+  context_->setDeviceMemory(mem.data_ptr());
+#else
   context_->setDeviceMemoryV2(mem.data_ptr(), mem_size);
+#endif
 #endif
 
   IPIPE_ASSERT(context_->enqueueV3(c10::cuda::getCurrentCUDAStream()));
