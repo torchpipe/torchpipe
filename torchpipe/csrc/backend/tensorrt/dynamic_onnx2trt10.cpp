@@ -340,7 +340,7 @@ std::shared_ptr<CudaEngineWithRuntime> onnx2trt(
   unique_ptr_destroy<nvinfer1::IBuilder> builder{nvinfer1::createInferBuilder(gLogger_inplace)};
 
 #if TRT_WEIGHT_STREAMING
-  if (precision.weight_streaming_percentage != 0) {
+  if (precision.weight_budget_percentage != 0) {
     explicitBatch |=
         1U << static_cast<uint32_t>(nvinfer1::NetworkDefinitionCreationFlag::kSTRONGLY_TYPED);
   }
@@ -364,7 +364,7 @@ std::shared_ptr<CudaEngineWithRuntime> onnx2trt(
   unique_ptr_destroy<nvinfer1::IBuilderConfig> config{builder->createBuilderConfig()};
 
 #if TRT_WEIGHT_STREAMING
-  if (precision.weight_streaming_percentage != 0) {
+  if (precision.weight_budget_percentage != 0) {
     config->setFlag(nvinfer1::BuilderFlag::kWEIGHT_STREAMING);
     SPDLOG_INFO("nvinfer1::IBuilder: setFlag kWEIGHT_STREAMING");
   }
@@ -427,8 +427,8 @@ std::shared_ptr<CudaEngineWithRuntime> onnx2trt(
     // if (precision.max_workspace_size != 4096)
     SPDLOG_INFO("max workspace size setted to {}M", precision.max_workspace_size / 1024.0 / 1024.0);
     if ((fp16_enable.count(precision.precision)) && builder->platformHasFastFp16()) {
-      SPDLOG_INFO("platformHasFastFp16. FP16 will be used");
-      if (precision.weight_streaming_percentage == 0) {
+      if (precision.weight_budget_percentage == 0) {
+        SPDLOG_INFO("platformHasFastFp16. FP16 will be used");
         config->setFlag(nvinfer1::BuilderFlag::kFP16);
       } else {
         SPDLOG_WARN(
@@ -456,16 +456,16 @@ std::shared_ptr<CudaEngineWithRuntime> onnx2trt(
     modify_layers_precision(precision.precision_output_fp16, network.get(),
                             nvinfer1::DataType::kHALF, true);
 
-    if (precision.weight_streaming_percentage != 0) {
+    if (precision.weight_budget_percentage != 0) {
       if (precision.force_layer_norm_pattern_fp32 != 0) {
         precision.force_layer_norm_pattern_fp32 = 0;
         SPDLOG_WARN(
-            "force_layer_norm_pattern_fp32 must be false when weight_streaming_percentage != 0. "
+            "force_layer_norm_pattern_fp32 must be false when weight_budget_percentage != 0. "
             "Automatically set to 0 now.");
       }
       // IPIPE_ASSERT(
       //     precision.force_layer_norm_pattern_fp32 == 0,
-      //     "force_layer_norm_pattern_fp32 must be false when weight_streaming_percentage > 0");
+      //     "force_layer_norm_pattern_fp32 must be false when weight_budget_percentage > 0");
     }
     if ((!use_only_fp32) && precision.force_layer_norm_pattern_fp32) parse_ln(network.get());
 #if (NV_TENSORRT_MAJOR == 8 && NV_TENSORRT_MINOR >= 5)

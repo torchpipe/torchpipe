@@ -35,7 +35,7 @@ min = '1;9;129;513'
 'model::cache' = '/workspace/batchful.trt'
 next = 'cache'
 only_keep_last_batch = 1
-weight_streaming_percentage = 80
+# weight_budget_percentage = 80
 
 [cache]
 backend = "S[RequestTimeStamp(key=cache),Append2OtherTensor,Result2Key[LongItemTensor],KeyA2KeyB,RemoveOtherSeqLenTensor,SyncTensor]"

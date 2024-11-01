@@ -1,7 +1,7 @@
 # Changelog
 
 ## v0.6.6 (WIP)
-- Add weight_streaming_percentage (trt >= 10.5)
+- Add weight_budget_percentage (trt >= 10.5)
 - Add FakeInstances[x] backend (fake_instance_num settable)
 
 ## v0.6.5 (2024.10.25)

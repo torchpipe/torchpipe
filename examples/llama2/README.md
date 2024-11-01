@@ -88,10 +88,30 @@ python chat_client.py --prompt="Do you know the book Traction by Gino Wickman? g
 python chat_client.py --prompt="Do you know the book Traction by Gino Wickman?" --max_tokens 132  
 
 
- python3 benchmark_serving.py --backend vllm  --model ../Llama-2-7b-chat-hf/         --dataset-name sharegpt --dataset-path ../ShareGPT_V3_unfiltered_cleaned_split.json         --num-prompts 50 --port 8080 --save-result --result-dir results/ --result-filename vllm_llama7B_tp1_qps_2.json --request-rate 4   
+ python3 benchmark_serving.py --backend vllm  --model ../Llama-2-7b-chat-hf/         --dataset-name sharegpt --dataset-path ../ShareGPT_V3_unfiltered_cleaned_split.json         --num-prompts 50 --port 8080 --save-result --result-dir results/ --result-filename vllm_llama7B_tp1_qps_2.json --request-rate 2   
 
 
-
+============ Serving Benchmark Result ============
+Successful requests:                     50        
+Benchmark duration (s):                  71.48     
+Total input tokens:                      14056     
+Total generated tokens:                  10791     
+Request throughput (req/s):              0.70      
+Input token throughput (tok/s):          196.63    
+Output token throughput (tok/s):         150.96    
+---------------Time to First Token----------------
+Mean TTFT (ms):                          103.45    
+Median TTFT (ms):                        71.23     
+P99 TTFT (ms):                           290.93    
+-----Time per Output Token (excl. 1st token)------
+Mean TPOT (ms):                          75.08     
+Median TPOT (ms):                        75.62     
+P99 TPOT (ms):                           109.22    
+---------------Inter-token Latency----------------
+Mean ITL (ms):                           84.10     
+Median ITL (ms):                         82.84     
+P99 ITL (ms):                            247.92    
+==================================================
 ```
 
 
@@ -105,7 +125,7 @@ python chat_client.py --prompt="Do you know the book Traction by Gino Wickman?" 
 ```bash
 python3 -m vllm.entrypoints.openai.api_server -tp 1 -pp 1 --gpu-memory-utilization 0.95         --model ../Llama-2-7b-chat-hf/ --port 8000 --disable-log-stats --disable-log-requests 
 
- python3 benchmark_serving.py --backend vllm  --model ../Llama-2-7b-chat-hf/         --dataset-name sharegpt --dataset-path ../ShareGPT_V3_unfiltered_cleaned_split.json         --num-prompts 500 --port 8000 --save-result --result-dir results/ --result-filename vllm_llama7B_tp1_qps_2.json --request-rate 2   
+ python3 benchmark_serving.py --backend vllm  --model ../Llama-2-7b-chat-hf/         --dataset-name sharegpt --dataset-path ../ShareGPT_V3_unfiltered_cleaned_split.json         --num-prompts 50 --port 8000 --save-result --result-dir results/ --result-filename vllm_llama7B_tp1_qps_2.json --request-rate 2   
 ```
 
 ```bash

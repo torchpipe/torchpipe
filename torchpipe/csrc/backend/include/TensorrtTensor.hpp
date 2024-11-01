@@ -114,6 +114,6 @@ class TensorrtTensor : public Backend {
   std::vector<int> input_reorder_;
   std::vector<int> output_reorder_;
 
-  int weight_streaming_percentage_{0};
+  int weight_budget_percentage_{0};
 };
 }  // namespace ipipe

@@ -31,7 +31,7 @@ min = '1;4'
 'model' = 'model_files/batchful.onnx' 
 'model::cache' = 'model_files/batchful.trt' 
 next = 'cache' 
-# weight_streaming_percentage = 50 
+# weight_budget_percentage = 50 
 batch_process = "LastBatchTensor"
 
 [cache]

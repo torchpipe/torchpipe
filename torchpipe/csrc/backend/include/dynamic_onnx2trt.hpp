@@ -39,7 +39,7 @@ struct OnnxParams {
   std::string log_level;
   std::vector<int> input_reorder;
   int force_layer_norm_pattern_fp32;
-  int weight_streaming_percentage;
+  int weight_budget_percentage;
 };
 
 std::shared_ptr<CudaEngineWithRuntime> onnx2trt(
