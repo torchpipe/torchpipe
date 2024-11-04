@@ -85,7 +85,7 @@ void ThreadSafeKVStorage::remove(const std::string& path) {
   }
 
   if (remove_callback_) {
-    remove_callback_(path_);
+    remove_callback_(path);
   }
   // throw std::out_of_range(path);
 }
