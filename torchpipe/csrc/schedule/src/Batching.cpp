@@ -173,7 +173,10 @@ bool Batching::init(const std::unordered_map<std::string, std::string>& config, 
 
     request_states_ = std::make_unique<RequestStates>();
     auto& storage = ThreadSafeKVStorage::getInstance(ThreadSafeKVStorage::POOL::REQUEST_ID);
-    storage.add_remove_callback([this](const std::string& req) { request_states_->remove(req); });
+    storage.add_remove_callback([this](const std::string& req) {
+      SPDLOG_INFO("remove request_id: {} from callback", req);
+      request_states_->remove(req);
+    });
   }
 
   if (params_->at("multiple_instances").empty()) {

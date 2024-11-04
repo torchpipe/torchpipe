@@ -63,14 +63,16 @@ class RequestStates {
   }
 
   void set_wait(const std::string& request_id) {
-    std::lock_guard<std::mutex> lock(mtx_);
-    auto iter = request_states_.find(request_id);
-    if (iter != request_states_.end()) {
-      iter->second.wait_for_schedule = true;
+    {
+      std::lock_guard<std::mutex> lock(mtx_);
+      auto iter = request_states_.find(request_id);
+      if (iter != request_states_.end()) {
+        iter->second.wait_for_schedule = true;
 
-    } else {
-      // (*request_states_)[request_id] = RequestState({0, true});
-      request_states_.emplace(request_id, RequestState({0, true}));
+      } else {
+        // (*request_states_)[request_id] = RequestState({0, true});
+        request_states_.emplace(request_id, RequestState({0, true}));
+      }
     }
     cv_.notify_all();
   }
