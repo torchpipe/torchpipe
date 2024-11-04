@@ -301,6 +301,10 @@ void Batching::run() {  // only one Batching thread
           SPDLOG_INFO("contiguous_batching: not all requests ready. Req sz={}, state sz = {}",
                       input_data_size + new_pop, request_states_->size());
           continue;
+        } else {
+          SPDLOG_INFO("contiguous_batching: all requests ready. Req sz={}, state sz = {}",
+                      input_data_size + new_pop, request_states_->size());
+          continue;  // rebatching
         }
 
         SPDLOG_INFO("contiguous_batching: all requests ready. Req sz={}, state sz = {}",
