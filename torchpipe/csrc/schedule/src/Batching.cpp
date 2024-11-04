@@ -250,6 +250,20 @@ void Batching::run() {  // only one Batching thread
         input_data.push_back(input_queue_.WaitPop());
       }
 
+      if (request_states_) {
+        for (const auto& request : input_data) {
+          auto iter = request->find("request_id");
+          if (iter == request->end()) {
+            SPDLOG_ERROR("request_id not found in contiguous batching mode");
+            continue;
+          }
+
+          std::string* request_id = any_cast<std::string>(&iter->second);
+          request_states_->set_unwait(*request_id);
+          SPDLOG_INFO("contiguous_batching: set_unwait {}", *request_id);
+        }
+      }
+
       backend_->forward(input_data);
     } else if (data_size + input_data.size() == 0) {
       dict tmp_dict;
@@ -292,8 +306,8 @@ void Batching::run() {  // only one Batching thread
         }
         input_data.push_back(input_queue_.WaitPop());
       }
-      if (input_data_size + new_pop > max_batch_size_) {
-        continue;
+      if (input_data_size + new_pop >= max_batch_size_) {
+        continue;  // go to another branch
       }
 
       if (request_states_) {
@@ -304,11 +318,12 @@ void Batching::run() {  // only one Batching thread
         } else {
           SPDLOG_INFO("contiguous_batching: all requests ready. Req sz={}, state sz = {}",
                       input_data_size + new_pop, request_states_->size());
-          continue;  // rebatching
+          if (!input_queue_.empty() && (input_data_size + new_pop < max_batch_size_))
+            continue;  // rebatching
         }
 
-        SPDLOG_INFO("contiguous_batching: all requests ready. Req sz={}, state sz = {}",
-                    input_data_size + new_pop, request_states_->size());
+        // SPDLOG_INFO("contiguous_batching: all requests ready. Req sz={}, state sz = {}",
+        //             input_data_size + new_pop, request_states_->size());
 
         for (const auto& request : input_data) {
           auto iter = request->find("request_id");
@@ -321,21 +336,6 @@ void Batching::run() {  // only one Batching thread
           request_states_->set_unwait(*request_id);
           SPDLOG_INFO("contiguous_batching: set_unwait {}", *request_id);
         }
-        // bool ready = true;
-        // std::set<std::string> request_ids = get_request_ids(input_data);
-        // auto storage_keys =
-        //     ThreadSafeKVStorage::getInstance(ThreadSafeKVStorage::POOL::REQUEST_ID).keys();
-        // for (const auto& key : storage_keys) {
-        //   if (request_ids.count(key) == 0) {
-        //     ready = false;
-        //     SPDLOG_INFO("contiguous_batching: {} not found in input", key);
-        //     break;
-        //   }
-        // }
-        // if (!ready) {
-        //   input_queue_.WaitFor(50);  // request removed or new request
-        //   continue;
-        // }
       }
 
       backend_->forward(input_data);
