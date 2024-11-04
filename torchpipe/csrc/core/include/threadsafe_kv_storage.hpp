@@ -46,10 +46,7 @@ class ThreadSafeDict {
 
 class ThreadSafeKVStorage {
  public:
-  enum struct POOL {
-    REQUEST_ID,
-    USER_DEFINED,
-  };
+  enum struct POOL { REQUEST_ID, USER_DEFINED, SCHEDULER };
 
   // 获取单例实例
   static ThreadSafeKVStorage& getInstance(POOL pool = POOL::REQUEST_ID);
@@ -69,6 +66,10 @@ class ThreadSafeKVStorage {
 
   ThreadSafeDict& get_or_insert(const std::string& path);
 
+  void add_remove_callback(std::function<void(const std::string&)> callback) {
+    remove_callback_ = callback;
+  }
+
   // 读取数据
   std::optional<ipipe::any> get(const std::string& path, const std::string& key);
 
@@ -82,7 +83,16 @@ class ThreadSafeKVStorage {
     set(path, key, ipipe::any(data));
   }
 
-  bool wait_all_exist_for(const std::set<std::string>& keys, int time_out);
+  // bool wait_all_exist_for(const std::set<std::string>& keys, int time_out);
+
+  std::set<std::string> keys() const {
+    std::shared_lock<std::shared_mutex> lock(mutex_);
+    std::set<std::string> keys;
+    for (const auto& item : disk_) {
+      keys.insert(item.first);
+    }
+    return keys;
+  }
   // 清空数据
   void clear();
 
@@ -102,6 +112,7 @@ class ThreadSafeKVStorage {
       instances_;  // 存储不同池类型的实例
 
   static std::unique_ptr<ThreadSafeKVStorage> createInstance();
+  std::function<void(const std::string&)> remove_callback_;
 };
 
 }  // namespace ipipe

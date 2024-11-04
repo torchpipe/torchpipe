@@ -41,6 +41,16 @@ class ThreadSafeSizedQueue {
     data_cond_.notify_all();
   }
 
+  void notify_all() {
+    data_cond_.notify_all();
+    // https://wanghenshui.github.io/2019/08/23/notify-one-pred
+  }
+
+  void WaitFor(int time_out) {
+    std::unique_lock<std::mutex> lk(mut_);
+    data_cond_.wait_for(lk, std::chrono::milliseconds(time_out));
+  }
+
   // void PushIfEmpty(const T& new_value, size_t size) {
   //   {
   //     std::unique_lock<std::mutex> lk(mut_);

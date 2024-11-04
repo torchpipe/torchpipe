@@ -27,71 +27,73 @@
 #include "time_utils.hpp"
 #include "RangeMerger.hpp"
 #include "RuningState.hpp"
-
+#include <cassert>
 namespace ipipe {
 
+class RequestStates {
+ public:
+  struct RequestState {
+   public:
+    int iter_index = 0;
+    bool wait_for_schedule = true;
+  };
+  bool wait_decode_ready(int time_out) {
+    std::unique_lock<std::mutex> lock(mtx_);
+    return cv_.wait_for(lock, std::chrono::milliseconds(time_out), [this]() {
+      for (auto iter = request_states_.begin(); iter != request_states_.end(); ++iter) {
+        if (iter->second.iter_index >= 1 && !iter->second.wait_for_schedule) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }
+
+  void remove(const std::string& request_id) {
+    {
+      std::lock_guard<std::mutex> lock(mtx_);
+      request_states_.erase(request_id);
+    }
+    cv_.notify_all();
+  }
+
+  void set_wait(const std::string& request_id) {
+    std::lock_guard<std::mutex> lock(mtx_);
+    auto iter = request_states_.find(request_id);
+    if (iter != request_states_.end()) {
+      iter->second.wait_for_schedule = true;
+
+    } else {
+      // (*request_states_)[request_id] = RequestState({0, true});
+      request_states_.emplace(request_id, RequestState({0, true}));
+    }
+    cv_.notify_all();
+  }
+
+  void set_unwait(const std::string& request_id) {
+    std::lock_guard<std::mutex> lock(mtx_);
+    auto iter = request_states_.find(request_id);
+    if (iter != request_states_.end()) {
+      iter->second.wait_for_schedule = false;
+      iter->second.iter_index += 1;
+      // cv_.notify_all();
+    }
+  }
+  // void notify_all() {
+  //   std::lock_guard<std::mutex> lock(mtx_);
+  //   cv_.notify_all();
+  // }
+
+ private:
+  std::unordered_map<std::string, RequestState> request_states_;
+  mutable std::mutex mtx_;
+  std::condition_variable cv_;
+};
 // # cal_request_size_method = "AddRequestSizeTensor"
 
 class Batching : public Backend {
  public:
-  bool init(const std::unordered_map<std::string, std::string>& config, dict dict_config) {
-    params_ = std::unique_ptr<Params>(
-        new Params({{"multiple_instances", ""},
-                    {"batching_timeout", "1"},
-                    {"cal_request_size_method", ""},  // AddRequestSizeTensor
-                    {"node_name", ""}},
-                   {}, {}, {}));
-    if (config.empty()) {
-      SPDLOG_ERROR("empty config. Only support single-node configuration.");
-      return false;
-    }
-    if (!params_->init(config)) return false;
-    auto batching_timeouts = str_split(params_->at("batching_timeout"), '&');
-    batching_timeout_ = 0;
-    for (const auto& item : batching_timeouts) {
-      batching_timeout_ = std::max(batching_timeout_, std::stof(item));
-    }
-
-    node_name_ = params_->at("node_name");
-
-    if (params_->at("multiple_instances").empty()) {
-      // backend_ = std::make_unique<RangeMerger>();
-      backend_ = std::make_unique<MultiInstances>();
-    } else {
-      backend_ = std::unique_ptr<Backend>(IPIPE_CREATE(Backend, params_->at("multiple_instances")));
-    }
-    // batched_queue_ = std::make_unique<ThreadSafeSizedQueue<std::vector<dict>>>();
-    (*dict_config)["_batched_queue"] = &batched_queue_;
-
-    if (!params_->at("cal_request_size_method").empty()) {
-      cal_request_size_method_ =
-          std::unique_ptr<Backend>(IPIPE_CREATE(Backend, params_->at("cal_request_size_method")));
-      IPIPE_ASSERT(cal_request_size_method_ && cal_request_size_method_->init(config, dict_config));
-    }
-    if (!backend_ || !backend_->init(config, dict_config)) return false;
-    runing_state_ = std::make_shared<RuningState>();
-    {
-      max_batch_size_ = backend_->max();
-      if (max_batch_size_ == UINT32_MAX) {
-        SPDLOG_WARN(node_name_ + ": max() == UINT32_MAX");
-      }
-
-      if (max_batch_size_ != 1 && batching_timeout_ > 0) {
-        bThreadInited_.store(true);
-        thread_ = std::thread(&Batching::run, this);
-      } else if (max_batch_size_ != 1 && batching_timeout_ == 0) {
-        SPDLOG_WARN(
-            "{}: Batching will not be enabled as batching_timeout is set to 0. Even though "
-            "max_batch_size is greater than 1, multiple requests coming in simultaneously will not "
-            "be batched together.",
-            node_name_);
-      }
-      SPDLOG_INFO("{}: max_batch_size={}, batching_timeout={}", node_name_, max_batch_size_,
-                  batching_timeout_);
-    }
-    return true;
-  }
-
+  bool init(const std::unordered_map<std::string, std::string>& config, dict dict_config);
   /**
    * @return UINT32_MAX.
    */
@@ -158,6 +160,14 @@ class Batching : public Backend {
         input_queue_.Push(raw_inputs, sizes);  // todo 限制送入的不能超过最大值
       }
     }
+    if (request_states_) {
+      for (const auto& request : raw_inputs) {
+        auto iter = request->find("request_id");
+
+        std::string* request_id = any_cast<std::string>(&iter->second);
+        request_states_->set_wait(*request_id);
+      }
+    }
 
     for (std::size_t i = 0; i < raw_inputs.size(); ++i) {
       // 当阻塞式调用时 todo  非阻塞调用
@@ -204,5 +214,8 @@ class Batching : public Backend {
   // std::atomic<unsigned> count_{0};
 
   std::shared_ptr<RuningState> runing_state_;
+  int contiguous_batching_{0};
+
+  std::unique_ptr<RequestStates> request_states_;
 };
 }  // namespace ipipe
