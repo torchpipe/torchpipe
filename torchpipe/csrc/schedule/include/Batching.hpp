@@ -49,6 +49,11 @@ class RequestStates {
     });
   }
 
+  std::size_t size() {
+    std::lock_guard<std::mutex> lock(mtx_);
+    return request_states_.size();
+  }
+
   void remove(const std::string& request_id) {
     {
       std::lock_guard<std::mutex> lock(mtx_);
@@ -163,6 +168,10 @@ class Batching : public Backend {
     if (request_states_) {
       for (const auto& request : raw_inputs) {
         auto iter = request->find("request_id");
+        if (iter == request->end()) {
+          SPDLOG_ERROR("request_id not found in contiguous batching mode");
+          continue;
+        }
 
         std::string* request_id = any_cast<std::string>(&iter->second);
         request_states_->set_wait(*request_id);

@@ -36,6 +36,7 @@ min = '1;9;129;513'
 next = 'cache'
 only_keep_last_batch = 1
 # weight_budget_percentage = 80
+contiguous_batching = 1
 
 [cache]
 backend = "S[RequestTimeStamp(key=cache),Append2OtherTensor,Result2Key[LongItemTensor],KeyA2KeyB,RemoveOtherSeqLenTensor,SyncTensor]"

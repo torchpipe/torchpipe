@@ -78,7 +78,7 @@ bool Batching::init(const std::unordered_map<std::string, std::string>& config, 
   if (contiguous_batching_) {
     IPIPE_ASSERT(!node_name_.empty(),
                  "node_name should not be empty when contiguous_batching is enabled");
-    SPDLOG_INFO("contiguous_batching_ is enabled");
+    SPDLOG_INFO("contiguous batching is enabled");
 
     request_states_ = std::make_unique<RequestStates>();
     auto& storage = ThreadSafeKVStorage::getInstance(ThreadSafeKVStorage::POOL::REQUEST_ID);
@@ -206,10 +206,15 @@ void Batching::run() {  // only one Batching thread
           continue;
         }
 
-        SPDLOG_INFO("contiguous_batching: all requests ready. sz={}", input_data_size + new_pop);
+        SPDLOG_INFO("contiguous_batching: all requests ready. Req sz={}, state sz = {}",
+                    input_data_size + new_pop, request_states_->size());
 
         for (const auto& request : input_data) {
           auto iter = request->find("request_id");
+          if (iter == request->end()) {
+            SPDLOG_ERROR("request_id not found in contiguous batching mode");
+            continue;
+          }
 
           std::string* request_id = any_cast<std::string>(&iter->second);
           request_states_->set_unwait(*request_id);
