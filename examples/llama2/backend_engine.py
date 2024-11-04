@@ -10,6 +10,7 @@ import time
 from torchpipe.serve.output import RequestOutput, SequenceOutput,  Status, StatusCode
 import torchpipe as tp
 
+storage = tp.ThreadSafeKVStorage.getInstance()
  
 request_state = {}
 
@@ -116,6 +117,7 @@ class BackendEngine:
                 output.usage = None
                 output.finished = True
                 print(e)
+                storage.remove(request_id)
                 local_cb(output)
             else:
                 print('no exception')
