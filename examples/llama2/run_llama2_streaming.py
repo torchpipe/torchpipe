@@ -16,6 +16,7 @@ from backend_engine import BackendEngine
  
 if __name__ == '__main__':
     import fire
+    os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
     # fire.Fire(main)
     from torchpipe.serve.openai.openai_server_api import main
     main()

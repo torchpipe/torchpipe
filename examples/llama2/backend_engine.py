@@ -3,7 +3,7 @@ import queue
 import threading
 import shortuuid
 import time
-
+import torch
 # from scalellm._C import (LLMHandler, Message, Priority, RequestOutput,
 #                          SamplingParams, Status, StatusCode, SequenceOutput, Usage)
 
@@ -64,6 +64,11 @@ class PyStream:
         
         _, local_cb = request_state[request_id]
         
+        total_memory = torch.cuda.get_device_properties(0).total_memory
+        left = (total_memory - torch.cuda.memory_reserved(0)) / 1024 / 1024
+        if (left < 1024):
+            torch.cuda.empty_cache()
+            print("Cleared cache", (total_memory - torch.cuda.memory_reserved(0)) / 1024 / 1024)
         local_cb(output)
     
 tp.register_backend( PyStream, "PyStream")

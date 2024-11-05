@@ -51,62 +51,6 @@ bool PushKVCacheTensor::init(const std::unordered_map<std::string, std::string>&
   return true;
 }
 
-bool RequestTimeStamp::init(const std::unordered_map<std::string, std::string>& config_param,
-                            dict dict_config) {
-  params_ = std::unique_ptr<Params>(
-      new Params({{"RequestTimeStamp::backend", "Identity"}, {"key", ""}}, {}, {}, {}));
-
-  if (!params_->init(config_param)) return false;
-
-  engine_ =
-      std::unique_ptr<Backend>(IPIPE_CREATE(Backend, params_->at("RequestTimeStamp::backend")));
-
-  key_ = params_->at("key");
-  auto config_param_new = config_param;
-  config_param_new.erase("RequestTimeStamp::backend");
-
-  if (!engine_ || !engine_->init(config_param_new, dict_config)) {
-    return false;
-  }
-
-  return true;
-}
-
-void RequestTimeStamp::forward(dict input_dict) {
-  static auto& storage = ThreadSafeKVStorage::getInstance();
-
-  auto iter = input_dict->find("request_id");
-  IPIPE_ASSERT(iter != input_dict->end());
-  std::string request_id = any_cast<std::string>(iter->second);
-  SPDLOG_DEBUG("RequestTimeStamp request_id: {}", request_id);
-
-  auto& storage_kv = storage.get_or_insert(request_id);
-
-  auto& input = *input_dict;
-
-  auto time_stamp = storage_kv.get("time_stamp");
-
-  auto now_time = time_passed();
-  if (!time_stamp) {
-    storage_kv.set("time_stamp", std::make_shared<std::vector<decltype(now_time)>>(1, now_time));
-  } else {
-    std::shared_ptr<std::vector<decltype(now_time)>> ptime_stamp =
-        any_cast<std::shared_ptr<std::vector<decltype(now_time)>>>(*time_stamp);
-    if (key_.empty()) {
-      SPDLOG_INFO("request({}, {}) time: {}", ptime_stamp->size() - 1, request_id,
-                  now_time - ptime_stamp->back());
-    } else {
-      SPDLOG_INFO("request(key={}, index={}, {}) time: {}", key_, ptime_stamp->size() - 1,
-                  request_id, now_time - ptime_stamp->back());
-    }
-    ptime_stamp->push_back(now_time);
-  }
-
-  engine_->forward({input_dict});
-}
-
-IPIPE_REGISTER(Backend, RequestTimeStamp, "RequestTimeStamp");
-
 void PushKVCacheTensor::forward(dict input_dict) {
   static auto& storage = ThreadSafeKVStorage::getInstance();
 
@@ -276,5 +220,61 @@ class RemoveOtherSeqLenTensor : public SingleBackend {
   }
 };
 IPIPE_REGISTER(Backend, RemoveOtherSeqLenTensor, "RemoveOtherSeqLenTensor");
+
+bool RequestTimeStamp::init(const std::unordered_map<std::string, std::string>& config_param,
+                            dict dict_config) {
+  params_ = std::unique_ptr<Params>(
+      new Params({{"RequestTimeStamp::backend", "Identity"}, {"key", ""}}, {}, {}, {}));
+
+  if (!params_->init(config_param)) return false;
+
+  engine_ =
+      std::unique_ptr<Backend>(IPIPE_CREATE(Backend, params_->at("RequestTimeStamp::backend")));
+
+  key_ = params_->at("key");
+  auto config_param_new = config_param;
+  config_param_new.erase("RequestTimeStamp::backend");
+
+  if (!engine_ || !engine_->init(config_param_new, dict_config)) {
+    return false;
+  }
+
+  return true;
+}
+
+void RequestTimeStamp::forward(dict input_dict) {
+  static auto& storage = ThreadSafeKVStorage::getInstance();
+
+  auto iter = input_dict->find("request_id");
+  IPIPE_ASSERT(iter != input_dict->end());
+  std::string request_id = any_cast<std::string>(iter->second);
+  SPDLOG_DEBUG("RequestTimeStamp request_id: {}", request_id);
+
+  auto& storage_kv = storage.get_or_insert(request_id);
+
+  auto& input = *input_dict;
+
+  auto time_stamp = storage_kv.get("time_stamp");
+
+  auto now_time = time_passed();
+  if (!time_stamp) {
+    storage_kv.set("time_stamp", std::make_shared<std::vector<decltype(now_time)>>(1, now_time));
+  } else {
+    std::shared_ptr<std::vector<decltype(now_time)>> ptime_stamp =
+        any_cast<std::shared_ptr<std::vector<decltype(now_time)>>>(*time_stamp);
+    if (key_.empty()) {
+      SPDLOG_INFO("request({}, {}) time: {}", ptime_stamp->size() - 1, request_id,
+                  now_time - ptime_stamp->back());
+    } else {
+      SPDLOG_INFO("request(key={}, index={}, {}) time: {}", key_, ptime_stamp->size() - 1,
+                  request_id, now_time - ptime_stamp->back());
+    }
+    ptime_stamp->push_back(now_time);
+  }
+
+  engine_->forward({input_dict});
+}
+
+IPIPE_REGISTER(Backend, RequestTimeStamp, "RequestTimeStamp");
 
 }  // namespace ipipe
