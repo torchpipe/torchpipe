@@ -20,8 +20,9 @@ next = "batchful"
 embed_tokens = "model_files/embed_tokens.pt"
 
 [batchful]
+# RequestTimeStamp(key=batchful),
 # PluginCacher is used to cache parameters and input data for (tensorrt) plugin
-'backend' = 'S[RequestTimeStamp(key=batchful),ThreadLocalCacher[FakeInstances[TensorrtTensor]],ArgMaxTensor,SyncTensor]'
+'backend' = 'S[ThreadLocalCacher[FakeInstances[TensorrtTensor]],ArgMaxTensor,SyncTensor]'
 scheduler = "Batching"
 
 cal_request_size_method = "CalTorchBatchSize" # calc. request_size according to torch tensor size
@@ -39,7 +40,7 @@ only_keep_last_batch = 1
 contiguous_batching = 1
 
 [cache]
-backend = "S[RequestTimeStamp(key=cache),Append2OtherTensor,Result2Key[LongItemTensor],KeyA2KeyB,RemoveOtherSeqLenTensor,SyncTensor]"
+backend = "S[Append2OtherTensor,Result2Key[LongItemTensor],KeyA2KeyB,RemoveOtherSeqLenTensor,SyncTensor]"
 key_a = 'input_tokens'
 key_b = 'input_tokens_result'
 max_seq_len = 2048

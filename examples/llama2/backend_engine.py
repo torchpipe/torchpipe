@@ -28,9 +28,9 @@ class PyStream:
     
     def forward(self, input: tp._C.Dict) -> None:
         print(list(input.keys()))
-        print("PyStream ", input['data'].shape)
+        # print("PyStream ", input['data'].shape)
         request_id = input['request_id'].decode('utf-8')
-        print('streaming with request_id = ', request_id)
+        # print('streaming with request_id = ', request_id)
         # print(input['input_tokens_result'])
         
         seq = SequenceOutput()
@@ -147,7 +147,7 @@ class BackendEngine:
             else:
                 print("Waiting for memory. left = ", left)
                 # time.sleep(0.01)
-                asyncio.sleep(0.01)
+                await asyncio.sleep(0.01)
             
             
         self.model(inputs)

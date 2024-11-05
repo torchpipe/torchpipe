@@ -124,7 +124,7 @@ void Batching::forward(const std::vector<dict>& raw_inputs) {
 
       std::string* request_id = any_cast<std::string>(&iter->second);
       request_states_->set_wait(*request_id);
-      SPDLOG_INFO("contiguous_batching: set_wait {}", *request_id);
+      // SPDLOG_INFO("contiguous_batching: set_wait {}", *request_id);
     }
   }
 
@@ -334,7 +334,7 @@ void Batching::run() {  // only one Batching thread
 
           std::string* request_id = any_cast<std::string>(&iter->second);
           request_states_->set_unwait(*request_id);
-          SPDLOG_INFO("contiguous_batching: set_unwait {}", *request_id);
+          // SPDLOG_INFO("contiguous_batching: set_unwait {}", *request_id);
         }
       }
 
