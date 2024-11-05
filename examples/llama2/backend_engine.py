@@ -140,9 +140,13 @@ class BackendEngine:
         total_memory = torch.cuda.get_device_properties(0).total_memory
         left = (total_memory - torch.cuda.memory_reserved(0)) / 1024 / 1024
         while (left < 1024):
-            # torch.cuda.empty_cache()
-            print("Waiting for memory. left = ", left)
-            time.sleep(0.01)
+            torch.cuda.empty_cache()
+            left = (total_memory - torch.cuda.memory_reserved(0)) / 1024 / 1024
+            if left > 1024:
+                break
+            else:
+                print("Waiting for memory. left = ", left)
+                time.sleep(0.01)
             
             
         self.model(inputs)
