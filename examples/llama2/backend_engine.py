@@ -13,7 +13,7 @@ import torchpipe as tp
 storage = tp.ThreadSafeKVStorage.getInstance()
  
 request_state = {}
-
+import asyncio
 
 
 class PyStream:
@@ -80,7 +80,7 @@ class BackendEngine:
         self.tokenizer = AutoTokenizer.from_pretrained('model_files/')
         
             
-    def forward_async(self, data: dict) -> None:
+    async def forward_async(self, data: dict) -> None:
         
         request_callback = data['callback']
         request_id = f"cmpl-{shortuuid.random()}"
@@ -146,7 +146,8 @@ class BackendEngine:
                 break
             else:
                 print("Waiting for memory. left = ", left)
-                time.sleep(0.01)
+                # time.sleep(0.01)
+                asyncio.sleep(0.01)
             
             
         self.model(inputs)
