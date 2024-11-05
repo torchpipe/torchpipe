@@ -58,7 +58,7 @@ compare_target = 2
 other = "input_tokens"
 
 [batchless_decode]
-backend = "S[AppendOtherTensor,Result2Key(key=tmpkey)[PopKVCacheTensor],AppendKeyTensor(key=tmpkey), TensorrtTensor,PushKVCacheTensor,SyncTensor]" #
+backend = "S[AppendOtherTensor,Result2Key(key=tmpkey)[PopKVCacheTensor],AppendTensor(key=tmpkey), TensorrtTensor,PushKVCacheTensor,SyncTensor]" #
 instance_num = 1 
 max = '1x1x4096,1x1x4096,1x1x4096,1x1x128,1x1x128,1x1x1x2048,1x32x2047x128,1x32x2047x128' 
 # q k v cos sin mask

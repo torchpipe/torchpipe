@@ -88,7 +88,7 @@ python chat_client.py --prompt="Do you know the book Traction by Gino Wickman? g
 python chat_client.py --prompt="Do you know the book Traction by Gino Wickman?" --max_tokens 132  
 
 
- python3 benchmark_serving.py --backend vllm  --model ../Llama-2-7b-chat-hf/         --dataset-name sharegpt --dataset-path ../ShareGPT_V3_unfiltered_cleaned_split.json         --num-prompts 500 --port 8080 --save-result --result-dir results/ --result-filename vllm_llama7B_tp1_qps_2.json --request-rate 2   
+ python3 benchmark_serving.py --backend vllm  --model ../Llama-2-7b-chat-hf/         --dataset-name sharegpt --dataset-path ../ShareGPT_V3_unfiltered_cleaned_split.json         --num-prompts 50 --port 8080 --save-result --result-dir results/ --result-filename vllm_llama7B_tp1_qps_2.json --request-rate 2   
 ```
 
 ```
@@ -126,32 +126,81 @@ P99 ITL (ms):                            206.89
 ```bash
 python3 -m vllm.entrypoints.openai.api_server -tp 1 -pp 1 --gpu-memory-utilization 0.95         --model ../Llama-2-7b-chat-hf/ --port 8000 --disable-log-stats --disable-log-requests 
 
- python3 benchmark_serving.py --backend vllm  --model ../Llama-2-7b-chat-hf/         --dataset-name sharegpt --dataset-path ../ShareGPT_V3_unfiltered_cleaned_split.json         --num-prompts 50 --port 8000 --save-result --result-dir results/ --result-filename vllm_llama7B_tp1_qps_2.json --request-rate 2   
+ python3 benchmark_serving.py --backend vllm  --model ../Llama-2-7b-chat-hf/         --dataset-name sharegpt --dataset-path ../ShareGPT_V3_unfiltered_cleaned_split.json         --num-prompts 500 --port 8000 --save-result --result-dir results/ --result-filename vllm_llama7B_tp1_qps_2.json --request-rate 2   
 ```
 
+
 ```bash
+Traffic request rate: 2.0
+100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 500/500 [04:38<00:00,  1.80it/s]
 ============ Serving Benchmark Result ============
 Successful requests:                     500       
-Benchmark duration (s):                  277.76    
+Benchmark duration (s):                  278.41    
 Total input tokens:                      117316    
-Total generated tokens:                  105842    
+Total generated tokens:                  105926    
 Request throughput (req/s):              1.80      
-Input token throughput (tok/s):          422.36    
-Output token throughput (tok/s):         381.05    
+Input token throughput (tok/s):          421.38    
+Output token throughput (tok/s):         380.47    
 ---------------Time to First Token----------------
-Mean TTFT (ms):                          98.79     
-Median TTFT (ms):                        69.11     
-P99 TTFT (ms):                           541.40    
+Mean TTFT (ms):                          89.52     
+Median TTFT (ms):                        68.46     
+P99 TTFT (ms):                           369.73    
 -----Time per Output Token (excl. 1st token)------
-Mean TPOT (ms):                          52.21     
-Median TPOT (ms):                        51.64     
-P99 TPOT (ms):                           73.41     
+Mean TPOT (ms):                          52.80     
+Median TPOT (ms):                        52.49     
+P99 TPOT (ms):                           74.19     
 ---------------Inter-token Latency----------------
-Mean ITL (ms):                           52.88     
-Median ITL (ms):                         44.33     
-P99 ITL (ms):                            239.62    
+Mean ITL (ms):                           53.34     
+Median ITL (ms):                         44.69     
+P99 ITL (ms):                            246.41    
 ==================================================
 
+
+
+qps=2============ Serving Benchmark Result ============
+Successful requests:                     50        
+Benchmark duration (s):                  47.79     
+Total input tokens:                      14056     
+Total generated tokens:                  9480      
+Request throughput (req/s):              1.05      
+Input token throughput (tok/s):          294.13    
+Output token throughput (tok/s):         198.37    
+---------------Time to First Token----------------
+Mean TTFT (ms):                          107.79    
+Median TTFT (ms):                        68.15     
+P99 TTFT (ms):                           385.09    
+-----Time per Output Token (excl. 1st token)------
+Mean TPOT (ms):                          44.80     
+Median TPOT (ms):                        43.83     
+P99 TPOT (ms):                           74.82     
+---------------Inter-token Latency----------------
+Mean ITL (ms):                           44.27     
+Median ITL (ms):                         40.24     
+P99 ITL (ms):                            206.77    
+==================================================
+
+
+qps=4============ Serving Benchmark Result ============
+Successful requests:                     50        
+Benchmark duration (s):                  38.80     
+Total input tokens:                      14056     
+Total generated tokens:                  9480      
+Request throughput (req/s):              1.29      
+Input token throughput (tok/s):          362.30    
+Output token throughput (tok/s):         244.35    
+---------------Time to First Token----------------
+Mean TTFT (ms):                          105.80    
+Median TTFT (ms):                        67.86     
+P99 TTFT (ms):                           309.15    
+-----Time per Output Token (excl. 1st token)------
+Mean TPOT (ms):                          51.83     
+Median TPOT (ms):                        49.12     
+P99 TPOT (ms):                           100.84    
+---------------Inter-token Latency----------------
+Mean ITL (ms):                           48.01     
+Median ITL (ms):                         42.77     
+P99 ITL (ms):                            260.83    
+==================================================
 ```
 
 

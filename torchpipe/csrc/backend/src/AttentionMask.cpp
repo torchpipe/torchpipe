@@ -249,7 +249,7 @@ class AppendOtherTensor : public SingleBackend {
 
 IPIPE_REGISTER(Backend, AppendOtherTensor);
 
-class AppendKeyTensor : public SingleBackend {
+class AppendTensor : public SingleBackend {
  private:
   std::string other_;
   std::unique_ptr<Params> params_;
@@ -278,7 +278,7 @@ class AppendKeyTensor : public SingleBackend {
   //   llamaRotaryEmbedding.forward(causal_mask, cache_position);
 };
 
-IPIPE_REGISTER(Backend, AppendKeyTensor);
+IPIPE_REGISTER(Backend, AppendTensor);
 
 class Append2OtherTensor : public SingleBackend {
  private:
