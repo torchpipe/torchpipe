@@ -64,11 +64,7 @@ class PyStream:
         
         _, local_cb = request_state[request_id]
         
-        total_memory = torch.cuda.get_device_properties(0).total_memory
-        left = (total_memory - torch.cuda.memory_reserved(0)) / 1024 / 1024
-        if (left < 1024):
-            torch.cuda.empty_cache()
-            print("Cleared cache", (total_memory - torch.cuda.memory_reserved(0)) / 1024 / 1024)
+        
         local_cb(output)
     
 tp.register_backend( PyStream, "PyStream")
@@ -113,6 +109,9 @@ class BackendEngine:
             local_ev, local_cb = request_state[request_id]
             
             output = RequestOutput()
+            
+            
+            
             try:
                 local_ev.try_throw()
             except Exception as e:
@@ -137,4 +136,13 @@ class BackendEngine:
             
         ev.set_callback(finish_cb)
 
+        
+        total_memory = torch.cuda.get_device_properties(0).total_memory
+        left = (total_memory - torch.cuda.memory_reserved(0)) / 1024 / 1024
+        while (left < 1024):
+            # torch.cuda.empty_cache()
+            print("Waiting for memory. left = ", left)
+            time.sleep(0.01)
+            
+            
         self.model(inputs)
