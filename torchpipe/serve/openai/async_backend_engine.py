@@ -124,6 +124,7 @@ class AsyncEngine:
                                         'max_tokens': request.max_tokens})
         except Exception as e:
             output_stream.error(str(e))
+            print(e)
         return output_stream
     
     # start the engine, non-blocking
