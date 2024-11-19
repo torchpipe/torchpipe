@@ -44,6 +44,7 @@ backend = "S[Append2OtherTensor,Result2Key[LongItemTensor],KeyA2KeyB,RemoveOther
 key_a = 'input_tokens'
 key_b = 'input_tokens_result'
 max_seq_len = 2048
+max_tokens = 7
 next = 'check_eos'
 other = 'input_tokens'
 
@@ -69,12 +70,9 @@ backend = "S[PyIdentity[PyStream]]"
 [batchless_decode]
 backend = "S[AppendOtherTensor,KVCacheIOTensor, TensorrtTensor,SyncTensor]" #
 instance_num = 4 
-# max = '1x1x4096,1x1x4096,1x1x4096,1x1x128,1x1x128,1x1x1x2048,1x32x2047x128,1x32x2047x128' 
-# # q k v cos sin mask
-# min = '1x1x4096,1x1x4096,1x1x4096,1x1x128,1x1x128,1x1x1x1,1x32x1x128,1x32x1x128'
-max = '1x1x4096,1x1x4096,1x1x4096,1x1x128,1x1x128,1x1x1x2048,1x2047x32x128,1x2047x32x128'
+max = '1x1x4096,1x1x4096,1x1x4096,1x1x128,1x1x128,1x1x1x2048,1x32x2047x128,1x32x2047x128' 
 # q k v cos sin mask
-min = '1x1x4096,1x1x4096,1x1x4096,1x1x128,1x1x128,1x1x1x1,1x1x32x128,1x1x32x128'
+min = '1x1x4096,1x1x4096,1x1x4096,1x1x128,1x1x128,1x1x1x1,1x32x1x128,1x32x1x128'
 'model' = 'model_files/batchless_decode.onnx'
 'model::cache' = './model_files/batchless_decode.trt'
 

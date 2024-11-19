@@ -87,19 +87,20 @@ class BackendEngine:
         
         ev = tp.Event()
         input = data['prompt']#{'data': data['prompt'], 'event': ev, 'request_id': request_id}
-        max_tokens = data['max_tokens']
+        # max_tokens = data['max_tokens']
+        sampling_params = data['sampling_params']   
         
         # start = time.perf_counter()
         inputs = self.tokenizer(input, return_tensors="pt")
         # print(f"Time taken to tokenize: {time.perf_counter() - start}")
         # print(inputs["input_ids"])
-        print(f'max_tokens={max_tokens}')
+        print(f'sampling_params={sampling_params}')
         inputs = {
             'data': inputs["input_ids"][0],
             'node_name': 'input',
             'trt_plugin': 'batchless_prefill',
             'event': ev, 'request_id': request_id,
-            "max_tokens":max_tokens, 
+            "sampling_params":sampling_params, 
         }
         
         request_state[request_id] = (ev, request_callback)
@@ -120,7 +121,7 @@ class BackendEngine:
                 output.status = Status(StatusCode.UNKNOWN, str(e))
                 output.usage = None
                 output.finished = True
-                print(e)
+                print("ERROR MSG: \n", e)
                 storage.remove(request_id)
                 local_cb(output)
             else:

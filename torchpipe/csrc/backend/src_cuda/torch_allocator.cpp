@@ -60,7 +60,8 @@ void* TorchAllocator::allocate(uint64_t const size, uint64_t const alignment,
     c10::cuda::getCurrentCUDAStream().synchronize();
     return ptr;
   } catch (const std::exception& e) {
-    SPDLOG_ERROR("TorchAllocator::allocate failed(size={}): {}", size, e.what());
+    SPDLOG_ERROR("TorchAllocator::allocate failed(size={}MB): {}", size / 1024.0 / 1024.0,
+                 e.what());
     return nullptr;
   }
 

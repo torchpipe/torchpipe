@@ -22,6 +22,8 @@ ThreadSafeKVStorage& ThreadSafeKVStorage::getInstance(POOL pool) {
   std::lock_guard<std::mutex> lock(instance_mutex_);  // 保护实例访问的互斥锁
   if (instances_.find(pool) == instances_.end()) {
     instances_[pool] = createInstance();
+    SPDLOG_INFO("ThreadSafeKVStorage: create new instance: {}, addr = {}", (int)pool,
+                (void*)instances_[pool].get());
   }
   return *instances_[pool];
 }
@@ -59,6 +61,18 @@ ThreadSafeDict& ThreadSafeKVStorage::get_or_insert(const std::string& path) {
   // std::unique_lock<std::shared_mutex> lock(mutex_);
 
   auto [it_emplace, inserted] = disk_.emplace(path, std::make_shared<ThreadSafeDict>());
+  IPIPE_ASSERT(inserted);
+  cv_.notify_all();
+  return *it_emplace->second;
+}
+
+ThreadSafeDict& ThreadSafeKVStorage::insert(const std::string& path) {
+  std::unique_lock<std::shared_mutex> lock(mutex_);
+  auto it = disk_.find(path);
+  IPIPE_ASSERT(it == disk_.end());
+
+  auto [it_emplace, inserted] = disk_.emplace(path, std::make_shared<ThreadSafeDict>());
+  IPIPE_ASSERT(inserted);
   cv_.notify_all();
   return *it_emplace->second;
 }

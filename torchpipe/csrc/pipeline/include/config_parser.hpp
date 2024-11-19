@@ -27,4 +27,7 @@ mapmap parse_toml(std::string toml_path);
 void handle_config(mapmap& config);
 void update_global(mapmap& config);
 std::set<std::string> handle_ring(const mapmap& config_param);
+void register_config(std::string config, std::string value);
+int get_registered_config(std::string config, std::string item, int default_value);
+
 }  // namespace ipipe

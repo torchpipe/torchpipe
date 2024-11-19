@@ -13,7 +13,8 @@
 // limitations under the License.
 
 #pragma once
-#include "base_logging.hpp"
+#include <cassert>
+
 #include <memory>
 #include <string>
 #include <vector>
@@ -27,16 +28,25 @@
 #include "time_utils.hpp"
 #include "RangeMerger.hpp"
 #include "RuningState.hpp"
-#include <cassert>
+#include "KVCacheManagerBase.hpp"
+#include "base_logging.hpp"
+
+// namespace kvcache {
+// class KVCacheMaganer;
+// }
+
 namespace ipipe {
 
 class RequestStates {
  public:
+  RequestStates(size_t max_bs) : max_batch_size_(max_bs) {}
   struct RequestState {
    public:
     int iter_index = 0;
     bool wait_for_schedule = true;
+    size_t kvcache_seq_len = 1;
   };
+
   bool wait_decode_ready(int time_out) {
     std::unique_lock<std::mutex> lock(mtx_);
     return cv_.wait_for(lock, std::chrono::milliseconds(time_out), [this]() {
@@ -62,16 +72,27 @@ class RequestStates {
     cv_.notify_all();
   }
 
-  void set_wait(const std::string& request_id) {
+  size_t get_iter_index(const std::string& request_id) {
+    std::lock_guard<std::mutex> lock(mtx_);
+    return request_states_.at(request_id).iter_index;
+  }
+
+  size_t get_kvcache_seq_len(const std::string& request_id) {
+    std::lock_guard<std::mutex> lock(mtx_);
+    return request_states_.at(request_id).kvcache_seq_len;
+  }
+
+  void set_wait(const std::string& request_id, size_t request_size) {
     {
       std::lock_guard<std::mutex> lock(mtx_);
       auto iter = request_states_.find(request_id);
       if (iter != request_states_.end()) {
         iter->second.wait_for_schedule = true;
-
+        iter->second.kvcache_seq_len += request_size;
+        assert(request_size == 1);
       } else {
         // (*request_states_)[request_id] = RequestState({0, true});
-        request_states_.emplace(request_id, RequestState({0, true}));
+        request_states_.emplace(request_id, RequestState({0, true, request_size}));
       }
     }
     cv_.notify_all();
@@ -90,11 +111,13 @@ class RequestStates {
   //   std::lock_guard<std::mutex> lock(mtx_);
   //   cv_.notify_all();
   // }
+  size_t get_max_batch_size() { return max_batch_size_; }
 
  private:
   std::unordered_map<std::string, RequestState> request_states_;
   mutable std::mutex mtx_;
   std::condition_variable cv_;
+  size_t max_batch_size_;
 };
 // # cal_request_size_method = "AddRequestSizeTensor"
 
@@ -107,6 +130,9 @@ class Batching : public Backend {
   virtual uint32_t max() const { return UINT32_MAX; };
 
   void forward(const std::vector<dict>& raw_inputs);
+
+  bool contiguous_batch(dicts& input_data, const size_t input_data_size, const size_t new_pop,
+                        dicts& redundant_data);
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
   ~Batching();
@@ -140,5 +166,6 @@ class Batching : public Backend {
   int contiguous_batching_{0};
 
   std::unique_ptr<RequestStates> request_states_;
+  std::unique_ptr<kvcache::KVCacheManagerBase> kvcache_manager_;
 };
 }  // namespace ipipe

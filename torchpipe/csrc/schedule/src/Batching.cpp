@@ -18,12 +18,18 @@
 #include <functional>
 #include <sstream>
 #include <thread>
+#include <tuple>
 #include "base_logging.hpp"
 #include "Backend.hpp"
 #include "dict.hpp"
 #include "Instances.hpp"
 #include "time_utils.hpp"
 #include "threadsafe_kv_storage.hpp"
+#include "KVCacheManagerBase.hpp"
+#include "config_parser.hpp"
+#include "sampling_params.h"
+#include "base_logging.hpp"
+
 namespace ipipe {
 
 namespace {
@@ -40,6 +46,21 @@ std::set<std::string> get_request_ids(const std::vector<dict>& input_data) {
     request_ids.insert(*request_id);
   }
   return request_ids;
+}
+
+void read_kvcache(kvcache::KVCacheConfig& kv_config) {
+  kv_config.device_id = get_registered_config("kvcache", "device_id", -1);
+  kv_config.elemsize = get_registered_config("kvcache", "elemsize", 2);
+
+  kv_config.layer_num = get_registered_config("kvcache", "layer_num", 32);
+  kv_config.max_seq_len = get_registered_config("kvcache", "max_seq_len", 2048);
+  kv_config.hidden_size = get_registered_config("kvcache", "hidden_size", 4096);
+  kv_config.num_heads = get_registered_config("kvcache", "num_heads", 32);
+  kv_config.granularitySize = get_registered_config("kvcache", "granularitySize", 2 * 1024 * 1024);
+  kv_config.max_concurrent_requests =
+      get_registered_config("kvcache", "max_concurrent_requests", 256);
+  kv_config.reserve_prefill = get_registered_config("kvcache", "reserve_prefill", 64);
+  kv_config.reserve_decode = get_registered_config("kvcache", "reserve_decode", 1);
 }
 }  // namespace
 
@@ -112,19 +133,22 @@ void Batching::forward(const std::vector<dict>& raw_inputs) {
         sizes.push_back(item_size);
       }
       input_queue_.Push(raw_inputs, sizes);  // todo 限制送入的不能超过最大值
-    }
-  }
-  if (request_states_) {
-    for (const auto& request : raw_inputs) {
-      auto iter = request->find("request_id");
-      if (iter == request->end()) {
-        SPDLOG_ERROR("request_id not found in contiguous batching mode");
-        continue;
-      }
 
-      std::string* request_id = any_cast<std::string>(&iter->second);
-      request_states_->set_wait(*request_id);
-      // SPDLOG_INFO("contiguous_batching: set_wait {}", *request_id);
+      if (request_states_) {
+        for (size_t i = 0; i < raw_inputs.size(); ++i) {
+          const auto& request = raw_inputs[i];
+          const auto size = sizes[i];
+          auto iter = request->find("request_id");
+          if (iter == request->end()) {
+            SPDLOG_ERROR("request_id not found in contiguous batching mode");
+            continue;
+          }
+
+          std::string* request_id = any_cast<std::string>(&iter->second);
+          request_states_->set_wait(*request_id, size);
+          // SPDLOG_INFO("contiguous_batching: set_wait {}", *request_id);
+        }
+      }
     }
   }
 
@@ -171,12 +195,24 @@ bool Batching::init(const std::unordered_map<std::string, std::string>& config, 
                  "node_name should not be empty when contiguous_batching is enabled");
     SPDLOG_INFO("contiguous batching is enabled");
 
-    request_states_ = std::make_unique<RequestStates>();
+    request_states_ = std::make_unique<RequestStates>(max_batch_size_);
+    max_batch_size_ = UINT32_MAX;
     auto& storage = ThreadSafeKVStorage::getInstance(ThreadSafeKVStorage::POOL::REQUEST_ID);
     storage.add_remove_callback([this](const std::string& req) {
       SPDLOG_INFO("remove request_id: {} from callback", req);
       request_states_->remove(req);
+      kvcache_manager_->free_reqid(req);
     });
+    kvcache_manager_ = std::unique_ptr<kvcache::KVCacheManagerBase>(
+        IPIPE_CREATE(kvcache::KVCacheManagerBase, "KVCacheManager"));
+    kvcache::KVCacheConfig kv_config;
+    read_kvcache(kv_config);
+    kv_config.max_batch_size = max_batch_size_;
+
+    kvcache_manager_->init(kv_config);
+
+    // ThreadSafeKVStorage::getInstance(ThreadSafeKVStorage::POOL::SCHEDULER)
+    //     .set("", "kvcache_manager", kvcache_manager_.get());
   }
 
   if (params_->at("multiple_instances").empty()) {
@@ -217,10 +253,79 @@ bool Batching::init(const std::unordered_map<std::string, std::string>& config, 
   return true;
 }
 
+bool Batching::contiguous_batch(dicts& input_data, const size_t input_data_size,
+                                const size_t new_pop, dicts& redundant_data) {
+  if (!request_states_->wait_decode_ready(100)) {
+    SPDLOG_INFO("contiguous_batching: not all requests ready. Req sz={}, state sz = {}",
+                input_data_size + new_pop, request_states_->size());
+    return false;
+  } else {
+    SPDLOG_INFO("contiguous_batching: all requests ready. Req sz={}, state sz = {}",
+                input_data_size + new_pop, request_states_->size());
+    if (!input_queue_.empty() && (input_data_size + new_pop < max_batch_size_))
+      return false;  // rebatching
+  }
+
+  // SPDLOG_INFO("contiguous_batching: all requests ready. Req sz={}, state sz = {}",
+  //             input_data_size + new_pop, request_states_->size());
+
+  for (const auto& request : input_data) {
+    auto iter = request->find("request_id");
+    if (iter == request->end()) {
+      SPDLOG_ERROR("request_id not found in contiguous batching mode");
+      return false;
+    }
+
+    std::string* request_id = any_cast<std::string>(&iter->second);
+    kvcache::KVCacheAllocParams request_params;
+
+    if (request_states_->get_iter_index(*request_id) == 0) {
+      auto& storage = ThreadSafeKVStorage::getInstance().get(*request_id);
+
+      const llm::SamplingParams* samp =
+          any_cast<llm::SamplingParams>(&storage.get("sampling_params"));
+
+      request_params.max_new_tokens = samp->max_tokens;
+      request_params.request_id = *request_id;
+      request_params.kvcache_seq_len = request_states_->get_kvcache_seq_len(*request_id);
+      // request_params.max_new_tokens;
+      kvcache_manager_->alloc_reqid(request_params);
+    }
+  }
+  auto valid_reqs = kvcache_manager_->step();
+  IPIPE_ASSERT(!valid_reqs.empty());
+  for (const auto& valid_req : valid_reqs) {
+    // if (request_states_->get_iter_index(valid_req) == 0) {
+    //   auto& storage = ThreadSafeKVStorage::getInstance().get(valid_req);
+    //   // storage.set("kvcache_manager", kvcache_manager_.get());
+    //   const auto& key = kvcache_manager_->query_key(valid_req);
+    //   const auto& value = kvcache_manager_->query_value(valid_req);
+    //   // const auto& tensor = kvcache_manager_->query(valid_req);
+    //   // storage.set("kvcache_tensor", tensor);
+    // }
+    // kvcache_manager_->query(valid_req);
+    request_states_->set_unwait(valid_req);
+  }
+
+  for (auto iter = input_data.begin(); iter != input_data.end();) {
+    auto iter_id = (*iter)->find("request_id");
+
+    std::string* request_id = any_cast<std::string>(&iter_id->second);
+    if (valid_reqs.count(*request_id) == 0) {
+      redundant_data.push_back(*iter);
+      iter = input_data.erase(iter);
+    } else {
+      ++iter;
+    }
+  }
+
+  return true;
+}
+
 void Batching::run() {  // only one Batching thread
 
   std::vector<dict> input_data;
-
+  std::vector<dict> redundant_data;
   while (bThreadInited_.load()) {
     {
       // TimeGuard guard;
@@ -232,6 +337,7 @@ void Batching::run() {  // only one Batching thread
       // }
       // guard.silence();
     }
+    std::vector<dict> redundant_data;
 
     auto input_data_size = get_request_size(input_data);
 
@@ -251,17 +357,7 @@ void Batching::run() {  // only one Batching thread
       }
 
       if (request_states_) {
-        for (const auto& request : input_data) {
-          auto iter = request->find("request_id");
-          if (iter == request->end()) {
-            SPDLOG_ERROR("request_id not found in contiguous batching mode");
-            continue;
-          }
-
-          std::string* request_id = any_cast<std::string>(&iter->second);
-          request_states_->set_unwait(*request_id);
-          SPDLOG_INFO("contiguous_batching: set_unwait {}", *request_id);
-        }
+        if (!contiguous_batch(input_data, input_data_size, new_pop, redundant_data)) continue;
       }
 
       backend_->forward(input_data);
@@ -311,36 +407,13 @@ void Batching::run() {  // only one Batching thread
       }
 
       if (request_states_) {
-        if (!request_states_->wait_decode_ready(100)) {
-          SPDLOG_INFO("contiguous_batching: not all requests ready. Req sz={}, state sz = {}",
-                      input_data_size + new_pop, request_states_->size());
-          continue;
-        } else {
-          SPDLOG_INFO("contiguous_batching: all requests ready. Req sz={}, state sz = {}",
-                      input_data_size + new_pop, request_states_->size());
-          if (!input_queue_.empty() && (input_data_size + new_pop < max_batch_size_))
-            continue;  // rebatching
-        }
-
-        // SPDLOG_INFO("contiguous_batching: all requests ready. Req sz={}, state sz = {}",
-        //             input_data_size + new_pop, request_states_->size());
-
-        for (const auto& request : input_data) {
-          auto iter = request->find("request_id");
-          if (iter == request->end()) {
-            SPDLOG_ERROR("request_id not found in contiguous batching mode");
-            continue;
-          }
-
-          std::string* request_id = any_cast<std::string>(&iter->second);
-          request_states_->set_unwait(*request_id);
-          // SPDLOG_INFO("contiguous_batching: set_unwait {}", *request_id);
-        }
+        if (!contiguous_batch(input_data, input_data_size, new_pop, redundant_data)) continue;
       }
 
       backend_->forward(input_data);
     }
     input_data.clear();
+    input_data.swap(redundant_data);
   }  // end while
 };
 IPIPE_REGISTER(Backend, Batching, "Batching");

@@ -20,10 +20,10 @@ class ThreadSafeDict {
   std::shared_mutex mutex_;
 
  public:
-  const std::optional<ipipe::any> get(const std::string& key) {
+  const ipipe::any& get(const std::string& key) {
     std::shared_lock<std::shared_mutex> lock(mutex_);
     if (map_.find(key) == map_.end()) {
-      return std::nullopt;
+      throw std::out_of_range("ThreadSafeDict: Key not found: " + key);
     }
     return map_[key];
   }
@@ -36,6 +36,11 @@ class ThreadSafeDict {
   void set(const std::string& key, const ipipe::any& value) {
     std::unique_lock<std::shared_mutex> lock(mutex_);
     map_[key] = value;
+  }
+
+  ipipe::any& get_unconst(const std::string& key) {
+    std::unique_lock<std::shared_mutex> lock(mutex_);
+    return map_[key];
   }
 
   void erase(const std::string& key) {
@@ -65,6 +70,7 @@ class ThreadSafeKVStorage {
   }
 
   ThreadSafeDict& get_or_insert(const std::string& path);
+  ThreadSafeDict& insert(const std::string& path);
 
   void add_remove_callback(std::function<void(const std::string&)> callback) {
     remove_callback_ = callback;

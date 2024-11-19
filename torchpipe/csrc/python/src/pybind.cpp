@@ -80,6 +80,10 @@ struct type_caster<ipipe::any> {
 }  // namespace detail
 }  // namespace pybind11
 
+namespace llm::csrc {
+extern void init_sampling_params(py::module_& m);
+}
+
 namespace ipipe {
 
 #ifdef PYBIND  // pyhton binding
@@ -329,6 +333,7 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
     bind_threadsafe_queue<long>(m, "Long");
     bind_threadsafe_queue<short>(m, "Short");
     bind_threadsafe_queue<unsigned int>(m, "UnsignedInt");
+    llm::csrc::init_sampling_params(m);
 
     py::class_<ThreadSafeDict, std::shared_ptr<ThreadSafeDict>>(m, "ThreadSafeDict")
         .def(py::init<>())

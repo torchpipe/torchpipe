@@ -58,7 +58,7 @@ void InstanceHandler::run() {  // 确保初始化和前向处于同一个线程�
     std::vector<dict> tasks;
     {
       auto succ =
-          batched_queue_->WaitForPop(tasks, 50, [max_len, min_len](const std::vector<dict>& in) {
+          batched_queue_->WaitForPop(tasks, 100, [max_len, min_len](const std::vector<dict>& in) {
             return in.size() >= min_len && in.size() <= max_len;
           });  // for exit this thread
       if (!succ) {

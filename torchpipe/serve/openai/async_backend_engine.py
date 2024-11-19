@@ -121,7 +121,7 @@ class AsyncEngine:
         try:
             await self.backend.forward_async({'prompt': prompt, 'priority': priority,
                                         'stream': stream, 'callback': callback,
-                                        'max_tokens': request.max_tokens})
+                                        'sampling_params': sampling_params})
         except Exception as e:
             output_stream.error(str(e))
             print(e)

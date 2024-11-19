@@ -1,4 +1,4 @@
-# Non-Streaming Inference with Llama2 (WIP)
+# Non-Streaming Inference with Llama2
 
 > WARNING
 This project is still in the experimental stage. Do not use it in production environments. 
@@ -22,7 +22,7 @@ The computation for the batchless part could be implemented as a standalone CUDA
 
     export NUM_LAYER=32 # set to 2 if using 2-layer model for debug on 12GB-GPU.
     # inference
-    python export_llama2_one_kv.py --model meta-llama/Llama-2-7b-chat-hf --input "San Francisco is a" --test --num_layers $NUM_LAYER 
+    python export_llama2.py --model meta-llama/Llama-2-7b-chat-hf --input "San Francisco is a" --test --num_layers $NUM_LAYER 
     #NUM_LAYER = 2: San Francisco is a totalitéaletoreignersbyMSран
     #NUM_LAYER = 32:  San Francisco is a city in Northern California that is known
 ```
@@ -32,22 +32,43 @@ The computation for the batchless part could be implemented as a standalone CUDA
 
 ```bash
 # batchful part
-    python export_llama2_one_kv.py --model meta-llama/Llama-2-7b-chat-hf --output_dir model_files/ --export batchful --num_layers $NUM_LAYER --device cuda
+    python export_llama2.py --model meta-llama/Llama-2-7b-chat-hf --output_dir model_files/ --export batchful --num_layers $NUM_LAYER --device cuda
     ## you can use cpu for export, but it will be slow.
 
 # batchless part
-    python export_llama2_one_kv.py --model meta-llama/Llama-2-7b-chat-hf --output_dir model_files/ --export prefill_batchless  
+    python export_llama2.py --model meta-llama/Llama-2-7b-chat-hf --output_dir model_files/ --export prefill_batchless  
 
-    python export_llama2_one_kv.py --model meta-llama/Llama-2-7b-chat-hf --output_dir model_files/ --export decode_batchless  
+    python export_llama2.py --model meta-llama/Llama-2-7b-chat-hf --output_dir model_files/ --export decode_batchless  
 
 # export embed_tokens.pt
-    python export_llama2_one_kv.py --model meta-llama/Llama-2-7b-chat-hf --output_dir model_files/ --export embed_tokens
+    python export_llama2.py --model meta-llama/Llama-2-7b-chat-hf --output_dir model_files/ --export embed_tokens
 
 # copy tokenizer from cached huggingface model
-    python export_llama2_one_kv.py --model meta-llama/Llama-2-7b-chat-hf --output_dir model_files/ --export tokenizer
+    python export_llama2.py --model meta-llama/Llama-2-7b-chat-hf --output_dir model_files/ --export tokenizer
 
 ```
+<!-- 
+## run inference
+```bash
+# tensorrt engine will be automatically generated and cached. Please make sure there are enough GPU memory, or you can generate the engines multiple times.
+    export CUDA_VISIBLE_DEVICES=1
 
+    # tensorrt >= 10.5 needed
+    python run_llama2.py --model model_files/ --input "San Francisco is a" 
+    #NUM_LAYER = 2:  San Francisco is a totalitéaletoreignersbyMSран
+    #NUM_LAYER = 32:  San Francisco is a city in Northern California that is known
+
+
+    # python run_llama2.py --model model_files/ --input "Do you know the book Traction by Gino Wickman" --max_tokens 132
+    
+#     Do you know the book Traction by Gino Wickman?
+
+# Traction is a book written by Gino Wickman, a business coach and author, that provides a framework for creating a successful business. The book focuses on the importance of having a clear vision, establishing a strong leadership team, and implementing a set of core values that guide decision-making.
+
+# The book introduces the concept of the "EOS (Entrepreneurial Operating System)," which is a set of tools and processes that help businesses achieve their goals and create a sustainable, successful organization. The EOS framework includes six key components:
+
+# 1. Vision: Develop
+``` -->
 
 
 
@@ -63,10 +84,12 @@ python run_llama2_streaming.py
 
 python chat_client.py --prompt="Do you know the book Traction by Gino Wickman? generate anwser >= 2000 wordsDo you know the book Traction by Gino Wickman? generate anwser >= 2000 wordsDo you know the book Traction by Gino Wickman? generate anwser >= 2000 wordsDo you know the book Traction by Gino Wickman? generate anwser >= 2000 wordsDo you know the book Traction by Gino Wickman? generate anwser >= 2000 wordsDo you know the book Traction by Gino Wickman? generate anwser >= 2000 wordsDo you know the book Traction by Gino Wickman? generate anwser >= 2000 wordsDo you know the book Traction by Gino Wickman? generate anwser >= 2000 wordsDo you know the book Traction by Gino Wickman? generate anwser >= 2000 wordsDo you know the book Traction by Gino Wickman? generate anwser >= 2000 wordsDo you know the book Traction by Gino Wickman? generate anwser >= 2000 words" --max_tokens 2048 
 
+
+python chat_client.py --prompt="San Francisco is a" --max_tokens 132
 python chat_client.py --prompt="Do you know the book Traction by Gino Wickman?" --max_tokens 132  
 
 
- python3 benchmark_serving.py --backend vllm  --model ../Llama-2-7b-chat-hf/         --dataset-name sharegpt --dataset-path ../ShareGPT_V3_unfiltered_cleaned_split.json         --num-prompts 50 --port 8080 --save-result --result-dir results/ --result-filename vllm_llama7B_tp1_qps_2.json --request-rate 2   
+ python3 benchmark_serving.py --backend vllm  --model ../Llama-2-7b-chat-hf/         --dataset-name sharegpt --dataset-path ../ShareGPT_V3_unfiltered_cleaned_split.json         --num-prompts 500 --port 8080 --save-result --result-dir results/ --result-filename vllm_llama7B_tp1_qps_2.json --request-rate 2   
 ```
 
 ```

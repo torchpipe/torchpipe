@@ -95,5 +95,7 @@ static inline torch::Tensor torch_allocate(int64_t size) {
 }
 
 std::vector<torch::Tensor> get_tensors(dict input_dict, const std::string& key);
+
+void copy2ptr(torch::Tensor input, char* ptr);
 torch::Tensor try_quick_cat(std::vector<torch::Tensor> resized_inputs);
 }  // namespace ipipe
