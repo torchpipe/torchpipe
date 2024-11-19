@@ -245,7 +245,7 @@ class RemoveOtherSeqLenTensor : public SingleBackend {
     std::string request_id = any_cast<std::string>(iter->second);
 
     const llm::SamplingParams* samp =
-        any_cast<llm::SamplingParams>(&storage.get("sampling_params"));
+        any_cast<const llm::SamplingParams>(&storage.get(request_id).get("sampling_params"));
 
     int max_tokens = samp->max_tokens;
 

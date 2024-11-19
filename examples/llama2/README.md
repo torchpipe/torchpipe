@@ -21,8 +21,10 @@ The computation for the batchless part could be implemented as a standalone CUDA
     
 
     export NUM_LAYER=32 # set to 2 if using 2-layer model for debug on 12GB-GPU.
+    export MODEL=meta-llama/Llama-2-7b-chat-hf # or local path to llama2 model
+
     # inference
-    python export_llama2_one_kv.py --model meta-llama/Llama-2-7b-chat-hf --input "San Francisco is a" --test --num_layers $NUM_LAYER 
+    python export_llama2_one_kv.py --model meta-llama/Llama-2-7b-chat-hf --input "San Francisco is a" --test --num_layers $NUM_LAYER  --device cuda
     #NUM_LAYER = 2: San Francisco is a totalitéaletoreignersbyMSран
     #NUM_LAYER = 32:  San Francisco is a city in Northern California that is known
 ```
@@ -32,19 +34,20 @@ The computation for the batchless part could be implemented as a standalone CUDA
 
 ```bash
 # batchful part
-    python export_llama2_one_kv.py --model meta-llama/Llama-2-7b-chat-hf --output_dir model_files/ --export batchful --num_layers $NUM_LAYER --device cuda
+    python export_llama2_one_kv.py --model $MODEL --output_dir model_files/ --export batchful --num_layers $NUM_LAYER --device cuda
     ## you can use cpu for export, but it will be slow.
 
 # batchless part
-    python export_llama2_one_kv.py --model meta-llama/Llama-2-7b-chat-hf --output_dir model_files/ --export prefill_batchless  
+    python export_llama2_one_kv.py --model $MODEL --output_dir model_files/ --export prefill_batchless  
 
-    python export_llama2_one_kv.py --model meta-llama/Llama-2-7b-chat-hf --output_dir model_files/ --export decode_batchless  
+    python export_llama2_one_kv.py --model $MODEL --output_dir model_files/ --export decode_batchless  
+
 
 # export embed_tokens.pt
-    python export_llama2_one_kv.py --model meta-llama/Llama-2-7b-chat-hf --output_dir model_files/ --export embed_tokens
+    python export_llama2_one_kv.py --model $MODEL --output_dir model_files/ --export embed_tokens
 
 # copy tokenizer from cached huggingface model
-    python export_llama2_one_kv.py --model meta-llama/Llama-2-7b-chat-hf --output_dir model_files/ --export tokenizer
+    python export_llama2_one_kv.py --model $MODEL --output_dir model_files/ --export tokenizer
 
 ```
 
@@ -62,6 +65,8 @@ WIP
 python run_llama2_streaming.py 
 
 python chat_client.py --prompt="Do you know the book Traction by Gino Wickman? generate anwser >= 2000 wordsDo you know the book Traction by Gino Wickman? generate anwser >= 2000 wordsDo you know the book Traction by Gino Wickman? generate anwser >= 2000 wordsDo you know the book Traction by Gino Wickman? generate anwser >= 2000 wordsDo you know the book Traction by Gino Wickman? generate anwser >= 2000 wordsDo you know the book Traction by Gino Wickman? generate anwser >= 2000 wordsDo you know the book Traction by Gino Wickman? generate anwser >= 2000 wordsDo you know the book Traction by Gino Wickman? generate anwser >= 2000 wordsDo you know the book Traction by Gino Wickman? generate anwser >= 2000 wordsDo you know the book Traction by Gino Wickman? generate anwser >= 2000 wordsDo you know the book Traction by Gino Wickman? generate anwser >= 2000 words" --max_tokens 2048 
+
+python chat_client.py --prompt="San Francisco is a" --max_tokens 7
 
 python chat_client.py --prompt="Do you know the book Traction by Gino Wickman?" --max_tokens 132  
 
