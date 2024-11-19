@@ -1,4 +1,4 @@
-# Non-Streaming Inference with Llama2 (WIP)
+# Streaming Inference with Llama2 (WIP)
 
 > WARNING
 This project is still in the experimental stage. Do not use it in production environments. 
@@ -64,9 +64,10 @@ WIP
 
 python run_llama2_streaming.py 
 
+python chat_client.py --prompt="San Francisco is a" --max_tokens 7
+
 python chat_client.py --prompt="Do you know the book Traction by Gino Wickman? generate anwser >= 2000 wordsDo you know the book Traction by Gino Wickman? generate anwser >= 2000 wordsDo you know the book Traction by Gino Wickman? generate anwser >= 2000 wordsDo you know the book Traction by Gino Wickman? generate anwser >= 2000 wordsDo you know the book Traction by Gino Wickman? generate anwser >= 2000 wordsDo you know the book Traction by Gino Wickman? generate anwser >= 2000 wordsDo you know the book Traction by Gino Wickman? generate anwser >= 2000 wordsDo you know the book Traction by Gino Wickman? generate anwser >= 2000 wordsDo you know the book Traction by Gino Wickman? generate anwser >= 2000 wordsDo you know the book Traction by Gino Wickman? generate anwser >= 2000 wordsDo you know the book Traction by Gino Wickman? generate anwser >= 2000 words" --max_tokens 2048 
 
-python chat_client.py --prompt="San Francisco is a" --max_tokens 7
 
 python chat_client.py --prompt="Do you know the book Traction by Gino Wickman?" --max_tokens 132  
 

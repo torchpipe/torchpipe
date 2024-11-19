@@ -232,7 +232,12 @@ void KVCacheSchedule::prepare_next_memory(KVCacheMemory::CachedMemoryTasks& task
 }
 
 StepOutput KVCacheSchedule::step() {
-  memory_->wait();
+  {
+    ipipe::TimeGuard guard("KVCacheSchedule: step memory_->wait()");
+    memory_->wait();
+  }
+
+  ipipe::TimeGuard guard("KVCacheSchedule: step");
 
   system_blocks_ = memory_->get_system_blocks();
   for (const auto& item : valid_prefill_reqs_) {

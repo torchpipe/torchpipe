@@ -77,7 +77,7 @@ void KVCacheIOTensor::forward(dict input_dict) {
       any_cast<std::shared_ptr<kvcache::KVCacheV4>>(storage_kv.get("kvcachev4"));
 
   std::vector<torch::Tensor> kvcache_tensor = kvcache->next();
-  SPDLOG_INFO("KVCacheIOTensor kvcache_tensor.size() = {} ", kvcache_tensor.size());
+  // SPDLOG_INFO("KVCacheIOTensor kvcache_tensor.size() = {} ", kvcache_tensor.size());
 
   auto iter_kvcache = kvcache_tensor.begin();
   if (kvcache_tensor.size() == 4) {
