@@ -64,6 +64,19 @@ void read_kvcache(kvcache::KVCacheConfig& kv_config) {
 }
 }  // namespace
 
+bool RequestStates::wait_decode_ready(int time_out) {
+  std::unique_lock<std::mutex> lock(mtx_);
+  return cv_.wait_for(lock, std::chrono::milliseconds(time_out), [this]() {
+    for (auto iter = request_states_.begin(); iter != request_states_.end(); ++iter) {
+      if (iter->second.iter_index >= 1 && !iter->second.wait_for_schedule) {
+        SPDLOG_INFO("not ready: {}", iter->first);
+        return false;
+      }
+    }
+    return true;
+  });
+}
+
 Batching::~Batching() {
   bThreadInited_.store(false);
   if (!input_queue_.empty()) {

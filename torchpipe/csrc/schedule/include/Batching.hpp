@@ -47,17 +47,7 @@ class RequestStates {
     size_t kvcache_seq_len = 1;
   };
 
-  bool wait_decode_ready(int time_out) {
-    std::unique_lock<std::mutex> lock(mtx_);
-    return cv_.wait_for(lock, std::chrono::milliseconds(time_out), [this]() {
-      for (auto iter = request_states_.begin(); iter != request_states_.end(); ++iter) {
-        if (iter->second.iter_index >= 1 && !iter->second.wait_for_schedule) {
-          return false;
-        }
-      }
-      return true;
-    });
-  }
+  bool wait_decode_ready(int time_out);
 
   std::size_t size() {
     std::lock_guard<std::mutex> lock(mtx_);
