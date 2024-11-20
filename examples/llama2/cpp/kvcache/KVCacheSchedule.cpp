@@ -187,7 +187,7 @@ void KVCacheSchedule::prepare_cpu_offload(KVCacheMemory::CachedMemoryTasks& task
 
 void KVCacheSchedule::prepare_next_memory(KVCacheMemory::CachedMemoryTasks& tasks) {
   // if (!memory_->block_allocable()) return;
-  // if (get_system_blocks() + get_reserved_blocks() <= 0) return;
+  // if (compute_system_blocks() + get_reserved_blocks() <= 0) return;
   // int need_alloc_blk = 0;
 
   // system blocks
@@ -208,7 +208,7 @@ void KVCacheSchedule::prepare_next_memory(KVCacheMemory::CachedMemoryTasks& task
   // decode优先使用系统blk
   int need_alloc_blk = sum_decode_blks - memory_->get_free_blocks();
 
-  // int(get_free_blocks() + get_system_blocks()) - sum_decode_blks;
+  // int(get_free_blocks() + compute_system_blocks()) - sum_decode_blks;
 
   // 显存不足，必须从系统申请
   need_alloc_blk = std::max(need_alloc_blk,
@@ -237,9 +237,18 @@ StepOutput KVCacheSchedule::step() {
     memory_->wait();
   }
 
-  ipipe::TimeGuard guard("KVCacheSchedule: step");
+  ipipe::TimeGuard guard("KVCacheSchedule: step 0");
 
-  system_blocks_ = memory_->get_system_blocks();
+  if (system_blocks_ == INT_MIN)
+    system_blocks_ = memory_->query_system_blocks(0.95);
+  else {
+    system_blocks_ = memory_->compute_system_blocks();
+    if (system_blocks_ == 0 && need_update_system_blk_) {
+      system_blocks_ = memory_->query_system_blocks(0.95);
+      if (system_blocks_ == 0) need_update_system_blk_ = false;
+    }
+  }
+
   for (const auto& item : valid_prefill_reqs_) {
     auto iter = prefill_kvcache_.find(item);
     if (iter != prefill_kvcache_.end()) {
@@ -260,8 +269,11 @@ StepOutput KVCacheSchedule::step() {
   valid_prefill_reqs_.clear();
   valid_decode_reqs_.clear();
 
+  guard.reset("KVCacheSchedule: step 1");
   KVCacheMemory::CachedMemoryTasks tasks;
   prepare_cpu_offload(tasks);
+
+  guard.reset("KVCacheSchedule: step 2");
 
   int free_blocks = memory_->get_free_blocks();
   int reserved_blocks = memory_->get_reserved_blocks();
@@ -315,13 +327,21 @@ StepOutput KVCacheSchedule::step() {
     }
   }
 
+  guard.reset("KVCacheSchedule: step  before alloc");
+
   memory_->alloc(valid_prefill_reqs_, prefill_kvcache_, valid_decode_reqs_, decode_kvcache_);
 
+  guard.reset("KVCacheSchedule: step  prepare_next_memory");
+
   prepare_next_memory(tasks);
+
+  guard.reset("KVCacheSchedule: step  mem step");
   memory_->step(tasks);
 
   auto re = valid_decode_reqs_;
   re.insert(valid_prefill_reqs_.begin(), valid_prefill_reqs_.end());
+
+  guard.reset("KVCacheSchedule: step  activate");
 
   for (const auto& item : re) {
     activate(item);

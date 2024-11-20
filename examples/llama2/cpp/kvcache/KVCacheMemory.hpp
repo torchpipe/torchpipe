@@ -139,11 +139,14 @@ class KVCacheMemory {
   // void async_free_reserved(size_t blk_size);
   // bool async_alloc_blks(size_t blk_size);
   int get_free_blocks() { return pyh_pool_->size(); }
-  int get_system_blocks() {
-    size_t mem = pyh_pool_->get_system_free_memory();
-    if (mem < 128 * 1024 * 1024) mem = 0;
-    return mem / (config_.granularitySize);
+  int compute_system_blocks() {
+    return pyh_pool_->get_system_free_memory() / (config_.granularitySize);
   }
+
+  size_t query_system_blocks(double factor) {
+    return pyh_pool_->query_system_free_memory(factor) / (config_.granularitySize);
+  }
+
   int get_reserved_blocks();
   // void step();
   void extend(size_t len) {

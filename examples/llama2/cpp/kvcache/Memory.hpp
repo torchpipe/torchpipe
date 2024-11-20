@@ -81,15 +81,18 @@ class PyhBlkPool {
   ~PyhBlkPool() = default;
   size_t size() { return phy_blocks_.size(); }
   size_t get_system_free_memory();
+  size_t query_system_free_memory(double factor = 1.0);
   size_t alloc(size_t num_blocks) {
     size_t num_alloc = 0;
     for (; num_alloc < num_blocks; num_alloc++) {
       auto pyh = std::make_shared<PhyBlock>(device_id_, block_size_);
       if (!pyh->allocate()) {
+        num_allocated_ += num_alloc;
         return num_alloc;
       }
       phy_blocks_.push(pyh);
     }
+    num_allocated_ += num_alloc;
     return num_blocks;
   }
 
@@ -173,38 +176,41 @@ class PyhBlkPool {
     return re;
   }
 
-  std::unordered_set<std::shared_ptr<PhyBlock>> get_phy_blocks(size_t num_blocks) {
-    std::unordered_set<std::shared_ptr<PhyBlock>> blocks;
-    std::lock_guard<std::mutex> lock(blk_mtx_);
-    for (size_t i = 0; i < num_blocks; i++) {
-      // if (phy_blocks_.empty()) {
-      //   return blocks;
-      // }
-      blocks.insert(phy_blocks_.front());
-      used_phy_blocks_.insert(phy_blocks_.front());
-      phy_blocks_.pop();
-    }
-    return blocks;
-  }
+  // std::unordered_set<std::shared_ptr<PhyBlock>> get_phy_blocks(size_t num_blocks) {
+  //   std::unordered_set<std::shared_ptr<PhyBlock>> blocks;
+  //   std::lock_guard<std::mutex> lock(blk_mtx_);
+  //   for (size_t i = 0; i < num_blocks; i++) {
+  //     // if (phy_blocks_.empty()) {
+  //     //   return blocks;
+  //     // }
+  //     blocks.insert(phy_blocks_.front());
+  //     used_phy_blocks_.insert(phy_blocks_.front());
+  //     phy_blocks_.pop();
+  //   }
+  //   return blocks;
+  // }
 
-  void release_phy_blocks(const std::vector<std::shared_ptr<PhyBlock>>& blocks) {
-    // std::lock_guard<std::mutex> lock(blk_mtx_);
-    // for (const auto& blk : blocks) {
-    //   used_phy_blocks_.erase(blk);
-    //   phy_blocks_.push(blk);
-    // }
-  }
+  // void release_phy_blocks(const std::vector<std::shared_ptr<PhyBlock>>& blocks) {
+  //   // std::lock_guard<std::mutex> lock(blk_mtx_);
+  //   // for (const auto& blk : blocks) {
+  //   //   used_phy_blocks_.erase(blk);
+  //   //   phy_blocks_.push(blk);
+  //   // }
+  // }
 
  private:
   CUstream stream_;
   std::mutex blk_mtx_;
   std::queue<std::shared_ptr<PhyBlock>> phy_blocks_;
-  std::unordered_set<std::shared_ptr<PhyBlock>> used_phy_blocks_;
+  // std::unordered_set<std::shared_ptr<PhyBlock>> used_phy_blocks_;
   std::queue<std::shared_ptr<PhyBlock>> reserved_phy_blocks_;
 
   int device_id_;
   size_t block_size_;
   // size_t num_blocks;
+  size_t system_mem_{0};
+
+  size_t num_allocated_{0};
 };
 
 inline void* virtual_alloc(size_t len) {

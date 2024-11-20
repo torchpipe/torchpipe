@@ -9,19 +9,39 @@
 #include "ipipe_common.hpp"
 #include "base_logging.hpp"
 #include "cuda_runtime.h"
+#include "time_utils.hpp"
 // https://github.com/XinYao1994/glake/blob/28046fcffede3a901c1033b1f10089cca68b21cf/vTensor/vllm/worker/worker.py#L176
 namespace kvcache {
 
 size_t PyhBlkPool::get_system_free_memory() {
+  return system_mem_ - num_allocated_ * block_size_;
+  // static auto x = [device = device_id_]() {
+  //   IPIPE_ASSERT(cudaSuccess == cudaSetDevice(device));
+  //   return true;
+  // }();
+  // size_t total;
+  // // if (system_mem_ == 0) {
+  // ipipe::TimeGuard guard("PyhBlkPool::cuMemGetInfo");
+  // DRV_CALL(cuMemGetInfo(&system_mem_, &total));
+  // // }
+
+  // return system_mem_;
+}
+
+size_t PyhBlkPool::query_system_free_memory(double factor) {
   static auto x = [device = device_id_]() {
     IPIPE_ASSERT(cudaSuccess == cudaSetDevice(device));
     return true;
   }();
-  size_t free_m, total;
+  size_t total;
+  // if (system_mem_ == 0) {
+  ipipe::TimeGuard guard("PyhBlkPool::cuMemGetInfo");
+  DRV_CALL(cuMemGetInfo(&system_mem_, &total));
+  // }
+  system_mem_ = system_mem_ * factor;
+  num_allocated_ = 0;
 
-  DRV_CALL(cuMemGetInfo(&free_m, &total));
-
-  return free_m;
+  return system_mem_;
 }
 
 PyhBlkPool::PyhBlkPool(int device_id, size_t block_size)
@@ -46,6 +66,7 @@ PyhBlkPool::PyhBlkPool(int device_id, size_t block_size)
   //   DRV_CALL(cuCtxGetDevice(&device_id_));
   // }
   DRV_CALL(cuStreamCreate(&stream_, CU_STREAM_NON_BLOCKING));
+  // get_system_free_memory();
 }
 
 PhyBlock::PhyBlock(int device_id, size_t granularitySize)

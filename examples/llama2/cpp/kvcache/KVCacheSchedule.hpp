@@ -63,7 +63,9 @@ class KVCacheSchedule {
   std::unordered_set<std::string> valid_decode_reqs_;
 
   size_t min_blk_ = 0;
-  int system_blocks_ = 0;
+  int system_blocks_ = INT_MIN;
+
+  bool need_update_system_blk_ = true;
 
   // std::queue<std::vector<torch::Tensor>>
   //     k_tensors_;  // key_input, value_input, key_output, value_output ... 32

@@ -89,6 +89,7 @@ class TimeGuard {
   void start(std::string message = "") {
     message_ = message;
     bStopped = false;
+    starttime_ = (now());
   }
 
   const std::string& release() {
