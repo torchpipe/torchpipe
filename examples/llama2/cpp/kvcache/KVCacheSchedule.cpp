@@ -323,7 +323,7 @@ StepOutput KVCacheSchedule::step() {
                                    config_.max_batch_size - valid_decode_reqs_.size(),
                                    config_.max_concurrent_requests - valid_decode_reqs_.size());
         valid_prefill_reqs_.insert(tmp.begin(), tmp.end());
-        SPDLOG_WARN("free={}, reserved={}, need_blk={}, decode={}, prefill={}", free_blocks,
+        SPDLOG_INFO("free={}, reserved={}, need_blk={}, decode={}, prefill={}", free_blocks,
                     reserved_blocks, need_blk, valid_decode_reqs_.size(),
                     valid_prefill_reqs_.size());
       }

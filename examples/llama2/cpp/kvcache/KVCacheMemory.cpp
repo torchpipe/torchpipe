@@ -246,7 +246,7 @@ int KVCacheMemory::free_reserved(size_t blk_size) {
   if (need_new_blk_len > 0) {  // part used
     for (const auto& iter : memory_state_) {
       const auto& mem_state = iter.second;
-      const auto owned_block_len = cached_memories_[mem_state.memory_index]->get_block_len();
+      const auto owned_block_len = cached_memories_[2 * mem_state.memory_index]->get_block_len();
       if (owned_block_len > mem_state.target_block_len && (mem_state.target_block_len != 0)) {
         cached_memories_[mem_state.memory_index * 2]->repair_by_unmap(mem_state.target_block_len);
         cached_memories_[1 + mem_state.memory_index * 2]->repair_by_unmap(
@@ -260,7 +260,7 @@ int KVCacheMemory::free_reserved(size_t blk_size) {
     for (auto iter = memory_state_.begin(); iter != memory_state_.end();) {
       const auto& mem_state = iter->second;
       // if (mem_state.offloaded) continue;
-      const auto owned_block_len = cached_memories_[mem_state.memory_index]->get_block_len();
+      const auto owned_block_len = cached_memories_[2 * mem_state.memory_index]->get_block_len();
 
       if (owned_block_len > 0 && mem_state.target_block_len == 0) {
         IPIPE_ASSERT(reserved_memory_index_.count(mem_state.memory_index) != 0);
@@ -319,8 +319,10 @@ void KVCacheMemory::repair() {
     need_new_blk_len = free_reserved(need_new_blk_len - get_free_blocks());
     SPDLOG_INFO("repair: free_reserved. need_new_blk_len={}", need_new_blk_len);
     if (need_new_blk_len > 0) {
-      SPDLOG_ERROR("KVCacheMemory: no enough memory to repair. need_new_blk_len={}, system = {}",
-                   need_new_blk_len, query_system_blocks(0.95));
+      SPDLOG_ERROR(
+          "KVCacheMemory: no enough memory to repair. need_new_blk_len={}, system = "
+          "{},free={},reserved={}",
+          need_new_blk_len, query_system_blocks(0.95), get_free_blocks(), get_reserved_blocks());
       throw std::runtime_error("KVCacheMemory: no enough memory to repair");
     }
   }
