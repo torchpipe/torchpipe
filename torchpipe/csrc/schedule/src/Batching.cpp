@@ -169,7 +169,7 @@ void Batching::forward(const std::vector<dict>& raw_inputs) {
 
             request_params.max_new_tokens = samp->max_tokens;
             request_params.request_id = *request_id;
-            request_params.kvcache_seq_len = request_states_->get_kvcache_seq_len(*request_id);
+            request_params.kvcache_seq_len = size;
             // request_params.max_new_tokens;
             SPDLOG_WARN("contiguous_batching: alloc_reqid: request_id={}, kvcache_seq_len={}",
                         request_params.request_id, request_params.kvcache_seq_len);
