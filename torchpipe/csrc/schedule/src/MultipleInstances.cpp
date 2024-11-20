@@ -311,7 +311,10 @@ bool MultiInstances::init(const std::unordered_map<std::string, std::string>& co
 
 void MultiInstances::forward(const std::vector<dict>& inputs_data) {
   const auto size = get_request_size(inputs_data);
-  IPIPE_ASSERT(size > 0 && inputs_data.size() > 0);
+  if ((size <= 0 || inputs_data.size() == 0)) {
+    SPDLOG_ERROR("MultiInstances: request size={}, data={}", size, inputs_data.size());
+    throw std::runtime_error("MultiInstances: request size=0");
+  }
   // SPDLOG_INFO("MultiInstances: request size={}", size);
   batched_queue_->Push(inputs_data, size);
 }

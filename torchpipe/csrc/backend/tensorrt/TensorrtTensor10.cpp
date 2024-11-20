@@ -605,7 +605,10 @@ void TensorrtTensor::forward(const std::vector<dict>& raw_inputs) {
       int64_t need_bytes = std::accumulate(infer_dims.d, infer_dims.d + infer_dims.nbDims, 1,
                                            std::multiplies<int64_t>()) *
                            torch::elementSize(target_type);
-      IPIPE_ASSERT(need_bytes == total_bytes);
+      if (need_bytes != total_bytes) {
+        SPDLOG_ERROR("need_bytes({}) != total_bytes({})", need_bytes, total_bytes);
+        IPIPE_ASSERT(need_bytes == total_bytes);
+      }
 
       outputs_.emplace_back(predefined_outputs[j]);
     } else {

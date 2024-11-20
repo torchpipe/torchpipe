@@ -42,7 +42,7 @@ class RequestStates {
   RequestStates(size_t max_bs) : max_batch_size_(max_bs) {}
   struct RequestState {
    public:
-    // int iter_index = 0;
+    int iter_index = 0;
     bool wait_for_schedule = true;
     size_t kvcache_seq_len = 1;
   };
@@ -62,10 +62,10 @@ class RequestStates {
     cv_.notify_all();
   }
 
-  // size_t get_iter_index(const std::string& request_id) {
-  //   std::lock_guard<std::mutex> lock(mtx_);
-  //   return request_states_.at(request_id).iter_index;
-  // }
+  size_t add_iter_index(const std::string& request_id) {
+    std::lock_guard<std::mutex> lock(mtx_);
+    return request_states_.at(request_id).iter_index++;
+  }
 
   size_t get_kvcache_seq_len(const std::string& request_id) {
     std::lock_guard<std::mutex> lock(mtx_);
@@ -87,7 +87,7 @@ class RequestStates {
         assert(request_size == 1);
       } else {
         // (*request_states_)[request_id] = RequestState({0, true});
-        request_states_.emplace(request_id, RequestState({true, request_size}));
+        request_states_.emplace(request_id, RequestState({0, true, request_size}));
       }
     }
   }
