@@ -67,6 +67,7 @@ void KVCacheSchedule::alloc_reqid(const KVCacheAllocParams& data) {
                  prefill_kvcache_[data.request_id].seq_len_with_output);
     throw std::runtime_error("KVCacheSchedule: request_id already exists");
   }
+  SPDLOG_INFO("KVCacheSchedule: alloc_reqid: {} len={}", data.request_id, data.kvcache_seq_len);
   prefill_kvcache_.insert(
       {data.request_id,
        KVCacheState({0, data.kvcache_seq_len, data.generated_token_len_hit, data.max_new_tokens})});
@@ -233,6 +234,10 @@ void KVCacheSchedule::prepare_next_memory(KVCacheMemory::CachedMemoryTasks& task
   if (need_free_reserved > 0) {
     tasks.free_reserved = need_free_reserved;
   }
+  if (tasks.alloc_blks > 0 || tasks.free_reserved > 0) {
+    SPDLOG_WARN("KVCacheSchedule: prepare_next_memory: need_alloc_blk: {}, need_free_reserved: {}",
+                need_alloc_blk, need_free_reserved);
+  }
 
   return;
 }
@@ -318,6 +323,9 @@ StepOutput KVCacheSchedule::step() {
                                    config_.max_batch_size - valid_decode_reqs_.size(),
                                    config_.max_concurrent_requests - valid_decode_reqs_.size());
         valid_prefill_reqs_.insert(tmp.begin(), tmp.end());
+        SPDLOG_WARN("free={}, reserved={}, need_blk={}, decode={}, prefill={}", free_blocks,
+                    reserved_blocks, need_blk, valid_decode_reqs_.size(),
+                    valid_prefill_reqs_.size());
       }
     } else {
       if (valid_decode_reqs_.empty()) {

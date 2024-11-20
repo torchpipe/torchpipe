@@ -257,11 +257,11 @@ bool Batching::init(const std::unordered_map<std::string, std::string>& config, 
 bool Batching::contiguous_batch(dicts& input_data, const size_t input_data_size,
                                 const size_t new_pop, dicts& redundant_data) {
   if (!request_states_->wait_decode_ready(100)) {
-    SPDLOG_INFO("contiguous_batching: not all requests ready. Req sz={}, state sz = {}",
+    SPDLOG_INFO("contiguous_batching: not all requests ready. Batch sz={}, Req sz = {}",
                 input_data_size + new_pop, request_states_->size());
     return false;
   } else {
-    SPDLOG_INFO("contiguous_batching: all requests ready. Req sz={}, state sz = {}",
+    SPDLOG_INFO("contiguous_batching: all requests ready. Batch sz={}, Req sz = {}",
                 input_data_size + new_pop, request_states_->size());
     if (!input_queue_.empty() && (input_data_size + new_pop < max_batch_size_))
       return false;  // rebatching
@@ -291,6 +291,8 @@ bool Batching::contiguous_batch(dicts& input_data, const size_t input_data_size,
       request_params.request_id = *request_id;
       request_params.kvcache_seq_len = request_states_->get_kvcache_seq_len(*request_id);
       // request_params.max_new_tokens;
+      SPDLOG_WARN("contiguous_batching: alloc_reqid: request_id={}, kvcache_seq_len={}",
+                  request_params.request_id, request_params.kvcache_seq_len);
       kvcache_manager_->alloc_reqid(request_params);
     }
   }
