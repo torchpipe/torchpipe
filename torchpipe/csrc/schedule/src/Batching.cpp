@@ -269,6 +269,7 @@ bool Batching::contiguous_batch(dicts& input_data, const size_t input_data_size,
   // SPDLOG_INFO("contiguous_batching: all requests ready. Req sz={}, state sz = {}",
   //             input_data_size + new_pop, request_states_->size());
 
+  TimeGuard guard("contiguous_batching");
   for (const auto& request : input_data) {
     auto iter = request->find("request_id");
     if (iter == request->end()) {
