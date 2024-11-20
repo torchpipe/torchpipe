@@ -11,6 +11,7 @@
 #include "KVCacheMemory.hpp"
 //
 #include <climits>
+#include <mutex>
 
 namespace kvcache {
 // class KVCacheMemoryManager {
@@ -67,6 +68,8 @@ class KVCacheSchedule {
   int system_blocks_ = INT_MIN;
 
   bool need_update_system_blk_ = true;
+
+  std::mutex mtx_;
 
   // std::queue<std::vector<torch::Tensor>>
   //     k_tensors_;  // key_input, value_input, key_output, value_output ... 32

@@ -313,6 +313,8 @@ int32_t TorchPlugin::enqueue(PluginTensorDesc const* inputDesc, PluginTensorDesc
       // (*input_dicts[i])["request_id"] = request_id;
       (*input_dicts[i])["node_name"] = trt_plugin;
       user_datas.push_back(input_dicts[i]);
+      SPDLOG_INFO("request_id={}, trt_plugin: {}, request_size={}", request_id, trt_plugin,
+                  request_size);
     }
     helper.keep("request_size").erase("request_size");
 

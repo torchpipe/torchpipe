@@ -64,10 +64,10 @@ void read_kvcache(kvcache::KVCacheConfig& kv_config) {
 }
 }  // namespace
 
-bool RequestStates::wait_decode_ready(int time_out) {
+bool RequestStates::wait_all_ready(int time_out) {
   std::unique_lock<std::mutex> lock(mtx_);
   return cv_.wait_for(lock, std::chrono::milliseconds(time_out), [this]() {
-    if (request_states_.empty()) return false;
+    if (!all_ready_) return false;
     for (auto iter = request_states_.begin(); iter != request_states_.end(); ++iter) {
       if (!iter->second.wait_for_schedule) {
         SPDLOG_INFO("not ready: {}", iter->first);
@@ -149,6 +149,7 @@ void Batching::forward(const std::vector<dict>& raw_inputs) {
       }
 
       if (request_states_) {
+        // size_t num_prefill = 0;
         for (size_t i = 0; i < raw_inputs.size(); ++i) {
           const auto& request = raw_inputs[i];
           const auto size = sizes[i];
@@ -159,7 +160,7 @@ void Batching::forward(const std::vector<dict>& raw_inputs) {
           }
 
           std::string* request_id = any_cast<std::string>(&iter->second);
-
+          request_states_->set_unready();
           if (!request_states_->has(*request_id)) {
             kvcache::KVCacheAllocParams request_params;
             auto& storage = ThreadSafeKVStorage::getInstance().get(*request_id);
@@ -174,13 +175,19 @@ void Batching::forward(const std::vector<dict>& raw_inputs) {
             SPDLOG_WARN("contiguous_batching: alloc_reqid: request_id={}, kvcache_seq_len={}",
                         request_params.request_id, request_params.kvcache_seq_len);
             kvcache_manager_->alloc_reqid(request_params);
+            // num_prefill++;
           }
           request_states_->set_ready(*request_id, size);
           // SPDLOG_INFO("contiguous_batching: set_ready {}", *request_id);
         }
+        input_queue_.Push(raw_inputs, sizes);
+        // if (num_prefill < raw_inputs.size()) {
+        // SPDLOG_INFO("contiguous_batching: not all requests need to be prefilled");
+        request_states_->notify();
+        // }
+      } else {
+        input_queue_.Push(raw_inputs, sizes);
       }
-      input_queue_.Push(raw_inputs, sizes);
-      request_states_->notify();
     }
   }
 
@@ -288,7 +295,7 @@ bool Batching::init(const std::unordered_map<std::string, std::string>& config, 
 
 bool Batching::contiguous_batch(dicts& input_data, const size_t input_data_size,
                                 const size_t new_pop, dicts& redundant_data) {
-  if (!request_states_->wait_decode_ready(100)) {
+  if (!request_states_->wait_all_ready(200)) {
     // SPDLOG_INFO("contiguous_batching: not all requests ready. Batch sz={}, Req sz = {}",
     //             input_data_size + new_pop, request_states_->size());
     return false;

@@ -305,6 +305,7 @@ void KVCacheMemory::cache(const CacheParams& ca) {
 }
 
 void KVCacheMemory::repair() {
+  SPDLOG_INFO("before repair: free={},reserved={}", get_free_blocks(), get_reserved_blocks());
   int need_new_blk_len = 0;  //, reserved_used_blk_len = 0, reserved_blk_len = 0;
 
   for (const auto& mem_state : memory_state_) {
@@ -315,9 +316,10 @@ void KVCacheMemory::repair() {
           2 * config_.layer_num * (mem_state.second.target_block_len - owned_block_len);
     }
   }
+  SPDLOG_INFO("repair:  need_new_blk_len={}", need_new_blk_len);
   if (need_new_blk_len > get_free_blocks()) {
     need_new_blk_len = free_reserved(need_new_blk_len - get_free_blocks());
-    SPDLOG_INFO("repair: free_reserved. need_new_blk_len={}", need_new_blk_len);
+
     if (need_new_blk_len > 0) {
       SPDLOG_ERROR(
           "KVCacheMemory: no enough memory to repair. need_new_blk_len={}, system = "

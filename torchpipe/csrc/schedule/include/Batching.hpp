@@ -47,7 +47,7 @@ class RequestStates {
     size_t kvcache_seq_len = 1;
   };
 
-  bool wait_decode_ready(int time_out);
+  bool wait_all_ready(int time_out);
 
   std::size_t size() {
     std::lock_guard<std::mutex> lock(mtx_);
@@ -92,7 +92,14 @@ class RequestStates {
     }
   }
 
-  void notify() { cv_.notify_all(); }
+  void set_unready() { all_ready_ = false; }
+
+  bool all_ready() { return all_ready_; }
+
+  void notify() {
+    all_ready_ = true;
+    cv_.notify_all();
+  }
 
   void set_unready(const std::string& request_id) {
     std::lock_guard<std::mutex> lock(mtx_);
@@ -110,6 +117,7 @@ class RequestStates {
   size_t get_max_batch_size() { return max_batch_size_; }
 
  private:
+  bool all_ready_{false};  // 为了防止condition_variable的spurious wakeup， 我们额外设置一个flag
   std::unordered_map<std::string, RequestState> request_states_;
   mutable std::mutex mtx_;
   std::condition_variable cv_;

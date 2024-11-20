@@ -60,6 +60,7 @@ void KVCacheSchedule::init(const KVCacheConfig& config) {
 }
 
 void KVCacheSchedule::alloc_reqid(const KVCacheAllocParams& data) {
+  std::lock_guard<std::mutex> lock(mtx_);
   if (prefill_kvcache_.find(data.request_id) != prefill_kvcache_.end()) {
     SPDLOG_ERROR("KVCacheSchedule: request_id {} already exists", data.request_id);
     SPDLOG_ERROR("KVCacheSchedule: already exists {} {} {} {}", data.request_id,
@@ -75,8 +76,11 @@ void KVCacheSchedule::alloc_reqid(const KVCacheAllocParams& data) {
 
 void KVCacheSchedule::free_reqid(const std::string& request_id) {
   SPDLOG_INFO("KVCacheSchedule: free_reqid: {}", request_id);
-  decode_kvcache_.erase(request_id);
-  prefill_kvcache_.erase(request_id);
+  {
+    std::lock_guard<std::mutex> lock(mtx_);
+    decode_kvcache_.erase(request_id);
+    prefill_kvcache_.erase(request_id);
+  }
   memory_->free_reqid(request_id);
 }
 
@@ -247,7 +251,7 @@ StepOutput KVCacheSchedule::step() {
     ipipe::TimeGuard guard("KVCacheSchedule: step memory_->wait()");
     memory_->wait();
   }
-
+  std::lock_guard<std::mutex> lock(mtx_);
   ipipe::TimeGuard guard("KVCacheSchedule: step 0");
 
   if (system_blocks_ == INT_MIN)
@@ -360,6 +364,7 @@ StepOutput KVCacheSchedule::step() {
   for (const auto& item : re) {
     activate(item);
   }
+  SPDLOG_INFO("valid req = {}", re.size());
   return re;
 }
 
