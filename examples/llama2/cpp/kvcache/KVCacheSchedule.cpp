@@ -65,6 +65,7 @@ void KVCacheSchedule::alloc_reqid(const KVCacheAllocParams& data) {
     SPDLOG_ERROR("KVCacheSchedule: already exists {} {} {} {}", data.request_id,
                  data.kvcache_seq_len, data.generated_token_len_hit,
                  prefill_kvcache_[data.request_id].seq_len_with_output);
+    throw std::runtime_error("KVCacheSchedule: request_id already exists");
   }
   prefill_kvcache_.insert(
       {data.request_id,

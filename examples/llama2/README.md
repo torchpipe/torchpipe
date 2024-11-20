@@ -116,6 +116,30 @@ python3 -m vllm.entrypoints.openai.api_server -tp 1 -pp 1 --gpu-memory-utilizati
 
 ```bash
 Traffic request rate: 2.0
+
+qps=2============ Serving Benchmark Result ============
+Successful requests:                     50        
+Benchmark duration (s):                  47.79     
+Total input tokens:                      14056     
+Total generated tokens:                  9480      
+Request throughput (req/s):              1.05      
+Input token throughput (tok/s):          294.13    
+Output token throughput (tok/s):         198.37    
+---------------Time to First Token----------------
+Mean TTFT (ms):                          107.79    
+Median TTFT (ms):                        68.15     
+P99 TTFT (ms):                           385.09    
+-----Time per Output Token (excl. 1st token)------
+Mean TPOT (ms):                          44.80     
+Median TPOT (ms):                        43.83     
+P99 TPOT (ms):                           74.82     
+---------------Inter-token Latency----------------
+Mean ITL (ms):                           44.27     
+Median ITL (ms):                         40.24     
+P99 ITL (ms):                            206.77    
+==================================================
+
+
 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 500/500 [04:38<00:00,  1.80it/s]
 ============ Serving Benchmark Result ============
 Successful requests:                     500       
@@ -140,28 +164,6 @@ P99 ITL (ms):                            246.41
 ==================================================
 
 
-
-qps=2============ Serving Benchmark Result ============
-Successful requests:                     50        
-Benchmark duration (s):                  47.79     
-Total input tokens:                      14056     
-Total generated tokens:                  9480      
-Request throughput (req/s):              1.05      
-Input token throughput (tok/s):          294.13    
-Output token throughput (tok/s):         198.37    
----------------Time to First Token----------------
-Mean TTFT (ms):                          107.79    
-Median TTFT (ms):                        68.15     
-P99 TTFT (ms):                           385.09    
------Time per Output Token (excl. 1st token)------
-Mean TPOT (ms):                          44.80     
-Median TPOT (ms):                        43.83     
-P99 TPOT (ms):                           74.82     
----------------Inter-token Latency----------------
-Mean ITL (ms):                           44.27     
-Median ITL (ms):                         40.24     
-P99 ITL (ms):                            206.77    
-==================================================
 
 
 qps=4============ Serving Benchmark Result ============

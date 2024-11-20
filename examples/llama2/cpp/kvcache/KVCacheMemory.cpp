@@ -318,7 +318,11 @@ void KVCacheMemory::repair() {
   if (need_new_blk_len > get_free_blocks()) {
     need_new_blk_len = free_reserved(need_new_blk_len - get_free_blocks());
     SPDLOG_INFO("repair: free_reserved. need_new_blk_len={}", need_new_blk_len);
-    IPIPE_ASSERT(need_new_blk_len <= 0);
+    if (need_new_blk_len > 0) {
+      SPDLOG_ERROR("KVCacheMemory: no enough memory to repair. need_new_blk_len={}, system = {}",
+                   need_new_blk_len, query_system_blocks(0.95));
+      throw std::runtime_error("KVCacheMemory: no enough memory to repair");
+    }
   }
 
   for (const auto& mem_state : memory_state_) {
