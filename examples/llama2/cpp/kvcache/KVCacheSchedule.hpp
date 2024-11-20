@@ -10,6 +10,7 @@
 
 #include "KVCacheMemory.hpp"
 //
+#include <climits>
 
 namespace kvcache {
 // class KVCacheMemoryManager {
