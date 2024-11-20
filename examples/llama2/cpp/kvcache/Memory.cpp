@@ -40,7 +40,7 @@ size_t PyhBlkPool::query_system_free_memory(double factor) {
   // }
   system_mem_ = system_mem_ * factor;
   num_allocated_ = 0;
-  SPDLOG_INFO("PyhBlkPool Guery Result: device_id={} system_mem_ = {}MB", device_id_,
+  SPDLOG_INFO("PyhBlkPool Query Result: device_id={} System Free Mem={}MB", device_id_,
               system_mem_ / 1024 / 1024);
 
   return system_mem_;

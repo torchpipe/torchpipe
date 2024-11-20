@@ -41,6 +41,7 @@ contiguous_batching = 1
 
 [cache]
 backend = "S[RequestTimeStamp(key=batchful),Append2OtherTensor,Result2Key[LongItemTensor],KeyA2KeyB,RemoveOtherSeqLenTensor,SyncTensor]"
+instance_num = 2
 key_a = 'input_tokens'
 key_b = 'input_tokens_result'
 max_seq_len = 2048

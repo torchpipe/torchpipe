@@ -60,7 +60,12 @@ void KVCacheSchedule::init(const KVCacheConfig& config) {
 }
 
 void KVCacheSchedule::alloc_reqid(const KVCacheAllocParams& data) {
-  IPIPE_ASSERT(prefill_kvcache_.find(data.request_id) == prefill_kvcache_.end());
+  if (prefill_kvcache_.find(data.request_id) != prefill_kvcache_.end()) {
+    SPDLOG_ERROR("KVCacheSchedule: request_id {} already exists", data.request_id);
+    SPDLOG_ERROR("KVCacheSchedule: already exists {} {} {} {}", data.request_id,
+                 data.kvcache_seq_len, data.generated_token_len_hit,
+                 prefill_kvcache_[data.request_id].seq_len_with_output);
+  }
   prefill_kvcache_.insert(
       {data.request_id,
        KVCacheState({0, data.kvcache_seq_len, data.generated_token_len_hit, data.max_new_tokens})});

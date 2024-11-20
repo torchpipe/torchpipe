@@ -200,8 +200,9 @@ bool Batching::init(const std::unordered_map<std::string, std::string>& config, 
     auto& storage = ThreadSafeKVStorage::getInstance(ThreadSafeKVStorage::POOL::REQUEST_ID);
     storage.add_remove_callback([this](const std::string& req) {
       SPDLOG_INFO("remove request_id: {} from callback", req);
-      request_states_->remove(req);
+      // order:
       kvcache_manager_->free_reqid(req);
+      request_states_->remove(req);
     });
     kvcache_manager_ = std::unique_ptr<kvcache::KVCacheManagerBase>(
         IPIPE_CREATE(kvcache::KVCacheManagerBase, "KVCacheManager"));
