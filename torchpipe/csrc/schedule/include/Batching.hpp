@@ -77,7 +77,7 @@ class RequestStates {
     return request_states_.find(request_id) != request_states_.end();
   }
 
-  void set_wait(const std::string& request_id, size_t request_size) {
+  void set_ready(const std::string& request_id, size_t request_size) {
     {
       std::lock_guard<std::mutex> lock(mtx_);
       auto iter = request_states_.find(request_id);
@@ -90,10 +90,11 @@ class RequestStates {
         request_states_.emplace(request_id, RequestState({true, request_size}));
       }
     }
-    cv_.notify_all();
   }
 
-  void set_unwait(const std::string& request_id) {
+  void notify() { cv_.notify_all(); }
+
+  void set_unready(const std::string& request_id) {
     std::lock_guard<std::mutex> lock(mtx_);
     auto iter = request_states_.find(request_id);
     if (iter != request_states_.end()) {

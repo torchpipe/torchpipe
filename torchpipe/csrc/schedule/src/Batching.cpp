@@ -67,6 +67,7 @@ void read_kvcache(kvcache::KVCacheConfig& kv_config) {
 bool RequestStates::wait_decode_ready(int time_out) {
   std::unique_lock<std::mutex> lock(mtx_);
   return cv_.wait_for(lock, std::chrono::milliseconds(time_out), [this]() {
+    if (request_states_.empty()) return false;
     for (auto iter = request_states_.begin(); iter != request_states_.end(); ++iter) {
       if (!iter->second.wait_for_schedule) {
         SPDLOG_INFO("not ready: {}", iter->first);
@@ -146,7 +147,6 @@ void Batching::forward(const std::vector<dict>& raw_inputs) {
         IPIPE_ASSERT(item_size <= max_batch_size_);
         sizes.push_back(item_size);
       }
-      input_queue_.Push(raw_inputs, sizes);
 
       if (request_states_) {
         for (size_t i = 0; i < raw_inputs.size(); ++i) {
@@ -175,10 +175,12 @@ void Batching::forward(const std::vector<dict>& raw_inputs) {
                         request_params.request_id, request_params.kvcache_seq_len);
             kvcache_manager_->alloc_reqid(request_params);
           }
-          request_states_->set_wait(*request_id, size);
-          // SPDLOG_INFO("contiguous_batching: set_wait {}", *request_id);
+          request_states_->set_ready(*request_id, size);
+          // SPDLOG_INFO("contiguous_batching: set_ready {}", *request_id);
         }
       }
+      input_queue_.Push(raw_inputs, sizes);
+      request_states_->notify();
     }
   }
 
@@ -325,7 +327,7 @@ bool Batching::contiguous_batch(dicts& input_data, const size_t input_data_size,
     //   // storage.set("kvcache_tensor", tensor);
     // }
     // kvcache_manager_->query(valid_req);
-    request_states_->set_unwait(valid_req);
+    request_states_->set_unready(valid_req);
   }
 
   for (auto iter = input_data.begin(); iter != input_data.end();) {
