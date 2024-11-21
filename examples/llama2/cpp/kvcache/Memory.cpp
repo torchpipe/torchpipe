@@ -52,7 +52,7 @@ size_t PyhBlkPool::query_system_free_memory(double factor) {
   return system_mem_;
 }
 void init_device(int device_id) {
-  IPIPE_ASSERT(device_id_ >= 0);
+  IPIPE_ASSERT(device_id >= 0);
   cudaSetDevice(device_id_);
   cudaFree(0);
 
@@ -60,11 +60,11 @@ void init_device(int device_id) {
   DRV_CALL(cuDeviceGetCount(&deviceCount));
 
   CUdevice cu_dev;
-  DRV_CALL(cuDeviceGet(&cu_dev, device_id_));
+  DRV_CALL(cuDeviceGet(&cu_dev, device_id));
 
   CUcontext cu_ctx;
   DRV_CALL(cuDevicePrimaryCtxRetain(&cu_ctx, cu_dev));
-  SPDLOG_INFO("init_device: device_id: {} deviceCount = {} cu_ctx = {}", device_id_, deviceCount,
+  SPDLOG_INFO("init_device: device_id: {} deviceCount = {} cu_ctx = {}", device_id, deviceCount,
               (void*)cu_ctx);
 }
 PyhBlkPool::PyhBlkPool(int device_id, size_t block_size)
