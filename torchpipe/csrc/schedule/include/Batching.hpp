@@ -39,7 +39,7 @@ namespace ipipe {
 
 class RequestStates {
  public:
-  RequestStates(size_t max_bs) : max_batch_size_(max_bs) {}
+  RequestStates() {}
   struct RequestState {
    public:
     int iter_index = 0;
@@ -114,14 +114,14 @@ class RequestStates {
   //   std::lock_guard<std::mutex> lock(mtx_);
   //   cv_.notify_all();
   // }
-  size_t get_max_batch_size() { return max_batch_size_; }
+  // size_t get_max_batch_size() { return max_batch_size_; }
 
  private:
   bool all_ready_{false};  // 为了防止condition_variable的spurious wakeup， 我们额外设置一个flag
   std::unordered_map<std::string, RequestState> request_states_;
   mutable std::mutex mtx_;
   std::condition_variable cv_;
-  size_t max_batch_size_;
+  // size_t max_batch_size_;
 };
 // # cal_request_size_method = "AddRequestSizeTensor"
 
@@ -150,6 +150,7 @@ class Batching : public Backend {
 
  private:
   uint32_t max_batch_size_{1};
+  uint32_t original_max_batch_size_{1};
   std::thread thread_;
   ThreadSafeSizedQueue<dict> input_queue_;
   ThreadSafeSizedQueue<std::vector<dict>> batched_queue_;

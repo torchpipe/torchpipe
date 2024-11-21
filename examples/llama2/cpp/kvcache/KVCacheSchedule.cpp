@@ -255,11 +255,11 @@ StepOutput KVCacheSchedule::step() {
   ipipe::TimeGuard guard("KVCacheSchedule: step 0");
 
   if (system_blocks_ == INT_MIN)
-    system_blocks_ = memory_->query_system_blocks(0.95);
+    system_blocks_ = memory_->query_system_blocks();
   else {
     system_blocks_ = memory_->compute_system_blocks();
     if (system_blocks_ == 0 && need_update_system_blk_) {
-      system_blocks_ = memory_->query_system_blocks(0.95);
+      system_blocks_ = memory_->query_system_blocks();
       if (system_blocks_ == 0) need_update_system_blk_ = false;
     }
   }

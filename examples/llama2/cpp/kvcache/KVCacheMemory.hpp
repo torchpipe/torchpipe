@@ -144,6 +144,7 @@ class KVCacheMemory {
   }
 
   size_t query_system_blocks(double factor) {
+    auto sys = pyh_pool_->query_system_free_memory(factor);
     return pyh_pool_->query_system_free_memory(factor) / (config_.granularitySize);
   }
 

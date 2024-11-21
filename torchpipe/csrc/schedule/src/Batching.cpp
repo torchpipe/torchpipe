@@ -144,7 +144,7 @@ void Batching::forward(const std::vector<dict>& raw_inputs) {
         const auto item_size = get_request_size(item);
         IPIPE_ASSERT(item_size > 0);
         // SPDLOG_DEBUG("item_size={} max_batch_size={}", item_size, max_batch_size_);
-        IPIPE_ASSERT(item_size <= max_batch_size_);
+        IPIPE_ASSERT(item_size <= original_max_batch_size_);
         sizes.push_back(item_size);
       }
 
@@ -225,33 +225,6 @@ bool Batching::init(const std::unordered_map<std::string, std::string>& config, 
 
   node_name_ = params_->at("node_name");
 
-  contiguous_batching_ = std::stoi(params_->at("contiguous_batching"));
-  if (contiguous_batching_) {
-    IPIPE_ASSERT(!node_name_.empty(),
-                 "node_name should not be empty when contiguous_batching is enabled");
-    SPDLOG_INFO("contiguous batching is enabled");
-
-    request_states_ = std::make_unique<RequestStates>(max_batch_size_);
-    max_batch_size_ = UINT32_MAX;
-    auto& storage = ThreadSafeKVStorage::getInstance(ThreadSafeKVStorage::POOL::REQUEST_ID);
-    storage.add_remove_callback([this](const std::string& req) {
-      SPDLOG_INFO("remove request_id: {} from callback", req);
-      // order:
-      kvcache_manager_->free_reqid(req);
-      request_states_->remove(req);
-    });
-    kvcache_manager_ = std::unique_ptr<kvcache::KVCacheManagerBase>(
-        IPIPE_CREATE(kvcache::KVCacheManagerBase, "KVCacheManager"));
-    kvcache::KVCacheConfig kv_config;
-    read_kvcache(kv_config);
-    kv_config.max_batch_size = max_batch_size_;
-
-    kvcache_manager_->init(kv_config);
-
-    // ThreadSafeKVStorage::getInstance(ThreadSafeKVStorage::POOL::SCHEDULER)
-    //     .set("", "kvcache_manager", kvcache_manager_.get());
-  }
-
   if (params_->at("multiple_instances").empty()) {
     // backend_ = std::make_unique<RangeMerger>();
     backend_ = std::make_unique<MultiInstances>();
@@ -287,6 +260,37 @@ bool Batching::init(const std::unordered_map<std::string, std::string>& config, 
     SPDLOG_INFO("{}: max_batch_size={}, batching_timeout={}", node_name_, max_batch_size_,
                 batching_timeout_);
   }
+
+  contiguous_batching_ = std::stoi(params_->at("contiguous_batching"));
+  if (contiguous_batching_) {
+    IPIPE_ASSERT(bThreadInited_.load());
+    IPIPE_ASSERT(!node_name_.empty(),
+                 "node_name should not be empty when contiguous_batching is enabled");
+    SPDLOG_INFO("contiguous batching is enabled");
+
+    request_states_ = std::make_unique<RequestStates>();
+    original_max_batch_size_ = max_batch_size_;
+    max_batch_size_ = UINT32_MAX;
+    auto& storage = ThreadSafeKVStorage::getInstance(ThreadSafeKVStorage::POOL::REQUEST_ID);
+    storage.add_remove_callback([this](const std::string& req) {
+      SPDLOG_INFO("remove request_id: {} from callback", req);
+      // order:
+      kvcache_manager_->free_reqid(req);
+      request_states_->remove(req);
+    });
+    kvcache_manager_ = std::unique_ptr<kvcache::KVCacheManagerBase>(
+        IPIPE_CREATE(kvcache::KVCacheManagerBase, "KVCacheManager"));
+    kvcache::KVCacheConfig kv_config;
+    read_kvcache(kv_config);
+    IPIPE_ASSERT(kv_config.max_batch_size <= 0 ||
+                 kv_config.max_batch_size == original_max_batch_size_);
+    kv_config.max_batch_size = original_max_batch_size_;
+
+    kvcache_manager_->init(kv_config);
+
+    // ThreadSafeKVStorage::getInstance(ThreadSafeKVStorage::POOL::SCHEDULER)
+    //     .set("", "kvcache_manager", kvcache_manager_.get());
+  }
   return true;
 }
 
@@ -297,11 +301,12 @@ bool Batching::contiguous_batch(dicts& input_data, const size_t input_data_size,
     //             input_data_size + new_pop, request_states_->size());
     return false;
   } else {
+    auto qs = input_queue_.size();
     SPDLOG_INFO(
-        "contiguous_batching: all requests ready. Batch sz={}, Req sz = {}, input_data sz={}",
-        input_data_size + new_pop, request_states_->size(), input_data.size());
-    if (!input_queue_.empty() && (input_data_size + new_pop < max_batch_size_))
-      return false;  // rebatching
+        "contiguous_batching: all requests ready. Batch sz={}, Req sz = {}, input_data sz={}, "
+        "max_batch_size_={}, qs={}",
+        input_data_size + new_pop, request_states_->size(), input_data.size(), max_batch_size_, qs);
+    if (qs != 0 && (input_data_size + new_pop < max_batch_size_)) return false;  // rebatching
   }
 
   // SPDLOG_INFO("contiguous_batching: all requests ready. Req sz={}, state sz = {}",
