@@ -39,9 +39,10 @@ size_t PyhBlkPool::query_system_free_memory(double factor) {
   DRV_CALL(cuMemGetInfo(&system_mem_, &total));
   // }
 
+  removed_num_allocated_ += num_allocated_;
   num_allocated_ = 0;
-  SPDLOG_INFO("PyhBlkPool Query Result: device_id={} System Free Mem={}MB", device_id_,
-              system_mem_ / 1024 / 1024);
+  SPDLOG_INFO("PyhBlkPool Query Result: device_id={} System Free Mem={}MB, num_allocated blks={}",
+              device_id_, system_mem_ / 1024 / 1024, removed_num_allocated_);
   constexpr size_t remain = 128 * 1024 * 1024;
   system_mem_ *= factor;
   if (system_mem_ >= remain)

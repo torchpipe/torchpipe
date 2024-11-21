@@ -12,7 +12,7 @@ void CachedMemory::offload2cpu(size_t seq_len_with_output) {
   IPIPE_ASSERT(cpu_ptr_ == nullptr);
 
   size_t pitch = config_.elemsize * config_.max_seq_len * config_.hidden_size;
-  SPDLOG_WARN("offload2cpu: seq_len_with_output: {}, pitch: {}", seq_len_with_output, pitch);
+  // SPDLOG_WARN("offload2cpu: seq_len_with_output: {}, pitch: {}", seq_len_with_output, pitch);
   cpu_ptr_ = alloc_pinned(seq_len_with_output * config_.elemsize * config_.hidden_size *
                           config_.layer_num);
   size_t w = seq_len_with_output * config_.elemsize * config_.hidden_size;
@@ -25,6 +25,8 @@ void CachedMemory::offload2cpu(size_t seq_len_with_output) {
 };
 
 void CachedMemory::onload2gpu(size_t seq_len_with_output, size_t target_blk_len) {
+  // SPDLOG_INFO("onload2gpu: seq_len_with_output: {}, target_blk_len: {}", seq_len_with_output,
+  //             target_blk_len);
   repair_by_map(target_blk_len);
   IPIPE_ASSERT(cpu_ptr_ != nullptr);
 
@@ -70,6 +72,7 @@ void KVCacheMemory::step(const CachedMemoryTasks& tasks) {
   if (!tasks.onload2gpu.empty()) {
     auto func = [this, onload2gpu = tasks.onload2gpu]() {
       for (const auto& req : onload2gpu) {
+        SPDLOG_INFO("step: onload2gpu: {}", req);
         cached_memories_[memory_state_[req].memory_index * 2]->onload2gpu(
             memory_state_[req].seq_len_with_output, memory_state_[req].target_block_len);
         cached_memories_[1 + memory_state_[req].memory_index * 2]->onload2gpu(
@@ -83,6 +86,7 @@ void KVCacheMemory::step(const CachedMemoryTasks& tasks) {
     auto func = [this, offload2cpu = tasks.offload2cpu]() {
       for (const auto& req : offload2cpu) {
         memory_state_[req].offloaded = true;
+        SPDLOG_WARN("step: offload2cpu: {}", req);
         cached_memories_[memory_state_[req].memory_index * 2]->offload2cpu(
             memory_state_[req].seq_len_with_output);
         cached_memories_[1 + memory_state_[req].memory_index * 2]->offload2cpu(
@@ -124,17 +128,21 @@ bool CachedMemory::repair_by_unmap(size_t needed_blk) {
   }
   SPDLOG_INFO("repair_by_unmap: before: {}, after: {}", phy_blocks_[0].size(), needed_blk);
   for (size_t i = 0; i < config_.layer_num; i++) {
-    for (size_t j = phy_blocks_[i].size() - 1; j >= needed_blk; j--) {
-      phy_blocks_[i][j]->unmap(ptrs_[i] + (j)*config_.granularitySize);
+    for (size_t j = needed_blk; j < phy_blocks_.at(i).size(); j++) {
+      // SPDLOG_INFO("unmap: i={}, j={}", i, j);
+      phy_blocks_.at(i).at(j)->unmap(ptrs_.at(i) + (j)*config_.granularitySize);
       pyh_pool_->free(phy_blocks_[i][j]);
     }
     phy_blocks_[i].resize(needed_blk);
   }
+  // SPDLOG_INFO("finish repair_by_unmap: before: {}, after: {}", phy_blocks_[0].size(),
+  // needed_blk);
   return true;
 }
 
 bool CachedMemory::repair_by_map(size_t needed_blk) {
-  size_t blk = phy_blocks_[0].size();
+  size_t blk = phy_blocks_.at(0).size();
+  // SPDLOG_INFO("repair_by_map: needed_blk: {} own={}", needed_blk, blk);
   if ((needed_blk < phy_blocks_[0].size()) ||
       (needed_blk - phy_blocks_[0].size()) * config_.layer_num > pyh_pool_->size()) {
     return false;
@@ -335,9 +343,16 @@ void KVCacheMemory::repair() {
     // SPDLOG_INFO("repair: memory_index={}", mem_state.second.memory_index);
     const auto owned_block_len =
         cached_memories_[mem_state.second.memory_index * 2]->get_block_len();
+    IPIPE_ASSERT(owned_block_len ==
+                 cached_memories_.at(1 + mem_state.second.memory_index * 2)->get_block_len());
+
     if (owned_block_len < mem_state.second.target_block_len) {
+      SPDLOG_INFO("start repair a: owned_block_len={}, target_block_len={}, pyhpool={}",
+                  owned_block_len, mem_state.second.target_block_len, pyh_pool_->size());
       IPIPE_ASSERT(cached_memories_[mem_state.second.memory_index * 2]->repair_by_map(
           mem_state.second.target_block_len));
+      SPDLOG_INFO("start repair b: owned_block_len={}, target_block_len={}", owned_block_len,
+                  mem_state.second.target_block_len);
       IPIPE_ASSERT(cached_memories_[1 + mem_state.second.memory_index * 2]->repair_by_map(
           mem_state.second.target_block_len));
     }

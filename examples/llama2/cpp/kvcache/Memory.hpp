@@ -223,6 +223,7 @@ class PyhBlkPool {
   size_t system_mem_{0};
 
   size_t num_allocated_{0};
+  size_t removed_num_allocated_{0};
 };
 
 inline void* virtual_alloc(size_t len) {
