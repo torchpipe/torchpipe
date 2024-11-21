@@ -63,6 +63,10 @@ int KVCacheMemory::get_reserved_blocks() {
       reserve += owned_block_len - mem_state.second.target_block_len;
     }
   }
+
+  for (auto index : reserved_memory_index_) {
+    reserve += cached_memories_[2 * index]->get_block_len();
+  }
   return reserve * 2 * config_.layer_num;
 }
 // void KVCacheMemory::alloc_reqid(const KVCacheAllocParams& request_id) {
