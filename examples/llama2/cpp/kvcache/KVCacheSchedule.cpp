@@ -304,13 +304,17 @@ StepOutput KVCacheSchedule::step() {
   // }
   size_t need_blk = 0;
   size_t valid_blk_size = 0;
+  SPDLOG_INFO("decode_kvcache_={}, prefill_kvcache_={}", decode_kvcache_.size(),
+              prefill_kvcache_.size());
   if (decode_kvcache_.empty()) {
     assert(prefill_kvcache_.size() > 0);
     valid_prefill_reqs_ = valid_prefill_requests(
         free_blocks + reserved_blocks, config_.max_batch_size, config_.max_concurrent_requests);
   } else {  // 先看看 decode的情况
     for (const auto& item : decode_kvcache_) {
-      if (valid_decode_reqs_.size() >= config_.max_batch_size) break;
+      if (valid_decode_reqs_.size() >= config_.max_batch_size ||
+          valid_decode_reqs_.size() >= config_.max_concurrent_requests)
+        break;
       need_blk += cal_decode_blocks(item.second.seq_len_with_output + config_.reserve_decode,
                                     seq_per_block_, config_.layer_num);
       if (need_blk > free_blocks) {  // decode 仅仅用free blocks。reserved blocks已经提前free了
@@ -320,6 +324,10 @@ StepOutput KVCacheSchedule::step() {
       valid_decode_reqs_.insert(item.first);
     }
     // decode 均可执行
+    SPDLOG_INFO("max_concurrent_requests={}, decode_kvcache_={}, valid_decode_reqs_={}",
+                config_.max_concurrent_requests, decode_kvcache_.size(), valid_decode_reqs_.size());
+    IPIPE_ASSERT(valid_decode_reqs_.size() + valid_prefill_reqs_.size() <=
+                 config_.max_concurrent_requests);
     if (valid_decode_reqs_.size() == decode_kvcache_.size() &&
         (config_.max_batch_size > valid_decode_reqs_.size()) &&
         config_.max_concurrent_requests > valid_decode_reqs_.size()) {
