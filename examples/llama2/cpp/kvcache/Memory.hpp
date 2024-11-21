@@ -81,7 +81,7 @@ class PyhBlkPool {
   ~PyhBlkPool() = default;
   size_t size() { return phy_blocks_.size(); }
   size_t get_system_free_memory();
-  size_t query_system_free_memory(double factor = 0.9);
+  size_t query_system_free_memory(double factor);
   size_t alloc(size_t num_blocks) {
     size_t num_alloc = 0;
     for (; num_alloc < num_blocks; num_alloc++) {
