@@ -239,8 +239,10 @@ void KVCacheSchedule::prepare_next_memory(KVCacheMemory::CachedMemoryTasks& task
     tasks.free_reserved = need_free_reserved;
   }
   if (tasks.alloc_blks > 0 || tasks.free_reserved > 0) {
-    SPDLOG_WARN("KVCacheSchedule: prepare_next_memory: need_alloc_blk: {}, need_free_reserved: {}",
-                need_alloc_blk, need_free_reserved);
+    SPDLOG_WARN(
+        "KVCacheSchedule: prepare_next_memory: need_alloc_blk: {}, need_free_reserved: {}, "
+        "memory_->get_free_blocks()={}",
+        need_alloc_blk, need_free_reserved, memory_->get_free_blocks());
   }
 
   return;

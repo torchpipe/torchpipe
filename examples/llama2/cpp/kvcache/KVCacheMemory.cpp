@@ -347,12 +347,12 @@ void KVCacheMemory::repair() {
                  cached_memories_.at(1 + mem_state.second.memory_index * 2)->get_block_len());
 
     if (owned_block_len < mem_state.second.target_block_len) {
-      SPDLOG_INFO("start repair a: owned_block_len={}, target_block_len={}, pyhpool={}",
-                  owned_block_len, mem_state.second.target_block_len, pyh_pool_->size());
+      // SPDLOG_INFO("start repair a: owned_block_len={}, target_block_len={}, pyhpool={}",
+      //             owned_block_len, mem_state.second.target_block_len, pyh_pool_->size());
       IPIPE_ASSERT(cached_memories_[mem_state.second.memory_index * 2]->repair_by_map(
           mem_state.second.target_block_len));
-      SPDLOG_INFO("start repair b: owned_block_len={}, target_block_len={}", owned_block_len,
-                  mem_state.second.target_block_len);
+      // SPDLOG_INFO("start repair b: owned_block_len={}, target_block_len={}", owned_block_len,
+      //             mem_state.second.target_block_len);
       IPIPE_ASSERT(cached_memories_[1 + mem_state.second.memory_index * 2]->repair_by_map(
           mem_state.second.target_block_len));
     }

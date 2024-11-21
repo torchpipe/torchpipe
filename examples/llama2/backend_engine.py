@@ -27,7 +27,7 @@ class PyStream:
         return True
     
     def forward(self, input: tp._C.Dict) -> None:
-        print(list(input.keys()))
+        # print(list(input.keys()))
         # print("PyStream ", input['data'].shape)
         request_id = input['request_id'].decode('utf-8')
         # print('streaming with request_id = ', request_id)
@@ -94,7 +94,7 @@ class BackendEngine:
         inputs = self.tokenizer(input, return_tensors="pt")
         # print(f"Time taken to tokenize: {time.perf_counter() - start}")
         # print(inputs["input_ids"])
-        print(f'sampling_params={sampling_params}')
+        # print(f'sampling_params={sampling_params}')
         inputs = {
             'data': inputs["input_ids"][0],
             'node_name': 'input',
