@@ -98,7 +98,13 @@ class PyhBlkPool {
 
   // CUresult cuMemcpy2DAsync	(	const CUDA_MEMCPY2D * 	pCopy,
   // CUstream 	hStream
-  void offload_memcpy2d(void* cpu_ptr, void* cuptr, size_t w, size_t h, size_t dstPitch) {
+  void offload_memcpy2d(void* cpu_ptr, void* cuptr, size_t w, size_t h, size_t srcPitch) {
+    for (size_t i = 0; i < h; ++i) {
+      DRV_CALL(cuMemcpyDtoHAsync(cpu_ptr, (CUdeviceptr)cuptr, w, stream_));
+    }
+    DRV_CALL(cuStreamSynchronize(stream_));
+    return;
+
     CUDA_MEMCPY2D copy_param = {};
     copy_param.WidthInBytes = w;
     copy_param.Height = h;
@@ -113,12 +119,18 @@ class PyhBlkPool {
     copy_param.srcY = 0;
     copy_param.srcMemoryType = CU_MEMORYTYPE_DEVICE;
     copy_param.srcDevice = (CUdeviceptr)cuptr;
-    copy_param.srcPitch = dstPitch;
+    copy_param.srcPitch = srcPitch;
     DRV_CALL(cuMemcpy2DAsync(&copy_param, stream_));
     DRV_CALL(cuStreamSynchronize(stream_));
   }
 
   void onload_memcpy2d(void* cuptr, void* cpu_ptr, size_t w, size_t h, size_t dstPitch) {
+    for (size_t i = 0; i < h; ++i) {
+      DRV_CALL(cuMemcpyHtoDAsync((CUdeviceptr)cuptr, cpu_ptr, w, stream_));
+    }
+    DRV_CALL(cuStreamSynchronize(stream_));
+    return;
+
     CUDA_MEMCPY2D copy_param = {};
     copy_param.WidthInBytes = w;
     copy_param.Height = h;
