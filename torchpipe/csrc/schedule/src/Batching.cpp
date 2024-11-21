@@ -70,7 +70,7 @@ bool RequestStates::wait_all_ready(int time_out) {
     if (!all_ready_) return false;
     for (auto iter = request_states_.begin(); iter != request_states_.end(); ++iter) {
       if (!iter->second.wait_for_schedule) {
-        SPDLOG_INFO("not ready: {}", iter->first);
+        // SPDLOG_INFO("not ready: {}", iter->first);
         return false;
       }
     }
@@ -367,18 +367,18 @@ bool Batching::contiguous_batch(dicts& input_data, const size_t input_data_size,
     auto iter_id = (*iter)->find("request_id");
 
     std::string* request_id = any_cast<std::string>(&iter_id->second);
-    SPDLOG_INFO("check req: request_id={}", *request_id);
+    // SPDLOG_INFO("check req: request_id={}", *request_id);
     if (valid_reqs.count(*request_id) == 0) {
       redundant_data.push_back(*iter);
       iter = input_data.erase(iter);
     } else {
       ++iter;
-      SPDLOG_INFO("contiguous_batching: request_id={} is valid", *request_id);
+      // SPDLOG_INFO("contiguous_batching: request_id={} is valid", *request_id);
       request_states_->set_unready(*request_id);
     }
   }
-  SPDLOG_INFO("contiguous_batching: valid_reqs sz={}, input_data sz={}, redundant_data sz={}",
-              valid_reqs.size(), input_data.size(), redundant_data.size());
+  // SPDLOG_INFO("contiguous_batching: valid_reqs sz={}, input_data sz={}, redundant_data sz={}",
+  //             valid_reqs.size(), input_data.size(), redundant_data.size());
   IPIPE_ASSERT(valid_reqs.size() == input_data.size());  // 必须保证一致
 
   return true;

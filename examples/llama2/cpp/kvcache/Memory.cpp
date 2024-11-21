@@ -51,10 +51,7 @@ size_t PyhBlkPool::query_system_free_memory(double factor) {
   }
   return system_mem_;
 }
-
-PyhBlkPool::PyhBlkPool(int device_id, size_t block_size)
-    : device_id_(device_id), block_size_(block_size) {
-  // DRV_CALL(cuInit(0));
+void init_device(int device_id) {
   IPIPE_ASSERT(device_id_ >= 0);
   cudaSetDevice(device_id_);
   cudaFree(0);
@@ -67,8 +64,14 @@ PyhBlkPool::PyhBlkPool(int device_id, size_t block_size)
 
   CUcontext cu_ctx;
   DRV_CALL(cuDevicePrimaryCtxRetain(&cu_ctx, cu_dev));
-  SPDLOG_INFO("PyhBlkPool: device_id: {} deviceCount = {} cu_ctx = {}", device_id_, deviceCount,
+  SPDLOG_INFO("init_device: device_id: {} deviceCount = {} cu_ctx = {}", device_id_, deviceCount,
               (void*)cu_ctx);
+}
+PyhBlkPool::PyhBlkPool(int device_id, size_t block_size)
+    : device_id_(device_id), block_size_(block_size) {
+  // DRV_CALL(cuInit(0));
+  IPIPE_ASSERT(device_id_ >= 0);
+  init_device(device_id_);
 
   // if (device_id_ == -1) {
   //   DRV_CALL(cuCtxGetDevice(&device_id_));

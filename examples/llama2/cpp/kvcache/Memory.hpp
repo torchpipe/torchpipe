@@ -244,6 +244,7 @@ inline void* alloc_pinned(size_t size) {
   return ptr;
 }
 
+void init_device(int device_id);
 inline void free_pinned(void* ptr) { DRV_CALL(cuMemFreeHost(ptr)); }
 
 }  // namespace kvcache

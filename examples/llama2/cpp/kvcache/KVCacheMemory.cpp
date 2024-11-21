@@ -12,6 +12,7 @@ void CachedMemory::offload2cpu(size_t seq_len_with_output) {
   IPIPE_ASSERT(cpu_ptr_ == nullptr);
 
   size_t pitch = config_.elemsize * config_.max_seq_len * config_.hidden_size;
+  SPDLOG_WARN("offload2cpu: seq_len_with_output: {}, pitch: {}", seq_len_with_output, pitch);
   cpu_ptr_ = alloc_pinned(seq_len_with_output * config_.elemsize * config_.hidden_size *
                           config_.layer_num);
   size_t w = seq_len_with_output * config_.elemsize * config_.hidden_size;
@@ -223,8 +224,8 @@ void KVCacheMemory::alloc(std::unordered_set<std::string> prefill_alloc_reqs,
     mem_state.target_block_len =
         get_target_block_len(decode_status.at(decode_alloc_req).seq_len_with_output);
 
-    SPDLOG_INFO("decode_alloc_req: {}, target={}, memory_index={}", decode_alloc_req,
-                mem_state.target_block_len, mem_state.memory_index);
+    SPDLOG_DEBUG("decode_alloc_req: {}, target={}, memory_index={}", decode_alloc_req,
+                 mem_state.target_block_len, mem_state.memory_index);
   }
   repair();
   // repair_by_new_map();
@@ -280,6 +281,7 @@ int KVCacheMemory::free_reserved(size_t blk_size) {
 }
 
 void KVCacheMemory::task_loop() {
+  init_device(config_.device_id);
   while (bInited_.load()) {
     std::function<void()> task;
     if (task_queue_.WaitForPop(task, 300)) {
