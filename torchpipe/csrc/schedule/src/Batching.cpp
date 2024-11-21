@@ -144,7 +144,7 @@ void Batching::forward(const std::vector<dict>& raw_inputs) {
         const auto item_size = get_request_size(item);
         IPIPE_ASSERT(item_size > 0);
         // SPDLOG_DEBUG("item_size={} max_batch_size={}", item_size, max_batch_size_);
-        IPIPE_ASSERT(item_size <= original_max_batch_size_);
+        IPIPE_ASSERT(item_size <= max_batch_size_);
         sizes.push_back(item_size);
       }
 
