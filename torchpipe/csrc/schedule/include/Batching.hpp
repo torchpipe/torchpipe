@@ -28,7 +28,7 @@
 #include "time_utils.hpp"
 #include "RangeMerger.hpp"
 #include "RuningState.hpp"
-#include "KVCacheManagerBase.hpp"
+// #include "KVCacheManagerBase.hpp"
 #include "base_logging.hpp"
 
 // namespace kvcache {
@@ -171,6 +171,6 @@ class Batching : public Backend {
   int contiguous_batching_{0};
 
   std::unique_ptr<RequestStates> request_states_;
-  std::unique_ptr<kvcache::KVCacheManagerBase> kvcache_manager_;
+  // std::unique_ptr<kvcache::KVCacheManagerBase> kvcache_manager_;
 };
 }  // namespace ipipe

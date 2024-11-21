@@ -49,7 +49,7 @@ next = 'check_eos'
 other = 'input_tokens'
 
 [batchless_prefill]
-backend = "S[AppendOtherTensor,KVCacheIOTensor,TensorrtTensor,SyncTensor]" #
+backend = "S[AppendOtherTensor,TensorrtTensor,PushKVCacheTensor,SyncTensor]" #
 instance_num = 1 
 max = '1x2048x4096,1x2048x4096,1x2048x4096,1x2048x128,1x2048x128,1x1x2048x2048' 
 # q k v cos sin mask
@@ -68,14 +68,14 @@ next = 'python_callback'
 backend = "S[PyIdentity[PyStream]]"
 
 [batchless_decode]
-backend = "S[AppendOtherTensor,KVCacheIOTensor, TensorrtTensor,SyncTensor]" #
+backend = "S[AppendOtherTensor,Result2Key(key=tmpkey)[PopKVCacheTensor],AppendTensor(key=tmpkey), TensorrtTensor,PushKVCacheTensor,SyncTensor]" #
 instance_num = 4 
-# max = '1x1x4096,1x1x4096,1x1x4096,1x1x128,1x1x128,1x1x1x2048,1x32x2047x128,1x32x2047x128' 
-# # q k v cos sin mask
-# min = '1x1x4096,1x1x4096,1x1x4096,1x1x128,1x1x128,1x1x1x1,1x32x1x128,1x32x1x128'
-max = '1x1x4096,1x1x4096,1x1x4096,1x1x128,1x1x128,1x1x1x2048,1x2047x32x128,1x2047x32x128'
+max = '1x1x4096,1x1x4096,1x1x4096,1x1x128,1x1x128,1x1x1x2048,1x32x2047x128,1x32x2047x128' 
 # q k v cos sin mask
-min = '1x1x4096,1x1x4096,1x1x4096,1x1x128,1x1x128,1x1x1x1,1x1x32x128,1x1x32x128'
+min = '1x1x4096,1x1x4096,1x1x4096,1x1x128,1x1x128,1x1x1x1,1x32x1x128,1x32x1x128'
+# max = '1x1x4096,1x1x4096,1x1x4096,1x1x128,1x1x128,1x1x1x2048,1x2047x32x128,1x2047x32x128'
+# # q k v cos sin mask
+# min = '1x1x4096,1x1x4096,1x1x4096,1x1x128,1x1x128,1x1x1x1,1x1x32x128,1x1x32x128'
 'model' = 'model_files/batchless_decode.onnx'
 'model::cache' = './model_files/batchless_decode.trt'
 
