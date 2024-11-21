@@ -35,13 +35,13 @@ The computation for the batchless part could be implemented as a standalone CUDA
 
 ```bash
 # batchful part
-    python export_llama2_one_kv.py --model $MODEL --output_dir model_files/ --export batchful --num_layers $NUM_LAYER --device cuda
+    python export_llama2.py --model $MODEL --output_dir model_files/ --export batchful --num_layers $NUM_LAYER --device cuda
     ## you can use cpu for export, but it will be slow.
 
 # batchless part
-    python export_llama2_one_kv.py --model $MODEL --output_dir model_files/ --export prefill_batchless  
+    python export_llama2.py --model $MODEL --output_dir model_files/ --export prefill_batchless  
 
-    python export_llama2_one_kv.py --model $MODEL --output_dir model_files/ --export decode_batchless  
+    python export_llama2.py --model $MODEL --output_dir model_files/ --export decode_batchless  
 
 
 # export embed_tokens.pt
