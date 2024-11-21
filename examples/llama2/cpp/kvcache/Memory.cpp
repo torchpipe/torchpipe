@@ -53,7 +53,7 @@ size_t PyhBlkPool::query_system_free_memory(double factor) {
 }
 void init_device(int device_id) {
   IPIPE_ASSERT(device_id >= 0);
-  cudaSetDevice(device_id_);
+  cudaSetDevice(device_id);
   cudaFree(0);
 
   int deviceCount = 0;
