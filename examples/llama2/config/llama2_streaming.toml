@@ -27,11 +27,11 @@ scheduler = "Batching"
 
 cal_request_size_method = "CalTorchBatchSize" # calc. request_size according to torch tensor size
 
-fake_instance_num = 4
+fake_instance_num = 5
 instance_num = 1
 # max = '1024'
-max = '8;128;512;1024' # 遵循vllm的benchmark配置，实际使用可分桶
-min = '1;9;129;513' 
+max = '8;128;512;1024;2047' # 遵循vllm的benchmark配置，实际使用可分桶
+min = '1;9;129;513;1025' 
 'model' = 'model_files/batchful.onnx' 
 'model::cache' = '/workspace/batchful.trt' 
 next = 'cache' 

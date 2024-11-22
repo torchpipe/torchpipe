@@ -151,7 +151,7 @@ void parse_ln(nvinfer1::INetworkDefinition* network) {
         } else {
           // SPDLOG_INFO("{} was set to fp32 mode", target[index]->getName());
         }
-        std::string info = "LayerNorm: The following layers were set to fp32 mode: {}";
+        std::string info = "LayerNorm: The following layers were set to fp32 mode: ";
         for (const auto& item : parsed) {
           info += item + ' ';
         }
