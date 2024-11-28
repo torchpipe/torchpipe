@@ -1,5 +1,4 @@
 # Streaming Inference with Llama2 (WIP)
-> WARNING Broken now, please use the main branch.
 
 > WARNING
 This project is still in the experimental stage. Do not use it in production environments. 
@@ -13,6 +12,8 @@ Traditional dynamic batching can be applied the batchful part. We isolate the ba
 The computation for the batchless part could be implemented as a standalone CUDA kernel. However, for simplicity, we have chosen to trace and implement it using TensorRT. TensorRT may internally optimize computations by matching flash attention patterns. The verbose information from TensorRT indicates that it has identified and reassigned Myelin backends for Self-Attention nodes (i.e., /MatMul_1, /Softmax, /MatMul).
 </details>
 
+- Limitations
+    - Temporary inability to handle ultra-high concurrency scenarios in the KV cache management, awaiting implementation of vattention-like management.
 ## Prepare llama2 models
 > Only test on transformers=4.44.2
     
@@ -56,9 +57,7 @@ The computation for the batchless part could be implemented as a standalone CUDA
 
 
 # Streaming Inference with Llama2
-WIP
-
-
+ 
 ```
 
  
