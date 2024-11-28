@@ -24,6 +24,18 @@
 #include "NvInferRuntime.h"
 #endif
 
+#if (NV_TENSORRT_MAJOR == 10 && NV_TENSORRT_MINOR >= 2) || (NV_TENSORRT_MAJOR >= 11)
+#define TRT_USER_MANAGED_MEM 1
+#else
+#define TRT_USER_MANAGED_MEM 0
+#endif
+
+#if (NV_TENSORRT_MAJOR == 10 && NV_TENSORRT_MINOR >= 5) || (NV_TENSORRT_MAJOR >= 11)
+#define TRT_WEIGHT_STREAMING 1
+#else
+#define TRT_WEIGHT_STREAMING 0
+#endif
+
 namespace ipipe {
 
 struct destroy_nvidia_pointer {
@@ -45,8 +57,8 @@ using unique_ptr_destroy = std::unique_ptr<T, destroy_nvidia_pointer>;
 // support tensorrt8.6.1, which requires that runtime keep alive when engine it is in use.
 struct CudaEngineWithRuntime {
   explicit CudaEngineWithRuntime() = default;
-  explicit CudaEngineWithRuntime(nvinfer1::IRuntime *runtime_ptr) : runtime(runtime_ptr){};
-  explicit CudaEngineWithRuntime(nvinfer1::ICudaEngine *engine_ptr) : engine(engine_ptr){};
+  explicit CudaEngineWithRuntime(nvinfer1::IRuntime *runtime_ptr) : runtime(runtime_ptr) {};
+  explicit CudaEngineWithRuntime(nvinfer1::ICudaEngine *engine_ptr) : engine(engine_ptr) {};
 
   bool deserializeCudaEngine(const std::string &engine_plan) {
     if (runtime) {

@@ -168,6 +168,85 @@ bool MultipleInstances::init(const std::unordered_map<std::string, std::string>&
 std::unordered_map<std::string, std::vector<Backend*>> MultipleInstances::shared_instances_{};
 std::mutex MultipleInstances::lock_;
 
+void FakeInstances::forward(const std::vector<dict>& inputs_data) {
+  const auto size = get_request_size(inputs_data);
+
+  const auto index = get_best_match(size);
+  SPDLOG_DEBUG("FakeInstances: size={} index={}", size, index);
+  // auto inputs = inputs_data;
+  if (size != inputs_data.size()) {
+    IPIPE_ASSERT(index >= 0);  // garentied
+    backends_[index]->forward(inputs_data);
+  } else {
+    if (index < 0) {
+      backends_[0]->forward(inputs_data);
+    }  // todo: split?
+    else
+      backends_[index]->forward(inputs_data);
+  }
+
+  // while (!inputs.empty()) {
+  //   int index = 0;
+  //   auto input_true = split_inputs(inputs, index);
+  //   assert(!input_true.empty());
+  // }
+}
+
+bool FakeInstances::init(const std::unordered_map<std::string, std::string>& config,
+                         dict dict_config) {
+  params_ = std::unique_ptr<Params>(
+      new Params({{"instance_num", "1"}},
+                 {"node_name", "FakeInstances::backend", "fake_instance_num"}, {}, {}));
+  if (!params_->init(config)) return false;
+
+  std::string node_name = params_->at("node_name");
+  int instance_num{0};
+  TRACE_EXCEPTION(instance_num = std::stoi(params_->at("instance_num")));
+  IPIPE_ASSERT(instance_num == 1);
+  TRACE_EXCEPTION(fake_instance_num_ = std::stoi(params_->at("fake_instance_num")));
+  if (fake_instance_num_ > 1024 || fake_instance_num_ == 0) {
+    SPDLOG_ERROR("fake_instance_num wired: " + params_->at("fake_instance_num"));
+    return false;
+  }
+
+  // batched_queue_ =
+  //     any_cast<ThreadSafeSizedQueue<std::vector<dict>>*>(dict_config->at("_batched_queue"));
+
+  // all_backends_.resize(fake_instance_num_);
+  for (std::size_t i = 0; i < fake_instance_num_; ++i) {
+    backends_.emplace_back(IPIPE_CREATE(Backend, params_->at("FakeInstances::backend")));
+  }  // todo RegisterInstances
+
+  dict dict_config_split =
+      dict_config ? std::make_shared<std::unordered_map<std::string, any>>(*dict_config)
+                  : std::make_shared<std::unordered_map<std::string, any>>();
+  for (std::size_t i = 0; i < fake_instance_num_; ++i) {
+    auto new_config = config;
+    new_config["_independent_thread_index"] = std::to_string(i);
+    new_config["instance_num"] = std::to_string(fake_instance_num_);
+    if (!backends_[i] || !backends_[i]->init(new_config, dict_config_split)) {
+      SPDLOG_ERROR("FakeInstances: init failed");
+      return false;
+    }
+  }
+
+  std::vector<uint32_t> mins;
+  std::vector<uint32_t> maxs;
+  for (std::size_t i = 0; i < backends_.size(); ++i) {
+    mins.push_back(backends_[i]->min());
+    maxs.push_back(backends_[i]->max());
+  }
+  min_ = *std::min_element(mins.begin(), mins.end());
+  max_ = *std::max_element(maxs.begin(), maxs.end());
+
+  if (min() > max()) {
+    SPDLOG_ERROR("FakeInstances: min() > max().  min() = {} max() = {}", min(), max());
+    return false;
+  }
+  sorted_max_ = sort_indexes(backends_);
+  return true;
+}
+
 bool MultiInstances::init(const std::unordered_map<std::string, std::string>& config,
                           dict dict_config) {
   params_ = std::unique_ptr<Params>(
@@ -229,4 +308,16 @@ bool MultiInstances::init(const std::unordered_map<std::string, std::string>& co
   }
   return true;
 }
+
+void MultiInstances::forward(const std::vector<dict>& inputs_data) {
+  const auto size = get_request_size(inputs_data);
+  if ((size <= 0 || inputs_data.size() == 0)) {
+    SPDLOG_ERROR("MultiInstances: request size={}, data={}", size, inputs_data.size());
+    throw std::runtime_error("MultiInstances: request size=0");
+  }
+  // SPDLOG_INFO("MultiInstances: request size={}", size);
+  batched_queue_->Push(inputs_data, size);
+}
+
+IPIPE_REGISTER(Backend, FakeInstances, "FakeInstances");
 }  // namespace ipipe

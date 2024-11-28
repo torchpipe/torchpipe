@@ -150,7 +150,12 @@ class LongItemTensor : public SingleBackend {
                                std::string(input[TASK_DATA_KEY].type().name()));
     }
     auto input_tensor = any_cast<torch::Tensor>(input[TASK_DATA_KEY]);
-    IPIPE_ASSERT(input_tensor.numel() == 1);
+    if (input_tensor.numel() != 1) {
+      SPDLOG_ERROR("LongItemTensor: numel should be 1; error input numel: " +
+                   std::to_string(input_tensor.numel()));
+      throw std::runtime_error("LongItemTensor: numel should be 1; error input numel: " +
+                               std::to_string(input_tensor.numel()));
+    }
 
     input[TASK_RESULT_KEY] = input_tensor.item<long>();
   }

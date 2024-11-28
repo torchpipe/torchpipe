@@ -1,0 +1,20 @@
+#include <iostream>
+#include <vector>
+#include <queue>
+#include <set>
+
+#include <string>
+#include <atomic>
+#include "Memory.hpp"
+
+// https://github.com/XinYao1994/glake/blob/28046fcffede3a901c1033b1f10089cca68b21cf/vTensor/vllm/worker/worker.py#L176
+namespace ipipe {
+
+PhyBlock::PhyBlock(int device_id, size_t granularitySize)
+    : device_id_(device_id), block_size_(granularitySize) {}
+
+PhyBlock::~PhyBlock() {
+  unmap();
+  cuMemRelease(alloc_handle_);
+}
+}  // namespace ipipe

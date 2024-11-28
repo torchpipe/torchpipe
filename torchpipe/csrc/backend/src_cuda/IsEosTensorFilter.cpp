@@ -23,26 +23,27 @@
 
 namespace ipipe {
 
-class IsRequestEosFilter : public SingleBackend {
- public:
-  virtual void forward(dict input_dict) override {
-    static auto& storage = ThreadSafeKVStorage::getInstance();
+// class IsRequestEosFilter : public SingleBackend {
+//  public:
+//   virtual void forward(dict input_dict) override {
+//     static auto& storage =
+//     ThreadSafeKVStorage::getInstance(ThreadSafeKVStorage::POOL::USER_DEFINED);
 
-    auto& input = *input_dict;
+//     auto& input = *input_dict;
 
-    auto iter = input_dict->find("request_id");
-    IPIPE_ASSERT(iter != input_dict->end());
-    std::string request_id = any_cast<std::string>(iter->second);
-    auto& storage_kv = storage.get(request_id);
+//     auto iter = input_dict->find("request_id");
+//     IPIPE_ASSERT(iter != input_dict->end());
+//     std::string request_id = any_cast<std::string>(iter->second);
+//     auto& storage_kv = storage.get(request_id);
 
-    if (storage_kv.get("is_eos")) {
-      SPDLOG_DEBUG("IsRequestEosFilter: is_eos is true");
-      input["filter"] = Filter::status::Run;
-    } else
-      input["filter"] = Filter::status::Skip;
-  }
-};
+//     if (storage_kv.get("is_eos")) {
+//       SPDLOG_DEBUG("IsRequestEosFilter: is_eos is true");
+//       input["filter"] = Filter::status::Run;
+//     } else
+//       input["filter"] = Filter::status::Skip;
+//   }
+// };
 
-IPIPE_REGISTER(Backend, IsRequestEosFilter, "IsRequestEosFilter");
+// IPIPE_REGISTER(Backend, IsRequestEosFilter, "IsRequestEosFilter");
 
 }  // namespace ipipe

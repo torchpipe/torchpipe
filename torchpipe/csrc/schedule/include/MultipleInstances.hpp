@@ -144,14 +144,67 @@ class MultipleInstances : public Backend {
   static std::unordered_map<std::string, std::vector<Backend*>> shared_instances_;
 };
 
+/**
+ * @brief (WIP)提供多实例功能，与 Schedule
+ * SortSchedule 等配合使用，形成完整的单节点调度功能。
+ */
+class FakeInstances : public Backend {
+ public:
+  bool init(const std::unordered_map<std::string, std::string>& config, dict dict_config) override;
+
+  void forward(const std::vector<dict>& inputs_data);
+
+  /// 子Backend的上限最大值
+  uint32_t max() const override { return max_; }
+
+  /// 子Backend的下限最小值
+  uint32_t min() const override { return min_; }
+
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
+  // 先销毁消费线程， 确保销毁顺序
+  ~FakeInstances() { backends_.clear(); }
+#endif
+ private:
+  // from
+  // https://stackoverflow.com/questions/1577475/c-sorting-and-keeping-track-of-indexes
+  template <typename T>
+  std::vector<std::size_t> sort_indexes(const std::vector<T>& v) {
+    std::vector<size_t> idx(v.size());
+    std::iota(idx.begin(), idx.end(), 0);
+
+    std::stable_sort(idx.begin(), idx.end(),
+                     [&v](size_t i1, size_t i2) { return v[i1]->max() < v[i2]->max(); });
+
+    return idx;
+  }
+  int get_best_match(std::size_t size_of_input) {
+    for (auto item : sorted_max_) {
+      if (size_of_input >= backends_[item]->min() && (size_of_input <= backends_[item]->max())) {
+        return item;
+      }
+    }
+    return -1;
+  }
+
+ private:
+  std::unique_ptr<Params> params_;
+  std::vector<std::unique_ptr<Backend>> backends_;
+
+  uint32_t fake_instance_num_;
+  uint32_t max_{0};
+  uint32_t min_{0};
+
+  std::vector<std::size_t> sorted_max_;
+
+  // std::unordered_map<std::string, std::string> config_;
+};
+
 class MultiInstances : public Backend {
  public:
   bool init(const std::unordered_map<std::string, std::string>& config, dict dict_config) override;
 
-  void forward(const std::vector<dict>& inputs_data) override {
-    const auto size = get_request_size(inputs_data);
-    batched_queue_->Push(inputs_data, size);
-  }
+  void forward(const std::vector<dict>& inputs_data) override;
+
   uint32_t max() const override { return max_; }
 
   /// 子Backend的下限最小值

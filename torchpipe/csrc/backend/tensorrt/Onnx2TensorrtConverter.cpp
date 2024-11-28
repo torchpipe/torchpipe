@@ -46,7 +46,8 @@ bool Onnx2TensorrtConverter::init(const std::unordered_map<std::string, std::str
                                                 {"allocator", "torch"},
                                                 {"log_level", "verbose"},
                                                 {"input_reorder", ""},
-                                                {"force_layer_norm_pattern_fp32", "0"}},
+                                                {"force_layer_norm_pattern_fp32", "0"},
+                                                {"weight_budget_percentage", "0"}},
                                                {}, {}, {}));
 
   if (!params_->init(config_param)) return false;
@@ -237,6 +238,8 @@ bool Onnx2TensorrtConverter::init(const std::unordered_map<std::string, std::str
     onnxp.precision = params_->at("precision");
     onnxp.allocator = params_->at("allocator");
     onnxp.force_layer_norm_pattern_fp32 = std::stoi(params_->at("force_layer_norm_pattern_fp32"));
+    onnxp.weight_budget_percentage = std::stoi(params_->at("weight_budget_percentage"));
+    IPIPE_ASSERT(onnxp.weight_budget_percentage >= 0 && onnxp.weight_budget_percentage <= 100);
     if (!params_->at("input_reorder").empty()) {
       onnxp.input_reorder = str2int(params_->at("input_reorder"), ',');
       IPIPE_ASSERT(onnxp.input_reorder.size() > 0);

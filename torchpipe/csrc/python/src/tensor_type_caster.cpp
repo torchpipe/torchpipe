@@ -18,7 +18,6 @@
 #include "any2object.hpp"
 #include "object2any.hpp"
 
-
 // #include "Backend.hpp"
 
 namespace ipipe {

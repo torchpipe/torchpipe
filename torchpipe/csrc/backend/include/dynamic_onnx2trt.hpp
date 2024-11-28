@@ -39,6 +39,7 @@ struct OnnxParams {
   std::string log_level;
   std::vector<int> input_reorder;
   int force_layer_norm_pattern_fp32;
+  int weight_budget_percentage;
 };
 
 std::shared_ptr<CudaEngineWithRuntime> onnx2trt(
@@ -47,7 +48,7 @@ std::shared_ptr<CudaEngineWithRuntime> onnx2trt(
     std::vector<std::vector<std::vector<int>>>&
         mins,  // multiple profiles - multiple inputs - multiDims
     std::vector<std::vector<std::vector<int>>>& maxs, std::string& engine_plan,
-    const OnnxParams& precision, const std::unordered_map<std::string, std::string>& int8_param,
+    OnnxParams& precision, const std::unordered_map<std::string, std::string>& int8_param,
     std::vector<float> means, std::vector<float> stds);
 
 bool initPlugins();

@@ -1,0 +1,132 @@
+#pragma once
+
+#include <cuda.h>
+
+namespace ipipe {
+class PhyBlock {
+ public:
+  PhyBlock(int device_id, size_t block_size);
+  ~PhyBlock();
+  bool allocate() {
+    CUmemAllocationProp prop = {};
+    prop.type = CU_MEM_ALLOCATION_TYPE_PINNED;
+    prop.location.type = CU_MEM_LOCATION_TYPE_DEVICE;
+    prop.location.id = device_id_;
+
+    auto status = cuMemCreate(&alloc_handle_, block_size, &prop, 0ULL);
+    return (CUDA_SUCCESS == status);
+  }
+
+  void map(char* virtual_ptr) {
+    assert(virtual_ptr_ == nullptr);
+    status = cuMemMap(reinterpret_cast<CUdeviceptr>(virtual_ptr), block_size_, 0ULL, alloc_handle_,
+                      0ULL);
+    IPIPE_ASSERT(CUDA_SUCCESS == status);
+    virtual_ptr_ = virtual_ptr;
+  }
+  void unmap(char* virtual_ptr) {
+    // todo : multiple map
+    if (virtual_ptr_ == nullptr) {
+      return;
+    }
+    status = cuMemUnmap(reinterpret_cast<CUdeviceptr>(virtual_ptr_), block_size_);
+    IPIPE_ASSERT(CUDA_SUCCESS == status);
+    virtual_ptr_ = nullptr;
+  }
+
+ private:
+  int device_id_;
+  size_t block_size_;
+  CUmemGenericAllocationHandle alloc_handle_;
+  void* virtual_ptr_{nullptr};
+};
+
+class PyhBlkPool {
+ public:
+  PyhBlkPool(int device_id, size_t block_size) : device_id_(device_id), block_size_(block_size) {
+    if (device_id_ == -1) {
+      IPIPE_ASSERT(CUDA_SUCCESS == cuCtxGetDevice(&device_id_));
+    }
+  }
+
+  ~PyhBlkPool();
+  size_t free_blocks() { return phy_blocks_.size(); }
+  bool add_phy_block() {
+    auto pyh = std::make_shared<PhyBlock>(device_id_, block_size_);
+    if (!pyh->allocate()) {
+      return false;
+    }
+    phy_blocks_.push(pyh);
+    return true;
+  }
+
+  std::unordered_set<std::shared_ptr<PhyBlock>> get_phy_blocks(size_t num_blocks) {
+    std::unordered_set<std::shared_ptr<PhyBlock>> blocks;
+    std::lock_guard<std::mutex> lock(blk_mtx_);
+    for (size_t i = 0; i < num_blocks; i++) {
+      // if (phy_blocks_.empty()) {
+      //   return blocks;
+      // }
+      blocks.insert(phy_blocks_.front());
+      used_phy_blocks_.insert(phy_blocks_.front());
+      phy_blocks_.pop();
+    }
+    return blocks;
+  }
+
+  void release_phy_blocks(const std::vector<std::shared_ptr<PhyBlock>>& blocks) {
+    std::lock_guard<std::mutex> lock(blk_mtx_);
+    for (const auto& blk : blocks) {
+      used_phy_blocks_.erase(blk);
+      phy_blocks_.push(blk);
+    }
+  }
+
+ private:
+  std::mutex blk_mtx_;
+  std::queue<std::shared_ptr<PhyBlock>> phy_blocks_;
+  std::unordered_set<std::shared_ptr<PhyBlock>> used_phy_blocks_;
+
+  int device_id_;
+  size_t block_size_;
+  // size_t num_blocks;
+}
+
+void* virtual_alloc(size_t len) {
+  CUdeviceptr virtual_ptr;
+  status = cuMemAddressReserve(&virtual_ptr, len, 0ULL, 0ULL, 0ULL);
+  if (status != CUDA_SUCCESS) {
+    return nullptr;
+  }
+  return (void*)virtual_ptr;
+}
+
+void virtual_free(void* ptr) {
+  CUdeviceptr virtual_ptr = (CUdeviceptr)ptr;
+  status = cuMemAddressFree(virtual_ptr, 0ULL);
+  IPIPE_ASSERT(CUDA_SUCCESS == status);
+}
+
+// bool map_virtual_to_pyh(char* virtual_ptr, PhyBlock* ptr_blk, size_t granularitySize) {
+//   CUcontext currentContext;
+//   CUresult status = cuCtxGetCurrent(&currentContext);
+//   ptr_blk->map(virtual_ptr);
+//   status =
+//       cuMemMap(reinterpret_cast<CUdeviceptr>(virtual_ptr), granularitySize, 0ULL, phy_handle,
+//       0ULL);
+//   if (status != CUDA_SUCCESS) {
+//     return false;
+//   }
+//   return true;
+// }
+
+size_t get_free_memory() {
+  size_t free_m, total;
+  ​cudaError_t re = cudaMemGetInfo(&free_m, &total);
+  if (re != cudaSuccess) {
+    return 0;
+  }
+  return free_m;
+}
+
+}  // namespace ipipe

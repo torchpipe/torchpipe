@@ -1,10 +1,10 @@
 "Interpreter::backend" = "Ring"
 
 'precision' = 'fp16'
-'precision_fp32' = 'softmax,pow'
+# 'precision_fp32' = 'softmax,pow'
 
+force_layer_norm_pattern_fp32 = 1
 max_workspace_size = 24000
-
 [input]
 backend = "S[GpuTensor,KeyA2KeyB,SyncTensor]"
 key_a = "data"
@@ -21,22 +21,25 @@ embed_tokens = "model_files/embed_tokens.pt"
 
 [batchful]
 # PluginCacher is used to cache parameters and input data for (tensorrt) plugin
-'backend' = 'S[ThreadLocalCacher[TensorrtTensor],ArgMaxTensor,SyncTensor]'
+'backend' = 'S[ThreadLocalCacher[FakeInstances[TensorrtTensor]],ArgMaxTensor,SyncTensor]'
 scheduler = "Batching"
 
 cal_request_size_method = "CalTorchBatchSize" # calc. request_size according to torch tensor size
-
-max = '1024'
-'model' = 'model_files/batchful.onnx'
-'model::cache' = 'model_files/batchful.trt'
-next = 'cache'
+fake_instance_num = 2 
+max = '4;1024' 
+min = '1;4' 
+'model' = 'model_files/batchful.onnx' 
+'model::cache' = 'model_files/batchful.trt' 
+next = 'cache' 
+# weight_budget_percentage = 50 
+batch_process = "LastBatchTensor"
 
 [cache]
-backend = "S[Append2OtherTensor,Result2Key[LongItemTensor],KeyA2KeyB,CheckOtherSeqLenTensor,SyncTensor]"
+backend = "S[Append2OtherTensor,Result2Key[LongItemTensor],KeyA2KeyB,RemoveOtherSeqLenTensor,SyncTensor]"
 key_a = 'input_tokens'
 key_b = 'input_tokens_result'
-max_new_tokens = 7
 max_seq_len = 4096
+max_tokens = 7
 next = 'check_eos'
 other = 'input_tokens'
 
@@ -55,7 +58,7 @@ compare_target = 2
 other = "input_tokens"
 
 [batchless_decode]
-backend = "S[AppendOtherTensor,Result2Key(key=tmpkey)[PopKVCacheTensor],AppendKeyTensor(key=tmpkey), TensorrtTensor,PushKVCacheTensor,SyncTensor]" #
+backend = "S[AppendOtherTensor,Result2Key(key=tmpkey)[PopKVCacheTensor],AppendTensor(key=tmpkey), TensorrtTensor,PushKVCacheTensor,SyncTensor]" #
 instance_num = 1 
 max = '1x1x4096,1x1x4096,1x1x4096,1x1x128,1x1x128,1x1x1x2048,1x32x2047x128,1x32x2047x128' 
 # q k v cos sin mask

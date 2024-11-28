@@ -1,10 +1,11 @@
 # Changelog
 
-## v0.6.6 (WIP)
-
+## v0.6.6 
+- enhance llama2 example
+- Add FakeInstances[x] backend (fake_instance_num settable)
 
 ## v0.6.5 (2024.10.25)
-- Add force_layer_norm_pattern_fp32 
+- Add force_layer_norm_pattern_fp32 (trt >= 10.5)
 - Implemented partial streaming openai interface.
 - Consolidate the code supporting TensorRT >= 8.5, 9, and 10.
 - TensorRT <= 8.4 is deprecated now

@@ -1,42 +1,50 @@
 "Interpreter::backend" = "Ring"
 
 'precision' = 'fp16'
-'precision_fp32' = 'softmax,pow'
-
+# 'precision_fp32' = 'softmax,pow'
+force_layer_norm_pattern_fp32 = 1
 max_workspace_size = 24000
-
+register_config = "kvcache:config/kvcache.toml"
 [input]
-backend = "S[GpuTensor,KeyA2KeyB,SyncTensor]"
+backend = "S[GpuTensor,KeyA2KeyB,PushAndErase,SyncTensor]"
 key_a = "data"
 key_b = "input_tokens"
+keys = "sampling_params"
 next = "embed_tokens"
 
 [embed_tokens]
-backend = "S[EmbedTokensTensor,Result2Other[GenerateCosSinMaskTensor],SyncTensor]" # ,Jump[batchful]] 
+backend = "S[EmbedTokensTensor,Result2Other[GenerateCosSinMaskTensor],SyncTensor,RequestTimeStamp(key=embed_finish)]" # ,Jump[batchful]] 
 # restart = "batchful" 
 next = "batchful"
-
 # torch.save(model.model.embed_tokens.weight.requires_grad_(False).data.cpu(), "embed_tokens.pt")
 embed_tokens = "model_files/embed_tokens.pt"
 
 [batchful]
+# RequestTimeStamp(key=batchful),
 # PluginCacher is used to cache parameters and input data for (tensorrt) plugin
-'backend' = 'S[ThreadLocalCacher[TensorrtTensor],ArgMaxTensor,SyncTensor]'
+'backend' = 'S[ThreadLocalCacher[FakeInstances[TensorrtTensor]],ArgMaxTensor,SyncTensor]'
 scheduler = "Batching"
 
 cal_request_size_method = "CalTorchBatchSize" # calc. request_size according to torch tensor size
 
-max = '1024'
-'model' = 'model_files/batchful.onnx'
-'model::cache' = 'model_files/batchful.trt'
-next = 'cache'
+fake_instance_num = 5
+instance_num = 1
+# max = '1024'
+max = '8;128;512;1024;2047' # 遵循vllm的benchmark配置，实际使用可分桶
+min = '1;9;129;513;1025' 
+'model' = 'model_files/batchful.onnx' 
+'model::cache' = '/workspace/batchful.trt' 
+next = 'cache' 
+only_keep_last_batch = 1 
+# weight_budget_percentage = 80
+contiguous_batching = 1
 
 [cache]
-backend = "S[Append2OtherTensor,Result2Key[LongItemTensor],KeyA2KeyB,CheckOtherSeqLenTensor,SyncTensor]"
+backend = "S[RequestTimeStamp(key=batchful),Append2OtherTensor,Result2Key[LongItemTensor],KeyA2KeyB,RemoveOtherSeqLenTensor,SyncTensor]"
+instance_num = 2
 key_a = 'input_tokens'
 key_b = 'input_tokens_result'
-max_new_tokens = 7
-max_seq_len = 4096
+max_seq_len = 2048
 next = 'check_eos'
 other = 'input_tokens'
 
@@ -50,7 +58,7 @@ min = '1x1x4096,1x1x4096,1x1x4096,1x1x128,1x1x128,1x1x1x1'
 'model::cache' = 'model_files/batchless_prefill.trt'
 
 [check_eos]
-backend = 'S[Identity,(IsOtherExistFilter)CompareLongKey[RemoveKVCache, Add[restart:embed_tokens,trt_plugin:batchless_decode]],ExistKey(key=restart)[Identity,RemoveKVCache]]'
+backend = 'S[Identity,(IsOtherExistFilter)CompareLongKey[RemoveStorage, Add[restart:embed_tokens,trt_plugin:batchless_decode]],ExistKey(key=restart)[Identity,RemoveStorage]]'
 compare_target = 2
 other = "input_tokens"
 
@@ -60,11 +68,14 @@ next = 'python_callback'
 backend = "S[PyIdentity[PyStream]]"
 
 [batchless_decode]
-backend = "S[AppendOtherTensor,Result2Key(key=tmpkey)[PopKVCacheTensor],AppendKeyTensor(key=tmpkey), TensorrtTensor,PushKVCacheTensor,SyncTensor]" #
-instance_num = 1 
+backend = "S[AppendOtherTensor,Result2Key(key=tmpkey)[PopKVCacheTensor],AppendTensor(key=tmpkey), TensorrtTensor,PushKVCacheTensor,SyncTensor]" #
+instance_num = 4 
 max = '1x1x4096,1x1x4096,1x1x4096,1x1x128,1x1x128,1x1x1x2048,1x32x2047x128,1x32x2047x128' 
 # q k v cos sin mask
 min = '1x1x4096,1x1x4096,1x1x4096,1x1x128,1x1x128,1x1x1x1,1x32x1x128,1x32x1x128'
+# max = '1x1x4096,1x1x4096,1x1x4096,1x1x128,1x1x128,1x1x1x2048,1x2047x32x128,1x2047x32x128'
+# # q k v cos sin mask
+# min = '1x1x4096,1x1x4096,1x1x4096,1x1x128,1x1x128,1x1x1x1,1x1x32x128,1x1x32x128'
 'model' = 'model_files/batchless_decode.onnx'
 'model::cache' = './model_files/batchless_decode.trt'
 

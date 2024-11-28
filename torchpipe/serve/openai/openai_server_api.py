@@ -128,6 +128,32 @@ def to_api_logprobs(
     )
 
 
+from torchpipe.libipipe import SamplingParams
+# SamplingParams = tp._C.SamplingParams
+def to_sampling_params(request: CompletionRequest) -> SamplingParams:
+    sp = SamplingParams()
+    sp.max_tokens = request.max_tokens
+    sp.n = request.n
+    sp.best_of = request.best_of
+    sp.echo = request.echo
+    sp.frequency_penalty = request.frequency_penalty
+    sp.presence_penalty = request.presence_penalty
+    sp.repetition_penalty = request.repetition_penalty
+    sp.temperature = request.temperature
+    sp.top_p = request.top_p
+    sp.top_k = request.top_k
+    if request.logprobs:
+        sp.logprobs = True
+        sp.top_logprobs = request.logprobs
+    sp.skip_special_tokens = request.skip_special_tokens
+    if isinstance(request.stop, str):
+        sp.stop = [request.stop]
+    else:
+        sp.stop = request.stop
+    sp.ignore_eos = request.ignore_eos
+    sp.stop_token_ids = request.stop_token_ids
+    return sp
+
 async def generate_completion_stream_response(
     request: CompletionRequest, engine: AsyncEngine
 ) -> SafeStreamingResponse:
@@ -138,13 +164,14 @@ async def generate_completion_stream_response(
     chunk_object_type = "text_completion"
     model = request.model
 
-    # sampling_params = to_sampling_params(request)
+    sampling_params = to_sampling_params(request)
     # priority = to_priority(request.priority)
     output_stream = await engine.schedule_async(
         request.prompt,
-        sampling_params=None,
+        sampling_params=sampling_params,
         priority=None,
         stream=request.stream,
+        request= request,
     )
 
     include_usage = request.stream_options and request.stream_options.include_usage
@@ -178,27 +205,7 @@ async def generate_completion_stream_response(
                     if include_usage:
                         response.usage = None
                     yield f"data: {jsonify_model(response)}\n\n"
-                    # yield f"data: {response.model_dump_json(exclude_unset=True)}"
 
-                # send seperate chunk with finish reason
-                # if seq_output.finish_reason:
-                #     response = CompletionStreamResponse(
-                #         id=request_id,
-                #         object=chunk_object_type,
-                #         created=created_time,
-                #         model=model,
-                #         choices=[
-                #             CompletionResponseStreamChoice(
-                #                 index=seq_output.index,
-                #                 text="",
-                #                 logprobs=None,
-                #                 finish_reason=seq_output.finish_reason,
-                #             )
-                #         ],
-                #     )
-                #     if include_usage:
-                #         response.usage = None
-                #     yield f"data: {jsonify_model(response)}\n\n"
             # record last usage info
             if output.usage:
                 usage = output.usage
@@ -254,15 +261,7 @@ def main():
     else:
         # model is model name
         model_id = args.model
-    models = [model_id, 'string', 'facebook/opt-125m']
-    
-#     {
-# "model": "facebook/opt-125m",
-# "prompt": "San Francisco is a",
-# "max_tokens": 7,
-# "temperature": 0,
-# "stream": true
-# }
+    models = [model_id, 'string', '']
 
     # initialize the LLM engine
     llm_engine = AsyncEngine(
@@ -271,7 +270,7 @@ def main():
 
     try:
         llm_engine.start()
-        print("Server start.")
+        print("Starting uvicorn...")
         uvicorn.run(
             app,
             host=args.host,

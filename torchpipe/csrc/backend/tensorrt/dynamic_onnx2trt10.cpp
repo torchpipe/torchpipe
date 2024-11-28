@@ -231,10 +231,10 @@ std::shared_ptr<CudaEngineWithRuntime> loadCudaBackend(std::string const& trtMod
       return nullptr;
     }
   } else if (model_type == ".trt") {
-    std::ifstream file(trtModelPath, std::ios::binary);
+    std::ifstream file(trtModelPath, std::ios::binary | std::ios::ate);
     if (file.good()) {
       size_t size{0};
-      file.seekg(0, file.end);
+      // file.seekg(0, file.end);
       size = file.tellg();
       file.seekg(0, file.beg);
       trtModelStream.resize(size);
@@ -324,7 +324,7 @@ std::shared_ptr<CudaEngineWithRuntime> onnx2trt(
     std::vector<std::vector<std::vector<int>>>&
         mins,  // multiple profiles - multiple inputs - multiDims
     std::vector<std::vector<std::vector<int>>>& maxs, std::string& engine_plan,
-    const OnnxParams& precision, const std::unordered_map<std::string, std::string>& config_param,
+    OnnxParams& precision, const std::unordered_map<std::string, std::string>& config_param,
     std::vector<float> _mean, std::vector<float> _std) {
   if (!endswith(model_type, ".buffer") && !Is_File_Exist(onnxModelPath)) {
     SPDLOG_ERROR(onnxModelPath + " not exists.\n\n");
@@ -335,9 +335,16 @@ std::shared_ptr<CudaEngineWithRuntime> onnx2trt(
   const static std::unordered_set<std::string> int8_enable{"int8", "best"};
   const static std::unordered_set<std::string> fp16_enable{"fp16", "int8", "best"};
 
-  constexpr auto explicitBatch =
+  auto explicitBatch =
       1U << static_cast<uint32_t>(nvinfer1::NetworkDefinitionCreationFlag::kEXPLICIT_BATCH);
   unique_ptr_destroy<nvinfer1::IBuilder> builder{nvinfer1::createInferBuilder(gLogger_inplace)};
+
+#if TRT_WEIGHT_STREAMING
+  if (precision.weight_budget_percentage != 0) {
+    explicitBatch |=
+        1U << static_cast<uint32_t>(nvinfer1::NetworkDefinitionCreationFlag::kSTRONGLY_TYPED);
+  }
+#endif
 
 #ifdef USE_TORCH_ALLOCATOR
   const char* value = std::getenv("PYTORCH_NO_CUDA_MEMORY_CACHING");
@@ -356,6 +363,12 @@ std::shared_ptr<CudaEngineWithRuntime> onnx2trt(
       nvonnxparser::createParser(*network, gLogger_inplace)};
   unique_ptr_destroy<nvinfer1::IBuilderConfig> config{builder->createBuilderConfig()};
 
+#if TRT_WEIGHT_STREAMING
+  if (precision.weight_budget_percentage != 0) {
+    config->setFlag(nvinfer1::BuilderFlag::kWEIGHT_STREAMING);
+    SPDLOG_INFO("nvinfer1::IBuilder: setFlag kWEIGHT_STREAMING");
+  }
+#endif
 #if ((NV_TENSORRT_MAJOR >= 8 && NV_TENSORRT_MINOR >= 4) || (NV_TENSORRT_MAJOR >= 9))
   auto hardware_concurrency = std::thread::hardware_concurrency();
   if (hardware_concurrency == 0) hardware_concurrency = 4;
@@ -414,8 +427,14 @@ std::shared_ptr<CudaEngineWithRuntime> onnx2trt(
     // if (precision.max_workspace_size != 4096)
     SPDLOG_INFO("max workspace size setted to {}M", precision.max_workspace_size / 1024.0 / 1024.0);
     if ((fp16_enable.count(precision.precision)) && builder->platformHasFastFp16()) {
-      SPDLOG_INFO("platformHasFastFp16. FP16 will be used");
-      config->setFlag(nvinfer1::BuilderFlag::kFP16);
+      if (precision.weight_budget_percentage == 0) {
+        SPDLOG_INFO("platformHasFastFp16. FP16 will be used");
+        config->setFlag(nvinfer1::BuilderFlag::kFP16);
+      } else {
+        SPDLOG_WARN(
+            "skip setting FP16 as weight streaming is used. "
+            "You may need to let the model's weight stored in fp16 by default.");
+      }
       use_only_fp32 = false;
     }
 
@@ -436,6 +455,18 @@ std::shared_ptr<CudaEngineWithRuntime> onnx2trt(
                             nvinfer1::DataType::kFLOAT, true);
     modify_layers_precision(precision.precision_output_fp16, network.get(),
                             nvinfer1::DataType::kHALF, true);
+
+    if (precision.weight_budget_percentage != 0) {
+      if (precision.force_layer_norm_pattern_fp32 != 0) {
+        precision.force_layer_norm_pattern_fp32 = 0;
+        SPDLOG_WARN(
+            "force_layer_norm_pattern_fp32 must be false when weight_budget_percentage != 0. "
+            "Automatically set to 0 now.");
+      }
+      // IPIPE_ASSERT(
+      //     precision.force_layer_norm_pattern_fp32 == 0,
+      //     "force_layer_norm_pattern_fp32 must be false when weight_budget_percentage > 0");
+    }
     if ((!use_only_fp32) && precision.force_layer_norm_pattern_fp32) parse_ln(network.get());
 #if (NV_TENSORRT_MAJOR == 8 && NV_TENSORRT_MINOR >= 5)
     config->setPreviewFeature(nvinfer1::PreviewFeature::kFASTER_DYNAMIC_SHAPES_0805, true);
@@ -551,9 +582,10 @@ std::shared_ptr<CudaEngineWithRuntime> onnx2trt(
       // modified from
       // https://github.com/wang-xinyu/tensorrtx/blob/d9bdd7e59f19fe1fcc33de64e61ab54345f3e31c/ibnnet/layers.cpp
 
-      nvinfer1::ITensor* pre_input = MeanStd(
-          network.get(), input, _mean.empty() ? nullptr : _mean.data(),
-          _std.empty() ? nullptr : _std.data(), new_layers, int8_enable.count(precision.precision));
+      nvinfer1::ITensor* pre_input =
+          MeanStd(network.get(), input, _mean.empty() ? nullptr : _mean.data(),
+                  _std.empty() ? nullptr : _std.data(), new_layers,
+                  (int8_enable.count(precision.precision)));
 
       // pre_input->setPrecision(nvinfer1::DataType:: kFLOAT);
 
@@ -681,7 +713,7 @@ std::shared_ptr<CudaEngineWithRuntime> onnx2trt(
 
     unique_ptr_destroy<nvinfer1::IHostMemory> p_engine_plan(
         builder->buildSerializedNetwork(*network, *config));
-
+    IPIPE_ASSERT(p_engine_plan->size() > 0);
     auto time_pass = time_passed(time_now);
     SPDLOG_INFO("finish building engine within {} seconds", int(time_pass / 1000.0));
 

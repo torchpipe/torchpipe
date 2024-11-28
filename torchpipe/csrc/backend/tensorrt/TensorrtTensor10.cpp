@@ -43,7 +43,6 @@
 #include "MultipleConcatPreprocess.hpp"
 // https://github.com/NVIDIA/Torch-TensorRT/blob/3a98a8b198a071e622c43283caea7416fe8a8a1a/core/runtime/register_trt_op.cpp
 
-// #define USE_OUT_MEM
 namespace ipipe {
 // record stream;
 // https://dev-discuss.pytorch.org/t/fsdp-cudacachingallocator-an-outsider-newb-perspective/1486/5
@@ -70,7 +69,8 @@ bool TensorrtTensor::init(const std::unordered_map<std::string, std::string>& co
                                                 {"force_range", ""},
                                                 {"batch_process", ""},
                                                 {"input_reorder", ""},
-                                                {"output_reorder", ""}},
+                                                {"output_reorder", ""},
+                                                {"weight_budget_percentage", "0"}},
                                                {}, {}, {}));
 
   if (!params_->init(config_param)) return false;
@@ -111,6 +111,8 @@ bool TensorrtTensor::init(const std::unordered_map<std::string, std::string>& co
     _independent_thread_index = 0;
   }
 
+  weight_budget_percentage_ = std::stoi(params_->at("weight_budget_percentage"));
+  IPIPE_ASSERT(weight_budget_percentage_ >= 0);
   independent_thread_index_ = _independent_thread_index;
   int instance_num = std::stoi(params_->at("instance_num"));
   if (instance_num <= _independent_thread_index) {
@@ -118,6 +120,26 @@ bool TensorrtTensor::init(const std::unordered_map<std::string, std::string>& co
                  " <= " + std::to_string(_independent_thread_index));
     return false;
   }
+
+#if TRT_WEIGHT_STREAMING
+  const auto streamable_weights_size = engine_->engine->getStreamableWeightsSize();
+  if (streamable_weights_size == 0 && weight_budget_percentage_ != 0) {
+    SPDLOG_WARN("streamable weights size == 0, but weight_budget_percentage = {}",
+                weight_budget_percentage_);
+  }
+  if (weight_budget_percentage_ != 0 && _independent_thread_index == 0 &&
+      streamable_weights_size > 0) {
+    size_t wsBudget = weight_budget_percentage_ / 100.0 * streamable_weights_size;
+    SPDLOG_INFO("Using WeightStreaming, Budget: {}% = {} MB", weight_budget_percentage_,
+                wsBudget / 1024.0 / 1024.0);
+#if (NV_TENSORRT_MAJOR == 10 && NV_TENSORRT_MINOR <= 4)
+
+    IPIPE_ASSERT(engine_->engine->setWeightStreamingBudget(wsBudget));
+#else
+    IPIPE_ASSERT(engine_->engine->setWeightStreamingBudgetV2(wsBudget));
+#endif
+  }
+#endif
 
   if (engine_->engine->getNbOptimizationProfiles() < instance_num &&
       _independent_thread_index == 0) {
@@ -134,8 +156,8 @@ bool TensorrtTensor::init(const std::unordered_map<std::string, std::string>& co
   /********post*****/
   std::string batch_post = params_->at("postprocessor");
 
-  postprocessor_ = std::unique_ptr<PostProcessor<torch::Tensor>>(
-      IPIPE_CREATE(PostProcessor<torch::Tensor>, batch_post));
+  postprocessor_ =
+      std::unique_ptr<TorchPostProcessor>(IPIPE_CREATE(TorchPostProcessor, batch_post));
   try {
     if (!postprocessor_ || !postprocessor_->init(config_param, dict_config)) {
       SPDLOG_ERROR("error postprocessor: " + batch_post);
@@ -220,16 +242,19 @@ void TensorrtTensor::parse_context(dict dict_config, int _independent_thread_ind
     // config.erase("_engine_raw");
   }
 
-#ifdef USE_OUT_MEM
-  context_ = unique_ptr_destroy<nvinfer1::IExecutionContext>(
-      engine_->engine->createExecutionContextWithoutDeviceMemory());
-  auto mem = torch_allocate(engine_->engine->getDeviceMemorySize());
-  context_->setDeviceMemory(mem.data_ptr());
+#if TRT_USER_MANAGED_MEM
+  // USE_OUT_MEM
+  context_ =
+      unique_ptr_destroy<nvinfer1::IExecutionContext>(engine_->engine->createExecutionContext(
+          nvinfer1::ExecutionContextAllocationStrategy::kUSER_MANAGED));
+// auto mem = torch_allocate(engine_->engine->getDeviceMemorySize());
+//   context_->setDeviceMemory(mem.data_ptr());
 #else
   context_ =
       unique_ptr_destroy<nvinfer1::IExecutionContext>(engine_->engine->createExecutionContext());
-  context_->setOptimizationProfileAsync(profile_index_, c10::cuda::getCurrentCUDAStream());
 #endif
+
+  context_->setOptimizationProfileAsync(profile_index_, c10::cuda::getCurrentCUDAStream());
 
   // const int n_profiles = engine_->engine->getNbOptimizationProfiles();
   // const int n_inputsOutputs = engine_->engine->getNbBindings() / n_profiles;
@@ -351,7 +376,7 @@ void TensorrtTensor::parse_context(dict dict_config, int _independent_thread_ind
   for (int j = 0; j < input_reorder_.size(); j++) {
     // tensorrt is inverted order
     const auto name = engine_->engine->getIOTensorName(input_reorder_[j]);
-    // #ifdef NV_TENSORRT_MAJOR> 8
+    // #if NV_TENSORRT_MAJOR> 8
     nvinfer1::Dims max_dims =
         engine_->engine->getProfileShape(name, profile_index_, nvinfer1::OptProfileSelector::kMAX);
     // #else
@@ -466,7 +491,11 @@ torch::Tensor guard_contiguous_type_and_device(torch::Tensor input_data,
   return input_data;
 }
 void TensorrtTensor::forward(const std::vector<dict>& raw_inputs) {
-  assert(raw_inputs.size() <= max() && raw_inputs.size() >= min());
+  const auto size = get_request_size(raw_inputs);
+  if (size > max() || size < min()) {
+    SPDLOG_ERROR("size {} > max(){} || size < min(): {} ", size, max(), min());
+    throw std::runtime_error("size > max() || size < min()");
+  }
   if (raw_inputs.empty()) return;
 
   auto node_name = dict_get<std::string>(raw_inputs[0], "node_name", true);
@@ -576,7 +605,10 @@ void TensorrtTensor::forward(const std::vector<dict>& raw_inputs) {
       int64_t need_bytes = std::accumulate(infer_dims.d, infer_dims.d + infer_dims.nbDims, 1,
                                            std::multiplies<int64_t>()) *
                            torch::elementSize(target_type);
-      IPIPE_ASSERT(need_bytes == total_bytes);
+      if (need_bytes != total_bytes) {
+        SPDLOG_ERROR("need_bytes({}) != total_bytes({})", need_bytes, total_bytes);
+        IPIPE_ASSERT(need_bytes == total_bytes);
+      }
 
       outputs_.emplace_back(predefined_outputs[j]);
     } else {
@@ -589,12 +621,27 @@ void TensorrtTensor::forward(const std::vector<dict>& raw_inputs) {
     IPIPE_ASSERT(status);
   }
 
-#ifdef USE_OUT_MEM
-  auto mem = torch_allocate(engine_->engine->getDeviceMemorySize());
+#if TRT_USER_MANAGED_MEM
+#if NV_TENSORRT_MAJOR == 10 && NV_TENSORRT_MINOR <= 4
+  const size_t mem_size = engine_->engine->getDeviceMemorySizeForProfile(profile_index_);
+#else
+  const size_t mem_size = engine_->engine->getDeviceMemorySizeForProfileV2(profile_index_);
+#endif
+  const double mem_size_mb = static_cast<double>(mem_size) / (1024 * 1024);
+  SPDLOG_DEBUG("mem_size: {} MB", mem_size_mb);
+  torch::Tensor mem = torch_allocate(mem_size);
+#if NV_TENSORRT_MAJOR == 10 && NV_TENSORRT_MINOR <= 4
   context_->setDeviceMemory(mem.data_ptr());
+#else
+  context_->setDeviceMemoryV2(mem.data_ptr(), mem_size);
+#endif
 #endif
 
   IPIPE_ASSERT(context_->enqueueV3(c10::cuda::getCurrentCUDAStream()));
+
+#if TRT_USER_MANAGED_MEM
+  // mem.record_stream(c10::cuda::getCurrentCUDAStream());  // 似乎不需要
+#endif
 
   if (batch_process_) {
     dict batched = std::make_shared<std::unordered_map<std::string, any>>();

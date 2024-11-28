@@ -10,6 +10,7 @@
 #include <shared_mutex>
 #include "any.hpp"
 #include <condition_variable>
+#include <set>
 // #include "ipipe_common.hpp"
 namespace ipipe {
 
@@ -19,10 +20,10 @@ class ThreadSafeDict {
   std::shared_mutex mutex_;
 
  public:
-  const std::optional<ipipe::any> get(const std::string& key) {
+  const ipipe::any& get(const std::string& key) {
     std::shared_lock<std::shared_mutex> lock(mutex_);
     if (map_.find(key) == map_.end()) {
-      return std::nullopt;
+      throw std::out_of_range("ThreadSafeDict: Key not found: " + key);
     }
     return map_[key];
   }
@@ -37,6 +38,11 @@ class ThreadSafeDict {
     map_[key] = value;
   }
 
+  ipipe::any& get_unconst(const std::string& key) {
+    std::unique_lock<std::shared_mutex> lock(mutex_);
+    return map_[key];
+  }
+
   void erase(const std::string& key) {
     std::unique_lock<std::shared_mutex> lock(mutex_);
     map_.erase(key);
@@ -45,8 +51,10 @@ class ThreadSafeDict {
 
 class ThreadSafeKVStorage {
  public:
+  enum struct POOL { REQUEST_ID, USER_DEFINED, SCHEDULER };
+
   // 获取单例实例
-  static ThreadSafeKVStorage& getInstance();
+  static ThreadSafeKVStorage& getInstance(POOL pool = POOL::REQUEST_ID);
 
   // 删除拷贝构造函数和赋值操作符，防止复制单例对象
   ThreadSafeKVStorage(const ThreadSafeKVStorage&) = delete;
@@ -62,6 +70,11 @@ class ThreadSafeKVStorage {
   }
 
   ThreadSafeDict& get_or_insert(const std::string& path);
+  ThreadSafeDict& insert(const std::string& path);
+
+  void add_remove_callback(std::function<void(const std::string&)> callback) {
+    remove_callback_ = callback;
+  }
 
   // 读取数据
   std::optional<ipipe::any> get(const std::string& path, const std::string& key);
@@ -69,17 +82,27 @@ class ThreadSafeKVStorage {
   ipipe::any wait(const std::string& path, const std::string& key);
 
   // 写入数据
-  void set_and_notify(const std::string& path, const std::string& key, ipipe::any data);
+  void set(const std::string& path, const std::string& key, ipipe::any data);
 
   template <typename T>
-  void set_and_notify(const std::string& path, const std::string& key, T data) {
-    set_and_notify(path, key, ipipe::any(data));
+  void set(const std::string& path, const std::string& key, T data) {
+    set(path, key, ipipe::any(data));
   }
 
+  // bool wait_all_exist_for(const std::set<std::string>& keys, int time_out);
+
+  std::set<std::string> keys() const {
+    std::shared_lock<std::shared_mutex> lock(mutex_);
+    std::set<std::string> keys;
+    for (const auto& item : disk_) {
+      keys.insert(item.first);
+    }
+    return keys;
+  }
   // 清空数据
   void clear();
 
-  void erase(const std::string& path);
+  void remove(const std::string& path);
 
  private:
   ThreadSafeKVStorage() = default;
@@ -88,6 +111,14 @@ class ThreadSafeKVStorage {
   std::unordered_map<std::string, std::shared_ptr<ThreadSafeDict>> disk_;
   mutable std::shared_mutex mutex_;
   std::condition_variable_any cv_;
+
+  static std::mutex instance_mutex_;  // 用于保护实例访问的互斥锁
+
+  static std::unordered_map<POOL, std::unique_ptr<ThreadSafeKVStorage>>
+      instances_;  // 存储不同池类型的实例
+
+  static std::unique_ptr<ThreadSafeKVStorage> createInstance();
+  std::function<void(const std::string&)> remove_callback_;
 };
 
 }  // namespace ipipe

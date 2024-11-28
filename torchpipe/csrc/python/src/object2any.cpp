@@ -26,6 +26,7 @@
 #include "event.hpp"
 #include "tensor_type_caster.hpp"
 
+#include "sampling_params.h"
 #ifdef WITH_OPENCV
 #include "opencv2/core.hpp"
 #include "cvnp/cvnp.h"
@@ -121,6 +122,7 @@ any LocalStrMap_cast(py::handle second) {
         "array is not convertable to c++. You may use torch.from_numpy(...) to prepare data. ");
   }
   IPIPE_THROW("It is not able to convert " + std::string(py::str(second)) + " from python to c++.");
+  return any();
 }
 
 any set_cast(py::handle second) {
@@ -184,6 +186,8 @@ any object2any(pybind11::handle data) {
     IPIPE_THROW(
         "array is not convertable to c++. You may use torch.from_numpy(...) to prepare data. ");
 #endif
+  } else if (py::isinstance<llm::SamplingParams>(data)) {
+    return py::cast<llm::SamplingParams>(data);
   }
   IPIPE_THROW("It is not able to convert " + std::string(py::str(py::type::of(data))) +
               " from python to c++.");

@@ -319,7 +319,7 @@ std::shared_ptr<CudaEngineWithRuntime> onnx2trt(
     std::vector<std::vector<std::vector<int>>>&
         mins,  // multiple profiles - multiple inputs - multiDims
     std::vector<std::vector<std::vector<int>>>& maxs, std::string& engine_plan,
-    const OnnxParams& precision, const std::unordered_map<std::string, std::string>& config_param,
+    OnnxParams& precision, const std::unordered_map<std::string, std::string>& config_param,
     std::vector<float> _mean, std::vector<float> _std) {
   if (!endswith(model_type, ".buffer") && !Is_File_Exist(onnxModelPath)) {
     SPDLOG_ERROR(onnxModelPath + " not exists.\n\n");

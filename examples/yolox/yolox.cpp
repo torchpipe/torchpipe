@@ -64,7 +64,7 @@ static inline cv_rect<T> operator&(const cv_rect<T>& a, const cv_rect<T>& b) {
 
 // stuff we know about the network and the input/output blobs
 template <int NMS_THRESH = 45, int BBOX_CONF_THRESH = 30>
-class BatchingPostProcYolox : public PostProcessor<torch::Tensor> {
+class BatchingPostProcYolox : public TorchPostProcessor {
  public:
   virtual void forward(std::vector<torch::Tensor> net_outputs, std::vector<dict> input,
                        const std::vector<torch::Tensor>& net_inputs) override {
@@ -362,12 +362,10 @@ class BatchingPostProcYolox_custom : public BatchingPostProcYolox<20, 40> {
 };
 
 using BatchingPostProcYolox_default = BatchingPostProcYolox<>;
-IPIPE_REGISTER(PostProcessor<torch::Tensor>, BatchingPostProcYolox_default,
-               "BatchingPostProcYolox");
+IPIPE_REGISTER(TorchPostProcessor, BatchingPostProcYolox_default, "BatchingPostProcYolox");
 
 using BatchingPostProcYolox_45_30 = BatchingPostProcYolox<45, 30>;
-IPIPE_REGISTER(PostProcessor<torch::Tensor>, BatchingPostProcYolox_45_30,
-               "BatchingPostProcYolox_45_30");
+IPIPE_REGISTER(TorchPostProcessor, BatchingPostProcYolox_45_30, "BatchingPostProcYolox_45_30");
 
 ///   v2
 /// https://github.com/shouxieai/tensorRT_Pro/blob/2c5db6a987be9ab92abdc78db3ce4305053364f0/src/application/app_yolo/yolo_decode.cu

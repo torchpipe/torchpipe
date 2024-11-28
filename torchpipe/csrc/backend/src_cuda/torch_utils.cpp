@@ -38,6 +38,15 @@ void save(std::string save_name, torch::Tensor input) {
   fout.close();
 }
 
+void copy2ptr(torch::Tensor input, char* ptr) {
+  IPIPE_ASSERT(input.is_contiguous(), "copy2ptr: input tensor must be contiguous");
+  cudaStream_t stream = c10::cuda::getCurrentCUDAStream();
+  size_t size = input.numel() * input.element_size();
+  IPIPE_ASSERT(
+      cudaMemcpyAsync(ptr, input.data_ptr(), size, cudaMemcpyDeviceToDevice, stream) == cudaSuccess,
+      "copy2ptr: cudaMemcpyAsync failed");
+}
+
 torch::Tensor load_tensor(std::string save_name) {
   std::ifstream file(save_name.c_str());
   if (!file.good()) {
@@ -176,7 +185,7 @@ class TestRun {
   //     std::cout << "before cudaMemcpyAsync data_= " << data_ << " src[99] "
   //               << src[99] << std::endl;
   //     {
-  //       time_guard z("cudaMemcpyAsync");
+  //       TimeGuard z("cudaMemcpyAsync");
   //       // cudaMemcpyAsync(device_data, src, 1000000*sizeof(int),
   //       // cudaMemcpyHostToDevice, stream);
   //       cudaMemcpy(
@@ -185,7 +194,7 @@ class TestRun {
   //     if (true) {
   //       delete src;
   //       {
-  //         time_guard z("synchronize");
+  //         TimeGuard z("synchronize");
   //         stream.synchronize(); // todo 此处 d
   //       }
 

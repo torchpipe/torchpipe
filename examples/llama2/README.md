@@ -1,4 +1,4 @@
-# Non-Streaming Inference with Llama2
+# Streaming Inference with Llama2 (WIP)
 
 > WARNING
 This project is still in the experimental stage. Do not use it in production environments. 
@@ -12,16 +12,21 @@ Traditional dynamic batching can be applied the batchful part. We isolate the ba
 The computation for the batchless part could be implemented as a standalone CUDA kernel. However, for simplicity, we have chosen to trace and implement it using TensorRT. TensorRT may internally optimize computations by matching flash attention patterns. The verbose information from TensorRT indicates that it has identified and reassigned Myelin backends for Self-Attention nodes (i.e., /MatMul_1, /Softmax, /MatMul).
 </details>
 
+- Limitations
+    - Temporary inability to handle ultra-high concurrency scenarios in the KV cache management, awaiting implementation of vattention-like management.
 ## Prepare llama2 models
 > Only test on transformers=4.44.2
     
 ```bash
     pip install transformers==4.44.2 fire
+    pip install --upgrade torch==2.4.0 --index-url https://download.pytorch.org/whl/cu118
     
 
     export NUM_LAYER=32 # set to 2 if using 2-layer model for debug on 12GB-GPU.
+    export MODEL=meta-llama/Llama-2-7b-chat-hf # or local path to llama2 model
+
     # inference
-    python export_llama2.py --model meta-llama/Llama-2-7b-chat-hf --input "San Francisco is a" --test --num_layers $NUM_LAYER 
+    python export_llama2_one_kv.py --model meta-llama/Llama-2-7b-chat-hf --input "San Francisco is a" --test --num_layers $NUM_LAYER  --device cuda
     #NUM_LAYER = 2: San Francisco is a totalitéaletoreignersbyMSран
     #NUM_LAYER = 32:  San Francisco is a city in Northern California that is known
 ```
@@ -31,36 +36,158 @@ The computation for the batchless part could be implemented as a standalone CUDA
 
 ```bash
 # batchful part
-    python export_llama2.py --model meta-llama/Llama-2-7b-chat-hf --output_dir model_files/ --export batchful --num_layers $NUM_LAYER --device cuda
+    python export_llama2.py --model $MODEL --output_dir model_files/ --export batchful --num_layers $NUM_LAYER --device cuda
     ## you can use cpu for export, but it will be slow.
 
 # batchless part
-    python export_llama2.py --model meta-llama/Llama-2-7b-chat-hf --output_dir model_files/ --export prefill_batchless  
+    python export_llama2.py --model $MODEL --output_dir model_files/ --export prefill_batchless  
 
-    python export_llama2.py --model meta-llama/Llama-2-7b-chat-hf --output_dir model_files/ --export decode_batchless  
+    python export_llama2.py --model $MODEL --output_dir model_files/ --export decode_batchless  
+
 
 # export embed_tokens.pt
-    python export_llama2.py --model meta-llama/Llama-2-7b-chat-hf --output_dir model_files/ --export embed_tokens
+    python export_llama2_one_kv.py --model $MODEL --output_dir model_files/ --export embed_tokens
 
 # copy tokenizer from cached huggingface model
-    python export_llama2.py --model meta-llama/Llama-2-7b-chat-hf --output_dir model_files/ --export tokenizer
+    python export_llama2_one_kv.py --model $MODEL --output_dir model_files/ --export tokenizer
 
 ```
 
-## run inference
-```bash
-# tensorrt engine will be automatically generated and cached. Please make sure there are enough GPU memory, or you can generate the engines multiple times.
-    python run_llama2.py --model model_files/ --input "San Francisco is a" 
-    #NUM_LAYER = 2:  San Francisco is a totalitéaletoreignersbyMSран
-    #NUM_LAYER = 32:  San Francisco is a city in Northern California that is known
-```
 
 
 
 # Streaming Inference with Llama2
-WIP
+ 
+```
+
+ 
+
+python run_llama2_streaming.py 
+
+python chat_client.py --prompt="San Francisco is a" --max_tokens 7
+
+python chat_client.py --prompt="Do you know the book Traction by Gino Wickman? generate anwser >= 2000 wordsDo you know the book Traction by Gino Wickman? generate anwser >= 2000 wordsDo you know the book Traction by Gino Wickman? generate anwser >= 2000 wordsDo you know the book Traction by Gino Wickman? generate anwser >= 2000 wordsDo you know the book Traction by Gino Wickman? generate anwser >= 2000 wordsDo you know the book Traction by Gino Wickman? generate anwser >= 2000 wordsDo you know the book Traction by Gino Wickman? generate anwser >= 2000 wordsDo you know the book Traction by Gino Wickman? generate anwser >= 2000 wordsDo you know the book Traction by Gino Wickman? generate anwser >= 2000 wordsDo you know the book Traction by Gino Wickman? generate anwser >= 2000 wordsDo you know the book Traction by Gino Wickman? generate anwser >= 2000 words" --max_tokens 2048 
 
 
+python chat_client.py --prompt="Do you know the book Traction by Gino Wickman?" --max_tokens 132  
+
+
+ python3 benchmark_serving.py --backend vllm  --model /workspace/Llama-2-7b-chat-hf/         --dataset-name sharegpt --dataset-path ../ShareGPT_V3_unfiltered_cleaned_split.json         --num-prompts 50 --port 8080 --save-result --result-dir results/ --result-filename vllm_llama7B_tp1_qps_2.json --request-rate 2   
 ```
-BACKEND_ENGINE_PATH=./ python run_llama2_streaming.py 
+
 ```
+============ Serving Benchmark Result ============
+Successful requests:                     50        
+Benchmark duration (s):                  52.67     
+Total input tokens:                      14056     
+Total generated tokens:                  10508     
+Request throughput (req/s):              0.95      
+Input token throughput (tok/s):          266.86    
+Output token throughput (tok/s):         199.50    
+---------------Time to First Token----------------
+Mean TTFT (ms):                          121.19    
+Median TTFT (ms):                        94.22     
+P99 TTFT (ms):                           289.86    
+-----Time per Output Token (excl. 1st token)------
+Mean TPOT (ms):                          48.93     
+Median TPOT (ms):                        48.89     
+P99 TPOT (ms):                           84.22     
+---------------Inter-token Latency----------------
+Mean ITL (ms):                           54.84     
+Median ITL (ms):                         52.61     
+P99 ITL (ms):                            206.89    
+==================================================
+```
+
+
+
+# Benchmark
+
+
+
+### vllm results(qps=2, A10)
+
+```bash
+python3 -m vllm.entrypoints.openai.api_server -tp 1 -pp 1 --gpu-memory-utilization 0.95         --model ../Llama-2-7b-chat-hf/ --port 8000 --disable-log-stats --disable-log-requests 
+
+ python3 benchmark_serving.py --backend vllm  --model ../Llama-2-7b-chat-hf/         --dataset-name sharegpt --dataset-path ../ShareGPT_V3_unfiltered_cleaned_split.json         --num-prompts 500 --port 8000 --save-result --result-dir results/ --result-filename vllm_llama7B_tp1_qps_2.json --request-rate 2   
+```
+
+
+```bash
+Traffic request rate: 2.0
+
+qps=2============ Serving Benchmark Result ============
+Successful requests:                     50        
+Benchmark duration (s):                  47.79     
+Total input tokens:                      14056     
+Total generated tokens:                  9480      
+Request throughput (req/s):              1.05      
+Input token throughput (tok/s):          294.13    
+Output token throughput (tok/s):         198.37    
+---------------Time to First Token----------------
+Mean TTFT (ms):                          107.79    
+Median TTFT (ms):                        68.15     
+P99 TTFT (ms):                           385.09    
+-----Time per Output Token (excl. 1st token)------
+Mean TPOT (ms):                          44.80     
+Median TPOT (ms):                        43.83     
+P99 TPOT (ms):                           74.82     
+---------------Inter-token Latency----------------
+Mean ITL (ms):                           44.27     
+Median ITL (ms):                         40.24     
+P99 ITL (ms):                            206.77    
+==================================================
+
+
+100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 500/500 [04:38<00:00,  1.80it/s]
+============ Serving Benchmark Result ============
+Successful requests:                     500       
+Benchmark duration (s):                  278.41    
+Total input tokens:                      117316    
+Total generated tokens:                  105926    
+Request throughput (req/s):              1.80      
+Input token throughput (tok/s):          421.38    
+Output token throughput (tok/s):         380.47    
+---------------Time to First Token----------------
+Mean TTFT (ms):                          89.52     
+Median TTFT (ms):                        68.46     
+P99 TTFT (ms):                           369.73    
+-----Time per Output Token (excl. 1st token)------
+Mean TPOT (ms):                          52.80     
+Median TPOT (ms):                        52.49     
+P99 TPOT (ms):                           74.19     
+---------------Inter-token Latency----------------
+Mean ITL (ms):                           53.34     
+Median ITL (ms):                         44.69     
+P99 ITL (ms):                            246.41    
+==================================================
+
+
+
+
+qps=4============ Serving Benchmark Result ============
+Successful requests:                     50        
+Benchmark duration (s):                  38.80     
+Total input tokens:                      14056     
+Total generated tokens:                  9480      
+Request throughput (req/s):              1.29      
+Input token throughput (tok/s):          362.30    
+Output token throughput (tok/s):         244.35    
+---------------Time to First Token----------------
+Mean TTFT (ms):                          105.80    
+Median TTFT (ms):                        67.86     
+P99 TTFT (ms):                           309.15    
+-----Time per Output Token (excl. 1st token)------
+Mean TPOT (ms):                          51.83     
+Median TPOT (ms):                        49.12     
+P99 TPOT (ms):                           100.84    
+---------------Inter-token Latency----------------
+Mean ITL (ms):                           48.01     
+Median ITL (ms):                         42.77     
+P99 ITL (ms):                            260.83    
+==================================================
+```
+
+
+

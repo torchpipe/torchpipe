@@ -21,6 +21,8 @@
 #include <thread>
 #include <vector>
 #include "sized_queue.hpp"
+
+// #include "base_logging.hpp"
 namespace ipipe {
 
 template <typename T>
@@ -37,6 +39,16 @@ class ThreadSafeSizedQueue {
     }
 
     data_cond_.notify_all();
+  }
+
+  void notify_all() {
+    data_cond_.notify_all();
+    // https://wanghenshui.github.io/2019/08/23/notify-one-pred
+  }
+
+  void WaitFor(int time_out) {
+    std::unique_lock<std::mutex> lk(mut_);
+    data_cond_.wait_for(lk, std::chrono::milliseconds(time_out));
   }
 
   // void PushIfEmpty(const T& new_value, size_t size) {
@@ -133,6 +145,7 @@ class ThreadSafeSizedQueue {
 
     if (data_queue_.empty() || !check(data_queue_.front_size())) {
       num_waiting_++;
+      // SPDLOG_INFO("WaitForPopWithConditionAndStatus: num_waiting_ = {}", num_waiting_);
       // lk.unlock();
       waiting_cond_.notify_all();
       // lk.lock();
@@ -140,12 +153,14 @@ class ThreadSafeSizedQueue {
         return !data_queue_.empty() && check(data_queue_.front_size());
       });
       num_waiting_--;
+      // SPDLOG_INFO("WaitForPopWithConditionAndStatus finish: num_waiting_ = {}", num_waiting_);
       if (!re) return false;
     }
 
     value = data_queue_.front();
     data_queue_.pop();
 
+    lk.unlock();
     poped_cond_.notify_all();
     return true;
   }
@@ -156,6 +171,7 @@ class ThreadSafeSizedQueue {
     auto re = waiting_cond_.wait_for(lk, std::chrono::milliseconds(time_out),
                                      [this] { return num_waiting_ > 0; });
     if (!re) return false;
+    // SPDLOG_INFO("WaitForWaiting: num_waiting_ = {}", num_waiting_);
     return true;
   }
 

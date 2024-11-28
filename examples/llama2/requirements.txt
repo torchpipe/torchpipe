@@ -1,5 +1,9 @@
+torch>=2.4.0 
 transformers==4.44.2
 shortuuid
 fire
 fastapi
 uvicorn
+aiohttp
+onnx
+onnx-simplifier

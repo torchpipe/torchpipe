@@ -93,15 +93,24 @@ class ThreadSafeQueue {
   }
 
   bool WaitForPop(T& value, int time_out) {
-    std::unique_lock<std::mutex> lk(mut_);
-    auto re = data_cond_.wait_for(lk, std::chrono::milliseconds(time_out),
-                                  [this] { return !data_queue_.empty(); });
-    if (!re) return false;
-    value = data_queue_.front();
-    data_queue_.pop();
+    {
+      std::unique_lock<std::mutex> lk(mut_);
+      auto re = data_cond_.wait_for(lk, std::chrono::milliseconds(time_out),
+                                    [this] { return !data_queue_.empty(); });
+      if (!re) return false;
+      value = data_queue_.front();
+      data_queue_.pop();
+    }
 
     poped_cond_.notify_all();
     return true;
+  }
+
+  bool WaitEmpty(int time_out) {
+    std::unique_lock<std::mutex> lk(mut_);
+    auto re = poped_cond_.wait_for(lk, std::chrono::milliseconds(time_out),
+                                   [this] { return data_queue_.empty(); });
+    return re;
   }
 
   bool WaitForPop(T& value, int time_out, std::function<bool(const T&)> check) {

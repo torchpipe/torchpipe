@@ -32,8 +32,9 @@ Production-Grade：Within NetEase a massive number of calls supported by Torchpi
 
 
 
+
 **Latest News** 🔥
-- We add a [llama2 example](https://github.com/torchpipe/torchpipe/tree/develop/examples/llama2).
+
 
 ## Installation
 

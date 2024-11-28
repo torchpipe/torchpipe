@@ -117,6 +117,34 @@ IPIPE_REGISTER(Backend, ArgMaxTensor, "ArgMaxTensor");
 /**
  * @brief cpu->gpu
  */
+class LastBatchTensor : public Backend {  // CatSplitTensor/BatchingRequestTensor
+ public:
+  /**
+   * @brief cpu->gpu
+   * @param TASK_RESULT_KEY input[TASK_RESULT_KEY] = input[TASK_DATA_KEY].cuda()
+   */
+  virtual void forward(const std::vector<dict>& input_dicts) override {
+    std::stringstream ss;
+    ss << "LastBatchTensor " << input_dicts.size() << ": ";
+    for (const auto item : input_dicts) {
+      auto input_tensor = dict_get<torch::Tensor>(item, TASK_DATA_KEY);
+
+      // IPIPE_ASSERT(input_tensor.sizes().size() == 2);
+      // torch::Tensor output = input_tensor.softmax(-1);
+      ss << "" << input_tensor.sizes()[0] << "x";
+      // SPDLOG_WARN("LastBatchTensor: input_tensor.sizes(): {}", input_tensor.sizes());
+      input_tensor = input_tensor.index({-1, torch::indexing::Ellipsis}).unsqueeze(0);
+
+      (*item)[TASK_RESULT_KEY] = input_tensor;
+    }
+    SPDLOG_WARN(ss.str());
+  }
+};
+
+IPIPE_REGISTER(Backend, LastBatchTensor, "LastBatchTensor");
+/**
+ * @brief cpu->gpu
+ */
 class Tensor2Vector : public Backend {
  public:
   /**

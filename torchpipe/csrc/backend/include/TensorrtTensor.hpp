@@ -101,7 +101,7 @@ class TensorrtTensor : public Backend {
 
   int profile_index_{0};
 
-  std::unique_ptr<PostProcessor<torch::Tensor>> postprocessor_;
+  std::unique_ptr<TorchPostProcessor> postprocessor_;
   std::unique_ptr<PreProcessor<torch::Tensor>> preprocessor_;
 
   std::map<std::string, int> sorted_index_inputs_;
@@ -113,5 +113,7 @@ class TensorrtTensor : public Backend {
 
   std::vector<int> input_reorder_;
   std::vector<int> output_reorder_;
+
+  int weight_budget_percentage_{0};
 };
 }  // namespace ipipe

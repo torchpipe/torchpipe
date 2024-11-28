@@ -16,7 +16,7 @@
 #include <torch/torch.h>
 #include "PluginCacher.hpp"
 #include "dict_helper.hpp"
-
+#include "time_utils.hpp"
 #define PLUGIN_ASSERT(val) reportAssertion((val), #val, __FILE__, __LINE__)
 
 namespace {
@@ -313,6 +313,8 @@ int32_t TorchPlugin::enqueue(PluginTensorDesc const* inputDesc, PluginTensorDesc
       // (*input_dicts[i])["request_id"] = request_id;
       (*input_dicts[i])["node_name"] = trt_plugin;
       user_datas.push_back(input_dicts[i]);
+      SPDLOG_DEBUG("request_id={}, trt_plugin: {}, request_size={}", request_id, trt_plugin,
+                   request_size);
     }
     helper.keep("request_size").erase("request_size");
 
@@ -328,7 +330,13 @@ int32_t TorchPlugin::enqueue(PluginTensorDesc const* inputDesc, PluginTensorDesc
     if (ret != cudaSuccess) return ret;
 
     try {
+      // ipipe::TimeGuard guard("TorchPlugin:interpreter_->forward");
       interpreter_->forward(user_datas);
+      // auto time_pass = guard.elapsed();
+      // if (time_pass > 0.2) {
+      //   SPDLOG_WARN("TorchPlugin:interpreter_->forward too slow: {}", time_pass);
+      // }
+      // guard.silence();
     } catch (std::exception const& e) {
       caughtError(e);
       return -1;

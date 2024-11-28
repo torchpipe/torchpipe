@@ -519,6 +519,39 @@ bool Params::init(const std::unordered_map<std::string, std::string>& config) {
   return true;
 }
 
+void Params::check(const std::unordered_map<std::string, std::string>& config) {
+  for (auto iter = init_optinal_params_.begin(); iter != init_optinal_params_.end(); ++iter) {
+    // IPIPE_ASSERT(!iter->first.empty());
+    auto iter_config = config.find(iter->first);
+    if (iter_config == config.end()) {
+      config_[iter->first] = iter->second;
+    } else {
+      config_[iter->first] = iter_config->second;
+    }
+  }
+
+  for (const auto& req : init_required_params_) {
+    IPIPE_ASSERT(!req.empty());
+    auto iter_config = config.find(req);
+    if (iter_config == config.end()) {
+      std::string node_name;
+      auto iter_name = config.find("node_name");
+      node_name = (iter_name == config.end()) ? "" : iter_name->second + ": ";
+      throw std::invalid_argument(node_name + "param not set : " + req);
+
+    } else {
+      config_[req] = iter_config->second;
+    }
+  }
+
+  for (const auto& req : init_or_forward_required_params_) {
+    auto iter_config = config.find(req);
+    if (iter_config != config.end()) {
+      config_[req] = iter_config->second;
+    }
+  }
+}
+
 void Params::check_and_update(dict forward_data) {
   for (auto iter = forward_optinal_params_.begin(); iter != forward_optinal_params_.end(); ++iter) {
     auto iter_config = forward_data->find(iter->first);

@@ -9,10 +9,23 @@
 
 namespace ipipe {
 
-// 获取单例实例
-ThreadSafeKVStorage& ThreadSafeKVStorage::getInstance() {
-  static ThreadSafeKVStorage instance;
-  return instance;
+std::mutex ThreadSafeKVStorage::instance_mutex_;  // 定义静态互斥锁
+std::unordered_map<ThreadSafeKVStorage::POOL, std::unique_ptr<ThreadSafeKVStorage>>
+    ThreadSafeKVStorage::instances_;  // 定义静态实例存储
+
+std::unique_ptr<ThreadSafeKVStorage> ThreadSafeKVStorage::createInstance() {
+  return std::unique_ptr<ThreadSafeKVStorage>(new ThreadSafeKVStorage());
+  // return std::make_unique<ThreadSafeKVStorage>();
+}
+
+ThreadSafeKVStorage& ThreadSafeKVStorage::getInstance(POOL pool) {
+  std::lock_guard<std::mutex> lock(instance_mutex_);  // 保护实例访问的互斥锁
+  if (instances_.find(pool) == instances_.end()) {
+    instances_[pool] = createInstance();
+    SPDLOG_INFO("ThreadSafeKVStorage: create new instance: {}, addr = {}", (int)pool,
+                (void*)instances_[pool].get());
+  }
+  return *instances_[pool];
 }
 
 std::optional<ipipe::any> ThreadSafeKVStorage::get(const std::string& path,
@@ -33,67 +46,41 @@ std::optional<ipipe::any> ThreadSafeKVStorage::get(const std::string& path,
 
 ipipe::any ThreadSafeKVStorage::wait(const std::string& path, const std::string& key) {
   {
-    std::unique_lock<std::shared_mutex> lock(mutex_);
-    cv_.wait(lock, [this, path, key] {
-      auto it = this->disk_.find(path);
-      return it != disk_.end() && it->second->has(key);
-    });
+    throw std::runtime_error("ThreadSafeKVStorage::wait not implemented");
+    return ipipe::any();
   }
-
-  return get(path, key);
 }
-
-// bool ThreadSafeKVStorage::has(const std::string& path) {
-//   std::shared_lock<std::shared_mutex> lock(mutex_);
-//   return disk_.find(path) != disk_.end();
-// }
 
 ThreadSafeDict& ThreadSafeKVStorage::get_or_insert(const std::string& path) {
-  // SPDLOG_DEBUG("ThreadSafeKVStorage: {} {} {}", path, (void*)(&disk_), disk_.size());
-  {
-    std::shared_lock<std::shared_mutex> lock(mutex_);
-    auto it = disk_.find(path);
-    if (it != disk_.end()) {
-      // SPDLOG_DEBUG("ThreadSafeKVStorage get: {} {} {}", path, disk_.size(),
-      // (void*)&(*it->second));
-      return *it->second;
-    }
-  }
   std::unique_lock<std::shared_mutex> lock(mutex_);
-
-  auto [it, inserted] = disk_.emplace(path, std::make_shared<ThreadSafeDict>());
-  // SPDLOG_DEBUG("ThreadSafeKVStorage insert: {} {} {}", path, disk_.size(), it->first);
-  return *it->second;
-}
-// 写入数据
-void ThreadSafeKVStorage::set_and_notify(const std::string& path, const std::string& key,
-                                         ipipe::any value) {
-  std::shared_ptr<ThreadSafeDict> data;
-  {
-    // Use a shared lock for reading
-    std::shared_lock<std::shared_mutex> lock(mutex_);
-    auto iter = disk_.find(path);
-    if (iter != disk_.end()) {
-      data = iter->second;
-    }
-    // else {
-    //   throw std::out_of_range(path + " already exists");
-    // }
+  auto it = disk_.find(path);
+  if (it != disk_.end()) {
+    return *it->second;
   }
 
-  if (data) {
-    // If we found a dict, use it
-    data->set(key, value);
-  } else {
-    // Otherwise, create a new dict and insert it into disk_
-    // Use a unique lock for writing
-    data = std::make_shared<ThreadSafeDict>();
-    data->set(key, value);
+  // std::unique_lock<std::shared_mutex> lock(mutex_);
 
-    std::unique_lock<std::shared_mutex> lock(mutex_);
-    disk_[path] = data;
-  }
+  auto [it_emplace, inserted] = disk_.emplace(path, std::make_shared<ThreadSafeDict>());
+  IPIPE_ASSERT(inserted);
   cv_.notify_all();
+  return *it_emplace->second;
+}
+
+ThreadSafeDict& ThreadSafeKVStorage::insert(const std::string& path) {
+  std::unique_lock<std::shared_mutex> lock(mutex_);
+  auto it = disk_.find(path);
+  IPIPE_ASSERT(it == disk_.end());
+
+  auto [it_emplace, inserted] = disk_.emplace(path, std::make_shared<ThreadSafeDict>());
+  IPIPE_ASSERT(inserted);
+  cv_.notify_all();
+  return *it_emplace->second;
+}
+
+// 写入数据
+void ThreadSafeKVStorage::set(const std::string& path, const std::string& key, ipipe::any value) {
+  ThreadSafeDict& data = get_or_insert(path);
+  data.set(key, value);
 }
 
 void ThreadSafeKVStorage::clear() {
@@ -101,13 +88,20 @@ void ThreadSafeKVStorage::clear() {
   disk_.clear();
 }
 
-void ThreadSafeKVStorage::erase(const std::string& path) {
+void ThreadSafeKVStorage::remove(const std::string& path) {
   std::unique_lock<std::shared_mutex> lock(mutex_);
   auto iter = disk_.find(path);
   if (iter != disk_.end()) {
     disk_.erase(iter);
-  } else
-    throw std::out_of_range(path);
+    cv_.notify_all();
+  } else {
+    SPDLOG_WARN("ThreadSafeKVStorage: key not found: {}", path);
+  }
+
+  if (remove_callback_) {
+    remove_callback_(path);
+  }
+  // throw std::out_of_range(path);
 }
 
 }  // namespace ipipe

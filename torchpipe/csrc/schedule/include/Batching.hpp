@@ -13,7 +13,8 @@
 // limitations under the License.
 
 #pragma once
-#include "base_logging.hpp"
+#include <cassert>
+
 #include <memory>
 #include <string>
 #include <vector>
@@ -27,153 +28,115 @@
 #include "time_utils.hpp"
 #include "RangeMerger.hpp"
 #include "RuningState.hpp"
+// #include "KVCacheManagerBase.hpp"
+#include "base_logging.hpp"
+
+// namespace kvcache {
+// class KVCacheMaganer;
+// }
 
 namespace ipipe {
 
+class RequestStates {
+ public:
+  RequestStates() {}
+  struct RequestState {
+   public:
+    int iter_index = 0;
+    bool wait_for_schedule = true;
+    size_t kvcache_seq_len = 1;
+  };
+
+  bool wait_all_ready(int time_out);
+
+  std::size_t size() {
+    std::lock_guard<std::mutex> lock(mtx_);
+    return request_states_.size();
+  }
+
+  void remove(const std::string& request_id) {
+    {
+      std::lock_guard<std::mutex> lock(mtx_);
+      request_states_.erase(request_id);
+    }
+    cv_.notify_all();
+  }
+
+  size_t add_iter_index(const std::string& request_id) {
+    std::lock_guard<std::mutex> lock(mtx_);
+    return request_states_.at(request_id).iter_index++;
+  }
+
+  size_t get_kvcache_seq_len(const std::string& request_id) {
+    std::lock_guard<std::mutex> lock(mtx_);
+    return request_states_.at(request_id).kvcache_seq_len;
+  }
+
+  bool has(const std::string& request_id) {
+    std::lock_guard<std::mutex> lock(mtx_);
+    return request_states_.find(request_id) != request_states_.end();
+  }
+
+  void set_ready(const std::string& request_id, size_t request_size) {
+    {
+      std::lock_guard<std::mutex> lock(mtx_);
+      auto iter = request_states_.find(request_id);
+      if (iter != request_states_.end()) {
+        iter->second.wait_for_schedule = true;
+        iter->second.kvcache_seq_len += request_size;
+        assert(request_size == 1);
+      } else {
+        // (*request_states_)[request_id] = RequestState({0, true});
+        request_states_.emplace(request_id, RequestState({0, true, request_size}));
+      }
+    }
+  }
+
+  void set_unready() { all_ready_ = false; }
+
+  bool all_ready() { return all_ready_; }
+
+  void notify() {
+    all_ready_ = true;
+    cv_.notify_all();
+  }
+
+  void set_unready(const std::string& request_id) {
+    std::lock_guard<std::mutex> lock(mtx_);
+    auto iter = request_states_.find(request_id);
+    if (iter != request_states_.end()) {
+      iter->second.wait_for_schedule = false;
+      // iter->second.iter_index += 1;
+      // cv_.notify_all();
+    }
+  }
+  // void notify_all() {
+  //   std::lock_guard<std::mutex> lock(mtx_);
+  //   cv_.notify_all();
+  // }
+  // size_t get_max_batch_size() { return max_batch_size_; }
+
+ private:
+  bool all_ready_{false};  // 为了防止condition_variable的spurious wakeup， 我们额外设置一个flag
+  std::unordered_map<std::string, RequestState> request_states_;
+  mutable std::mutex mtx_;
+  std::condition_variable cv_;
+  // size_t max_batch_size_;
+};
 // # cal_request_size_method = "AddRequestSizeTensor"
 
 class Batching : public Backend {
  public:
-  bool init(const std::unordered_map<std::string, std::string>& config, dict dict_config) {
-    params_ = std::unique_ptr<Params>(
-        new Params({{"multiple_instances", ""},
-                    {"batching_timeout", "2"},
-                    {"cal_request_size_method", ""},  // AddRequestSizeTensor
-                    {"node_name", ""}},
-                   {}, {}, {}));
-    if (config.empty()) {
-      SPDLOG_ERROR("empty config. Only support single-node configuration.");
-      return false;
-    }
-    if (!params_->init(config)) return false;
-    auto batching_timeouts = str_split(params_->at("batching_timeout"), '&');
-    batching_timeout_ = 0;
-    for (const auto& item : batching_timeouts) {
-      batching_timeout_ = std::max(batching_timeout_, std::stof(item));
-    }
-
-    node_name_ = params_->at("node_name");
-
-    if (params_->at("multiple_instances").empty()) {
-      // backend_ = std::make_unique<RangeMerger>();
-      backend_ = std::make_unique<MultiInstances>();
-    } else {
-      backend_ = std::unique_ptr<Backend>(IPIPE_CREATE(Backend, params_->at("multiple_instances")));
-    }
-    // batched_queue_ = std::make_unique<ThreadSafeSizedQueue<std::vector<dict>>>();
-    (*dict_config)["_batched_queue"] = &batched_queue_;
-
-    if (!params_->at("cal_request_size_method").empty()) {
-      cal_request_size_method_ =
-          std::unique_ptr<Backend>(IPIPE_CREATE(Backend, params_->at("cal_request_size_method")));
-      IPIPE_ASSERT(cal_request_size_method_ && cal_request_size_method_->init(config, dict_config));
-    }
-    if (!backend_ || !backend_->init(config, dict_config)) return false;
-    runing_state_ = std::make_shared<RuningState>();
-    {
-      max_batch_size_ = backend_->max();
-      if (max_batch_size_ == UINT32_MAX) {
-        SPDLOG_WARN(node_name_ + ": max() == UINT32_MAX");
-      }
-
-      if (max_batch_size_ != 1 && batching_timeout_ > 0) {
-        bThreadInited_.store(true);
-        thread_ = std::thread(&Batching::run, this);
-      } else if (max_batch_size_ != 1 && batching_timeout_ == 0) {
-        SPDLOG_WARN(
-            "{}: Batching will not be enabled as batching_timeout is set to 0. Even though "
-            "max_batch_size is greater than 1, multiple requests coming in simultaneously will not "
-            "be batched together.",
-            node_name_);
-      }
-      SPDLOG_INFO("{}: max_batch_size={}, batching_timeout={}", node_name_, max_batch_size_,
-                  batching_timeout_);
-    }
-    return true;
-  }
-
+  bool init(const std::unordered_map<std::string, std::string>& config, dict dict_config);
   /**
    * @return UINT32_MAX.
    */
   virtual uint32_t max() const { return UINT32_MAX; };
 
-  void forward(const std::vector<dict>& raw_inputs) {
-    if (cal_request_size_method_) {
-      if (!bThreadInited_.load()) {
-        SPDLOG_ERROR("cal_request_size_method_ is not supported when no batching needed");
-        abort();
-      }
-      for (const auto& item : raw_inputs) cal_request_size_method_->forward({item});
-    }
-    std::vector<std::shared_ptr<SimpleEvents>> events;  // 注意，
-    // 事件需要提前准备好，不可运行时从map获得，容易造成多线程问题
+  void forward(const std::vector<dict>& raw_inputs);
 
-    for (auto raw_input : raw_inputs) {
-      std::shared_ptr<RuningStateMonitor> guard_state =
-          std::make_shared<RuningStateMonitor>(runing_state_, 1);
-      assert(guard_state);
-      auto& map_data = *raw_input;
-      map_data.erase(TASK_RESULT_KEY);
-
-      auto iter = raw_input->find(TASK_EVENT_KEY);
-      if (iter == raw_input->end()) {
-        auto event = make_event();
-        events.emplace_back(event);
-        event->add_const_callback([guard_state]() { guard_state->del(); });
-        if (cal_request_size_method_) {
-          auto* data = raw_input.get();
-          event->add_const_callback([data]() { data->erase(TASK_REQUEST_SIZE_KEY); });
-        }
-        map_data[TASK_EVENT_KEY] = event;
-      } else {
-        events.emplace_back(nullptr);
-
-        std::shared_ptr<SimpleEvents> ev = any_cast<std::shared_ptr<SimpleEvents>>(iter->second);
-        ev->add_const_callback([guard_state]() { guard_state->del(); });
-        if (cal_request_size_method_) {
-          auto* data = raw_input.get();
-          ev->add_const_callback([data]() { data->erase(TASK_REQUEST_SIZE_KEY); });
-        }
-      }
-    }
-
-    assert(events.size() == raw_inputs.size());
-
-    {
-      // 注意：资源所有权问题， 从此刻起 对 raw_input 没有读写权限，
-      // 除非event通知
-
-      if (!bThreadInited_.load()) {
-        for (auto raw_input : raw_inputs) {
-          backend_->forward({raw_input});  // 异步调用, bs=1
-        }
-      } else {
-        std::vector<size_t> sizes;
-        for (const auto& item : raw_inputs) {
-          const auto item_size = get_request_size(item);
-          // SPDLOG_DEBUG("item_size={} max_batch_size={}", item_size, max_batch_size_);
-          IPIPE_ASSERT(item_size <= max_batch_size_);
-          sizes.push_back(item_size);
-        }
-        input_queue_.Push(raw_inputs, sizes);  // todo 限制送入的不能超过最大值
-      }
-    }
-
-    for (std::size_t i = 0; i < raw_inputs.size(); ++i) {
-      // 当阻塞式调用时 todo  非阻塞调用
-      if (events[i]) {
-        events[i]->Wait();
-        // 重新获得资源所有权
-
-        raw_inputs[i]->erase(TASK_EVENT_KEY);
-      } else {
-        // 无资源所有权
-        continue;
-      }
-    }
-
-    return;
-  };
+  bool contiguous_batch(dicts& input_data, const size_t input_data_size, const size_t new_pop,
+                        dicts& redundant_data);
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
   ~Batching();
@@ -187,6 +150,7 @@ class Batching : public Backend {
 
  private:
   uint32_t max_batch_size_{1};
+  uint32_t original_max_batch_size_{1};
   std::thread thread_;
   ThreadSafeSizedQueue<dict> input_queue_;
   ThreadSafeSizedQueue<std::vector<dict>> batched_queue_;
@@ -204,5 +168,9 @@ class Batching : public Backend {
   // std::atomic<unsigned> count_{0};
 
   std::shared_ptr<RuningState> runing_state_;
+  int contiguous_batching_{0};
+
+  std::unique_ptr<RequestStates> request_states_;
+  // std::unique_ptr<kvcache::KVCacheManagerBase> kvcache_manager_;
 };
 }  // namespace ipipe

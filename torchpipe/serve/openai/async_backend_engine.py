@@ -10,7 +10,7 @@ from typing import List, Optional
 from torchpipe.serve.output import RequestOutput
 
 from torchpipe.serve.errors import ValidationError
-
+from torchpipe.serve.api_protocol import CompletionRequest
 import sys
 import threading
  
@@ -78,14 +78,18 @@ class OutputAsyncStream:
 #                                          CompletionRequest)
 
 # 获取环境变量 BACKEND_ENGINE_PATH 的值
-backend_engine_path = os.getenv('BACKEND_ENGINE_PATH', '.')
+backend_engine_path = os.getenv('BACKEND_ENGINE_PATH', './')
 
 # 将 BACKEND_ENGINE_PATH 添加到 sys.path
 sys.path.append(backend_engine_path)
 
 # 导入 BackendEngine 模块
-from backend_engine import BackendEngine
-
+try:
+    from backend_engine import BackendEngine
+except ImportError:
+    raise ImportError(
+        "The BackendEngine module is not found. Please make sure that the BACKEND_ENGINE_PATH environment variable is set correctly."
+    )
         
 class AsyncEngine:
     def __init__(
@@ -102,6 +106,7 @@ class AsyncEngine:
         sampling_params,
         priority: None,
         stream: bool = False,
+        request: CompletionRequest = None,
     ) -> OutputAsyncStream:
         output_stream = OutputAsyncStream()
 
@@ -114,9 +119,12 @@ class AsyncEngine:
         #     prompt, sampling_params, priority, stream, callback
         # )
         try:
-            self.backend.forward_async({'prompt': prompt, 'priority': priority, 'stream': stream, 'callback': callback})
+            await self.backend.forward_async({'prompt': prompt, 'priority': priority,
+                                        'stream': stream, 'callback': callback,
+                                        'sampling_params': sampling_params})
         except Exception as e:
             output_stream.error(str(e))
+            print(e)
         return output_stream
     
     # start the engine, non-blocking

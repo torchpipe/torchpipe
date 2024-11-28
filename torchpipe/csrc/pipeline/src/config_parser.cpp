@@ -19,6 +19,7 @@
 #include "toml.hpp"
 #include "dict.hpp"
 #include "ipipe_common.hpp"
+
 namespace ipipe {
 
 std::string toml2str(toml::value v) {
@@ -167,6 +168,42 @@ void handle_config(mapmap& config) {
       // B::backend=C
       brackets_split(item.second["backend"], item.second);
     }
+  }
+
+  auto iter = config.find("global");
+  if (iter != config.end()) {
+    auto& global = iter->second;
+    auto iter_backend = global.find("register_config");
+    if (iter_backend != global.end()) {
+      std::vector<std::string> register_configs = str_split(iter_backend->second, ':');
+      IPIPE_ASSERT(2 == register_configs.size());
+      register_config(register_configs[0], register_configs[1]);
+    }
+  }
+}
+
+// as_table
+// toml::parse_result
+std::unordered_map<std::string, toml::table>& get_config_register() {
+  static std::unordered_map<std::string, toml::table> config;
+  return config;
+}
+
+void register_config(std::string config, std::string value) {
+  SPDLOG_INFO("register config: {} {}", config, value);
+  get_config_register().insert({config, toml::parse(value).as_table()});
+}
+int get_registered_config(std::string key, std::string item, int default_value = -1) {
+  auto& config = get_config_register();
+  auto iter = config.find(key);
+  IPIPE_ASSERT(iter != config.end());
+  auto& table = iter->second;
+  auto iter_item = table.find(item);
+  if (iter_item != table.end()) {
+    return iter_item->second.as_integer();
+    // return toml::find<int>(iter_item->second, item);
+  } else {
+    return default_value;
   }
 }
 }  // namespace ipipe
