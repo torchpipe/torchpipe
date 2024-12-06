@@ -52,7 +52,7 @@ def test_test_random(dir="assets/norm_jpg/"):
         assert (input["result"].shape == (576, 768, 3))
 
     torchpipe.utils.test.test_from_raw_file(run, os.path.join(dir),
-                                            num_clients=10, batch_size=1, total_number=10000)
+                                            num_clients=10, request_batch=1, total_number=10000)
 
 
 def test_test_from_raw_file(dir="assets/norm_jpg/"):
@@ -69,7 +69,7 @@ def test_test_from_raw_file(dir="assets/norm_jpg/"):
         assert (input["result"].shape == (576, 768, 3))
 
     torchpipe.utils.test.test_from_raw_file(run, os.path.join(dir),
-                                            num_clients=10, batch_size=1, num_preload=0)
+                                            num_clients=10, request_batch=1, num_preload=0)
 
 
 def test_test_function(dir="assets/norm_jpg/"):
@@ -88,16 +88,16 @@ def test_test_function(dir="assets/norm_jpg/"):
         assert (input["result"].shape == (576, 768, 3))
     num_clients = 5
     torchpipe.utils.test.test_function(
-        [run]*num_clients, num_clients=num_clients, batch_size=1, total_number=1000)
+        [run]*num_clients, num_clients=num_clients, request_batch=1, total_number=1000)
 
 
-def test_all_files(file_dir: str = "assets/norm_jpg/", num_clients=10, batch_size=1,
+def test_all_files(file_dir: str = "assets/norm_jpg/", num_clients=10, request_batch=1,
                    ext=[".jpg", '.JPG', '.jpeg', '.JPEG']):
 
     files = [x for x in os.listdir(file_dir) if os.path.splitext(x)[-1] in ext]
     files = [os.path.join(file_dir, x) for x in files]
 
-    forwards = [FileSampler(files, batch_size) for i in range(num_clients)]
+    forwards = [FileSampler(files, request_batch) for i in range(num_clients)]
 
     torchpipe.utils.test.test(forwards, len(files))
 

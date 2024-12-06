@@ -32,8 +32,9 @@ Production-Grade：Within NetEase a massive number of calls supported by Torchpi
 
 
 
-<!-- **Latest News** 🔥 -->
-<!-- - we add a llama2 examples [here](examples/llama2/). -->
+
+**Latest News** 🔥
+
 
 ## Installation
 
@@ -157,4 +158,3 @@ Potential research directions that have not been completed:
 
 ### Acknowledgements
 Our codebase is built using multiple opensource contributions, please see [ACKNOWLEDGEMENTS](./ACKNOWLEDGEMENTS.md) for more details.
-

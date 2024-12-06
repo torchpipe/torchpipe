@@ -22,7 +22,7 @@ from typing import List
 import pytest
 
 
-def test_logical_nodes(file_dir: str = "assets/norm_jpg/", num_clients=10, batch_size=1,
+def test_logical_nodes(file_dir: str = "assets/norm_jpg/", num_clients=10, request_batch=1,
                        ext=[".jpg", '.JPG', '.jpeg', '.JPEG']):
 
     model = torchpipe.pipe("assets/toml/logical.toml")

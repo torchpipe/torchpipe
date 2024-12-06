@@ -39,8 +39,9 @@ version = "20241030"
 # update 2023-08-17  增加测试结果的返回;                        
 # update 2023-11-09  增加gpu使用率中位数输出;                        
 # update 2024-04-24  恢复为单文件，并增加 ProcessAdaptor
-# update 2024-05-22  使用request_batch取代batch_size参数。但保持兼容性
+# update 2024-05-22  使用batch_size取代request_batch参数。但保持兼容性
 # update 2024-10-30  fix test_thrift_from_raw_file 读图过多耗时过长的问题
+# update 2024-10-30   移除batch_size参数 
 """
 
 
@@ -699,7 +700,7 @@ def test_from_toml(
     toml_path,
     file_dir: str,
     num_clients=10,
-    request_batch=-1,
+    request_batch=1,
     total_number=10000,
     num_preload=1000,
     recursive=True,
@@ -722,8 +723,7 @@ def test_from_raw_file(
     ],
     file_dir: str,
     num_clients=10,
-    batch_size=1,
-    request_batch=-1,
+    request_batch=1,
     total_number=10000,
     num_preload=1000,
     recursive=True,
@@ -736,10 +736,9 @@ def test_from_raw_file(
     data = preload(
         file_dir=file_dir, recursive=recursive, num_preload=num_preload, ext=ext
     )
-    if request_batch > 0:
-        batch_size = request_batch
 
-    print(f"file_dir = {file_dir}, num_clients = {num_clients}, batch_size = {batch_size}, total_number = {total_number}")
+
+    print(f"file_dir = {file_dir}, num_clients = {num_clients}, request_batch = {request_batch}, total_number = {total_number}")
     assert len(data) > 0
     if num_preload <= 0:
         total_number = len(data)
@@ -752,12 +751,12 @@ def test_from_raw_file(
         forward_function = [forward_function] * num_clients
 
     if num_preload > 0:
-        forwards = [RandomSampler(data, batch_size) for i in range(num_clients)]
+        forwards = [RandomSampler(data, request_batch) for i in range(num_clients)]
         for i in range(num_clients):
             forwards[i].forward = forward_function[i]
     else:
         data = [x for x, _ in data]
-        forwards = [FileSampler(data, batch_size) for i in range(num_clients)]
+        forwards = [FileSampler(data, request_batch) for i in range(num_clients)]
         for i in range(num_clients):
             forwards[i].handle_data = forward_function[i]
 
@@ -767,8 +766,7 @@ def test_from_raw_file(
 def test_function(
     forward_function: Union[Callable, List[Callable]],
     num_clients=10,
-    batch_size=1,
-    request_batch=-1,
+    request_batch=1,
     total_number=10000,
 ):
     """
@@ -779,9 +777,6 @@ def test_function(
     :param total_number: total number of data.
     :return: None
     """
-    
-    if request_batch > 0:
-        batch_size = request_batch
 
 
     class FunctionSampler:
@@ -800,7 +795,7 @@ def test_function(
     else:
         forward_function = [forward_function] * num_clients
     forwards = [
-        FunctionSampler(forward_function[i], batch_size) for i in range(num_clients)
+        FunctionSampler(forward_function[i], request_batch) for i in range(num_clients)
     ]
     return test(forwards, total_number)
 
@@ -932,20 +927,18 @@ if __name__ == "__main__":
         host="localhost",
         port=8095,
         num_clients=10,
-        batch_size=1,
-        request_batch = -1,
+        request_batch = 1,
         total_number=10000,
     ):
-        if request_batch > 0:
-            batch_size = request_batch
 
-        instances_ = [ThriftInfer(host, port, batch_size) for i in range(num_clients)]
+
+        instances_ = [ThriftInfer(host, port, request_batch) for i in range(num_clients)]
 
         test_from_raw_file(
             [x.infer for x in instances_],
             img_dir,
             num_clients,
-            batch_size,
+            request_batch,
             -1,
             total_number,
         )
@@ -955,7 +948,6 @@ if __name__ == "__main__":
         host=args.host,
         port=args.port,
         num_clients=args.num_clients,
-        batch_size=args.batch_size,
+        request_batch=args.request_batch,
         total_number=total_number,
     )
-

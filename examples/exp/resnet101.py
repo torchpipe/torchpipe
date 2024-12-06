@@ -96,7 +96,7 @@ if __name__ == "__main__":
         run,
         os.path.join("../..", "test/assets/encode_jpeg/"),
         num_clients=args.client,
-        batch_size=1,
+        request_batch=1,
         total_number=total_number,
     )
 
