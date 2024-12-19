@@ -1,0 +1,67 @@
+# "Interpreter::backend" = "Ring"
+[entry]
+next = "img_preprocessor, embed_tokens"
+
+[embed_tokens]
+backend = "S[EmbedTokensTensor,SyncTensor]" # ,Jump[batchful]] 
+# restart = "batchful" 
+next = "merge"
+# torch.save(model.model.embed_tokens.weight.requires_grad_(False).data.cpu(), "embed_tokens.pt")
+embed_tokens = "model_files/embed_tokens.pt"
+
+[img_preprocessor]
+backend = "SetTorchRequestSize"
+map = "entry[pixel_values:data,img_h:img_h,img_w:img_w]"
+next = "vision_tower"
+
+[vision_tower]
+
+force_layer_norm_pattern_fp32 = 1
+'precision_fp32' = 'softmax,pow'
+
+backend = "S[FakeInstance[TensorrtTensor],PyIdentity[PackImageFeatures],SyncTensor]"
+batching_timeout = 1
+fake_instance_num = 3
+instance_num = 1
+max = "1;4;9"
+min = "1;2;5"
+'model' = 'model_files/vision_tower.onnx'
+'model::cache' = 'model_files/vision_tower.trt'
+next = "merge"
+priority = "low"
+
+scheduler = "Batching"
+
+[merge]
+backend = "S[MergePromptTensor,SetTorchRequestSize,AppendIndexSelectTensor(value=-1),SyncTensor]"
+map = "vision_tower[result:placeholder],embed_tokens[result:data],entry[result:prompt]"
+placeholder = 151646
+[batchable]
+
+# RequestTimeStamp(key=batchful),
+# ThreadLocalCacher is used to cache parameters and input data for (tensorrt) plugin
+'backend' = 'S[ThreadLocalCacher[FakeInstance[TensorrtTensor]],ArgMaxTensor,SyncTensor]'
+scheduler = "Batching"
+
+max_workspace_size = 4000
+
+fake_instance_num = 6
+instance_num = 1
+# max = '1024'
+max = '8,8;128,128;512,256;1024,256;2048,256;4095,256' # 遵循vllm的benchmark配置，实际使用可分桶
+min = '1,1;9,1;129,1;513,1;1025,1;2049,1' 
+'model' = 'model_files/batchable.onnx' 
+'model::cache' = 'model_files/batchable.trt' 
+# next = 'cache' 
+# weight_budget_percentage = 80
+# contiguous_batching = 1
+
+# [batchless_prefill]
+# backend = "S[AppendOtherTensor,TensorrtTensor,PushKVCacheTensor,SyncTensor]"next = "merge"
+#
+# instance_num = 1 
+# max = '1x2048x4096,1x2048x4096,1x2048x4096,1x2048x128,1x2048x128,1x1x2048x2048' 
+# # q k v cos sin mask
+# min = '1x1x4096,1x1x4096,1x1x4096,1x1x128,1x1x128,1x1x1x1'
+# 'model' = 'model_files/batchless_prefill.onnx'
+# 'model::cache' = 'model_files/batchless_prefill.trt'
