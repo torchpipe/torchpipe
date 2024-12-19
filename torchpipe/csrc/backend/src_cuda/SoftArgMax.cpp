@@ -90,6 +90,34 @@ class CalTorchBatchSize : public SingleBackend {
 
 IPIPE_REGISTER(Backend, CalTorchBatchSize, "CalTorchBatchSize");
 
+class SetTorchRequestSize : public SingleBackend {
+ public:
+  virtual void forward(dict input_dict) override {
+    auto& input = *input_dict;
+    if (input[TASK_DATA_KEY].type() == typeid(torch::Tensor)) {
+      torch::Tensor input_tensor = any_cast<torch::Tensor>(input[TASK_DATA_KEY]);
+      int request_size = input_tensor.size(0);
+      input[TASK_REQUEST_SIZE_KEY] = request_size;
+      SPDLOG_DEBUG("SetTorchRequestSize: request_size: {}", request_size);
+
+    } else if (input[TASK_DATA_KEY].type() == typeid(std::vector<torch::Tensor>)) {
+      std::vector<torch::Tensor>* input_tensor =
+          any_cast<std::vector<torch::Tensor>>(&input[TASK_DATA_KEY]);
+      int request_size = input_tensor->at(0).size(0);
+      input[TASK_REQUEST_SIZE_KEY] = request_size;
+      SPDLOG_DEBUG("SetTorchRequestSize: request_size: {}", request_size);
+    } else {
+      SPDLOG_ERROR(": torch::Tensor needed; error input type: " +
+                   std::string(input[TASK_DATA_KEY].type().name()));
+      throw std::runtime_error(": torch::Tensor needed; error input type: " +
+                               std::string(input[TASK_DATA_KEY].type().name()));
+    }
+    input[TASK_RESULT_KEY] = input[TASK_DATA_KEY];
+  }
+};
+
+IPIPE_REGISTER(Backend, SetTorchRequestSize, "SetTorchRequestSize");
+
 /**
  * @brief cpu->gpu
  */

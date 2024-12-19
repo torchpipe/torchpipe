@@ -14,12 +14,22 @@
 
 import torchpipe
 import torch
+import pytest
+
+# try:
+#     import torchvision
+# except ImportError:
+#     pytest.skip("torchvision is not available", allow_module_level=True)
+# except RuntimeError:
+#     pytest.skip("torchvision is not available", allow_module_level=True)
+    
+
 from torchvision import models
 import torchvision
 import os
 import tempfile
 
-import pytest
+
 timm = pytest.importorskip("timm")
             
 class TestUtilsModels:

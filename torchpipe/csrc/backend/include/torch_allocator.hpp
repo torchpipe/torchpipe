@@ -61,6 +61,21 @@ class TorchAsyncAllocator : public nvinfer1::IGpuAsyncAllocator {
   std::unordered_map<void*, torch::Tensor> data_;
   std::mutex mutex_;
 };
+
+class TorchAsyncOutAllocator : public nvinfer1::IOutputAllocator {
+  void* reallocateOutputAsync(char const* tensorName, void* currentMemory, uint64_t size,
+                              uint64_t alignment, cudaStream_t /*stream*/) noexcept override;
+
+  /// Notify the shape of the tensor.
+  void notifyShape(char const* tensorName, nvinfer1::Dims const& dims) noexcept override;
+
+ private:
+  std::unordered_map<void*, torch::Tensor> data_;
+  std::mutex mutex_;
+  size_t allocated_size_{0};
+  void* ptr_{nullptr};
+};
+
 #endif
 
 int static inline dev_malloc(void** p, size_t s) {

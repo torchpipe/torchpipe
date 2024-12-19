@@ -27,12 +27,15 @@
 
 #include "any.hpp"
 
+#include <variant>
+
 namespace ipipe {
 // using namespace nonstd;  // for any, any_cast
 
 class CustomDict {
  public:
-  explicit CustomDict(std::unordered_map<std::string, ipipe::any>* ptr = nullptr) : data_(ptr) {}
+  // explicit CustomDict(std::unordered_map<std::string, ipipe::any>* ptr) : data_(ptr) {}
+  explicit CustomDict() : data_(new std::unordered_map<std::string, ipipe::any>()) {}
   explicit CustomDict(std::shared_ptr<std::unordered_map<std::string, ipipe::any>> ptr)
       : data_(ptr) {}
   ~CustomDict() = default;
@@ -268,5 +271,18 @@ static inline void clear_dicts(dicts& data, const std::string& key) {
     item->erase(key);
   }
 }
+
+struct TypedDict {
+  using BaseType = std::variant<bool, int, std::shared_ptr<TypedDict>, std::string,
+                                double>;  // pls keep order for variant
+                                          // :https://github.com/pybind/pybind11/issues/1625
+
+  std::unordered_map<std::string, BaseType> data;
+};
+
+template <typename T>
+struct ShareWrapper {
+  std::shared_ptr<T> ptr;
+};
 
 }  // namespace ipipe

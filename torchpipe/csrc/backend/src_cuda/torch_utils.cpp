@@ -429,8 +429,9 @@ torch::Tensor tensor_permute(torch::Tensor input, const std::vector<int>& min_sh
   } else if (input.sizes().size() == max_shape.size()) {
     if (input.sizes()[0] > max_shape[0]) {
       std::stringstream ss;
-      ss << "data's batchsize(" << input.sizes()[0] << ") should be smaller than max batch size("
-         << max_shape[0] << ")";
+      ss << "data's batchsize(" << input.sizes()[0] << ") should be smaller than max batch size(";
+      for (const auto item : max_shape) ss << item << " ";
+      ss << ")";
       throw std::runtime_error(ss.str());
     }
   } else {

@@ -44,9 +44,9 @@ bool MultipleConcatPreprocess::init(const std::unordered_map<std::string, std::s
     throw std::runtime_error("min_value_ == 1 || max_value_ == 1 || min_value_ != max_value_");
   }
   for (std::size_t i = 0; i < min_value_.size(); ++i) {
-    if (min_value_[i].size() != max_value_[i].size() || (min_value_[i].size() <= 1)) {
+    if (min_value_[i].size() != max_value_[i].size() || (min_value_[i].size() < 1)) {
       throw std::runtime_error(
-          "min_value_[i].size() != max_value_[i].size() || (min_value_[i].size() <= 1)");
+          "min_value_[i].size() != max_value_[i].size() || (min_value_[i].size() < 1)");
     }
   }
 

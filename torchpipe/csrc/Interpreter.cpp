@@ -106,8 +106,19 @@ void Interpreter::init(mapmap config) {
         SPDLOG_DEBUG("use batching backend: {}", tmp_name);
         backend_ = std::unique_ptr<Backend>(IPIPE_CREATE(Backend, tmp_name));
       } else {
+        for (const auto& item : config) {
+          if (item.first == "global") {
+            continue;
+          }
+          auto iter_scheduler = item.second.find("scheduler");
+          if (iter_scheduler != item.second.end()) {
+            std::string tmp_name = any_cast<std::string>(iter_scheduler->second);
+            SPDLOG_DEBUG("use batching backend: {}", tmp_name);
+            backend_ = std::unique_ptr<Backend>(IPIPE_CREATE(Backend, tmp_name));
+          } else
+            backend_ = std::make_unique<BaselineSchedule>();
+        }
         // 如果是单节点, 默认启动 BaselineSchedule 引擎进行调度
-        backend_ = std::make_unique<BaselineSchedule>();
       }
 
     } else {

@@ -188,7 +188,10 @@ any object2any(pybind11::handle data) {
 #endif
   } else if (py::isinstance<llm::SamplingParams>(data)) {
     return py::cast<llm::SamplingParams>(data);
+  } else if (py::isinstance<TypedDict>(data)) {
+    return py::cast<std::shared_ptr<TypedDict>>(data);
   }
+
   IPIPE_THROW("It is not able to convert " + std::string(py::str(py::type::of(data))) +
               " from python to c++.");
 }
