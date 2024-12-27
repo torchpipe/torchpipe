@@ -400,7 +400,8 @@ def export_batchless_prefill_part(llm, out_dir):
     model = llm.model
     # 获取模块名
     module_name = llm.__module__
-
+    print(f"module_name={module_name}")
+    
     # 导入模块
     module = importlib.import_module(module_name)
     apply_rotary_pos_emb = getattr(module, "apply_rotary_pos_emb")
@@ -446,7 +447,7 @@ def export_batchless_prefill_part(llm, out_dir):
         attn_output = attn_output.transpose(1, 2).contiguous()
 
         attn_output = attn_output.reshape(bsz, q_len, self.hidden_size)
-        return attn_output, past_key, past_value, attn_weights
+        return attn_output, past_key, past_value
 
     model.layers[0].self_attn.forward = types.MethodType(batchless_forward, model.layers[0].self_attn)
     
@@ -492,6 +493,7 @@ def export_batchless_decode_part(llm, out_dir):
     model = llm.model
     # 获取模块名
     module_name = llm.__module__
+    print(f"module_name={module_name}")
 
     # 导入模块
     module = importlib.import_module(module_name)

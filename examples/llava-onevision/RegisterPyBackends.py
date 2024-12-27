@@ -90,3 +90,134 @@ class PrefillCosSinMask:
 # # tp.register_backend(PrefillCosSinMask, "PrefillCosSinMask")
 # tp.register_backend(Pdb, "Pdb")
 
+import importlib
+module_name='transformers.models.qwen2.modeling_qwen2'
+module = importlib.import_module(module_name)
+apply_rotary_pos_emb = getattr(module, "apply_rotary_pos_emb")
+repeat_kv = getattr(module, "repeat_kv")
+import math
+NUM_HEADS=14
+HEAD_DIM=64
+NUM_KEY_VALUE_HEADS=2
+NUM_KEY_VALUE_GROUPS=7
+HIDDEN_SIZE=896
+def prefill_batchless_forward(query_states, key_states, value_states, cos, sin, attention_mask, past_key = None, past_value = None):
+        bsz = 1
+        assert query_states.shape[0] == bsz
+        q_len = query_states.shape[-2]
+        query_states = query_states.view(bsz, q_len, NUM_HEADS, HEAD_DIM).transpose(1, 2)
+        key_states = key_states.view(bsz, q_len, NUM_KEY_VALUE_HEADS, HEAD_DIM).transpose(1, 2)
+        value_states = value_states.view(bsz, q_len, NUM_KEY_VALUE_HEADS, HEAD_DIM).transpose(1, 2)
+
+        query_states, key_states = apply_rotary_pos_emb(query_states, key_states, cos, sin)
+        if past_key is not None:
+            key_states = torch.cat([past_key, key_states], dim=2) 
+            value_states = torch.cat([past_value, key_states], dim=2) 
+            
+        past_key, past_value = key_states, value_states
+
+        key_states = repeat_kv(key_states, NUM_KEY_VALUE_GROUPS)
+        value_states = repeat_kv(value_states, NUM_KEY_VALUE_GROUPS)
+
+        attn_weights = torch.matmul(query_states, key_states.transpose(2, 3)) / math.sqrt(HEAD_DIM)
+
+        assert attention_mask is not None  # no matter the length, we just slice it
+        # causal_mask = attention_mask[:, :, :, : key_states.shape[-2]]
+        causal_mask = attention_mask
+        # print(causal_mask, attention_mask.shape)
+        attn_weights = attn_weights + causal_mask
+
+        # upcast attention to fp32
+
+        attn_weights = torch.nn.functional.softmax(attn_weights, dim=-1, dtype=torch.float32).to(query_states.dtype)
+        attn_output = torch.matmul(attn_weights, value_states)
+
+        if attn_output.size() != (bsz, NUM_HEADS, q_len, HEAD_DIM):
+            raise ValueError(
+                f"`attn_output` should be of size {(bsz, NUM_HEADS, q_len, HEAD_DIM)}, but is"
+                f" {attn_output.size()}"
+            )
+
+        attn_output = attn_output.transpose(1, 2).contiguous()
+
+        attn_output = attn_output.reshape(bsz, q_len, HIDDEN_SIZE)
+        return attn_output, past_key, past_value
+    
+def decode_batchless_forward(query_states, key_states, value_states, cos, sin, attention_mask, past_key , past_value):
+    bsz = 1
+    assert query_states.shape[0] == bsz
+    q_len = int(query_states.shape[-2])
+    assert q_len == 1
+    query_states = query_states.view(bsz, q_len, NUM_HEADS, HEAD_DIM).transpose(1, 2)
+    key_states = key_states.view(bsz, q_len, NUM_KEY_VALUE_HEADS, HEAD_DIM).transpose(1, 2)
+    value_states = value_states.view(bsz, q_len, NUM_KEY_VALUE_HEADS, HEAD_DIM).transpose(1, 2)
+
+    query_states, key_states = apply_rotary_pos_emb(query_states, key_states, cos, sin)
+    assert past_key is not None
+    key_states = torch.cat([past_key, key_states], dim=2) 
+    value_states = torch.cat([past_value, value_states], dim=2) 
+        
+    past_key, past_value = key_states, value_states
+
+    key_states = repeat_kv(key_states, NUM_KEY_VALUE_GROUPS)
+    value_states = repeat_kv(value_states, NUM_KEY_VALUE_GROUPS)
+    
+    
+
+    attn_weights = torch.matmul(query_states, key_states.transpose(2, 3)) / math.sqrt(HEAD_DIM)
+
+    # print(attn_weights.shape, value_states.shape)
+    assert attention_mask is not None  # no matter the length, we just slice it
+    # causal_mask = attention_mask[:, :, :, : key_states.shape[-2]]
+    causal_mask = attention_mask
+    # print(causal_mask, attention_mask.shape)
+    attn_weights = attn_weights + causal_mask
+        
+        
+
+    # upcast attention to fp32
+    attn_weights = torch.nn.functional.softmax(attn_weights, dim=-1, dtype=torch.float32).to(query_states.dtype)
+    # attn_weights = torch.nn.functional.dropout(attn_weights, p=self.attention_dropout, training=self.training)
+    
+    attn_output = torch.matmul(attn_weights, value_states)
+
+    if attn_output.size() != (bsz, NUM_HEADS, q_len, HEAD_DIM):
+        raise ValueError(
+            f"`attn_output` should be of size {(bsz, NUM_HEADS, q_len, HEAD_DIM)}, but is"
+            f" {attn_output.size()}"
+        )
+
+    attn_output = attn_output.transpose(1, 2).contiguous()
+
+    attn_output = attn_output.reshape(bsz, q_len, -1)
+    return attn_output, past_key, past_value
+
+import traceback
+class PrefillAttention:
+    def init(self, config):
+        pass
+    def forward(self, input: tp._C.Dict) -> None:
+        try:
+            query_states, key_states, value_states, cos, sin, attention_mask = input['data']
+            re = prefill_batchless_forward(query_states, key_states, value_states, cos, sin, attention_mask)
+            # import pdb; pdb.set_trace()
+            input['result'] = re
+        except Exception as e:
+            traceback.print_exc()
+            import pdb; pdb.set_trace()
+
+tp.register_backend(PrefillAttention, "PrefillAttention")
+class DecodeAttention:
+    def init(self, config):
+        pass
+    def forward(self, input: tp._C.Dict) -> None:
+        try:
+            query_states, key_states, value_states, cos, sin, attention_mask, past_key, past_value = input['data']
+            re = decode_batchless_forward(query_states, key_states, value_states, cos, sin, attention_mask, past_key, past_value)
+            # import pdb; pdb.set_trace()
+            input['result'] = re
+        except Exception as e:
+            traceback.print_exc()
+            import pdb; pdb.set_trace()
+
+tp.register_backend(DecodeAttention, "DecodeAttention")

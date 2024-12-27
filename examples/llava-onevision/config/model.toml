@@ -92,8 +92,8 @@ backend = "S[AddInt[TASK_REQUEST_SIZE_KEY:1],Add[trt_plugin:batchless_decode,res
 
 #---E. trt plugin node ##################################################################################################################
 [batchless_prefill]
-# backend = "SyncTensor[AppendPrefillCosSinMaskTensor]"
-# backend = "S[AppendOtherTensor,TensorrtTensor,PushKVCacheTensor,SyncTensor]" #
+
+# backend = "S[AppendPrefillCosSinMaskTensor,PyIdentity[PrefillAttention],PushKVCacheTensor,SyncTensor]" #
 backend = "S[AppendPrefillCosSinMaskTensor,TensorrtTensor,PushKVCacheTensor,SyncTensor]" #
 instance_num = 1 # ,PyIdentity[Pdb]
 max = '1x4096x896,1x4096x128,1x4096x128,1x4096x64,1x4096x64,1x1x4096x4096' 
@@ -105,9 +105,10 @@ min = '1x1x896,1x1x128,1x1x128,1x1x64,1x1x64,1x1x1x1'
 'model::cache' = 'model_files/batchless_prefill.trt'
 
 [batchless_decode]
-# backend = "SyncTensor[AppendDecodeCosSinMaskTensor]"
-# backend = "S[AppendOtherTensor,TensorrtTensor,PushKVCacheTensor,SyncTensor]" #
+
 backend = "S[AppendDecodeCosSinMaskTensor,AppendKVCacheTensor,TensorrtTensor,PushKVCacheTensor,SyncTensor]" #
+# backend = "S[AppendDecodeCosSinMaskTensor,AppendKVCacheTensor,PyIdentity[DecodeAttention],PushKVCacheTensor,SyncTensor]" #
+# [198, 95312, 57964, 2331, 89609, 70147, 59151, 110329, 16, 50613, 1323, 41349, 715, 58905, 151643, 575, 75015, 99718, 74869, 112183, 147688]
 instance_num = 1 #,PyIdentity[Pdb]
 max = '1x1x896,1x1x128,1x1x128,1x1x64,1x1x64,1x1x1x4096,1x2x4095x64,1x2x4095x64' 
 # q k v cos sin mask past_key past_value
