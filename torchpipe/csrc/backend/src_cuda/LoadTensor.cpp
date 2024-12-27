@@ -84,6 +84,64 @@ class LoadTensor : public SingleBackend {
 
 IPIPE_REGISTER(Backend, LoadTensor, "LoadTensor");
 
+class LoadReplaceFirstTensor : public SingleBackend {
+ public:
+  /**
+   * @param tensor_name 文件路径；
+   *
+   */
+  virtual bool init(const std::unordered_map<std::string, std::string>& config_param,
+                    dict) override {
+    params_ = std::unique_ptr<Params>(new Params({}, {"tensor_name"}, {}, {}));
+    if (!params_->init(config_param)) return false;
+
+    std::ifstream file(params_->at("tensor_name").c_str());
+    if (!file.good()) {
+      SPDLOG_ERROR("LoadTensor: dir " + params_->at("tensor_name") + " not exists.");
+      throw std::invalid_argument("dir " + params_->at("tensor_name") + " not exists.");
+    }
+    return true;
+  }
+
+  /**
+   * @param TASK_RESULT_KEY 加载的tensor
+   */
+  virtual void forward(dict input_dict) override {
+    const std::string& save_name = params_->at("tensor_name");
+    if (!save_name.empty()) {
+      // imwrite(save_name, input_tensor);
+      std::ifstream file(params_->at("tensor_name").c_str());
+      if (!file.good()) {
+        SPDLOG_ERROR("LoadTensor: dir " + params_->at("tensor_name") + " not exists.");
+        throw std::invalid_argument("dir " + params_->at("tensor_name") + " not exists.");
+      }
+      file.seekg(0, file.end);
+      int length = file.tellg();
+      file.seekg(0, file.beg);
+
+      std::vector<char> data(length);
+      file.read(data.data(), length);
+
+      auto data_loaded = torch::pickle_load(data).toTensor();
+      std::vector<torch::Tensor> input = dict_gets<torch::Tensor>(input_dict, TASK_DATA_KEY);
+      IPIPE_ASSERT(input.size() > 0);
+      if (data_loaded.sizes().size() == input[0].sizes().size() + 1 && data_loaded.size(0) == 1) {
+        data_loaded = data_loaded.squeeze(0);
+      } else if (data_loaded.sizes().size() + 1 == input[0].sizes().size() &&
+                 input[0].size(0) == 1) {
+        data_loaded = data_loaded.unsqueeze(0);
+      }
+      input[0] = data_loaded;
+      (*input_dict)[TASK_RESULT_KEY] = input;
+    }
+  }
+
+ private:
+  std::unique_ptr<Params> params_;
+};
+
+IPIPE_REGISTER(Backend, LoadReplaceFirstTensor, "LoadReplaceFirstTensor");
+
 class EmbedTokensTensor : public SingleBackend {
  public:
   /**
@@ -167,6 +225,7 @@ class MergePromptTensor : public SingleBackend {
 
     // torch::Tensor placeholder = any_cast<torch::Tensor>(input_dict->at("placeholder"));
     auto placeholder = dict_gets<torch::Tensor>(input_dict, "placeholder");
+    input_dict->erase("placeholder");
     // torch::Tensor prompt = any_cast<torch::Tensor>(input_dict->at("prompt"));
     torch::Tensor prompt = dict_get<torch::Tensor>(input_dict, "prompt");
     IPIPE_ASSERT(prompt.sizes().size() == 1);
@@ -180,7 +239,7 @@ class MergePromptTensor : public SingleBackend {
 
     for (size_t i = 0; i < prompt.sizes()[0]; ++i) {
       int pi = prompt[i].item<int>();
-      SPDLOG_DEBUG("MergePromptTensor: prompt[{}]: {}", pi, placeholder_);
+      // SPDLOG_DEBUG("MergePromptTensor: prompt[{}]: {}", pi, placeholder_);
       if (pi == placeholder_) {
         if (placeholderIndex >= placeholder.size())
           throw std::runtime_error("placeholder not enough");

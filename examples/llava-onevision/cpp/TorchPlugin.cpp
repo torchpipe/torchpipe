@@ -236,6 +236,7 @@ int32_t TorchPlugin::getOutputShapes(DimsExprs const* inputs, int32_t nbInputs,
 int32_t TorchPlugin::enqueue(PluginTensorDesc const* inputDesc, PluginTensorDesc const* outputDesc,
                              void const* const* inputs, void* const* outputs, void* workspace,
                              cudaStream_t stream) noexcept {
+  // return 0;
   if (!ipipe::ThreadCacher::input_cached()) {
     thread_local auto tmp = []() {
       SPDLOG_INFO(
@@ -300,6 +301,10 @@ int32_t TorchPlugin::enqueue(PluginTensorDesc const* inputDesc, PluginTensorDesc
       io_tensor(inputDesc, outputDesc, inputs, outputs, input_arrays, output_arrays, mParams.dtype,
                 mParams.nbInputs, request_size_start, request_size_start + request_size);
       request_size_start += request_size;
+      if (output_arrays.size() != 1 || !output_arrays[0].is_contiguous()) {
+        logError("output_arrays.size() != 1 || !output_arrays[0].is_contiguous()");
+        return -1;
+      }
 
       // ipipe::dict user_data = std::make_shared<std::unordered_map<std::string, ipipe::any>>(
       //     std::unordered_map<std::string, ipipe::any>({{"data", input_arrays},
@@ -346,7 +351,7 @@ int32_t TorchPlugin::enqueue(PluginTensorDesc const* inputDesc, PluginTensorDesc
   // size_t const inputSizeBytes{inputSize * mParams.dtypeBytes};
   // cudaError_t const status{
   //     cudaMemcpyAsync(outputs[0], inputs[0], inputSizeBytes, cudaMemcpyDeviceToDevice, stream)};
-  SPDLOG_DEBUG("TorchPlugin:(enqueue) this={} end", (long)this);
+  // SPDLOG_DEBUG("TorchPlugin:(enqueue) this={} end", (long)this);
   return 0;
 }
 

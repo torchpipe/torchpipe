@@ -1,5 +1,9 @@
 ### (WIP) llava-onevision
 > Note: this is a work in progress and experimental.
+- 流式暂时未支持，可参照部分[llama2](../llama2/README.md)
+- 对模型的支持较llama2例子更成熟
+- trt fp16对0.5b onevision小模型的attention会累计误差造成输出异常
+
 
 #### run llama-ov in transformers:
 ```bash
@@ -30,6 +34,11 @@ python models/exporting_llava_onevision.py --action=batchable
 
 python models/exporting_llava_onevision.py --action=batchless_prefill
 
+python models/exporting_llava_onevision.py --action=batchless_decode
+
+
+
+
  
 
 ``` 
@@ -53,6 +62,11 @@ trtexec --onnx=model_files/vision_tower.onnx --fp16 --shapes=input:2x3x384x384 #
 trtexec --onnx=model_files/vision_tower.onnx --fp16 --shapes=input:1x3x384x384 # 10.4409
 # --maxShapes=inputs_embeds:2942x896,logits_to_keep_mask:2942    \
 # --shapes=inputs_embeds:2941x896,logits_to_keep_mask:2941
+
+
+/workspace/TensorRT-10.2.0.19/targets/x86_64-linux-gnu/bin/trtexec  --onnx=model_files/batchless_decode.onnx  --shapes=attention_mask:1x1x1x2942,past_key:1x2x2941x64,past_value:1x2x2941x64 --fp16
+
+/workspace/TensorRT-10.2.0.19/targets/x86_64-linux-gnu/bin/trtexec  --loadEngine=model_files/batchless_decode.trt  --shapes=attention_mask:1x1x1x2942,past_key:1x2x2941x64,past_value:1x2x2941x64 --fp16
 ```
 
 

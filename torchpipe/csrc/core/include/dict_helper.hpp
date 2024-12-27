@@ -188,15 +188,19 @@ class TypedDictHelper {
               }
             } else if constexpr (std::is_same_v<T, bool>) {
               return std::string(arg ? "true" : "false");
+            } else if constexpr (std::is_same_v<T, std::vector<int>>) {
+              return std::string("[...]");
+            } else if constexpr (std::is_same_v<T, std::vector<std::string>>) {
+              return std::string("[...]");
             } else if constexpr (std::is_arithmetic_v<T>) {
               std::ostringstream out_stream;
               out_stream << arg;
               return out_stream.str();
             }
-
-            std::ostringstream out_stream;
-            out_stream << arg;
-            return out_stream.str();
+            return "/*UNKNOWN*/";
+            // std::ostringstream out_stream;
+            // out_stream << arg;
+            // return out_stream.str();
             // return std::to_string(arg);
           },
           pair.second);

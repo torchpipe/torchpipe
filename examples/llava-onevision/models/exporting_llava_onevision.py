@@ -170,6 +170,16 @@ def main(model_id: str = "llava-hf/llava-onevision-qwen2-0.5b-ov-hf", output_dir
         sys.path.insert(0, "models")
         from exporting_general import export_batchless_prefill_part
         export_batchless_prefill_part(model.language_model, output_dir)
+    elif action == "batchless_decode": 
+        import sys
+        sys.path.insert(0, "models")
+        from exporting_general import export_batchless_decode_part
+        export_batchless_decode_part(model.language_model, output_dir)
+    elif action == "input_lm":
+        import sys
+        sys.path.insert(0, "models")
+        from exporting_general import export_input_lm_part
+        export_input_lm_part(model.language_model, output_dir, num_layers=1)
     else:
         raise ValueError(f"Unknown action: {action}")
         

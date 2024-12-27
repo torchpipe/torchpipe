@@ -37,9 +37,11 @@ def get_prompt(question:str, modality: str):
 if INFER_BACKEND == "hf":
     model = LlavaOnevisionForConditionalGeneration.from_pretrained(
         model_id, 
+        attn_implementation = "eager",
         torch_dtype=torch.float16, 
         low_cpu_mem_usage=True, 
     ).to(0)
+    # model.language_model.model._attn_implementation = "eager"
 
     processor = AutoProcessor.from_pretrained(model_id)
 
@@ -102,11 +104,11 @@ if INFER_BACKEND == "tp":
     import torchpipe
     import torch, os, glob
 
-
+    TRT_VERSION = '10.7.0.23' # 10.2.0.19
 
     plugin=torchpipe.utils.cpp_extension.load(name="plugin_ov", sources=glob.glob("cpp/*.cpp")+ glob.glob("cpp/*.cc"),
-                                    extra_include_paths=['/workspace/TensorRT-10.2.0.19/include/'],
-                                    extra_ldflags=['-L/workspace/TensorRT-10.2.0.19/targets/x86_64-linux-gnu/lib/','-lnvinfer_plugin','-lnvinfer','-lipipe','-Wl,--no-as-needed', '-lcuda'],
+                                    extra_include_paths=[f'/workspace/TensorRT-{TRT_VERSION}/include/'],
+                                    extra_ldflags=[f'-L/workspace/TensorRT-{TRT_VERSION}/targets/x86_64-linux-gnu/lib/','-lnvinfer_plugin','-lnvinfer','-lipipe','-Wl,--no-as-needed', '-lcuda'],
                                     verbose=True,
                                     rebuild_if_exist = True,
                                     is_python_module=False)
@@ -134,6 +136,9 @@ if INFER_BACKEND == "tp":
     
     from PackImageFeatures import PackImageFeatures
     torchpipe.register_backend(PackImageFeatures, "PackImageFeatures")
+    # from SamplingParams import CSamplingParams
+    import RegisterPyBackends
+    # torchpipe.register_backend(RegisterPyBackends, "RegisterPyBackends")
 
     model = torchpipe.pipe("config/model.toml")
 
@@ -144,19 +149,46 @@ if INFER_BACKEND == "tp":
     index_select[-1] = 2940
     index_select[-2] = 2939
     # input = {'data' : [inputs_embeds, index_select], 'node_name': 'entry'}
-    input = {'data' : torch.tensor(encoded_prompt),"pixel_values":torch.from_numpy(img['pixel_values'][0]), 'node_name': 'entry'}
+    input = {'request_id':"0", 'data' : torch.tensor(encoded_prompt),"pixel_values":torch.from_numpy(img['pixel_values'][0]), 'node_name': 'entry'}
     # 
-    input.update({'img_h':img['image_sizes'][0][0],'img_w':img['image_sizes'][0][1]})
+    sampling_params = torchpipe._C.TypedDict({"max_tokens": 21, "max_seq_len":4096, "stop_token_ids":[151645]})
+    
+    input.update({'img_h':img['image_sizes'][0][0],'img_w':img['image_sizes'][0][1], "sampling_params":sampling_params})
     # import pdb; pdb.set_trace()
+    
+    
     model(input)
-    print(type(input['result']))
-    print( (input['result'].shape))
+    
     # import pdb; pdb.set_trace()
-    # print(input['embed_tokens'].shape)
-    # torch.load('a.pt').squeeze(0)[3,0], input['result'][3,0]
-    print(torch.allclose(torch.load('a.pt').squeeze(0), input['result']))
-    a=torch.allclose(torch.load('a.pt').squeeze(0)[0:3], input['result'][0:3])
-    b=torch.allclose(torch.load('a.pt').squeeze(0)[-9:], input['result'][-9:])
+    
+    if len(input['result']) == 2:
+        
+        print(input['result'][0])
+        
+        print(input['result'][1])
+        first_re = input['result'][0]
+        print(type(first_re))
+        print( (first_re.shape))
+        print(first_re[4,0:4])
+        # import pdb; pdb.set_trace()
+        # print(input['embed_tokens'].shape)
+        # torch.load('a.pt').squeeze(0)[3,0], input['result'][3,0]
+        print(torch.allclose(torch.load('a.pt').squeeze(0), first_re))
+        # a=torch.allclose(torch.load('a.pt').squeeze(0)[0:3], first_re[0:3])
+        # b=torch.allclose(torch.load('a.pt').squeeze(0)[-9:], first_re[-9:])
 
     
-    print(a, b)
+    storage = torchpipe.ThreadSafeKVStorage.getInstance(torchpipe._C.SCHEDULER)
+    result_queue = storage[('iteration', 'queue')]
+    a = result_queue.as_queue()
+    
+    generated_tokens = []
+    while not a.empty():
+        data = a.WaitForPop(50)
+        if data is None:
+            continue
+        generated_tokens.append(data["generated_token"])
+
+    re = tok.decode(generated_tokens)
+    print(re)
+    # import pdb; pdb.set_trace()

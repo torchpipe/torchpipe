@@ -39,7 +39,7 @@ struct type_caster<ipipe::any> {
 
   // Python -> C++
   bool load(handle src, bool) {
-    return false;
+    // return false;
     value = ipipe::object2any(src);
     return true;
   }
@@ -320,9 +320,13 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
           return py::cast(any_cast<std::shared_ptr<ThreadSafeQueue<short>>>(self));
         } else if (typeid(std::shared_ptr<ThreadSafeQueue<unsigned int>>) == self.type()) {
           return py::cast(any_cast<std::shared_ptr<ThreadSafeQueue<unsigned int>>>(self));
+        } else if (typeid(std::shared_ptr<ThreadSafeQueue<std::shared_ptr<TypedDict>>>) ==
+                   self.type()) {
+          return py::cast(
+              any_cast<std::shared_ptr<ThreadSafeQueue<std::shared_ptr<TypedDict>>>>(self));
         } else {
           throw py::type_error(
-              std::string("The object is not a std::shared_ptr<ThreadSafeQueue<T>>, is ") +
+              std::string("The object is not a known std::shared_ptr<ThreadSafeQueue<...>>, is ") +
               self.type().name());
         }
       });
@@ -334,6 +338,7 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
     bind_threadsafe_queue<long>(m, "Long");
     bind_threadsafe_queue<short>(m, "Short");
     bind_threadsafe_queue<unsigned int>(m, "UnsignedInt");
+    bind_threadsafe_queue<std::shared_ptr<ipipe::TypedDict>>(m, "TypedDict");
     llm::csrc::init_sampling_params(m);
 
     py::class_<ThreadSafeDict, std::shared_ptr<ThreadSafeDict>>(m, "ThreadSafeDict")
@@ -353,6 +358,7 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
     py::enum_<ThreadSafeKVStorage::POOL>(m, "POOL")
         .value("REQUEST_ID", ThreadSafeKVStorage::POOL::REQUEST_ID)
         .value("USER_DEFINED", ThreadSafeKVStorage::POOL::USER_DEFINED)
+        .value("SCHEDULER", ThreadSafeKVStorage::POOL::SCHEDULER)
         .export_values();
     py::class_<ThreadSafeKVStorage>(m, "ThreadSafeKVStorage")
         .def("__getitem__",
@@ -510,8 +516,15 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
           [](const CustomDict& d) { return py::make_key_iterator(d->begin(), d->end()); },
           py::keep_alive<0, 1>())  // Keep object alive while iterator exists
       .def(
-          "keys", [](const CustomDict& d) { return py::make_key_iterator(d->begin(), d->end()); },
-          py::keep_alive<0, 1>())  // Keep object alive while iterator exists
+          "keys",
+          [](const CustomDict& d) {
+            std::unordered_set<std::string> keys;
+            for (const auto& item : *d.get()) {
+              keys.insert(item.first);
+            }
+            return keys;
+          },
+          py::call_guard<py::gil_scoped_release>())  // Keep object alive while iterator exists
       .def(
           "values",
           [](const CustomDict& d) { return py::make_value_iterator(d->begin(), d->end()); },

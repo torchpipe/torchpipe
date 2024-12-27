@@ -426,6 +426,8 @@ torch::Tensor tensor_permute(torch::Tensor input, const std::vector<int>& min_sh
   }
   if (input.sizes().size() == max_shape.size() - 1) {
     input = input.unsqueeze(0);
+  } else if (input.sizes().size() == max_shape.size() + 1 && input.size(0) == 1) {
+    input = input.squeeze(0);
   } else if (input.sizes().size() == max_shape.size()) {
     if (input.sizes()[0] > max_shape[0]) {
       std::stringstream ss;
