@@ -406,22 +406,20 @@ class CompareLongKey : public SingleBackend {
 
 IPIPE_REGISTER(Backend, CompareLongKey, "CompareLongKey");
 
-class ExistKey : public SingleBackend {
+class HasKey : public SingleBackend {
  private:
   std::unique_ptr<Params> params_;
   std::vector<std::unique_ptr<Backend>> backends_;
   std::string other_;
-  long compare_target_;
 
  public:
   bool init(const std::unordered_map<std::string, std::string>& config_param,
             dict dict_config) override {
-    params_ = std::unique_ptr<Params>(
-        new Params({{"key", "key"}}, {"compare_target", "ExistKey::backend"}, {}, {}));
+    params_ = std::unique_ptr<Params>(new Params({{"key", "key"}}, {"HasKey::backend"}, {}, {}));
     if (!params_->init(config_param)) return false;
     other_ = params_->at("key");
 
-    auto backend_names = str_split_brackets_match(params_->at("ExistKey::backend"), ',', '[', ']');
+    auto backend_names = str_split_brackets_match(params_->at("HasKey::backend"), ',', '[', ']');
     std::unordered_map<std::string, std::unordered_map<std::string, std::string>> config_map;
     for (auto& item : backend_names) {
       auto new_config = config_param;
@@ -431,14 +429,14 @@ class ExistKey : public SingleBackend {
       item = new_config.at("backend");
     }
     if (backend_names.empty()) {
-      SPDLOG_ERROR("Usage: ExistKey[A,B].");
+      SPDLOG_ERROR("Usage: HasKey[A,B].");
       return false;
     } else if (backend_names.size() == 1) {
       backend_names.push_back("Identity");  // or Empty?
       config_map[backend_names.back()] = config_param;
-      SPDLOG_WARN("ExistKey::backend: append {} as the second choice.", backend_names.back());
+      SPDLOG_WARN("HasKey::backend: append {} as the second choice.", backend_names.back());
     } else if (backend_names.size() > 2) {
-      SPDLOG_ERROR("Usage: ExistKey[A,B]. size must be 2, get {}", backend_names.size());
+      SPDLOG_ERROR("Usage: HasKey[A,B]. size must be 2, get {}", backend_names.size());
       return false;
     }
     for (const auto& item : backend_names) {
@@ -460,6 +458,6 @@ class ExistKey : public SingleBackend {
   }
 };
 
-IPIPE_REGISTER(Backend, ExistKey, "ExistKey");
+IPIPE_REGISTER(Backend, HasKey, "HasKey");
 
 }  // namespace ipipe

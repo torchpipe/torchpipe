@@ -22,7 +22,7 @@ import torch
 import pytest
 
 
-def test_multiple_inputs(file_dir: str = "assets/norm_jpg/", num_clients=10, batch_size=1,
+def test_multiple_inputs(file_dir: str = "assets/norm_jpg/", num_clients=10, request_batch=1,
                          ext=[".jpg", '.JPG', '.jpeg', '.JPEG']):
 
     model = torchpipe.pipe({"backend": "BorrowReplay", "max_batch_size": 123})

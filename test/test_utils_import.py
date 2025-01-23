@@ -14,7 +14,7 @@
 
 import torchpipe
 import torch
-from torchvision import models
+# from torchvision import models
 import os
 import tempfile
 

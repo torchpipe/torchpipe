@@ -22,7 +22,7 @@ embed_tokens = "model_files/embed_tokens.pt"
 [batchful]
 # RequestTimeStamp(key=batchful),
 # PluginCacher is used to cache parameters and input data for (tensorrt) plugin
-'backend' = 'S[ThreadLocalCacher[FakeInstances[TensorrtTensor]],ArgMaxTensor,SyncTensor]'
+'backend' = 'S[ThreadCacher[FakeInstances[TensorrtTensor]],ArgMaxTensor,SyncTensor]'
 scheduler = "Batching"
 
 cal_request_size_method = "CalTorchBatchSize" # calc. request_size according to torch tensor size
@@ -58,7 +58,7 @@ min = '1x1x4096,1x1x4096,1x1x4096,1x1x128,1x1x128,1x1x1x1'
 'model::cache' = 'model_files/batchless_prefill.trt'
 
 [check_eos]
-backend = 'S[Identity,(IsOtherExistFilter)CompareLongKey[RemoveStorage, Add[restart:embed_tokens,trt_plugin:batchless_decode]],ExistKey(key=restart)[Identity,RemoveStorage]]'
+backend = 'S[Identity,(IsOtherExistFilter)CompareLongKey[RemoveStorage, Add[restart:embed_tokens,trt_plugin:batchless_decode]],HasKey(key=restart)[Identity,RemoveStorage]]'
 compare_target = 2
 other = "input_tokens"
 

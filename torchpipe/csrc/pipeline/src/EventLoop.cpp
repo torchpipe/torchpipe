@@ -61,7 +61,7 @@ void EventLoop::forward(const std::vector<dict>& inputs) {
     //   (*item)[TASK_EVENT_KEY] = make_event();
     // }
 
-    IPIPE_ASSERT(item->find("request_id") != item->end(), "request_id is needed for EventLoop");
+    // IPIPE_ASSERT(item->find("request_id") != item->end(), "request_id is needed for EventLoop");
     task_queues_[std::rand() % task_queues_size]->Push(item);
   }
 }
@@ -71,7 +71,8 @@ void EventLoop::on_start_node(dict tmp_data, std::size_t task_queue_index) {
 
   pstack->task_queue_index = task_queue_index;
   pstack->input_event = any_cast<std::shared_ptr<SimpleEvents>>(tmp_data->at(TASK_EVENT_KEY));
-  pstack->request_id = any_cast<std::string>(tmp_data->at("request_id"));
+  if (tmp_data->find("request_id") != tmp_data->end())
+    pstack->request_id = any_cast<std::string>(tmp_data->at("request_id"));
 
   // auto& kv_storage = ThreadSafeKVStorage::getInstance();
   // kv_storage.set(pstack->request_id, TASK_EVENT_KEY, pstack->input_event);
@@ -143,6 +144,7 @@ void EventLoop::on_finish_node(dict tmp_data) {
     tmp_data->erase(iter);
     (*tmp_data)["node_name"] = restart_node_name;
     SPDLOG_DEBUG("RESTART: " + restart_node_name);
+    TRACE_EXCEPTION((*tmp_data)[TASK_DATA_KEY] = tmp_data->at(TASK_RESULT_KEY));
 
     // new iteration
     auto curr_event = make_event();

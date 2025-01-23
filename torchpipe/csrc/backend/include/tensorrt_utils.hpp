@@ -21,6 +21,7 @@
 
 #if (NV_TENSORRT_MAJOR >= 9 || (NV_TENSORRT_MAJOR >= 8 && NV_TENSORRT_MINOR >= 6))
 #define USE_TORCH_ALLOCATOR
+#define TRT_USE_TORCH_OUT_ALLOCATOR 1
 #include "NvInferRuntime.h"
 #endif
 

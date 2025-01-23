@@ -15,9 +15,11 @@
 
 import torch
 
-import torch._C
+# import torch._C
+
+import torchpipe.libipipe
 # 检查库的版本号
-assert(torch._C)
+# assert(torch._C)
 if torch.cuda.is_available():
     assert(torch.zeros((1)).cuda().is_cuda)
 
@@ -126,6 +128,14 @@ __all__ = [
     "show",
     "ThreadSafeKVStorage"
 ]
+
+class Pdb:
+    def init(self, config):
+        pass
+    def forward(self, input: torchpipe.libipipe.Dict) -> None:
+        import pdb; pdb.set_trace()
+
+register_backend(Pdb, "Pdb")
 
 if WITH_CUDA:
     __all__.extend(["infer_shape","supported_opset"])

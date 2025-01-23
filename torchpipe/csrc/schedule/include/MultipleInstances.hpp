@@ -148,7 +148,7 @@ class MultipleInstances : public Backend {
  * @brief (WIP)提供多实例功能，与 Schedule
  * SortSchedule 等配合使用，形成完整的单节点调度功能。
  */
-class FakeInstances : public Backend {
+class FakeInstance : public Backend {
  public:
   bool init(const std::unordered_map<std::string, std::string>& config, dict dict_config) override;
 
@@ -162,7 +162,7 @@ class FakeInstances : public Backend {
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
   // 先销毁消费线程， 确保销毁顺序
-  ~FakeInstances() { backends_.clear(); }
+  ~FakeInstance() { backends_.clear(); }
 #endif
  private:
   // from

@@ -33,7 +33,7 @@ class PluginCacher : public Backend {
   static ResourceGuard<BackendConfig> config_;
 };
 
-class ThreadLocalCacher : public Backend {
+class ThreadCacher : public Backend {
  public:
   virtual bool init(const std::unordered_map<std::string, std::string> &, dict) override;
 

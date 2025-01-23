@@ -66,6 +66,9 @@ class Params;
 class KVCacheV2 {
  public:
   std::vector<torch::Tensor> pop() {
+    if (kv_cache_.empty()) {
+      throw std::runtime_error("popped from empty kv cache");
+    }
     std::vector<torch::Tensor> tmp;
     std::swap(tmp, kv_cache_.front());
     kv_cache_.pop();
@@ -126,6 +129,17 @@ class PushAndErase : public SingleBackend {
 };
 
 class PopKVCacheTensor : public SingleBackend {
+ public:
+  virtual bool init(const std::unordered_map<std::string, std::string>&, dict) override;
+
+  virtual void forward(dict) override;
+
+ private:
+  std::unique_ptr<Params> params_;
+  std::unique_ptr<Backend> engine_;
+};
+
+class AppendKVCacheTensor : public SingleBackend {
  public:
   virtual bool init(const std::unordered_map<std::string, std::string>&, dict) override;
 

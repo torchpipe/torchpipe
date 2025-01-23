@@ -2,7 +2,8 @@
 
 ## v0.6.6 
 - enhance llama2 example
-- Add FakeInstances[x] backend (fake_instance_num settable)
+- Add FakeInstance[x] backend (fake_instance_num settable)
+- fix `Batching` to support non-contiguous-batching mode
 
 ## v0.6.5 (2024.10.25)
 - Add force_layer_norm_pattern_fp32 (trt >= 10.5)

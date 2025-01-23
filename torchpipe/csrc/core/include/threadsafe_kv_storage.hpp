@@ -42,6 +42,27 @@ class ThreadSafeDict {
     std::unique_lock<std::shared_mutex> lock(mutex_);
     return map_[key];
   }
+  template <typename T>
+  T& get(const std::string& key) {
+    std::shared_lock<std::shared_mutex> lock(mutex_);
+    auto it = map_.find(key);
+    if (it != map_.end()) {
+      return *any_cast<T>(&it->second);
+    }
+    throw std::out_of_range("ThreadSafeDict: Key not found: " + key);
+  }
+
+  template <typename T>
+  std::shared_ptr<T> get_or_insert(const std::string& key) {
+    std::unique_lock<std::shared_mutex> lock(mutex_);
+    auto it = map_.find(key);
+    if (it != map_.end()) {
+      return any_cast<std::shared_ptr<T>>(it->second);
+    }
+    auto tmp = std::make_shared<T>();
+    auto [it_emplace, inserted] = map_.emplace(key, tmp);
+    return tmp;
+  }
 
   void erase(const std::string& key) {
     std::unique_lock<std::shared_mutex> lock(mutex_);

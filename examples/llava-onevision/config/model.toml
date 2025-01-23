@@ -1,0 +1,120 @@
+"Interpreter::backend" = "Ring"
+
+### A. prefill iteration ##################################################################################################################
+force_layer_norm_pattern_fp32 = 1
+
+[entry]
+next = "img_preprocessor, embed_tokens"
+
+[embed_tokens]
+backend = "S[EmbedTokensTensor,SyncTensor]" # ,Jump[batchful]] 
+# restart = "batchful" 
+next = "merge"
+# torch.save(model.model.embed_tokens.weight.requires_grad_(False).data.cpu(), "embed_tokens.pt")
+embed_tokens = "model_files/embed_tokens.pt"
+
+[img_preprocessor]
+backend = "SetTorchRequestSize"
+map = "entry[pixel_values:data,img_h:img_h,img_w:img_w]"
+next = "vision_tower"
+
+[vision_tower]
+
+# force_layer_norm_pattern_fp32 = 1
+# 'precision::fp32' = 'Softmax'
+
+backend = "S[FakeInstance[TensorrtTensor],PyIdentity[PackImageFeatures],SyncTensor]"
+batching_timeout = 1
+fake_instance_num = 3
+instance_num = 1
+max = "1;4;9"
+min = "1;2;5"
+'model' = 'model_files/vision_tower.onnx'
+'model::cache' = 'model_files/vision_tower.trt'
+next = "merge"
+priority = "low"
+
+scheduler = "Batching"
+
+[merge]
+backend = "S[MergePromptTensor,SetTorchRequestSize,InitTokenCounter,AppendIndexSelectTensor(value=-1),Add[trt_plugin:batchless_prefill],SyncTensor]"
+map = "vision_tower[result:placeholder],embed_tokens[result:data],entry[result:prompt,request_id:request_id,sampling_params:sampling_params]"
+placeholder = 151646
+
+# next = "debug"
+# [debug]
+# backend = "SyncTensor[LoadReplaceFirstTensor]"
+
+# tensor_name = "/workspace/torchpipe/embed.pt"
+next = "batchable"
+[batchable]
+
+# force_layer_norm_pattern_fp32 = 0
+# 'precision::fp32' = 'Pow'
+
+# RequestTimeStamp(key=batchful),
+# ThreadCacher is used to cache parameters and input data for (tensorrt) plugin
+'backend' = 'S[ThreadCacher,FakeInstance[TensorrtTensor],ArgMaxTensor,SyncTensor]'
+scheduler = "Batching"
+
+max_workspace_size = 3000
+
+fake_instance_num = 4
+instance_num = 1
+# max = '1024'
+max = '8,8;512,256;2046,256;4095,256' # 遵循vllm的benchmark配置，实际使用可分桶或者chunked prefill
+min = '1,1;9,1;513,1;2047,1' 
+'model' = 'model_files/batchable.onnx' 
+'model::cache' = 'model_files/batchable.trt' 
+next = 'parse_iteration' 
+
+# ,PyIdentity[CSamplingParams],HasKey(key=restart)[Identity,RemoveStorage]
+
+[parse_iteration]
+backend = "S[UpdateTokenCounter,LLMRestart(restart=embed_tokens.decode),HasKey(key=restart)[Identity,RemoveStorage],SyncTensor]"
+
+map = "batchable[result:data,request_id:request_id,sampling_params:sampling_params]"
+
+#---A Finish ################################################################################
+
+### B. decode iteration ##################################################################################################################
+[embed_tokens.decode] ## logical node ref. to [embed_tokens]
+next = "decode_prepare"
+
+[decode_prepare]
+
+backend = "S[AddInt[TASK_REQUEST_SIZE_KEY:1],Add[trt_plugin:batchless_decode,restart:batchable],AppendIndexSelectTensor(value=0),SyncTensor]"
+
+#---B Finish ################################################################################
+
+### C. result loop ##################################################################################################################
+#---C Finish ################################################################################
+
+#---E. trt plugin node ##################################################################################################################
+[batchless_prefill]
+
+# backend = "S[AppendPrefillCosSinMaskTensor,PyIdentity[PrefillAttention],PushKVCacheTensor,SyncTensor]" #
+backend = "S[AppendPrefillCosSinMaskTensor,TensorrtTensor,PushKVCacheTensor,SyncTensor]" #
+instance_num = 1 # ,PyIdentity[Pdb]
+max = '1x4096x896,1x4096x128,1x4096x128,1x4096x64,1x4096x64,1x1x4096x4096' 
+# q k v cos sin mask
+base = 1000000
+dim = 64
+min = '1x1x896,1x1x128,1x1x128,1x1x64,1x1x64,1x1x1x1'
+'model' = 'model_files/batchless_prefill.onnx'
+'model::cache' = 'model_files/batchless_prefill.trt'
+
+[batchless_decode]
+
+backend = "S[AppendDecodeCosSinMaskTensor,AppendKVCacheTensor,TensorrtTensor,PushKVCacheTensor,SyncTensor]" #
+# backend = "S[AppendDecodeCosSinMaskTensor,AppendKVCacheTensor,PyIdentity[DecodeAttention],PushKVCacheTensor,SyncTensor]" #
+# [198, 95312, 57964, 2331, 89609, 70147, 59151, 110329, 16, 50613, 1323, 41349, 715, 58905, 151643, 575, 75015, 99718, 74869, 112183, 147688]
+instance_num = 1 #,PyIdentity[Pdb]
+max = '1x1x896,1x1x128,1x1x128,1x1x64,1x1x64,1x1x1x4096,1x2x4095x64,1x2x4095x64' 
+# q k v cos sin mask past_key past_value
+base = 1000000
+dim = 64
+min = '1x1x896,1x1x128,1x1x128,1x1x64,1x1x64,1x1x1x1,1x2x1x64,1x2x1x64'
+'model' = 'model_files/batchless_decode.onnx'
+'model::cache' = 'model_files/batchless_decode.trt'
+########################################################################################################

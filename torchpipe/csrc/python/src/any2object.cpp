@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <memory>
 #include "any2object.hpp"
 #include "ipipe_common.hpp"
 #include "ipipe_utils.hpp"
@@ -126,6 +127,9 @@ py::object cast_other(const any& data) {
     return py_cast<torch::Tensor>(data);
   } else if (type == typeid(std::shared_ptr<SimpleEvents>)) {
     return py_cast<std::shared_ptr<SimpleEvents>>(data);
+  } else if (type == typeid(std::shared_ptr<SimpleEvents>)) {
+  } else if (type == typeid(std::shared_ptr<TypedDict>)) {
+    return py_cast<std::shared_ptr<TypedDict>>(data);
   }
   return py::cast(data);
   // IPIPE_THROW(std::string("can not treat '") + local_demangle(data.type().name()) +

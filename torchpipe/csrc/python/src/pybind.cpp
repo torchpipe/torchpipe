@@ -23,13 +23,13 @@
 #include "filter.hpp"
 #include "infer_model_input_shape.hpp"
 #include "threadsafe_queue.hpp"
-
+#include "base_logging.hpp"
 // python related
 #include "tensor_type_caster.hpp"
 #include "Python.hpp"
 #include "any2object.hpp"
 #include "object2any.hpp"
-
+#include "dict_helper.hpp"
 namespace pybind11 {
 namespace detail {
 template <>
@@ -39,6 +39,7 @@ struct type_caster<ipipe::any> {
 
   // Python -> C++
   bool load(handle src, bool) {
+    // return false;
     value = ipipe::object2any(src);
     return true;
   }
@@ -319,9 +320,13 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
           return py::cast(any_cast<std::shared_ptr<ThreadSafeQueue<short>>>(self));
         } else if (typeid(std::shared_ptr<ThreadSafeQueue<unsigned int>>) == self.type()) {
           return py::cast(any_cast<std::shared_ptr<ThreadSafeQueue<unsigned int>>>(self));
+        } else if (typeid(std::shared_ptr<ThreadSafeQueue<std::shared_ptr<TypedDict>>>) ==
+                   self.type()) {
+          return py::cast(
+              any_cast<std::shared_ptr<ThreadSafeQueue<std::shared_ptr<TypedDict>>>>(self));
         } else {
           throw py::type_error(
-              std::string("The object is not a std::shared_ptr<ThreadSafeQueue<T>>, is ") +
+              std::string("The object is not a known std::shared_ptr<ThreadSafeQueue<...>>, is ") +
               self.type().name());
         }
       });
@@ -333,6 +338,7 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
     bind_threadsafe_queue<long>(m, "Long");
     bind_threadsafe_queue<short>(m, "Short");
     bind_threadsafe_queue<unsigned int>(m, "UnsignedInt");
+    bind_threadsafe_queue<std::shared_ptr<ipipe::TypedDict>>(m, "TypedDict");
     llm::csrc::init_sampling_params(m);
 
     py::class_<ThreadSafeDict, std::shared_ptr<ThreadSafeDict>>(m, "ThreadSafeDict")
@@ -352,6 +358,7 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
     py::enum_<ThreadSafeKVStorage::POOL>(m, "POOL")
         .value("REQUEST_ID", ThreadSafeKVStorage::POOL::REQUEST_ID)
         .value("USER_DEFINED", ThreadSafeKVStorage::POOL::USER_DEFINED)
+        .value("SCHEDULER", ThreadSafeKVStorage::POOL::SCHEDULER)
         .export_values();
     py::class_<ThreadSafeKVStorage>(m, "ThreadSafeKVStorage")
         .def("__getitem__",
@@ -377,6 +384,65 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
                     py::arg("pool") = ThreadSafeKVStorage::POOL::REQUEST_ID,
                     py::return_value_policy::reference);
   }
+
+  py::class_<TypedDict, std::shared_ptr<TypedDict>>(m, "TypedDict")
+      .def(py::init<>())
+      .def(py::init<const std::unordered_map<std::string, TypedDict::BaseType>&>())
+      .def("__getitem__",
+           [](const std::shared_ptr<TypedDict>& self, const std::string& key) {
+             auto it = self->data.find(key);
+             if (it == self->data.end()) {
+               throw py::key_error(key);
+             }
+             return it->second;  // 将 std::variant 转换为 Python 对象
+           })
+      .def(
+          "keys",
+          [](const std::shared_ptr<TypedDict>& self) {
+            std::vector<std::string> keys;
+            keys.reserve(self->data.size());
+            for (const auto& pair : self->data) {
+              keys.push_back(pair.first);
+            }
+            return keys;
+          },
+          py::call_guard<py::gil_scoped_release>())
+      .def(
+          "__contains__",
+          [](const std::shared_ptr<TypedDict>& self, const std::string& key) {
+            return self->data.count(key) > 0;
+          },
+          py::call_guard<py::gil_scoped_release>())
+      .def("__len__", [](const TypedDict& self) { return self.data.size(); })
+      .def("size", [](const TypedDict& self) { return self.data.size(); })
+      .def(
+          "__repr__", [](const TypedDict& self) { return TypedDictHelper::get_repr(self); },
+          py::call_guard<py::gil_scoped_release>())
+      .def("__setitem__",
+           [](std::shared_ptr<TypedDict> self, const std::string& key, py::int_ value) {
+             // see https://github.com/pybind/pybind11/issues/2786
+             // and https://github.com/pybind/pybind11/pull/2802
+
+             self->data.insert_or_assign(key, py::cast<int>(value));
+           })  // handle overflow
+      .def(
+          "__setitem__",
+          [](std::shared_ptr<TypedDict> self, const std::string& key, TypedDict::BaseType value) {
+            std::visit(
+                [self, &key](auto&& arg) {
+                  using T = std::decay_t<decltype(arg)>;
+                  if constexpr (std::is_same_v<T, std::shared_ptr<TypedDict>>) {
+                    if (arg == self) {
+                      throw std::invalid_argument(
+                          "Assigning self as a value causes a circular reference");
+                    }
+                  } else {
+                    self->data.insert_or_assign(key, arg);
+                  }
+                },
+                value);
+          },
+          py::call_guard<py::gil_scoped_release>());
 
   py::enum_<Filter::status>(m, "Status")
       .value("Run", Filter::status::Run)
@@ -426,7 +492,7 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
       .def("get_exception", &SimpleEvents::get_exception, py::call_guard<py::gil_scoped_release>())
       .def("try_throw", &SimpleEvents::try_throw, py::call_guard<py::gil_scoped_release>());
 
-  py::class_<CustomDict>(m, "Dict")
+  py::class_<CustomDict, std::shared_ptr<CustomDict>>(m, "Dict")
       .def(py::init<>())
       .def("__getitem__",
            [](const CustomDict& d, const std::string& key) {
@@ -434,9 +500,14 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
              if (result == d->end()) throw py::key_error("not found: " + key);
              return result->second;
            })
-      .def("__setitem__", [](CustomDict& d, const std::string& key,
-                             const ipipe::any& value) { d->insert({key, value}); })
-      .def("__delitem__", [](CustomDict& d, const std::string& key) { d->erase(key); })
+      .def("__setitem__",
+           [](std::shared_ptr<CustomDict> d, const std::string& key, py::object value) {
+             //  int i = 2;
+
+             (*d)->insert({key, object2any(value)});
+           })
+      .def("__delitem__",
+           [](std::shared_ptr<CustomDict> d, const std::string& key) { (*d)->erase(key); })
       .def("__contains__",
            [](const CustomDict& d, const std::string& key) { return d->find(key) != d->end(); })
       .def("__len__", [](const CustomDict& d) { return d->size(); })
@@ -445,8 +516,15 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
           [](const CustomDict& d) { return py::make_key_iterator(d->begin(), d->end()); },
           py::keep_alive<0, 1>())  // Keep object alive while iterator exists
       .def(
-          "keys", [](const CustomDict& d) { return py::make_key_iterator(d->begin(), d->end()); },
-          py::keep_alive<0, 1>())  // Keep object alive while iterator exists
+          "keys",
+          [](const CustomDict& d) {
+            std::unordered_set<std::string> keys;
+            for (const auto& item : *d.get()) {
+              keys.insert(item.first);
+            }
+            return keys;
+          },
+          py::call_guard<py::gil_scoped_release>())  // Keep object alive while iterator exists
       .def(
           "values",
           [](const CustomDict& d) { return py::make_value_iterator(d->begin(), d->end()); },

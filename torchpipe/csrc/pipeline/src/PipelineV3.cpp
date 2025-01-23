@@ -189,8 +189,6 @@ void PipelineV3::on_finish_node(dict tmp_data) {
   std::shared_ptr<Stack> pstack = any_cast<std::shared_ptr<Stack>>(iter->second);
   assert(pstack);
 
-  if (!pstack->valid(node_name)) return;
-
   iter = tmp_data->find(TASK_EVENT_KEY);
 
   if (iter != tmp_data->end()) {
@@ -216,8 +214,12 @@ void PipelineV3::on_finish_node(dict tmp_data) {
     // assert(false);
     SPDLOG_DEBUG("PipelineV3: on finish node: no event found");
   }
-
-  pstack->update_processed(node_name, tmp_data);
+  if (!pstack->valid(node_name)) {
+    SPDLOG_ERROR("PipelineV3: on finish node: invalid stack. node_name = {}", node_name);
+    // return;
+  } else {
+    pstack->update_processed(node_name, tmp_data);
+  }
 
   if (pstack->exception) {  // todo check
     if (pstack->allStopped()) {
@@ -302,6 +304,7 @@ void PipelineV3::on_start_node(dict tmp_data, std::size_t task_queue_index) {
     if (root_nodes.count(node_name) == 0) {
       pstack->graph = pstack->graph->as_root(node_name);
       // filters_[node_name] = std::unique_ptr<Filter>(IPIPE_CREATE(Filter, "Run"));
+      IPIPE_ASSERT(pstack->graph != nullptr, node_name + " can not be setted as root node.");
     }
 
     // assert(root_nodes.count(node_name) != 0);

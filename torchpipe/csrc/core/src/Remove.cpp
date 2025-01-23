@@ -119,6 +119,7 @@ class Add : public SingleBackend {
     for (const auto& item : keys_) {
       (*input_dict)[item.first] = item.second;
     }
+    (*input_dict)[TASK_RESULT_KEY] = input_dict->at(TASK_DATA_KEY);
   }
 
  private:
@@ -126,6 +127,40 @@ class Add : public SingleBackend {
   std::unique_ptr<Params> params_;
 };
 IPIPE_REGISTER(Backend, Add, "ADD, Add,add");
+
+class AddInt : public SingleBackend {
+ public:
+  virtual bool init(const std::unordered_map<std::string, std::string>& config,
+                    dict /*dict_config*/) {
+    const std::string name = IPIPE_GET_REGISTER_NAME(Backend, Add, this) + "::backend";
+    params_ = std::unique_ptr<Params>(new Params({}, {name}, {}, {}));
+
+    if (!params_->init(config)) return false;
+    auto multiple_kv = str_split(params_->at(name), ',');
+    for (auto& single_kv : multiple_kv) {
+      auto strs = str_split(single_kv, ':', true);
+      IPIPE_ASSERT(strs.size() == 2);
+      for (auto& key : strs) {
+        try_replace_inner_key(key);
+      }
+      keys_[strs[0]] = std::stoi(strs[1]);
+    }
+
+    return true;
+  };
+
+  void forward(dict input_dict) {
+    for (const auto& item : keys_) {
+      (*input_dict)[item.first] = item.second;
+    }
+    (*input_dict)[TASK_RESULT_KEY] = input_dict->at(TASK_DATA_KEY);
+  }
+
+ private:
+  std::unordered_map<std::string, int> keys_;
+  std::unique_ptr<Params> params_;
+};
+IPIPE_REGISTER(Backend, AddInt, "AddInt");
 
 class Copy : public SingleBackend {
  public:
@@ -143,6 +178,10 @@ class Copy : public SingleBackend {
         try_replace_inner_key(key);
       }
       keys_[strs[0]] = strs[1];
+    }
+    if (keys_.find(TASK_RESULT_KEY) != keys_.end()) {
+      SPDLOG_INFO("Copy: find no TASK_RESULT_KEY, auto copy TASK_DATA_KEY to TASK_RESULT_KEY");
+      keys_[TASK_RESULT_KEY] = TASK_DATA_KEY;
     }
 
     return true;
@@ -178,6 +217,10 @@ class Move : public SingleBackend {
         try_replace_inner_key(key);
       }
       keys_[strs[0]] = strs[1];
+    }
+    if (keys_.find(TASK_RESULT_KEY) != keys_.end()) {
+      SPDLOG_INFO("Move: find no TASK_RESULT_KEY, auto move TASK_DATA_KEY to TASK_RESULT_KEY");
+      keys_[TASK_RESULT_KEY] = TASK_DATA_KEY;
     }
 
     return true;
@@ -218,6 +261,7 @@ class Remove : public SingleBackend {
     for (const auto& item : keys_) {
       input_dict->erase(item);
     }
+    (*input_dict)[TASK_RESULT_KEY] = input_dict->at(TASK_DATA_KEY);
   }
 
  private:

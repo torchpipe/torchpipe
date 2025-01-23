@@ -184,6 +184,8 @@ void Batching::forward(const std::vector<dict>& raw_inputs) {
         }
         input_queue_.Push(raw_inputs, sizes);
         request_states_->notify();
+      } else {
+        input_queue_.Push(raw_inputs, sizes);
       }
     }
   }
@@ -329,27 +331,7 @@ bool Batching::contiguous_batch(dicts& input_data, const size_t input_data_size,
     auto iter_id = (*iter)->find("request_id");
 
     std::string* request_id = any_cast<std::string>(&iter_id->second);
-    // if (request_states_->add_iter_index(*request_id) == 0) {
-    //   kvcache::KVCacheAllocParams request_params;
-    //   auto& storage = ThreadSafeKVStorage::getInstance().get(*request_id);
-
-    //   const llm::SamplingParams* samp =
-    //       any_cast<llm::SamplingParams>(&storage.get("sampling_params"));
-
-    //   request_params.max_new_tokens = samp->max_tokens;
-    //   request_params.request_id = *request_id;
-    //   request_params.kvcache_seq_len = request_states_->get_kvcache_seq_len(*request_id);
-
-    //   // request_params.max_new_tokens;
-    //   SPDLOG_WARN("contiguous_batching: alloc_reqid: request_id={}, kvcache_seq_len={}",
-    //               request_params.request_id, request_params.kvcache_seq_len);
-    //   // kvcache_manager_->alloc_reqid(request_params);
-    //   // request_states_.emplace(request_id, RequestState({true, request_size}));
-    //   // num_prefill++;
-    // }
   }
-  // auto valid_reqs = kvcache_manager_->step();
-  // IPIPE_ASSERT(!valid_reqs.empty());
 
   for (auto iter = input_data.begin(); iter != input_data.end();) {
     auto iter_id = (*iter)->find("request_id");

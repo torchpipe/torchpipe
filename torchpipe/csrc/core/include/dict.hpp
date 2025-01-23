@@ -27,12 +27,15 @@
 
 #include "any.hpp"
 
+#include <variant>
+
 namespace ipipe {
 // using namespace nonstd;  // for any, any_cast
 
 class CustomDict {
  public:
-  explicit CustomDict(std::unordered_map<std::string, ipipe::any>* ptr = nullptr) : data_(ptr) {}
+  // explicit CustomDict(std::unordered_map<std::string, ipipe::any>* ptr) : data_(ptr) {}
+  explicit CustomDict() : data_(new std::unordered_map<std::string, ipipe::any>()) {}
   explicit CustomDict(std::shared_ptr<std::unordered_map<std::string, ipipe::any>> ptr)
       : data_(ptr) {}
   ~CustomDict() = default;
@@ -224,13 +227,14 @@ template <typename Container = std::vector<dict>>
 static inline int get_request_size(const Container& in) {
   int total_len = 0;
   for (const auto& item : in) {
-    const auto iter = item->find(TASK_REQUEST_SIZE_KEY);
-    if (iter != item->end()) {
-      const int re = any_cast<int>(iter->second);
-      total_len += re;
-    } else {
-      total_len += 1;
-    }
+    total_len += get_request_size(item);
+    // const auto iter = item->find(TASK_REQUEST_SIZE_KEY);
+    // if (iter != item->end()) {
+    //   const int re = any_cast<int>(iter->second);
+    //   total_len += re;
+    // } else {
+    //   total_len += 1;
+    // }
   }
   return total_len;
 }
@@ -239,7 +243,11 @@ template <>
 inline int get_request_size<dict>(const dict& in) {
   const auto iter = in->find(TASK_REQUEST_SIZE_KEY);
   if (iter != in->end()) {
-    return any_cast<int>(iter->second);
+    if (iter->second.type() == typeid(int))
+      return any_cast<int>(iter->second);
+    else {
+      return std::stoi(any_cast<std::string>(iter->second));
+    }
   } else {
     return 1;
   }
@@ -268,5 +276,19 @@ static inline void clear_dicts(dicts& data, const std::string& key) {
     item->erase(key);
   }
 }
+
+struct TypedDict {
+  using BaseType =
+      std::variant<bool, int, std::shared_ptr<TypedDict>, std::string, double,
+                   std::vector<int>>;  // pls keep order for variant
+                                       // :https://github.com/pybind/pybind11/issues/1625
+
+  std::unordered_map<std::string, BaseType> data;
+};
+
+template <typename T>
+struct ShareWrapper {
+  std::shared_ptr<T> ptr;
+};
 
 }  // namespace ipipe

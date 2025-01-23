@@ -132,7 +132,7 @@ bool TensorrtTensor::init(const std::unordered_map<std::string, std::string>& co
     size_t wsBudget = weight_budget_percentage_ / 100.0 * streamable_weights_size;
     SPDLOG_INFO("Using WeightStreaming, Budget: {}% = {} MB", weight_budget_percentage_,
                 wsBudget / 1024.0 / 1024.0);
-#if (NV_TENSORRT_MAJOR == 10 && NV_TENSORRT_MINOR <= 4)
+#if (NV_TENSORRT_MAJOR == 10 && NV_TENSORRT_MINOR <= 7)
 
     IPIPE_ASSERT(engine_->engine->setWeightStreamingBudget(wsBudget));
 #else
@@ -596,7 +596,8 @@ void TensorrtTensor::forward(const std::vector<dict>& raw_inputs) {
     auto target_type = trt2torch_type(dtype);
 
     if (infer_dims.nbDims == -1) {
-      throw std::range_error("tensorrt: getBindingDimensions for output failed");
+      throw std::range_error(
+          std::string("tensorrt: getBindingDimensions for output failed. name: ") + name);
     }
 
     if (predefined_outputs.size() > j) {
@@ -622,7 +623,7 @@ void TensorrtTensor::forward(const std::vector<dict>& raw_inputs) {
   }
 
 #if TRT_USER_MANAGED_MEM
-#if NV_TENSORRT_MAJOR == 10 && NV_TENSORRT_MINOR <= 4
+#if NV_TENSORRT_MAJOR == 10 && NV_TENSORRT_MINOR <= 7
   const size_t mem_size = engine_->engine->getDeviceMemorySizeForProfile(profile_index_);
 #else
   const size_t mem_size = engine_->engine->getDeviceMemorySizeForProfileV2(profile_index_);
@@ -630,7 +631,7 @@ void TensorrtTensor::forward(const std::vector<dict>& raw_inputs) {
   const double mem_size_mb = static_cast<double>(mem_size) / (1024 * 1024);
   SPDLOG_DEBUG("mem_size: {} MB", mem_size_mb);
   torch::Tensor mem = torch_allocate(mem_size);
-#if NV_TENSORRT_MAJOR == 10 && NV_TENSORRT_MINOR <= 4
+#if NV_TENSORRT_MAJOR == 10 && NV_TENSORRT_MINOR <= 7
   context_->setDeviceMemory(mem.data_ptr());
 #else
   context_->setDeviceMemoryV2(mem.data_ptr(), mem_size);

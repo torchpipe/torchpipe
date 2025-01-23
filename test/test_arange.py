@@ -14,8 +14,8 @@
 
 import torchpipe
 import torch
-from torchvision import models
-import torchvision
+# from torchvision import models
+# import torchvision
 import os
 import tempfile
 from typing import Tuple, Optional

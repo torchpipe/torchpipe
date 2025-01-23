@@ -186,6 +186,46 @@ void* TorchAsyncAllocator::allocateAsync(uint64_t const size, uint64_t const ali
   return nullptr;
 }
 
+void* TorchAsyncOutAllocator::reallocateOutputAsync(char const* tensorName, void* currentMemory,
+                                                    uint64_t size, uint64_t alignment,
+                                                    cudaStream_t stream) noexcept {
+  if (c10::cuda::getCurrentCUDAStream() != stream) {
+    SPDLOG_ERROR("TorchAsyncAllocator was not using current cuda stream, which is not supported.");
+    return nullptr;
+  }
+
+  size = std::max(size, static_cast<uint64_t>(1));
+  if (size > allocated_size_) {
+    try {
+      torch::Tensor buf = torch::empty({static_cast<int64_t>(size)},
+                                       torch::dtype(torch::kByte).device(torch::kCUDA));
+      void* ptr = buf.data_ptr();
+
+      if (alignment && reinterpret_cast<uintptr_t>(ptr) % alignment != 0) {
+        auto offset = (alignment - (reinterpret_cast<uintptr_t>(ptr) % alignment));
+        buf = torch::Tensor();  // stream ordered reuse
+        buf = torch::empty({static_cast<int64_t>(size + offset)},
+                           torch::dtype(torch::kByte).device(torch::kCUDA));
+        ptr = buf.data_ptr();
+        ptr = (char*)ptr + offset;
+      }
+
+      // std::lock_guard<std::mutex> lock(mutex_);
+      // data_.insert({ptr, buf});
+      allocated_size_ = size;
+      ptr_ = ptr;
+
+    } catch (const std::exception& e) {
+      SPDLOG_ERROR("TorchAllocator::allocateAsync failed(size={}): {}", size, e.what());
+      return nullptr;
+    }
+  }
+  return ptr_;
+}
+
+void TorchAsyncOutAllocator::notifyShape(char const* tensorName,
+                                         nvinfer1::Dims const& dims) noexcept {}
+
 bool TorchAsyncAllocator::deallocateAsync(void* const memory, cudaStream_t stream) noexcept {
   // if (memory == nullptr) return true;
 

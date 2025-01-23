@@ -75,10 +75,32 @@ bool check_dynamic_batchsize(nvinfer1::INetworkDefinition* network) {
   return true;
 }
 
+// std::string str_tolower(std::string s) {
+//   std::transform(s.begin(), s.end(), s.begin(),
+//                  // static_cast<int(*)(int)>(std::tolower)         // wrong
+//                  // [](int c){ return std::tolower(c); }           // wrong
+//                  // [](char c){ return std::tolower(c); }          // wrong
+//                  [](unsigned char c) { return std::tolower(c); }  // correct
+//   );
+//   return s;
+// }
+
+std::string str_tolower(std::string s) {
+  constexpr auto DIFF_UPPER_LOWER = 'a' - 'A';
+  for (char& ch : s) {
+    if (ch >= 'A' && ch <= 'Z') {
+      ch += DIFF_UPPER_LOWER;
+    }
+  }
+  return s;
+}
+
 bool precision_fpx_count(const std::set<std::string>& layers, const std::string& name,
                          std::set<std::string>& layers_erased) {
   for (const auto& item : layers) {
-    if (name.find(item) != std::string::npos) {
+    const std::string lower_name = str_tolower(item);
+    const std::string lower_item = str_tolower(item);
+    if (lower_name.find(lower_item) != std::string::npos) {
       layers_erased.insert(item);
       return true;
     }

@@ -650,7 +650,7 @@ std::vector<std::string> brackets_match(const std::string& strtem_, char left, c
       if (iter_end == std::string::npos) {
         throw std::invalid_argument("brackets not match: " + strtem_);
       }
-      assert(iter_end == strtem.size() - 1);
+      IPIPE_ASSERT(iter_end == strtem.size() - 1, "brackets not match: " + strtem_);
 
       brackets.emplace_back(strtem.substr(0, iter_begin));
       strtem = strtem.substr(iter_begin + 1, iter_end - iter_begin - 1);

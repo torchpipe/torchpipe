@@ -157,7 +157,9 @@ struct Stack {
   std::size_t task_queue_index = 0;
   bool need_update_processed{false};
 
-  bool allStopped() { return waiting_nodes.size() + processed.size() == num_nodes; }
+  bool allStopped() {
+    return waiting_nodes.size() + processed.size() == num_nodes || 0 == num_nodes;
+  }
   bool allFinished() {
     for (const auto& item : end_nodes) {
       if (processed.find(item) == processed.end()) return false;

@@ -236,7 +236,6 @@ class LogicalGraph {
     new_graph->del_nodes(previous);
 
     if (!new_graph->finalize()) {
-      assert(false);
       return nullptr;
     }
 
