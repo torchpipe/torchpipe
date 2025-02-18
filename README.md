@@ -1,6 +1,6 @@
 
 
-English | [简体中文](README_zh.md)
+English 
 
 
 <div align="center">
@@ -33,8 +33,13 @@ Production-Grade：Within NetEase a massive number of calls supported by Torchpi
 
 
 
-**Latest News** 🔥
+## Version Migration Notes 
+The core functionality of TorchPipe (v0) has been extracted into a standalone [Hami](https://github.com/torchpipe/torchpipe/tree/v1?tab=readme-ov-file) library. Additionally, [TorchPipe (v1)](https://github.com/torchpipe/torchpipe/tree/v1/plugins/torchpipe) has been developed as a collection of deep learning computation backends built on top of this Hami library. This change is driven by three main reasons:
+- Treat the scheduling component, as part of the user API.
+- The core library is better integrated into PyPI.
+- Better code quality.
 
+TorchPipe v0 will no longer receive updates. However, it is still recommended for use at this stage. The migration of all functionalities to TorchPipe (v1) is ongoing, and we are actively working to complete this transition.
 
 ## Installation
 
