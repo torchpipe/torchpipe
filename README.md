@@ -24,7 +24,7 @@ torchpipe is an alternative choice for Triton Inference Server, mainly featuring
 
 ## Version Migration Notes 
 
-The core functionality of TorchPipe (v0) has been extracted into this standalone Hami library.  
+The core functionality of [TorchPipe (v0)](https://github.com/torchpipe/torchpipe/tree/v0) has been extracted into this standalone Hami library.  
 
 [TorchPipe (v1)](plugins/torchpipe/README.md) is a collection of deep learning computation backends built on this Hami library, primarily integrating third-party libraries including TensorRT, OpenCV, and LibTorch.
 
