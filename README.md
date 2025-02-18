@@ -1,7 +1,5 @@
 
-
-English 
-
+ 
 
 <div align="center">
 <h1 align="center">TorchPipe</h1>
