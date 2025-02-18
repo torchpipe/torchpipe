@@ -1,0 +1,28 @@
+include(pybind_extension)
+
+pybind_extension(
+  NAME
+    _C
+  COPTS
+    -DPY_MODULE_NAME=_C
+  SRCS
+    csrc/core.cpp
+    csrc/module.cpp
+    csrc/any.cpp
+    csrc/dict.cpp
+    csrc/event.cpp
+    csrc/backend.cpp
+    csrc/converts.cpp
+    csrc/py_register.cpp
+    csrc/py_helper.cpp
+    csrc/register.cpp
+  HDRS
+    csrc/any.hpp
+    csrc/register.hpp
+    csrc/py_register.hpp
+  DEFINES 
+    PYBIND11_DETAILED_ERROR_MESSAGES=1
+  DEPS
+    :libhami
+    :spdlog
+)

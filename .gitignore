@@ -1,0 +1,15 @@
+.vscode
+build/
+hami.egg-info/
+dist/
+__pycache__/
+lib*.so
+*.cpython*.so
+core
+!core/
+.tox
+version.py
+hami/version.py
+.setuptools-cmake-build/
+version.py
+plugins/torchpipe/torchpipe/native.so

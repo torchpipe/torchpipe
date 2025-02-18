@@ -1,0 +1,13 @@
+recursive-include cmake *
+recursive-include cpp *
+recursive-include third_party *
+recursive-include hami *
+
+include LICENSE
+include VERSION
+include CMakeLists.txt
+
+global-exclude */__pycache__/*
+global-exclude *.pyc
+
+include hami/*.py

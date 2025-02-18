@@ -1,0 +1,37 @@
+#pragma once
+
+#include <memory>
+#include "hami/builtin/basic_backends.hpp"
+#include "hami/helper/params.hpp"
+#include "hami/helper/macro.h"
+namespace hami {
+
+class Condition : public Dependency {
+ private:
+  std::function<bool(const dict&)> condition_;
+
+ public:
+  void pre_init(const std::unordered_map<std::string, std::string>& config,
+                const dict& dict_config) override final;
+  virtual void init_impl(const std::unordered_map<std::string, std::string>& config,
+                         const dict& dict_config) {}
+  void forward_impl(const std::vector<dict>& inputs, Backend* dependency) override final {
+    std::vector<dict> valid_inputs;
+    for (auto& input : inputs) {
+      if (condition_(input)) {
+        valid_inputs.push_back(input);
+      }
+    }
+    if (!valid_inputs.empty()) {
+      dependency->safe_forward(valid_inputs);
+    }
+  }
+
+  virtual std::function<bool(const dict&)> condition_impl() const = 0;
+
+ public:
+  // std::function<bool(const dict&)> condition_impl() const override {
+  //   return [this](const dict& input) { return input->find(key_) != input->end(); };
+  // }
+};
+}  // namespace hami

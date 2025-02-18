@@ -1,0 +1,27 @@
+include(cc_library)
+include(cc_test)
+
+cc_library(
+  NAME 
+    schedule
+  HDRS
+    restart.hpp
+  SRCS
+    restart.cpp
+    event_guard.cpp
+    schedule.cpp
+    dag.cpp
+  DEPS
+    :core
+    :helper
+)
+
+# cc_test(
+#   NAME 
+#     common_test
+#   SRCS
+#     any_test.cpp
+#   DEPS
+#     common
+#     GTest::gtest_main
+# )

@@ -1,0 +1,17 @@
+
+#pragma once
+#include <hami/extension.hpp>
+
+namespace torchpipe {
+
+class CvtColorMat : public hami::SingleBackend {
+ public:
+  virtual void init(const std::unordered_map<std::string, std::string>&,
+                    const hami::dict&) override;
+
+  virtual void forward(const hami::dict&) override;
+
+ private:
+  std::string color_;
+};
+}  // namespace torchpipe

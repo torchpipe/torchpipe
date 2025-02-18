@@ -1,0 +1,20 @@
+backend = "Identity"
+[a]
+next = "b1,b2"
+[b1]
+backend = "Pow"
+next = "c"
+[b2]
+backend = "Pow"
+next = "c"
+[c]
+map = "b1[result:data],b2[result:tmp]"
+next = "d"
+[d]
+next = "e"
+[e]
+backend = "Pass"
+next = "f"
+[f]
+backend = "Pow"
+or = true

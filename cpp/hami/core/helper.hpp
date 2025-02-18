@@ -1,0 +1,151 @@
+#pragma once
+
+#include <vector>
+#include <optional>
+#include "hami/core/dict.hpp"
+#include "hami/core/task_keys.hpp"
+#include "hami/core/backend.hpp"
+
+namespace hami {
+class DictHelper {
+ public:
+  DictHelper(const std::vector<dict>& data)
+      : dicts_(data) {
+          // keep(TASK_DATA_KEY);
+          // keep("node_name");
+        };
+  ~DictHelper() {
+    for (std::size_t i = 0; i < dicts_.size(); ++i) {
+      for (const std::string& key : lazy_clear_keys_) {
+        dicts_[i]->erase(key);
+      }
+      for (const auto& item : keep_) {
+        if (item.second[i]) (*dicts_[i])[item.first] = *item.second[i];
+      }
+    }
+  };
+  // void clear(const std::string& key) {
+  //   for (auto da : dicts_) {
+  //     da->erase(key);
+  //   }
+  // }
+  DictHelper& erase(const std::string& key) {
+    for (auto da : dicts_) {
+      da->erase(key);
+    }
+    return *this;
+  }
+  template <typename T>
+  DictHelper& set(const std::string& key, T&& value) {
+    for (auto da : dicts_) {
+      (*da)[key] = value;
+    }
+    return *this;
+  }
+
+  DictHelper& lazy_erase(const std::string& key) {
+    if (key == TASK_DATA_KEY) {
+      throw std::out_of_range("TASK_DATA_KEY is not allowed to be lazily erased");
+    }
+    lazy_clear_keys_.push_back(key);
+    return *this;
+  }
+  DictHelper& keep(const std::string& key) {
+    std::vector<std::optional<any>> keeped;
+    for (const auto& da : dicts_) {
+      auto iter = da->find(key);
+      if (iter == da->end()) {
+        keeped.emplace_back(std::nullopt);
+      } else {
+        keeped.emplace_back(iter->second);
+      }
+    }
+    keep_[key] = keeped;
+    return *this;
+  }
+
+  DictHelper& lazy_copy(const std::string& key, const std::string& target_key) {
+    std::vector<std::optional<any>> keeped;
+    for (const auto& da : dicts_) {
+      auto iter = da->find(key);
+      if (iter == da->end()) {
+        keeped.emplace_back(std::nullopt);
+      } else {
+        keeped.emplace_back(iter->second);
+      }
+    }
+    keep_[target_key] = keeped;
+    return *this;
+  }
+
+  DictHelper& copy(const std::string& key, const std::string& target_key) {
+    std::vector<std::optional<any>> keeped;
+    for (auto& da : dicts_) {
+      auto iter = da->find(key);
+      if (iter == da->end()) {
+      } else {
+        (*da)[target_key] = iter->second;
+      }
+    }
+    return *this;
+  }
+
+  DictHelper& keep_alive(const std::string& key) {
+    std::vector<any> keeped;
+    for (const auto& da : dicts_) {
+      auto iter = da->find(key);
+      if (iter == da->end()) {
+        // throw std::out_of_range(key + ": not exists");
+      }
+      keeped.emplace_back(iter->second);
+    }
+    keep_alive_[key] = keeped;
+    return *this;
+  }
+
+ private:
+  const std::vector<dict>& dicts_;
+  std::vector<std::string> lazy_clear_keys_;
+  std::unordered_map<std::string, std::vector<std::optional<any>>> keep_;
+  std::unordered_map<std::string, std::vector<any>> keep_alive_;
+};
+
+template <typename Container = std::vector<dict>>
+static inline int get_request_size(const Container& in) {
+  int total_len = 0;
+  for (const auto& item : in) {
+    total_len += get_request_size(item);
+  }
+  return total_len;
+}
+
+template <>
+inline int get_request_size<dict>(const dict& in) {
+  const auto iter = in->find(TASK_REQUEST_SIZE_KEY);
+  if (iter != in->end()) {
+    if (iter->second.type() == typeid(int))
+      return any_cast<int>(iter->second);
+    else if (iter->second.type() == typeid(size_t))
+      return any_cast<size_t>(iter->second);
+    else {
+      return std::stoi(any_cast<string>(iter->second));
+    }
+  } else {
+    return 1;
+  }
+}
+
+// make sure  the backend can handle  both sync && async
+// situation even the user only implement the sync version
+bool event_guard(Backend* dependency, const std::vector<dict>& inputs);
+
+template <typename T>
+std::string debug_node_info(const T& config) {
+  if (auto iter = config.find(TASK_NODE_NAME_KEY); iter != config.end()) {
+    return " node=" + iter->second + " . ";
+  }
+
+  return "";
+}
+
+}  // namespace hami
