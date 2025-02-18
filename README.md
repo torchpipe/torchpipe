@@ -23,21 +23,24 @@ Serving inside Pytorch with Multiple Threads
 
 Torchpipe is an alternative choice for [Triton Inference Server]((https://github.com/triton-inference-server/server)), mainly featuring similar functionalities such as [Shared-momory](https://docs.nvidia.com/deeplearning/triton-inference-server/user-guide/docs/protocol/extension_shared_memory.html), [Ensemble](https://github.com/triton-inference-server/server/blob/main/docs/user_guide/architecture.md#ensemble-models), and [BLS](https://github.com/triton-inference-server/python_backend#business-logic-scripting) mechanism. It aims to address common problems faced by the industry.
 
+
+
+## Version Migration Notes 
+The core functionality of TorchPipe (v0) has been extracted into a standalone [Hami](https://github.com/torchpipe/torchpipe/tree/v1?tab=readme-ov-file) library. Additionally, [TorchPipe (v1)](https://github.com/torchpipe/torchpipe/tree/v1/plugins/torchpipe) has been developed as a collection of deep learning computation backends built on top of this Hami library. This change is driven by three main reasons:
+- Consider the scheduling component as part of the user API.
+- The core library is better integrated into PyPI.
+- Better code quality.
+
+TorchPipe v0 will no longer receive updates. However, it is still recommended for use at this stage. The migration of all functionalities to TorchPipe (v1) is ongoing, and we are actively working to complete this transition.
+
+
+## Overview
  Torchpipe is a multi-instance pipeline parallel library that acts as a bridge between lower-level acceleration libraries (such as TensorRT, OpenCV, CVCUDA) and RPC frameworks (like Thrift), ensuring a strict decoupling from them. It offers a thread-safe function interface for the PyTorch frontend at a higher level, while empowering users with fine-grained backend extension capabilities at a lower level.
 
 
 Production-Grade：Within NetEase a massive number of calls supported by Torchpipe everyday.
 
 
-
-
-## Version Migration Notes 
-The core functionality of TorchPipe (v0) has been extracted into a standalone [Hami](https://github.com/torchpipe/torchpipe/tree/v1?tab=readme-ov-file) library. Additionally, [TorchPipe (v1)](https://github.com/torchpipe/torchpipe/tree/v1/plugins/torchpipe) has been developed as a collection of deep learning computation backends built on top of this Hami library. This change is driven by three main reasons:
-- Treat the scheduling component, as part of the user API.
-- The core library is better integrated into PyPI.
-- Better code quality.
-
-TorchPipe v0 will no longer receive updates. However, it is still recommended for use at this stage. The migration of all functionalities to TorchPipe (v1) is ongoing, and we are actively working to complete this transition.
 
 ## Installation
 
