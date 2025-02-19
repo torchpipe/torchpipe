@@ -16,41 +16,40 @@
 
 #include <atomic>
 #include <cassert>
-#include <condition_variable>
 #include <functional>
-#include <iostream>
 #include <memory>
-#include <mutex>
+
 #include <unordered_map>
 #include <vector>
 #include <optional>
-
-#include "hami/core/string.hpp"
-#include "hami/core/any.hpp"
-// #include  "hami/core/task_keys.hpp"
 #include <variant>
 
+#include "hami/helper/symbol.hpp"
+#include "hami/core/string.hpp"
+#include "hami/core/any.hpp"
+
 namespace hami {
-// using namespace nonstd;  // for any, any_cast
 
 #ifdef CUSTOM_DICT
 using dict = CustomDict;
 #else
 using dict = std::shared_ptr<std::unordered_map<string, hami::any>>;
-static inline dict make_dict() { return std::make_shared<std::unordered_map<string, hami::any>>(); }
+static inline dict make_dict() {
+    return std::make_shared<std::unordered_map<string, hami::any>>();
+}
 
 #endif
 
 static inline dict make_dict(string node_name, dict data = nullptr) {
-  dict data_out;
-  if (!data) {
-    data_out = std::make_shared<std::unordered_map<string, any>>();
-  } else {
-    data_out = std::make_shared<std::unordered_map<string, any>>(*data);
-  }
-  assert(data_out != nullptr);
-  if (!node_name.empty()) (*data_out)["node_name"] = node_name;
-  return data_out;
+    dict data_out;
+    if (!data) {
+        data_out = std::make_shared<std::unordered_map<string, any>>();
+    } else {
+        data_out = std::make_shared<std::unordered_map<string, any>>(*data);
+    }
+    assert(data_out != nullptr);
+    if (!node_name.empty()) (*data_out)["node_name"] = node_name;
+    return data_out;
 }
 
 #define HAMI_NOEXCEPT noexcept
@@ -65,41 +64,39 @@ using dicts = std::vector<dict>;
 //   // std::unordered_map<string, string> custom;
 // };
 
-extern void throw_wrong_type(const char* need_type, const char* input_type);
-extern void throw_not_exist(const string& key);
 template <typename T = string>
 T dict_get(dict data, const string& key, bool return_default = false) {
-  auto iter = data->find(key);
-  if (iter != data->end()) {
-    if (iter->second.type() != typeid(T))
-      throw_wrong_type(typeid(T).name(), iter->second.type().name());
-    T result = any_cast<T>(iter->second);
-    return result;
-  } else {
-    if (return_default)
-      return T();
-    else {
-      throw std::invalid_argument("dict_get: can not found key: " + key);
+    auto iter = data->find(key);
+    if (iter != data->end()) {
+        if (iter->second.type() != typeid(T))
+            throw_wrong_type(typeid(T).name(), iter->second.type().name());
+        T result = any_cast<T>(iter->second);
+        return result;
+    } else {
+        if (return_default)
+            return T();
+        else {
+            throw std::invalid_argument("dict_get: can not found key: " + key);
+        }
     }
-  }
 }
 
 template <typename T = string>
 std::vector<T> dict_gets(dict data, const string& key) {
-  auto iter = data->find(key);
-  if (iter != data->end()) {
-    if (iter->second.type() == typeid(T)) {
-      T* result = any_cast<T>(&iter->second);
-      return std::vector<T>{*result};
-    } else if (iter->second.type() == typeid(std::vector<T>)) {
-      return *any_cast<std::vector<T>>(&iter->second);
+    auto iter = data->find(key);
+    if (iter != data->end()) {
+        if (iter->second.type() == typeid(T)) {
+            T* result = any_cast<T>(&iter->second);
+            return std::vector<T>{*result};
+        } else if (iter->second.type() == typeid(std::vector<T>)) {
+            return *any_cast<std::vector<T>>(&iter->second);
+        } else {
+            throw_wrong_type(typeid(T).name(), iter->second.type().name());
+        }
     } else {
-      throw_wrong_type(typeid(T).name(), iter->second.type().name());
+        throw std::invalid_argument("dict_get: can not found key: " + key);
     }
-  } else {
-    throw std::invalid_argument("dict_get: can not found key: " + key);
-  }
-  return std::vector<T>();  // make gcc happy
+    return std::vector<T>();  // make gcc happy
 }
 
 // template <typename T>
@@ -116,46 +113,46 @@ std::vector<T> dict_gets(dict data, const string& key) {
 
 template <typename T>
 std::optional<T> try_get(dict data, const string& key) {
-  auto iter = data->find(key);
-  if (iter != data->end()) {
-    if (iter->second.type() != typeid(T)) return std::nullopt;
-    T* result = any_cast<T>(&iter->second);
-    return *result;
-  }
-  return std::nullopt;
+    auto iter = data->find(key);
+    if (iter != data->end()) {
+        if (iter->second.type() != typeid(T)) return std::nullopt;
+        T* result = any_cast<T>(&iter->second);
+        return *result;
+    }
+    return std::nullopt;
 }
 
 template <typename T = string>
 void update(dict data, const string& key, T& output) {
-  auto iter = data->find(key);
-  if (iter != data->end()) {
-    output = any_cast<T>(iter->second);
-  } else {
-    throw std::invalid_argument("can not found key: " + key);
-  }
+    auto iter = data->find(key);
+    if (iter != data->end()) {
+        output = any_cast<T>(iter->second);
+    } else {
+        throw std::invalid_argument("can not found key: " + key);
+    }
 }
 
 template <typename T = string>
 void try_update(dict data, const string& key, T& output) {
-  auto iter = data->find(key);
-  if (iter != data->end()) {
-    output = any_cast<T>(iter->second);
-  }
+    auto iter = data->find(key);
+    if (iter != data->end()) {
+        output = any_cast<T>(iter->second);
+    }
 }
 
 static inline void clear_dicts(dicts& data, const string& key) {
-  for (auto& item : data) {
-    item->erase(key);
-  }
+    for (auto& item : data) {
+        item->erase(key);
+    }
 }
 
 struct TypedDict {
-  using BaseType =
-      std::variant<bool, int, std::shared_ptr<TypedDict>, string, double,
-                   std::vector<int>>;  // pls keep order for variant
-                                       // :https://github.com/pybind/pybind11/issues/1625
+    using BaseType = std::variant<
+        bool, int, std::shared_ptr<TypedDict>, string, double,
+        std::vector<int>>;  // pls keep order for variant
+                            // :https://github.com/pybind/pybind11/issues/1625
 
-  std::unordered_map<string, BaseType> data;
+    std::unordered_map<string, BaseType> data;
 };
 
 // template <typename T>

@@ -8,6 +8,7 @@ cc_library(
     string.hpp
     base_logging.hpp
     macro.h
+    hami_export.h
     params.hpp
     symbol.hpp
     threadsafe_sized_queue.hpp

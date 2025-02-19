@@ -21,9 +21,9 @@ std::vector<std::string> str_split(std::string strtem, char a);
 /**
  * @brief Splits a string by a delimiter while skipping nested sections.
  *
- * This function splits a string by a specified delimiter, but skips sections enclosed by specified
- * left and right characters. For example, "A,B[C,D(a=1,b=2)],E" will be split into {"A",
- * "B[C,D(a=1,b=2)]", "E"}.
+ * This function splits a string by a specified delimiter, but skips sections
+ * enclosed by specified left and right characters. For example,
+ * "A,B[C,D(a=1,b=2)],E" will be split into {"A", "B[C,D(a=1,b=2)]", "E"}.
  *
  * @param input The input string to be split.
  * @param delimiter The character used to split the string.
@@ -31,17 +31,18 @@ std::vector<std::string> str_split(std::string strtem, char a);
  * @param skipRight The character that marks the end of a section to skip.
  * @return A vector of strings after splitting.
  */
-std::vector<std::string> items_split(std::string input, char delimiter, char skipLeft = '[',
-                                     char skipRight = ']');
+std::vector<std::string> items_split(std::string input, char delimiter,
+                                     char skipLeft = '[', char skipRight = ']');
 /**
  * @brief Expands nested brackets in strings.
  *
- * This function processes a string containing nested square brackets and expands them according to
- * the following rules:
+ * This function processes a string containing nested square brackets and
+ * expands them according to the following rules:
  * 1. Converts "A[B[C]]" to "A; B; C".
  * 2. Converts "A[B[C],D,B[E[Z1,Z2]]]" to "A; B[C],D,B[E[Z1,Z2]]".
  *
- * Note that in the second case, "B[C],D,B[E[Z1,Z2]]" is treated as a single entity.
+ * Note that in the second case, "B[C],D,B[E[Z1,Z2]]" is treated as a single
+ * entity.
  *
  * @note All spaces will be removed from the input string.
  *
@@ -50,11 +51,12 @@ std::vector<std::string> items_split(std::string input, char delimiter, char ski
  * @param right The right bracket character, default is ']'.
  * @return A vector of strings after expanding the brackets.
  */
-std::vector<std::string> flatten_brackets(const std::string& strtem, char left = '[',
-                                          char right = ']');
+std::vector<std::string> flatten_brackets(const std::string& strtem,
+                                          char left = '[', char right = ']');
 
 /**
- * @brief Converts square bracket expressions into key-value pair parameters. For example:
+ * @brief Converts square bracket expressions into key-value pair parameters.
+ * For example:
  *
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~{.py}
  * # From
@@ -66,17 +68,18 @@ std::vector<std::string> flatten_brackets(const std::string& strtem, char left =
  * # Expands to
  * {"backend":"A","A::dependency":"B[C],D,B[E[Z1,Z2]]"}
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
- * Here, the comma operator is parsed as a whole, `B[C],D,B[E[Z1,Z2]]` is treated as a valid backend
- * of A. The validity depends on A being able to understand the three backends `B[C]`, `D`, and
- * `B[E[Z1,Z2]]` by calling the brackets_split function to expand them into {backend=B,
- * B::dependency=C}, {backend=D}, and {backend=B, B::dependency=E[Z1,Z2]}. The default @ref
+ * Here, the comma operator is parsed as a whole, `B[C],D,B[E[Z1,Z2]]` is
+ * treated as a valid backend of A. The validity depends on A being able to
+ * understand the three backends `B[C]`, `D`, and `B[E[Z1,Z2]]` by calling the
+ * brackets_split function to expand them into {backend=B, B::dependency=C},
+ * {backend=D}, and {backend=B, B::dependency=E[Z1,Z2]}. The default @ref
  * Sequential container supports this functionality.
  *
  * Refer to @ref flatten_brackets.
  * @warning Does not support cases that cause duplicate keys. For example,
  * B[B[C],D,B[E[Z1,Z2]]] and B[C[B]] are supported,
- * but B[B[C]] is not supported because the latter will have duplicate B::dependency keys, and an
- * invalid_argument exception will be thrown.
+ * but B[B[C]] is not supported because the latter will have duplicate
+ * B::dependency keys, and an invalid_argument exception will be thrown.
  * @param src The input string containing square bracket expressions.
  * @param dst_config The output unordered_map to store the key-value pairs.
  * @param key The initial key for the backend, default is "backend".
@@ -84,120 +87,183 @@ std::vector<std::string> flatten_brackets(const std::string& strtem, char left =
  * @param right The right bracket character, default is ']'.
  */
 void brackets_split(const std::string& src,
-                    std::unordered_map<std::string, std::string>& dst_config, std::string key,
-                    char left = '[', char right = ']');
+                    std::unordered_map<std::string, std::string>& dst_config,
+                    std::string key, char left = '[', char right = ']');
 
-std::string brackets_split(const std::string& src,
-                           std::unordered_map<std::string, std::string>& dst_config,
-                           char left = '[', char right = ']');
+std::string brackets_split(
+    const std::string& src,
+    std::unordered_map<std::string, std::string>& dst_config, char left = '[',
+    char right = ']');
 
-std::string prefix_parentheses_split(const std::string& strtem, std::string& pre_str);
-std::string post_parentheses_split(const std::string& strtem, std::string& post_str);
+std::string prefix_parentheses_split(const std::string& strtem,
+                                     std::string& pre_str);
+std::string post_parentheses_split(const std::string& strtem,
+                                   std::string& post_str);
 
 /**
- * @brief Checks if the left and right brackets in the string are matched and if the string can be
- * separated by outer commas.
+ * @brief Checks if the left and right brackets in the string are matched and if
+ * the string can be separated by outer commas.
  *
  * @param strtem The input string to check.
  * @param left The left bracket character.
  * @param right The right bracket character.
- * @return true If the string can be separated by commas, e.g., B[C],D,B[E[Z1,Z2]] can be separated
- * into three parts.
- * @return false If the string cannot be separated by commas, e.g., A[B[C],D,B[E[Z1,Z2]]] cannot be
- * separated by commas.
- * @exception Throws invalid_argument exception if brackets are unmatched or if a comma appears at
- * the first or last position of the string.
+ * @return true If the string can be separated by commas, e.g.,
+ * B[C],D,B[E[Z1,Z2]] can be separated into three parts.
+ * @return false If the string cannot be separated by commas, e.g.,
+ * A[B[C],D,B[E[Z1,Z2]]] cannot be separated by commas.
+ * @exception Throws invalid_argument exception if brackets are unmatched or if
+ * a comma appears at the first or last position of the string.
  */
 bool is_comma_separable(const std::string& strtem, char left, char right);
 
 /** @brief
- * split "a=1,2/b=1" to {{"a", "1,2"}, {"b", "1"}} by config_split("a=1,2/b=1", '=', '/')
- * split "a=1,b=2" to {{"a", "1"}, {"b", "2"}} by config_split("a=1,b=2", '=', ',')
- * split "a" to {{"a", "1"}} by config_split("a", '=', ',', "1")
+ * split "a=1,2/b=1" to {{"a", "1,2"}, {"b", "1"}} by config_split("a=1,2/b=1",
+ * '=', '/') split "a=1,b=2" to {{"a", "1"}, {"b", "2"}} by
+ * config_split("a=1,b=2", '=', ',') split "a" to {{"a", "1"}} by
+ * config_split("a", '=', ',', "1")
  */
-std::unordered_map<std::string, std::string> map_split(std::string strtem, char inner_sp,
-                                                       char outer,
-                                                       const std::string& default_value);
+std::unordered_map<std::string, std::string> map_split(
+    std::string strtem, char inner_sp, char outer,
+    const std::string& default_value);
 
 /**
- * call map_split(strtem, '=', '/', "1") if find '/', else  map_split(strtem, '=',
+ * call map_split(strtem, '=', '/', "1") if find '/', else  map_split(strtem,
+ * '=',
  * ',', "1")
  */
-std::unordered_map<std::string, std::string> auto_config_split(const std::string& strtem);
+std::unordered_map<std::string, std::string> auto_config_split(
+    const std::string& strtem);
 
 size_t edit_distance(const std::string& s, const std::string& t);
 
 template <typename T>
-void str2int(const str::str_map& config, const std::string& key, T& default_value) {
-  static_assert(std::is_integral_v<T>, "T must be an integral type");
-  auto iter = config.find(key);
-  if (iter == config.end()) {
-    SPDLOG_DEBUG("parameter {} not found, default to {}", key, default_value);
-    return;
-  }
+void str2int(const str::str_map& config, const std::string& key,
+             T& default_value) {
+    static_assert(std::is_integral_v<T>, "T must be an integral type");
+    auto iter = config.find(key);
+    if (iter == config.end()) {
+        SPDLOG_DEBUG("parameter {} not found, default to {}", key,
+                     default_value);
+        return;
+    }
 
-  const std::string& value = iter->second;
-  auto [ptr, ec] = std::from_chars(value.data(), value.data() + value.size(), default_value);
-  bool success = ec == std::errc() && ptr == value.data() + value.size();
-  if (!success) {
-    throw std::invalid_argument("invalid " + key + ": " + value);
-  }
+    const std::string& value = iter->second;
+    auto [ptr, ec] = std::from_chars(value.data(), value.data() + value.size(),
+                                     default_value);
+    bool success = ec == std::errc() && ptr == value.data() + value.size();
+    if (!success) {
+        throw std::invalid_argument("invalid " + key + ": " + value);
+    }
 }
 
 template <typename T>
 T str2int(const str::str_map& config, const std::string& key) {
-  static_assert(std::is_integral_v<T>, "T must be an integral type");
-  auto iter = config.find(key);
-  if (iter == config.end()) {
-    throw std::invalid_argument("parameter " + key + " not found");
-  }
-
-  T result_value;
-  const std::string& value = iter->second;
-  auto [ptr, ec] = std::from_chars(value.data(), value.data() + value.size(), result_value);
-  bool success = ec == std::errc() && ptr == value.data() + value.size();
-  if (!success) {
-    throw std::invalid_argument("invalid " + key + ": " + value);
-  }
-  return result_value;
-}
-
-static inline std::string get_str(const str::str_map& config, const std::string& key) {
-  auto iter = config.find(key);
-  if (iter == config.end()) {
-    throw std::invalid_argument("parameter " + key + " not found");
-  }
-
-  return iter->second;
-}
-
-static inline std::string join(const std::unordered_set<std::string>& vec, char sep) {
-  std::ostringstream oss;
-  bool first = true;
-  for (const auto& s : vec) {
-    if (!first) {
-      oss << sep;
+    static_assert(std::is_integral_v<T>, "T must be an integral type");
+    auto iter = config.find(key);
+    if (iter == config.end()) {
+        throw std::invalid_argument("parameter " + key + " not found");
     }
-    oss << s;
-    first = false;
-  }
-  return oss.str();
+
+    T result_value;
+    const std::string& value = iter->second;
+    auto [ptr, ec] = std::from_chars(value.data(), value.data() + value.size(),
+                                     result_value);
+    bool success = ec == std::errc() && ptr == value.data() + value.size();
+    if (!success) {
+        throw std::invalid_argument("invalid " + key + ": " + value);
+    }
+    return result_value;
 }
 
-static inline void try_update(const str::str_map& config, const std::string& key,
-                              std::string& default_value,
-                              const std::unordered_set<std::string>& valid_inputs = {}) {
-  auto iter = config.find(key);
-  if (iter == config.end()) {
-    return;
-  }
+template <typename T>
+T update(const str::str_map& config, const std::string& key) {
+    static_assert(std::is_integral_v<T>, "T must be an integral type");
+    auto iter = config.find(key);
+    if (iter == config.end()) {
+        throw std::invalid_argument("parameter " + key + " not found");
+    }
 
-  if (valid_inputs.count(iter->second) == 0) {
-    throw std::invalid_argument("parameter " + key + " is out of range: " + iter->second +
-                                ", valid inputs are " + str::join(valid_inputs, ','));
-  }
+    T result_value;
+    const std::string& value = iter->second;
+    auto [ptr, ec] = std::from_chars(value.data(), value.data() + value.size(),
+                                     result_value);
+    bool success = ec == std::errc() && ptr == value.data() + value.size();
+    if (!success) {
+        throw std::invalid_argument("invalid " + key + ": " + value);
+    }
+    return result_value;
+}
 
-  default_value = iter->second;
+static inline std::string get_str(const str::str_map& config,
+                                  const std::string& key) {
+    auto iter = config.find(key);
+    if (iter == config.end()) {
+        throw std::invalid_argument("parameter " + key + " not found");
+    }
+
+    return iter->second;
+}
+
+static inline std::string join(const std::unordered_set<std::string>& vec,
+                               char sep) {
+    std::ostringstream oss;
+    bool first = true;
+    for (const auto& s : vec) {
+        if (!first) {
+            oss << sep;
+        }
+        oss << s;
+        first = false;
+    }
+    return oss.str();
+}
+
+static inline std::string tolower(std::string s) {
+    constexpr auto DIFF_UPPER_LOWER = 'a' - 'A';
+    for (char& ch : s) {
+        if (ch >= 'A' && ch <= 'Z') {
+            ch += DIFF_UPPER_LOWER;
+        }
+    }
+    return s;
+}
+
+static inline void try_update(
+    const str::str_map& config, const std::string& key,
+    std::string& default_value,
+    const std::unordered_set<std::string>& valid_inputs = {}) {
+    auto iter = config.find(key);
+    if (iter == config.end()) {
+        return;
+    }
+
+    if (valid_inputs.count(iter->second) == 0) {
+        throw std::invalid_argument(
+            "parameter " + key + " is out of range: " + iter->second +
+            ", valid inputs are " + str::join(valid_inputs, ','));
+    }
+
+    default_value = iter->second;
+}
+
+template <typename T>
+void try_update(const str::str_map& config, const std::string& key,
+                T& default_value) {
+    static_assert(std::is_integral_v<T>, "T must be an integral type");
+    auto iter = config.find(key);
+    if (iter == config.end()) {
+        SPDLOG_DEBUG("parameter {} not found, default to {}", key,
+                     default_value);
+        return;
+    }
+
+    const std::string& value = iter->second;
+    auto [ptr, ec] = std::from_chars(value.data(), value.data() + value.size(),
+                                     default_value);
+    bool success = ec == std::errc() && ptr == value.data() + value.size();
+    if (!success) {
+        throw std::invalid_argument("invalid " + key + ": " + value);
+    }
 }
 
 }  // namespace hami::str
@@ -207,43 +273,45 @@ namespace str {
 
 template <typename... Args>
 std::string format(const std::string& fmt, Args&&... args) {
-  std::ostringstream oss;
-  std::string remaining_fmt = fmt;  // 引入一个非 const 的局部变量
-  size_t index = 0;
-  size_t pos = 0;
+    std::ostringstream oss;
+    std::string remaining_fmt = fmt;  // 引入一个非 const 的局部变量
+    size_t index = 0;
+    size_t pos = 0;
 
-  // 使用 lambda 捕获参数包
-  auto format_arg = [&](const auto& arg) {
-    // 如果索引超过参数的数量，直接返回
-    if (index >= sizeof...(Args)) {
-      return;
-    }
+    // 使用 lambda 捕获参数包
+    auto format_arg = [&](const auto& arg) {
+        // 如果索引超过参数的数量，直接返回
+        if (index >= sizeof...(Args)) {
+            return;
+        }
 
-    std::string placeholder = "{" + std::to_string(index) + "}";
-    size_t current_pos = remaining_fmt.find(placeholder, pos);
-    if (current_pos != std::string::npos) {
-      // 将当前占位符之前的部分添加到 ostringstream
-      oss << remaining_fmt.substr(0, current_pos);
-      // 添加参数
-      oss << arg;
-      // 更新剩余格式字符串
-      remaining_fmt = remaining_fmt.substr(current_pos + placeholder.length());
-      pos = 0;  // 重置位置，以确保后续搜索从头开始
-    } else {
-      // 如果没有找到占位符，直接添加剩余部分
-      oss << remaining_fmt;
-      remaining_fmt.clear();
-    }
-    index++;
-  };
+        std::string placeholder = "{" + std::to_string(index) + "}";
+        size_t current_pos = remaining_fmt.find(placeholder, pos);
+        if (current_pos != std::string::npos) {
+            // 将当前占位符之前的部分添加到 ostringstream
+            oss << remaining_fmt.substr(0, current_pos);
+            // 添加参数
+            oss << arg;
+            // 更新剩余格式字符串
+            remaining_fmt =
+                remaining_fmt.substr(current_pos + placeholder.length());
+            pos = 0;  // 重置位置，以确保后续搜索从头开始
+        } else {
+            // 如果没有找到占位符，直接添加剩余部分
+            oss << remaining_fmt;
+            remaining_fmt.clear();
+        }
+        index++;
+    };
 
-  // 依次处理每个参数
-  (format_arg(std::forward<Args>(args)), ...);
+    // 依次处理每个参数
+    (format_arg(std::forward<Args>(args)), ...);
 
-  // 添加剩余部分
-  oss << remaining_fmt;
-  return oss.str();
+    // 添加剩余部分
+    oss << remaining_fmt;
+    return oss.str();
 }
 
 }  // namespace str
+
 }  // namespace hami

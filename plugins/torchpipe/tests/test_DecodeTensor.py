@@ -18,7 +18,7 @@ import numpy as np
 # # Test function
 def test_DecodeTensor():
     # Initialize the DecodeTensor model
-    model = hami._C.init("S[DecodeTensor,CvtColorTensor,SyncTensor]")
+    model = hami._C.init("S[DecodeTensor,SyncTensor]")
 
     img = Image.fromarray(np.zeros((1140, 1200, 3), dtype=np.uint8))
     img_byte_arr = BytesIO()
@@ -33,3 +33,6 @@ def test_DecodeTensor():
 
     # Assert the shape of the output tensor
     assert input["result"].shape == (1, 3, 1140, 1200)
+    
+if __name__ =="__main__":
+    test_DecodeTensor()

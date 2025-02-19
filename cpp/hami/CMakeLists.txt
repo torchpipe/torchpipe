@@ -14,9 +14,11 @@ cc_dynamic_library(
   SRCS
     libhami.cpp
   DEPS
+    :helper
     :schedule
     :core
     :builtin
+    
 )
 
 # LINKOPTS

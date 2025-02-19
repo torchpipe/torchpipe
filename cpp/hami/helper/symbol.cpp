@@ -26,11 +26,11 @@ namespace hami {
 #include <memory>
 #include <cxxabi.h>
 std::string local_demangle(const char* name) {
-  int status = -1;
-  std::unique_ptr<char, void (*)(void*)> res{abi::__cxa_demangle(name, NULL, NULL, &status),
-                                             std::free};
+    int status = -1;
+    std::unique_ptr<char, void (*)(void*)> res{
+        abi::__cxa_demangle(name, NULL, NULL, &status), std::free};
 
-  return (status == 0) ? res.get() : name;
+    return (status == 0) ? res.get() : name;
 }
 #else
 
@@ -39,18 +39,18 @@ std::string local_demangle(const char* name) { return name; }
 #endif
 
 void throw_wrong_type(const char* need_type, const char* input_type) {
-  std::stringstream ss;
-  ss << "get data of type " << local_demangle(input_type) << ", but we need "
-     << local_demangle(need_type) << ".";
-  SPDLOG_ERROR(ss.str());
-  throw std::invalid_argument(ss.str());
+    std::stringstream ss;
+    ss << "get data of type " << local_demangle(input_type) << ", but we need "
+       << local_demangle(need_type) << ".";
+    SPDLOG_ERROR(ss.str());
+    throw std::invalid_argument(ss.str());
 }
 
 void throw_not_exist(std::string key) {
-  std::stringstream ss;
-  ss << "key " << key << " not exist.";
-  SPDLOG_ERROR(ss.str());
-  throw std::invalid_argument(ss.str());
+    std::stringstream ss;
+    ss << "key " << key << " not exist.";
+    SPDLOG_ERROR(ss.str());
+    throw std::invalid_argument(ss.str());
 }
 
 }  // namespace hami

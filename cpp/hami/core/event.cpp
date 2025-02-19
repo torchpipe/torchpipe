@@ -17,18 +17,20 @@
 // #include "pybind11/pybind11.h"
 #include <mutex>
 
-namespace {
+namespace hami {
 
-std::chrono::steady_clock::time_point inline now() { return std::chrono::steady_clock::now(); }
-
-float inline time_passed(decltype(now()) time_old) {
-  std::chrono::duration<float, std::milli> fp_ms = now() - time_old;
-  return fp_ms.count();
+std::chrono::steady_clock::time_point now() {
+    return std::chrono::steady_clock::now();
 }
-}  // namespace
+
+float time_passed(decltype(now()) time_old) {
+    std::chrono::duration<float, std::milli> fp_ms = now() - time_old;
+    return fp_ms.count();
+}
+}  // namespace hami
 namespace hami {
 
 Event::Event(size_t num) : num_task(num), starttime_(now()) {}
-float Event::time_passed() { return ::time_passed(starttime_); }
+float Event::time_passed() { return hami::time_passed(starttime_); }
 
 }  // namespace hami

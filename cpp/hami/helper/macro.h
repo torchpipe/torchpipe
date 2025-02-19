@@ -12,97 +12,109 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef HAMI_COMMON_H
-#define HAMI_COMMON_H
+#ifndef HAMI_COMMON_MACRO_H
+#define HAMI_COMMON_MACRO_H
 
-#define HAMI_EXPORT __attribute__((visibility("default")))
-#define HAMI_LOCAL __attribute__((visibility("hidden")))
+#include "hami/helper/hami_export.h"
+
 namespace {
 // constexpr
-constexpr const char* file_name(const char* path) {
-  const char* file = path;
-  while (*path) {
-    if (*path++ == '/') {
-      file = path;
+inline constexpr const char* file_name(const char* path) {
+    const char* file = path;
+    while (*path) {
+        if (*path++ == '/') {
+            file = path;
+        }
     }
-  }
-  return file;
+    return file;
 }
 }  // namespace
 
 #ifdef NEVER_DEFINE_THIS_COMMENTED_CODE
-#define HAMI_ASSERT(x, args...)                                                                  \
-  do {                                                                                           \
-    if (!(x)) {                                                                                  \
-      throw std::runtime_error("[" + std::string(file_name(__FILE__)) + ":" +                    \
-                               std::to_string(__LINE__) + std::string(" ") +                     \
-                               std::string(__FUNCTION__) + std::string("]: assert `") +          \
-                               std::string(#x) + std::string("` failed. ") + std::string(args)); \
-    }                                                                                            \
-  } while (false)
+#define HAMI_ASSERT(x, args...)                                          \
+    do {                                                                 \
+        if (!(x)) {                                                      \
+            throw std::runtime_error(                                    \
+                "[" + std::string(file_name(__FILE__)) + ":" +           \
+                std::to_string(__LINE__) + std::string(" ") +            \
+                std::string(__FUNCTION__) + std::string("]: assert `") + \
+                std::string(#x) + std::string("` failed. ") +            \
+                std::string(args));                                      \
+        }                                                                \
+    } while (false)
 #endif
 
-#define HAMI_ASSERT_V1(x, ...)                                                        \
-  do {                                                                                \
-    if (!(x)) {                                                                       \
-      throw std::runtime_error(                                                       \
-          "[" + std::string(file_name(__FILE__)) + ":" + std::to_string(__LINE__) +   \
-          std::string(" ") + std::string(__FUNCTION__) + std::string("]: assert `") + \
-          std::string(#x) + std::string("` failed. ") + std::string(__VA_ARGS__));    \
-    }                                                                                 \
-  } while (false)
+#define HAMI_ASSERT_V1(x, ...)                                           \
+    do {                                                                 \
+        if (!(x)) {                                                      \
+            throw std::runtime_error(                                    \
+                "[" + std::string(file_name(__FILE__)) + ":" +           \
+                std::to_string(__LINE__) + std::string(" ") +            \
+                std::string(__FUNCTION__) + std::string("]: assert `") + \
+                std::string(#x) + std::string("` failed. ") +            \
+                std::string(__VA_ARGS__));                               \
+        }                                                                \
+    } while (false)
 
-#define HAMI_ASSERT(x, ...)                                                   \
-  do {                                                                        \
-    if (!(x)) {                                                               \
-      throw std::runtime_error(                                               \
-          "\nAssertion failed:\n"                                             \
-          "\tFile: " +                                                        \
-          std::string(file_name(__FILE__)) + ":" + std::to_string(__LINE__) + \
-          "\n"                                                                \
-          "\tFunction: " +                                                    \
-          std::string(__FUNCTION__) +                                         \
-          "\n"                                                                \
-          "\tExpression: `" +                                                 \
-          std::string(#x) +                                                   \
-          "`\n"                                                               \
-          "\tMessage: " +                                                     \
-          std::string(__VA_ARGS__));                                          \
-    }                                                                         \
-  } while (false)
+#define HAMI_ASSERT(x, ...)                              \
+    do {                                                 \
+        if (!(x)) {                                      \
+            throw std::runtime_error(                    \
+                "\nAssertion failed:\n"                  \
+                "\tFile: " +                             \
+                std::string(file_name(__FILE__)) + ":" + \
+                std::to_string(__LINE__) +               \
+                "\n"                                     \
+                "\tFunction: " +                         \
+                std::string(__FUNCTION__) +              \
+                "\n"                                     \
+                "\tExpression: `" +                      \
+                std::string(#x) +                        \
+                "`\n"                                    \
+                "\tMessage: " +                          \
+                std::string(__VA_ARGS__));               \
+        }                                                \
+    } while (false)
 
-#define HAMI_THROW(args...)                                                                       \
-  {                                                                                               \
-    throw std::runtime_error("[" + std::string(file_name(__FILE__)) + ":" +                       \
-                             std::to_string(__LINE__) + std::string(" ") +                        \
-                             std::string(__FUNCTION__) + std::string("]: ") + std::string(args)); \
-  }
+#define HAMI_THROW(args...)                                               \
+    {                                                                     \
+        throw std::runtime_error("[" + std::string(file_name(__FILE__)) + \
+                                 ":" + std::to_string(__LINE__) +         \
+                                 std::string(" ") +                       \
+                                 std::string(__FUNCTION__) +              \
+                                 std::string("]: ") + std::string(args)); \
+    }
 
 #define HAMI_FATAL_ASSERT(x, ...) HAMI_ASSERT(x, __VA_ARGS__)
 #define IPIPE_ASSERT(x, ...) HAMI_ASSERT(x, __VA_ARGS__)
 
 #define SHUTDOWN_TIMEOUT 500
 
-#define STR_CONFIG_GET(config, key)                                                              \
-  auto iter = config.find(#key);                                                                 \
-  HAMI_ASSERT(iter != config.end(), "Incomplete configuration: missing " #key " configuration"); \
-  const std::string key = iter->second;
+#define STR_CONFIG_GET(config, key)                                          \
+    auto iter = config.find(#key);                                           \
+    HAMI_ASSERT(iter != config.end(),                                        \
+                "Incomplete configuration: missing " #key " configuration"); \
+    const std::string key = iter->second;
 
-#define TRACE_EXCEPT(input)                                                                  \
-  {                                                                                          \
-    try {                                                                                    \
-      input;                                                                                 \
-    } catch (const std::exception& e) {                                                      \
-      const auto& trace_exception_msg =                                                      \
-          ('[' + std::string(__FILE__) + ":" + std::to_string(__LINE__) + "]: failed:\n `" + \
-           std::string(#input) + "`.");                                                      \
-      throw std::runtime_error(std::string(e.what()) + "\nerror: " + trace_exception_msg);   \
-    } catch (...) {                                                                          \
-      const auto& trace_exception_msg =                                                      \
-          ('[' + std::string(__FILE__) + ":" + std::to_string(__LINE__) + "]: failed:\n `" + \
-           std::string(#input) + "`.");                                                      \
-      throw std::runtime_error(std::string("an exception not drived from std::exception.") + \
-                               "\nerror: " + trace_exception_msg);                           \
-    }                                                                                        \
-  }
+#define TRACE_EXCEPT(input)                                                   \
+    {                                                                         \
+        try {                                                                 \
+            input;                                                            \
+        } catch (const std::exception& e) {                                   \
+            const auto& trace_exception_msg =                                 \
+                ('[' + std::string(__FILE__) + ":" +                          \
+                 std::to_string(__LINE__) + "]: failed:\n `" +                \
+                 std::string(#input) + "`.");                                 \
+            throw std::runtime_error(std::string(e.what()) +                  \
+                                     "\nerror: " + trace_exception_msg);      \
+        } catch (...) {                                                       \
+            const auto& trace_exception_msg =                                 \
+                ('[' + std::string(__FILE__) + ":" +                          \
+                 std::to_string(__LINE__) + "]: failed:\n `" +                \
+                 std::string(#input) + "`.");                                 \
+            throw std::runtime_error(                                         \
+                std::string("an exception not drived from std::exception.") + \
+                "\nerror: " + trace_exception_msg);                           \
+        }                                                                     \
+    }
 #endif

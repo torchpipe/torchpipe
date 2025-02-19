@@ -10,6 +10,7 @@
 #include "hami/core/helper.hpp"
 #include "hami/core/task_keys.hpp"
 #include "hami/helper/string.hpp"
+
 namespace hami {
 void BatchingEvent::pre_init(const std::unordered_map<string, string>& config,
                              const dict& dict_config) {
