@@ -3,10 +3,11 @@
 #include <vector>
 #include <numeric>
 #include <string>
+#include <fstream>
 
 #include <hami/extension.hpp>
 #include "tensorrt_torch/tensorrt_helper.hpp"
-
+#include "NvInferPlugin.h"
 namespace {
 
 nvinfer1::ILogger::Severity trt_get_log_level(std::string level) {
@@ -386,8 +387,7 @@ void merge_mean_std(nvinfer1::INetworkDefinition* network,
 }
 
 bool initTrtPlugins() {
-    static bool didInitPlugins =
-        nvinfer1::initLibNvInferPlugins(&gLogger_inplace, "");
+    static bool didInitPlugins = initLibNvInferPlugins(&gLogger_inplace, "");
     assert(didInitPlugins);
     return didInitPlugins;
 }
@@ -463,7 +463,7 @@ std::unique_ptr<nvinfer1::IHostMemory> onnx2trt(const OnnxParams& params) {
     modify_layers_precision(params.precision_fp16, network.get(),
                             nvinfer1::DataType::kHALF);
 
-    if ((!use_only_fp32) && precision.force_layer_norm_pattern_fp32)
+    if ((!use_only_fp32) && params.force_layer_norm_pattern_fp32)
         force_layernorn_fp32(network.get());
 
     // todo reorder
@@ -482,26 +482,28 @@ std::unique_ptr<nvinfer1::IHostMemory> onnx2trt(const OnnxParams& params) {
     merge_mean_std(network.get(), params.mean, params.std);
 
     // profile
-    const auto profile_num = mins.size();
+    const auto profile_num = params.mins.size();
     nvinfer1::IOptimizationProfile* first_profile = nullptr;
     for (size_t index_p = 0; index_p < profile_num; ++index_p) {
         auto profile = builder->createOptimizationProfile();
         if (!first_profile) first_profile = profile;
 
         // mins: multiple profiles x multiple inputs x multiDims
-        if (mins[index_p].size() < network->getNbInputs()) {
+        if (params.mins[index_p].size() < network->getNbInputs()) {
             HAMI_ASSERT(!mins[index_p].empty());
-            mins[index_p].resize(network->getNbInputs(), mins[index_p].back());
+            params.mins[index_p].resize(network->getNbInputs(),
+                                        params.mins[index_p].back());
         }
-        if (maxs[index_p].size() < network->getNbInputs()) {
+        if (params.maxs[index_p].size() < network->getNbInputs()) {
             HAMI_ASSERT(!maxs[index_p].empty());
-            maxs[index_p].resize(network->getNbInputs(), maxs[index_p].back());
+            params.maxs[index_p].resize(network->getNbInputs(),
+                                        params.maxs[index_p].back());
         }
 
         for (int i = 0; i < input_reorder.size(); ++i) {
             if (network->getInput(input_reorder[i])->isShapeTensor()) {
-                auto& min_dim = mins[index_p][i];
-                auto& max_dim = maxs[index_p][i];
+                auto& min_dim = params.mins[index_p][i];
+                auto& max_dim = params.maxs[index_p][i];
 
                 // todo check input dims match
                 HAMI_ASSERT(profile->setShapeValues(
@@ -521,8 +523,8 @@ std::unique_ptr<nvinfer1::IHostMemory> onnx2trt(const OnnxParams& params) {
             }
             auto net_shape =
                 network->getInput(input_reorder[i])->getDimensions();
-            auto min_dim = infer_shape(mins[index_p][i], net_shape);
-            auto max_dim = infer_shape(maxs[index_p][i], net_shape);
+            auto min_dim = infer_shape(params.mins[index_p][i], net_shape);
+            auto max_dim = infer_shape(params.maxs[index_p][i], net_shape);
             profile->setDimensions(
                 network->getInput(input_reorder[i])->getName(),
                 nvinfer1::OptProfileSelector::kMIN, min_dim);
@@ -559,9 +561,9 @@ std::unique_ptr<nvinfer1::IHostMemory> onnx2trt(const OnnxParams& params) {
     auto time_pass = hami::time_passed(time_now);
     SPDLOG_INFO("Engine building completed in {:.2f} seconds",
                 time_pass / 1000.0);
-    if (params.cache_path.size() > 0) {
-        SPDLOG_INFO("Saving engine to {}", params.cache_path);
-        std::ofstream file(params.cache_path, std::ios::binary);
+    if (params.model_cache.size() > 0) {
+        SPDLOG_INFO("Saving engine to {}", params.model_cache);
+        std::ofstream file(params.model_cache, std::ios::binary);
         file.write(static_cast<char*>(engine_plan->data()),
                    engine_plan->size());
         engine_plan.release();
@@ -569,113 +571,77 @@ std::unique_ptr<nvinfer1::IHostMemory> onnx2trt(const OnnxParams& params) {
     return engine_plan;
 }
 
-OnnxParams config2params(
+OnnxParams config2onnxparams(
     const std::unordered_map<std::string, std::string>& config) {
     OnnxParams params;
 
-    // 必需参数检查
-    HAMI_ASSERT(config.find("model") != config.end(),
-                "`model` is not found in config");
-    params.model_path = config.at("model");
+    hami::str::try_update(config, "model", params.model_path);
+    hami::str::try_update(config, "model::cache", params.model_cache);
 
-    // 从配置中获取基本参数
-    str::try_update(config, "max_workspace_size", params.max_workspace_size);
+    hami::str::try_update(config, "max_workspace_size",
+                          params.max_workspace_size);
     HAMI_ASSERT(params.max_workspace_size >= 1 &&
                 params.max_workspace_size < 1024 * 1024 * 1024);
-    params.max_workspace_size = 1024 * 1024 * (size_t)max_workspace_size;
+    params.max_workspace_size = 1024 * 1024 * params.max_workspace_size;
 
-    str::try_update(config, "model::timingcache", params.timecache);
-    str::try_update(config, "precision", params.precision);
-    // params.allocator = str::try_update(config, "allocator", "torch");
-    str::try_update(config, "log_level", params.log_level);
+    hami::str::try_update(config, "model::timingcache", params.timingcache);
+
+    hami::str::try_update(config, "log_level", params.log_level);
 
     // 处理精度相关参数
+    hami::str::try_update(config, "precision", params.precision);
     if (params.precision.empty()) {
-        auto sm = get_sm();
-        if (sm <= "6.1")
-            params.precision = "fp32";
-        else
-            params.precision = "fp16";
-        SPDLOG_WARN(
-            "'precision' not set. You can set it to one of "
-            "[fp16|fp32|int8|best]. Default to fp16 if "
-            "platformHasFastFp16 and SM>6.1 else fp32.\n");
+        // params.precision = "fp16";
+        // auto sm = get_sm();
+        // if (sm <= "6.1")
+        //     params.precision = "fp32";
+        // else
+        //     params.precision = "fp16";
+        // SPDLOG_WARN(
+        //     "'precision' not set. You can set it to one of "
+        //     "[fp16|fp32|int8|best]. Default to fp16 if "
+        //     "platformHasFastFp16 and SM>6.1 else fp32.\n");
     }
 
     // 处理精度层设置
     if (config.find("precision::fp32") != config.end()) {
-        auto precision_fp32 = str_split(config.at("precision::fp32"));
+        auto precision_fp32 =
+            hami::str::str_split(config.at("precision::fp32"), ',');
         params.precision_fp32 =
             std::set<std::string>(precision_fp32.begin(), precision_fp32.end());
         SPDLOG_INFO("these layers keep fp32: {}", config.at("precision::fp32"));
     }
 
     if (config.find("precision::fp16") != config.end()) {
-        auto precision_fp16 = str_split(config.at("precision::fp16"));
+        auto precision_fp16 =
+            hami::str::str_split(config.at("precision::fp16"), ',');
         params.precision_fp16 =
             std::set<std::string>(precision_fp16.begin(), precision_fp16.end());
         SPDLOG_INFO("these layers keep fp16: {}", config.at("precision::fp16"));
     }
 
-    if (config.find("precision::output::fp32") != config.end()) {
-        auto precision_output_fp32 =
-            str_split(config.at("precision::output::fp32"));
-        params.precision_output_fp32 = std::set<std::string>(
-            precision_output_fp32.begin(), precision_output_fp32.end());
-        SPDLOG_INFO("these layers' outputs are fp32: {}",
-                    config.at("precision::output::fp32"));
-    }
-
-    if (config.find("precision::output::fp16") != config.end()) {
-        auto precision_output_fp16 =
-            str_split(config.at("precision::output::fp16"));
-        params.precision_output_fp16 = std::set<std::string>(
-            precision_output_fp16.begin(), precision_output_fp16.end());
-        SPDLOG_INFO("these layers' outputs are keep fp16: {}",
-                    config.at("precision::output::fp16"));
-    }
-
     // 处理其他参数
-    params.force_layer_norm_pattern_fp32 =
-        str::get_value_as<int>(config, "force_layer_norm_pattern_fp32", 0);
-    params.weight_budget_percentage =
-        str::get_value_as<int>(config, "weight_budget_percentage", 0);
-    HAMI_ASSERT(params.weight_budget_percentage >= 0 &&
-                params.weight_budget_percentage <= 100);
-
-    // 处理输入重排序
-    if (config.find("input_reorder") != config.end() &&
-        !config.at("input_reorder").empty()) {
-        params.input_reorder = str2int(config.at("input_reorder"), ',');
-        HAMI_ASSERT(params.input_reorder.size() > 0);
-    }
+    hami::str::try_update(config, "force_layer_norm_pattern_fp32",
+                          params.force_layer_norm_pattern_fp32);
 
     // 处理 mean 和 std
     if (config.find("mean") != config.end()) {
-        params.mean = strs2number(config.at("mean"));
+        params.mean = hami::str::str_split<float>(config.at("mean"));
     }
     if (config.find("std") != config.end()) {
-        params.std = strs2number(config.at("std"));
+        params.std = hami::str::str_split<float>(config.at("std"));
     }
 
     // 处理 min 和 max shapes
     if (config.find("min") != config.end() && !config.at("min").empty()) {
-        auto min_shapes = str_split(config.at("min"), ';');
-        for (const auto& shape : min_shapes) {
-            params.mins.push_back(str2int(shape, 'x', ','));
-        }
+        auto min_shapes = hami::str::str_split(config.at("min"), ';');
+        params.maxs =
+            hami::str::str_split<int>(config.at("min"), 'x', ',', ';');
     }
 
     if (config.find("max") != config.end() && !config.at("max").empty()) {
-        auto max_shapes = str_split(config.at("max"), ';');
-        for (const auto& shape : max_shapes) {
-            params.maxs.push_back(str2int(shape, 'x', ','));
-        }
-    }
-
-    // 处理缓存路径
-    if (config.find("model::cache") != config.end()) {
-        params.cache_path = config.at("model::cache");
+        params.maxs =
+            hami::str::str_split<int>(config.at("max"), 'x', ',', ';');
     }
 
     return params;

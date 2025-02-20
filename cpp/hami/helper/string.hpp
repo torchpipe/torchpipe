@@ -10,6 +10,8 @@
 #include <sstream>
 #include <iomanip>
 #include <unordered_set>
+#include <algorithm>
+
 namespace hami::str {
 
 using string = std::string;
@@ -17,6 +19,114 @@ using str_map = std::unordered_map<string, string>;
 using mapmap = std::unordered_map<string, str_map>;
 
 std::vector<std::string> str_split(std::string strtem, char a);
+
+template <typename T>
+std::vector<T> str_split(const std::string& input, char delimiter = ',') {
+    static_assert(std::is_arithmetic_v<T>,
+                  "T must be an arithmetic type (integer or floating-point)");
+
+    std::vector<T> result;
+    std::string trimmed_input = input;
+
+    // Remove all spaces from the input string
+    trimmed_input.erase(
+        std::remove(trimmed_input.begin(), trimmed_input.end(), ' '),
+        trimmed_input.end());
+
+    if (trimmed_input.empty()) {
+        return result;
+    }
+
+    std::istringstream iss(trimmed_input);
+    std::string token;
+    int token_index = 0;
+
+    while (std::getline(iss, token, delimiter)) {
+        if (!token.empty()) {
+            T value;
+
+            if constexpr (std::is_integral_v<T>) {
+                auto [ptr, ec] = std::from_chars(
+                    token.data(), token.data() + token.size(), value);
+                if (ec == std::errc()) {
+                    if (ptr == token.data() + token.size()) {
+                        result.push_back(value);
+                    } else {
+                        throw std::invalid_argument(
+                            "Invalid integer at index " +
+                            std::to_string(token_index) + ": '" + token +
+                            "'. Non-numeric characters found.");
+                    }
+                } else if (ec == std::errc::result_out_of_range) {
+                    throw std::out_of_range("Integer out of range at index " +
+                                            std::to_string(token_index) +
+                                            ": '" + token + "'");
+                } else {
+                    throw std::invalid_argument("Invalid integer at index " +
+                                                std::to_string(token_index) +
+                                                ": '" + token + "'");
+                }
+            } else if constexpr (std::is_floating_point_v<T>) {
+                char* end;
+                value = std::strtod(token.c_str(), &end);
+                if (end != token.c_str() + token.size()) {
+                    throw std::invalid_argument(
+                        "Invalid floating-point value at index " +
+                        std::to_string(token_index) + ": '" + token +
+                        "'. Non-numeric characters found.");
+                }
+                if (errno == ERANGE) {
+                    throw std::out_of_range(
+                        "Floating-point value out of range at index " +
+                        std::to_string(token_index) + ": '" + token + "'");
+                }
+                result.push_back(value);
+            }
+        }
+        token_index++;
+    }
+
+    return result;
+}
+
+template <typename T>
+std::vector<std::vector<T>> str_split(const std::string& input,
+                                      char inner_delimiter,
+                                      char outer_delimiter) {
+    std::vector<std::vector<T>> result;
+    std::vector<std::string> outer_split = str_split(input, outer_delimiter);
+    result.reserve(outer_split.size());
+
+    for (const auto& item : outer_split) {
+        result.push_back(str_split<T>(item, inner_delimiter));
+    }
+    return result;
+}
+
+template <typename T>
+std::vector<std::vector<std::vector<T>>> str_split(std::string input,
+                                                   char inner_delimiter,
+                                                   char middle_delimiter,
+                                                   char outer_delimiter) {
+    std::vector<std::vector<std::vector<T>>> result;
+
+    input.erase(std::remove(input.begin(), input.end(), ' '), input.end());
+    if (input.empty()) {
+        return result;
+    }
+
+    std::vector<std::string> outer_split = str_split(input, outer_delimiter);
+    result.reserve(outer_split.size());
+
+    for (const auto& outer_item : outer_split) {
+        std::vector<std::vector<T>> middle_result =
+            str_split<T>(outer_item, inner_delimiter, middle_delimiter);
+
+        result.push_back(std::move(middle_result));
+    }
+
+    return result;
+}
 
 /**
  * @brief Splits a string by a delimiter while skipping nested sections.
@@ -311,6 +421,9 @@ std::string format(const std::string& fmt, Args&&... args) {
     oss << remaining_fmt;
     return oss.str();
 }
+
+bool replace_once(std::string& str, const std::string& from,
+                  const std::string& to);
 
 }  // namespace str
 

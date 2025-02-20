@@ -29,24 +29,24 @@ nvinfer1::Dims infer_shape(std::vector<int> config_shape,
                            const nvinfer1::Dims& net_input);
 
 struct OnnxParams {
-    std::string model_path;
-    std::string cache_path;
+    std::string model_path;   // moddel
+    std::string model_cache;  // model::cache
     std::string precision{"fp16"};
-    std::set<std::string> precision_fp32;
-    std::set<std::string> precision_fp16;
-    std::string timecache;
+    std::set<std::string> precision_fp32;  // precision::fp32
+    std::set<std::string> precision_fp16;  // precision::fp16
+    std::string timingcache;               // model::timingcache
     size_t max_workspace_size{2048};
     std::string log_level{"info"};
     int force_layer_norm_pattern_fp32{0};
     std::vector<float> mean;
     std::vector<float> std;
     std::vector<std::vector<std::vector<int>>>
-        mins;  // multiple profiles - multiple inputs - multiDims
-    std::vector<std::vector<std::vector<int>>> maxs
+        mins;  // min: multiple profiles - multiple inputs - multiDims
+    std::vector<std::vector<std::vector<int>>> maxs;  // max
 };
 
 std::unique_ptr<nvinfer1::IHostMemory> onnx2trt(const OnnxParams& params);
 
-OnnxParams config2params(
+OnnxParams config2onnxparams(
     const std::unordered_map<std::string, std::string>& config);
 }  // namespace torchpipe

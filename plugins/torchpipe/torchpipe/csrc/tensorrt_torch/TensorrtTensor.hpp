@@ -4,8 +4,12 @@
 
 namespace torchpipe {
 
-// Aspect[ModelLoadder[Onnx2Tensorrt, LoadTensorrtEngine] ->
-// TensorrtInferTensor]
+// init => Init[ModelLoadder[Onnx2Tensorrt,
+// LoadTensorrtEngine], TensorrtInferTensor]
+// forward => CatSplit[CatTensor,TensorrtInferTensor,SplitTensor]]
+
+// IOC[ModelLoadder[Onnx2Tensorrt,LoadTensorrtEngine],
+// TensorrtInferTensor; CatSplit[CatTensor,TensorrtInferTensor,SplitTensor]]]
 class TensorrtTensor : public hami::Backend {
    public:
     void init(const std::unordered_map<std::string, std::string>& config,

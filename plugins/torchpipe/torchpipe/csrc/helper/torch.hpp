@@ -35,11 +35,11 @@ torch::Tensor get_tensor_from_any(hami::any input);
 bool is_any_cpu(hami::any input);
 bool is_cpu_tensor(torch::Tensor input);
 static inline torch::TensorOptions get_tensor_option(c10::ScalarType dtype) {
-  return torch::TensorOptions()
-      .device(torch::kCUDA, -1)
-      .dtype(dtype)  // torch::kByte
-      .layout(torch::kStrided)
-      .requires_grad(false);
+    return torch::TensorOptions()
+        .device(torch::kCUDA, -1)
+        .dtype(dtype)  // torch::kByte
+        .layout(torch::kStrided)
+        .requires_grad(false);
 }
 
 torch::Tensor switch_device(torch::Tensor input);
@@ -71,11 +71,14 @@ MemoryFormat guard_valid_memory_format(const torch::Tensor& data);
  */
 torch::Tensor img_hwc_guard(torch::Tensor in);
 
-torch::Tensor tensor_permute(torch::Tensor input, const std::vector<int>& min_shape,
-                             const std::vector<int>& max_shape, bool& need_permute);
+torch::Tensor tensor_permute(torch::Tensor input,
+                             const std::vector<int>& min_shape,
+                             const std::vector<int>& max_shape,
+                             bool& need_permute);
 
 /**
- * @brief 保存 torch::Tensor 到文件。等价于 ``torch.save(name: str, tensor: torch.Tensor)``
+ * @brief 保存 torch::Tensor 到文件。等价于 ``torch.save(name: str, tensor:
+ * torch.Tensor)``
  *
  * @param name 文件路径
  * @param input 输入的tensor
@@ -87,89 +90,96 @@ bool is_contiguous_wrt_hwc(torch::Tensor in);
 bool is_contiguous_wrt_nchw(torch::Tensor in);
 
 static inline torch::Tensor torch_allocate(int64_t size) {
-  // auto options = torch::TensorOptions()
-  //                    .device(torch::kCUDA, -1)
-  //                    .dtype(torch::kByte)
-  //                    .layout(torch::kStrided)
-  //                    .requires_grad(false);
-  // return torch::empty({size}, options, torch::MemoryFormat::Contiguous);
+    // auto options = torch::TensorOptions()
+    //                    .device(torch::kCUDA, -1)
+    //                    .dtype(torch::kByte)
+    //                    .layout(torch::kStrided)
+    //                    .requires_grad(false);
+    // return torch::empty({size}, options, torch::MemoryFormat::Contiguous);
 
-  return torch::empty({size}, torch::dtype(torch::kByte).device(torch::kCUDA),
-                      torch::MemoryFormat::Contiguous);
+    return torch::empty({size}, torch::dtype(torch::kByte).device(torch::kCUDA),
+                        torch::MemoryFormat::Contiguous);
 }
 
-std::vector<torch::Tensor> get_tensors(hami::dict input_dict, const std::string& key);
+std::vector<torch::Tensor> get_tensors(hami::dict input_dict,
+                                       const std::string& key);
 
 void copy2ptr(torch::Tensor input, char* ptr);
 torch::Tensor try_quick_cat(std::vector<torch::Tensor> resized_inputs);
 
 int static inline torch_malloc(void** p, size_t s) {
-  *p = c10::cuda::CUDACachingAllocator::raw_alloc_with_stream(s, nullptr);
-  // c10::cuda::getCurrentCUDAStream().synchronize();
-  return 0;
+    *p = c10::cuda::CUDACachingAllocator::raw_alloc_with_stream(s, nullptr);
+    // c10::cuda::getCurrentCUDAStream().synchronize();
+    return 0;
 }
 
 int static inline torch_free(void* p) {
-  assert(p != nullptr);
-  c10::cuda::CUDACachingAllocator::raw_delete(p);
-  return 0;
+    assert(p != nullptr);
+    c10::cuda::CUDACachingAllocator::raw_delete(p);
+    return 0;
 }
 
 // Async Memory Allocation with Error Handling
-static inline int torch_malloc_async(void* ctx, void** p, size_t size, cudaStream_t stream) {
-  (void)ctx;  // Ignore the context pointer if not used
-  if (size == 0) {
-    *p = nullptr;
-    return -1;  // Error: Invalid size
-  }
+static inline int torch_malloc_async(void* ctx, void** p, size_t size,
+                                     cudaStream_t stream) {
+    (void)ctx;  // Ignore the context pointer if not used
+    if (size == 0) {
+        *p = nullptr;
+        return -1;  // Error: Invalid size
+    }
 
-  *p = c10::cuda::CUDACachingAllocator::raw_alloc_with_stream(size, stream);
-  if (*p == nullptr) {
-    return -2;  // Error: Memory allocation failed
-  }
+    *p = c10::cuda::CUDACachingAllocator::raw_alloc_with_stream(size, stream);
+    if (*p == nullptr) {
+        return -2;  // Error: Memory allocation failed
+    }
 
-  return 0;  // Success
+    return 0;  // Success
 }
 
 // Async Memory Free with Error Handling
-static inline int torch_free_async(void* ctx, void* p, size_t size, cudaStream_t stream) {
-  (void)ctx;  // Ignore the context pointer if not used
-  if (p == nullptr) {
-    return -3;  // Error: Invalid pointer
-  }
+static inline int torch_free_async(void* ctx, void* p, size_t size,
+                                   cudaStream_t stream) {
+    (void)ctx;  // Ignore the context pointer if not used
+    if (p == nullptr) {
+        return -3;  // Error: Invalid pointer
+    }
 
-  c10::cuda::CUDACachingAllocator::raw_delete(p);
-  return 0;  // Success
+    c10::cuda::CUDACachingAllocator::raw_delete(p);
+    return 0;  // Success
 }
 
 // Pinned Memory Allocator Using PyTorch
-int static inline torch_pinned_malloc_async(void* ctx, void** p, size_t size, cudaStream_t stream) {
-  // Check for zero allocation
-  if (size == 0) {
-    *p = nullptr;
+int static inline torch_pinned_malloc_async(void* ctx, void** p, size_t size,
+                                            cudaStream_t stream) {
+    // Check for zero allocation
+    if (size == 0) {
+        *p = nullptr;
+        return 0;
+    }
+
+    // Allocate pinned memory using CUDA runtime
+    cudaError_t cuda_err = cudaHostAlloc(p, size, cudaHostAllocDefault);
+    if (cuda_err != cudaSuccess) {
+        // Handle error (e.g., return negative error code)
+        return -1;  // Error code for failure
+    }
+
     return 0;
-  }
-
-  // Allocate pinned memory using CUDA runtime
-  cudaError_t cuda_err = cudaHostAlloc(p, size, cudaHostAllocDefault);
-  if (cuda_err != cudaSuccess) {
-    // Handle error (e.g., return negative error code)
-    return -1;  // Error code for failure
-  }
-
-  return 0;
 }
 
-int static inline torch_pinned_free_async(void* ctx, void* p, size_t size, cudaStream_t stream) {
-  assert(p != nullptr);  // Ensure pointer is valid
+int static inline torch_pinned_free_async(void* ctx, void* p, size_t size,
+                                          cudaStream_t stream) {
+    assert(p != nullptr);  // Ensure pointer is valid
 
-  // Free pinned memory using CUDA runtime
-  cudaError_t cuda_err = cudaFreeHost(p);
-  if (cuda_err != cudaSuccess) {
-    return -1;  // Error code for failure
-  }
+    // Free pinned memory using CUDA runtime
+    cudaError_t cuda_err = cudaFreeHost(p);
+    if (cuda_err != cudaSuccess) {
+        return -1;  // Error code for failure
+    }
 
-  return 0;
+    return 0;
 }
+
+std::string get_sm();
 
 }  // namespace torchpipe

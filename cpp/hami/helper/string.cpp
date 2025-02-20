@@ -264,5 +264,14 @@ size_t edit_distance(const std::string& s, const std::string& t) {
     return dp[s.length()][t.length()];
 }
 
-}  // namespace hami::str
+bool replace_once(std::string& str, const std::string& from,
+                  const std::string& to) {
+    size_t start_pos = str.find(from);
+    if (start_pos != std::string::npos) {
+        str.replace(start_pos, from.length(), to);
+        return true;
+    }
+    return false;
+}
 
+}  // namespace hami::str

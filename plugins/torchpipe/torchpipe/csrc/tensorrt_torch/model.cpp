@@ -156,7 +156,7 @@ void LoadTensorrtFromOnnx::init(
     HAMI_ASSERT(config.find("model") != config.end(),
                 "`model` is not found in config");
 
-    OnnxParams params = config2params(config);
+    OnnxParams params = config2onnxparams(config);
 
     auto mem = !hami::filesystem::exists(params.cache_path) ? onnx2trt(params)
                                                             : nullptr;

@@ -22,6 +22,18 @@ void BackendProxy::init(const std::unordered_map<string, string>& config,
     proxy_backend_ = owned_backend_.get();
 }
 
+void Placeholder::init(const std::unordered_map<string, string>& config,
+                       const dict& dict_config) {
+    auto name = HAMI_OBJECT_NAME(Backend, this);
+    HAMI_ASSERT(name != std::nullopt);
+
+    auto iter = config.find(*name + "::dependency");
+    HAMI_ASSERT(iter != config.end(),
+                "Register: Dependency configuration missing for " + *name);
+    HAMI_INSTANCE_REGISTER(Backend, iter->second, this);
+}
+
 HAMI_REGISTER(Backend, BackendProxy);
+HAMI_REGISTER(Backend, Placeholder);
 
 }  // namespace hami

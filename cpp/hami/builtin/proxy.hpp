@@ -12,7 +12,7 @@ class Proxy : public Backend {
               const dict& dict_config) override {
         // proxy_backend_ = owned_backend_.get();
     }
-    void inject_dependency(Backend* dependency) override final {
+    void inject_dependency(Backend* dependency) override {
         if (!proxy_backend_) {
             proxy_backend_ = dependency;
         } else
@@ -44,6 +44,67 @@ class Proxy : public Backend {
     std::unique_ptr<Backend> owned_backend_;
 };
 
+class Placeholder : public Proxy {
+   public:
+    void init(const std::unordered_map<string, string>& config,
+              const dict& dict_config) override;
+    void inject_dependency(Backend* dependency) override {
+        if (!proxy_backend_) {
+            proxy_backend_ = dependency;
+        } else {
+            throw std::runtime_error(
+                "Placeholder: inject_dependency called twice");
+        }
+        HAMI_ASSERT(!owned_backend_);
+    }
+};
+
+class ProxyV2 : public Backend {
+   public:
+    std::pair<std::string, str::str_map> make_order(
+        const std::string& setting,
+        const str::str_map& dict_setting = {}) const {
+        return {setting, dict_setting};
+    }
+
+    void init(const std::unordered_map<string, string>& config,
+              const dict& dict_config) override final {
+        auto execorder = get_order();
+        proxy_backend_ = init_backend(execorder.first, execorder.second);
+    }
+    virtual std::pair<std::string, str::str_map> get_order() const = 0;
+    void inject_dependency(Backend* dependency) override final {
+        if (!proxy_backend_) {
+            throw std::runtime_error("ProxyV2 was not initialized yet");
+        } else
+            proxy_backend_->inject_dependency(dependency);
+    }
+
+    void forward(const std::vector<dict>& inputs,
+                 Backend* dependency) override {
+        proxy_backend_->forward(inputs, dependency);
+    }
+    bool try_forward(const std::vector<dict>& input_output,
+                     size_t timeout) override {
+        return proxy_backend_->try_forward(input_output, timeout);
+    }
+    void forward(const std::vector<dict>& inputs) override {
+        proxy_backend_->forward(inputs);
+    }
+    [[nodiscard]] virtual size_t max() const override {
+        return proxy_backend_->max();
+    }
+
+    [[nodiscard]] virtual size_t min() const override {
+        return proxy_backend_->min();
+    }
+
+   protected:
+    // Backend* dependency_{nullptr};
+    // Backend* proxy_backend_{nullptr};
+    std::unique_ptr<Backend> proxy_backend_;
+};
+
 class BackendProxy : public Proxy {
    public:
     void init(const std::unordered_map<std::string, std::string>& config,
@@ -53,7 +114,16 @@ class BackendProxy : public Proxy {
     // std::unique_ptr<Backend> owned_backend_;
 };
 
-#define HAMI_PROXY(derived_aspect_cls, dependency_setting)                   \
+#define HAMI_PROXY(derived_aspect_cls, setting, ...)                      \
+    class derived_aspect_cls : public ProxyV2 {                           \
+       public:                                                            \
+        std::pair<std::string, str::str_map> get_order() const override { \
+            return make_order(setting, ##__VA_ARGS__);                    \
+        }                                                                 \
+    };                                                                    \
+    HAMI_REGISTER(Backend, derived_aspect_cls);
+
+#define HAMI_PROXY_WITH_DEPENDENCY(derived_aspect_cls, dependency_setting)   \
     class derived_aspect_cls : public Proxy {                                \
        private:                                                              \
        public:                                                               \

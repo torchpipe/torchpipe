@@ -222,7 +222,7 @@ with Restart as r:
 Aspect[HasKey,B,C, Launch[A], D] 
 Aspect[HasKey,B,C, ProxyOfA, D]  允许代理改变dependency， 线程安全。A 需要是可forward实时改变dependency的。Proxy静态对象？
 
-代码生成HAMI_PROXY(Aspect, Restart, "EventGuard,RestartEvent");
+代码生成HAMI_PROXY_WITH_DEPENDENCY(Aspect, Restart, "EventGuard,RestartEvent");
 
  ProxyOfA=Proxy[A]
 

@@ -22,6 +22,7 @@ cc_library(
     interpreter.cpp
     proxy.cpp
     parser.cpp
+    cat_split.cpp
   DEPS
     :spdlog
     :core

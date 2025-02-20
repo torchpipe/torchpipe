@@ -1,0 +1,21 @@
+
+
+#pragma once
+
+#include <string>
+#include <vector>
+#include "hami/builtin/basic_backends.hpp"
+namespace hami {
+class CatSplit final : public Container {
+   public:
+    virtual void post_init(const std::unordered_map<std::string, std::string>&,
+                           const dict&) override;
+
+    virtual void forward(const std::vector<dict>&) override;
+
+   private:
+    std::pair<size_t, size_t> update_min_max(
+        const std::vector<Backend*>& depends) override;
+};
+
+}  // namespace hami
