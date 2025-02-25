@@ -1,3 +1,17 @@
+// Copyright 2021-2025 NetEase.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #pragma once
 
 #include <unordered_map>
@@ -55,28 +69,30 @@ static inline const std::unordered_map<string, string> TASK_KEY_MAP(
      {"TASK_REQUEST_SIZE_KEY", TASK_REQUEST_SIZE_KEY}});
 
 static inline void try_replace_inner_key(string& key) {
-  static const string prefix = "TASK_";
-  static const string suffix = "_KEY";
-  static const size_t prefix_suffix_len = prefix.size() + suffix.size();
+    static const string prefix = "TASK_";
+    static const string suffix = "_KEY";
+    static const size_t prefix_suffix_len = prefix.size() + suffix.size();
 
-  if (key.size() >= prefix_suffix_len && key.compare(0, prefix.size(), prefix) == 0 &&
-      key.compare(key.size() - suffix.size(), suffix.size(), suffix) == 0) {
-    const auto iter = TASK_KEY_MAP.find(key);
-    if (iter == TASK_KEY_MAP.end()) {
-      throw std::runtime_error("Inner key not supported: " + key);
+    if (key.size() >= prefix_suffix_len &&
+        key.compare(0, prefix.size(), prefix) == 0 &&
+        key.compare(key.size() - suffix.size(), suffix.size(), suffix) == 0) {
+        const auto iter = TASK_KEY_MAP.find(key);
+        if (iter == TASK_KEY_MAP.end()) {
+            throw std::runtime_error("Inner key not supported: " + key);
+        }
+        key = iter->second;
     }
-    key = iter->second;
-  }
-  return;
+    return;
 }
 
 static inline bool is_reserved(const string& key) {
-  static const std::unordered_set<string> reserved_words{"global", "default", "node_name", ""};
-  if (0 != reserved_words.count(key)) return true;
-  for (const auto& item : TASK_KEY_MAP) {
-    if (item.second == key) return true;
-  }
-  return false;
+    static const std::unordered_set<string> reserved_words{"global", "default",
+                                                           "node_name", ""};
+    if (0 != reserved_words.count(key)) return true;
+    for (const auto& item : TASK_KEY_MAP) {
+        if (item.second == key) return true;
+    }
+    return false;
 }
 
 }  // namespace hami

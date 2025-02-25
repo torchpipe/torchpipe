@@ -1,4 +1,4 @@
-// Copyright 2021-2024 NetEase.
+// Copyright 2021-2025 NetEase.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -600,6 +600,55 @@ torch::Tensor try_quick_cat(std::vector<torch::Tensor> resized_inputs) {
 std::string get_sm() {
     cudaDeviceProp* prop = at::cuda::getCurrentDeviceProperties();
     return std::to_string(prop->major) + "." + std::to_string(prop->minor);
+}
+
+void fix_tensor_shape(torch::Tensor& data, const NetIOInfo::Dims64 min,
+                      const NetIOInfo::Dims64& max) {
+    const auto& sizes = data.sizes();
+    if (sizes.size() == 3 && 4 == min.nbDims && max.d[1] == min.d[1] &&
+        min.d[1] <= 4) {
+        // hwc2nchw
+        if ((sizes[0] >= min.d[2] && sizes[0] <= max.d[2]) &&
+            sizes[1] >= min.d[3] && sizes[1] <= max.d[3] &&
+            sizes[2] == min.d[1]) {
+            if ((sizes[0] == min.d[1]) && sizes[1] >= min.d[2] &&
+                sizes[1] <= max.d[2] && sizes[2] >= min.d[3] &&
+                sizes[2] <= max.d[3]) {
+                // chw
+                throw std::invalid_argument(
+                    "fix_tensor_shape: Cannot handle ambiguity. "
+                    "The input tensor can be interpreted as either HWC or "
+                    "NCHW.");
+            }
+            data = data.permute({2, 0, 1}).squeeze(0);
+            return;
+        }
+    }
+
+    if (data.sizes().size() + 1 == min.nbDims) {
+        if ((sizes[0] >= min.d[1] && sizes[0] <= max.d[1]) &&
+            sizes[1] >= min.d[2] && sizes[1] <= max.d[2] &&
+            sizes[2] >= min.d[3] && sizes[2] <= max.d[3]) {
+            data = data.squeeze(0);
+            return;
+        }
+    }
+
+    throw std::invalid_argument("fix_tensor_shape: invalid tensor shape : " +
+                                hami::str::vec2str(data.sizes().vec()));
+}
+
+void fix_tensors(std::vector<torch::Tensor>& tensors,
+                 const std::shared_ptr<NetIOInfos>& infos) {
+    const auto num_inputs = tensors.size();
+    HAMI_ASSERT(
+        infos->first.size() == num_inputs,
+        "number of inputs from model does not match that from the data");
+
+    for (size_t i = 0; i < num_inputs; ++i) {
+        fix_tensor_shape(tensors[i], infos->first.at(i).min,
+                         infos->first.at(i).max);
+    }
 }
 
 }  // namespace torchpipe

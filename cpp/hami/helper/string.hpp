@@ -242,7 +242,7 @@ std::unordered_map<std::string, std::string> map_split(
  * ',', "1")
  */
 std::unordered_map<std::string, std::string> auto_config_split(
-    const std::string& strtem);
+    const std::string& strtem, const std::string& default_key = "");
 
 size_t edit_distance(const std::string& s, const std::string& t);
 
@@ -422,8 +422,30 @@ std::string format(const std::string& fmt, Args&&... args) {
     return oss.str();
 }
 
-bool replace_once(std::string& str, const std::string& from,
-                  const std::string& to);
+size_t replace_once(std::string& str, const std::string& from,
+                    const std::string& to);
+
+template <typename T>
+std::string vec2str(const std::vector<T>& vec) {
+    static_assert(std::is_arithmetic_v<T>, "T must be an arithmetic type");
+    std::ostringstream oss;
+    oss << "[";
+    for (size_t i = 0; i < vec.size(); ++i) {
+        oss << vec[i];
+        if (i < vec.size() - 1) {
+            oss << ", ";
+        }
+    }
+    oss << "]";
+    return oss.str();
+}
+
+static inline bool endswith(const std::string& str, const std::string& suffix) {
+    if (suffix.size() > str.size()) {
+        return false;
+    }
+    return std::equal(str.end() - suffix.size(), str.end(), suffix.cbegin());
+}
 
 }  // namespace str
 

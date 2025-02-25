@@ -49,4 +49,10 @@ std::pair<size_t, size_t> CatSplit::update_min_max(
     const std::vector<Backend*>& depends) {
     return {depends.at(1)->min(), depends.at(1)->max()};
 }
+
+std::vector<size_t> CatSplit::set_init_order(size_t max_range) const {
+    HAMI_ASSERT(max_range == 3);
+    return {1, 0, 2};
+}
+
 }  // namespace hami

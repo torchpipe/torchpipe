@@ -140,7 +140,7 @@ void InstanceDispatcher::init(const std::unordered_map<string, string>& config,
     //           [](const Backend* a, const Backend* b) { return a->max() >=
     //           b->max(); });
 
-    auto [min_, max_] = update_min_max(base_dependencies_);
+    update_min_max(base_dependencies_);
 }
 
 std::pair<size_t, size_t> InstanceDispatcher::update_min_max(

@@ -1,5 +1,6 @@
 
 #include <memory>
+#include <numeric>
 #include "hami/core/reflect.h"
 #include "hami/helper/base_logging.hpp"
 #include "hami/helper/string.hpp"
@@ -109,23 +110,30 @@ void Container::init(const std::unordered_map<std::string, std::string>& config,
         HAMI_ASSERT(backend_names.size() >= 1,
                     "Container: backend_names.size() should >= 1");
 
-        std::reverse(backend_names.begin(), backend_names.end());
-        std::vector<Backend*> backends;
-        for (std::size_t i = 0; i < backend_names.size(); ++i) {
+        auto order = set_init_order(backend_names.size());
+        base_config_.resize(backend_names.size());
+        base_dependencies_.resize(backend_names.size());
+
+        bool lazy_init = order.size() == backend_names.size();
+
+        // std::reverse(backend_names.begin(), backend_names.end());
+        std::vector<Backend*> backends(backend_names.size());
+        for (std::size_t index = 0; index < backend_names.size(); ++index) {
+            auto i = lazy_init ? index : order[index];
             const auto& engine_name = backend_names[i];
 
             std::string prefix_str, post_str;
             auto backend = str::prefix_parentheses_split(
                 engine_name, prefix_str);  // (params1=a)A
 
-            auto pre_config = str::auto_config_split(prefix_str);
+            auto pre_config = str::auto_config_split(prefix_str, "filter");
             auto new_config = config;
             new_config.erase(*name + "::dependency");
 
             // handle A(params1=a)
             backend = str::post_parentheses_split(backend, post_str);
             if (!post_str.empty()) {
-                auto post_config = str::auto_config_split(post_str);
+                auto post_config = str::auto_config_split(post_str, "key");
                 for (auto& [key, value] : post_config) {
                     new_config[key] = value;
                 }
@@ -136,23 +144,43 @@ void Container::init(const std::unordered_map<std::string, std::string>& config,
             // HAMI_ASSERT(new_config.find("backend") != new_config.end());
             if (pre_config.find("backend") == pre_config.end())
                 pre_config["backend"] = main_backend;
-            base_config_.push_back(pre_config);
+            backends_.push_back(main_backend);
+            base_config_[i] = (pre_config);
             auto backend_ptr =
                 std::unique_ptr<Backend>(HAMI_CREATE(Backend, main_backend));
             HAMI_ASSERT(backend_ptr, "create " + main_backend + " failed");
-            backend_ptr->init(new_config, dict_config);
-            backends.push_back(backend_ptr.get());
-            base_dependencies_.emplace_back(std::move(backend_ptr));
+            if (lazy_init) {
+                auto* pbackend_ptr = backend_ptr.get();
+                lazy_init_func_.emplace_back(
+                    [new_config, dict_config, pbackend_ptr]() {
+                        pbackend_ptr->init(new_config, dict_config);
+                    });
+            } else {
+                backend_ptr->init(new_config, dict_config);
+            }
+
+            backends[i] = (backend_ptr.get());
+            base_dependencies_[i] = std::move(backend_ptr);
         }
 
-        std::reverse(base_dependencies_.begin(), base_dependencies_.end());
-        std::reverse(backends.begin(), backends.end());
-        std::reverse(base_config_.begin(), base_config_.end());
-        auto [min_, max_] = update_min_max(backends);
+        // std::reverse(base_dependencies_.begin(), base_dependencies_.end());
+        // std::reverse(backends.begin(), backends.end());
+        // std::reverse(base_config_.begin(), base_config_.end());
+        if (!lazy_init) {
+            auto [min_value, max_value] = update_min_max(backends);
+            min_ = min_value;
+            max_ = max_value;
+        }
     } else {
         HAMI_THROW("Wired. Empty config.");
     }
     post_init(config, dict_config);
+}
+
+std::vector<size_t> Container::set_init_order(size_t max_range) const {
+    std::vector<size_t> order(max_range, 0);
+    std::iota(order.rbegin(), order.rend(), 0);
+    return order;
 }
 
 std::pair<size_t, size_t> Container::update_min_max(
@@ -173,7 +201,9 @@ std::pair<size_t, size_t> Container::update_min_max(
         max_value = 1;
     }
     HAMI_ASSERT(min_value <= max_value);
-    return {min_value, max_value};
+    min_ = min_value;
+    max_ = max_value;
+    // return {min_value, max_value};
 }
 
 void List::init(const std::unordered_map<std::string, std::string>& config,
@@ -213,14 +243,14 @@ void List::init(const std::unordered_map<std::string, std::string>& config,
             auto backend = str::prefix_parentheses_split(
                 engine_name, prefix_str);  // (params1=a)A
 
-            auto pre_config = str::auto_config_split(prefix_str);
+            auto pre_config = str::auto_config_split(prefix_str, "filter");
             auto new_config = config;
             new_config.erase(*name + "::dependency");
 
             // handle A(params1=a)
             backend = str::post_parentheses_split(backend, post_str);
             if (!post_str.empty()) {
-                auto post_config = str::auto_config_split(post_str);
+                auto post_config = str::auto_config_split(post_str, "key");
                 for (auto& [key, value] : post_config) {
                     new_config[key] = value;
                 }

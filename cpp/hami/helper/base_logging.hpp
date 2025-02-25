@@ -1,4 +1,4 @@
-// Copyright 2021-2024 NetEase.
+// Copyright 2021-2025 NetEase.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -34,16 +34,17 @@ std::string colored(const std::string& message);
 namespace {
 
 class LoggerGuard {
- public:
-  LoggerGuard() {
-    std::lock_guard<std::mutex> lock(lock_);
-    auto in_default = default_logger();
-    auto now_logger = spdlog::default_logger();
-    if (in_default != now_logger && in_default) spdlog::set_default_logger(in_default);
-  };
+   public:
+    LoggerGuard() {
+        std::lock_guard<std::mutex> lock(lock_);
+        auto in_default = default_logger();
+        auto now_logger = spdlog::default_logger();
+        if (in_default != now_logger && in_default)
+            spdlog::set_default_logger(in_default);
+    };
 
- private:
-  static std::mutex lock_;
+   private:
+    static std::mutex lock_;
 };
 std::mutex LoggerGuard::lock_;
 static LoggerGuard g_tmp_lock_guard;
@@ -51,7 +52,8 @@ static LoggerGuard g_tmp_lock_guard;
 }  // namespace
 }  // namespace hami
 
-// enum class hami_log_level { trace = 0, debug, info, warn, err, critical, off, n_levels };
-// void print_logger(const char*,int,const char*,);
-// #define HAMI_LOGGER_INFO(file, line, func, ...) print_logger(file, line, func, __VA_ARGS__)
-// #define LOG_INFO(...) HAMI_LOGGER_INFO(__FILE__, __LINE__, __FUNCTION__, __VA_ARGS__)
+// enum class hami_log_level { trace = 0, debug, info, warn, err, critical, off,
+// n_levels }; void print_logger(const char*,int,const char*,); #define
+// HAMI_LOGGER_INFO(file, line, func, ...) print_logger(file, line, func,
+// __VA_ARGS__) #define LOG_INFO(...) HAMI_LOGGER_INFO(__FILE__, __LINE__,
+// __FUNCTION__, __VA_ARGS__)

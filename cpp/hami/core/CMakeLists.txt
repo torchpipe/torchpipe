@@ -13,7 +13,6 @@ cc_library(
     helper.hpp
     task_keys.hpp
   SRCS
-    any.cpp
     event.cpp
     reflect.cpp
     backend.cpp

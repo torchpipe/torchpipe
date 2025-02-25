@@ -215,7 +215,7 @@ std::string post_parentheses_split(const std::string& strtem,
 
 std::unordered_map<std::string, std::string> map_split(
     std::string strtem, char inner_sp, char outer,
-    const std::string& default_value) {
+    const std::string& default_key) {
     auto re = std::unordered_map<std::string, std::string>();
     auto data = str_split(strtem, outer);
     for (auto& item : data) {
@@ -223,7 +223,12 @@ std::unordered_map<std::string, std::string> map_split(
         HAMI_ASSERT(tmp.size() == 2 || tmp.size() == 1,
                     "error config: " + strtem);
         if (tmp.size() == 1) {
-            re[tmp[0]] = default_value;
+            if (default_key.empty()) {
+                throw std::invalid_argument("error config: " + strtem +
+                                            ".  default_key is empty for " +
+                                            tmp[0]);
+            }
+            re[default_key] = tmp[0];
         } else {
             re[tmp[0]] = tmp[1];
         }
@@ -232,13 +237,13 @@ std::unordered_map<std::string, std::string> map_split(
 }
 
 std::unordered_map<std::string, std::string> auto_config_split(
-    const std::string& strtem) {
+    const std::string& strtem, const std::string& default_key) {
     // =
     // const auto num_slash = std::count(strtem.begin(), strtem.end(), '/');
     if (strtem.find('/') != std::string::npos) {
-        return map_split(strtem, '=', '/', "1");
+        return map_split(strtem, '=', '/', default_key);
     }
-    return map_split(strtem, '=', ',', "1");
+    return map_split(strtem, '=', ',', default_key);
 }
 
 namespace {
@@ -264,14 +269,14 @@ size_t edit_distance(const std::string& s, const std::string& t) {
     return dp[s.length()][t.length()];
 }
 
-bool replace_once(std::string& str, const std::string& from,
-                  const std::string& to) {
+size_t replace_once(std::string& str, const std::string& from,
+                    const std::string& to) {
     size_t start_pos = str.find(from);
     if (start_pos != std::string::npos) {
         str.replace(start_pos, from.length(), to);
-        return true;
+        return start_pos + to.length();  // 返回替换后的下一个查找位置
     }
-    return false;
+    return std::string::npos;  // 返回未找到的标志
 }
 
 }  // namespace hami::str

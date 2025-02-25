@@ -4,9 +4,11 @@
 
 #include "NvInfer.h"
 #include <NvInferRuntime.h>
+#include "tensorrt_torch/net_info.hpp"
 
 namespace torchpipe {
-constexprt auto TASK_ENGINE_KEY = "_engine";
+constexpr auto TASK_ENGINE_KEY = "_engine";
+constexpr auto TASK_ENGINE_KEY = "_context";
 
 void modify_layers_precision(std::set<std::string> precision_fpx,
                              nvinfer1::INetworkDefinition* network,
@@ -49,4 +51,24 @@ std::unique_ptr<nvinfer1::IHostMemory> onnx2trt(const OnnxParams& params);
 
 OnnxParams config2onnxparams(
     const std::unordered_map<std::string, std::string>& config);
+
+nvinfer1::ILogger* get_trt_logger();
+
+NetIOInfos get_context_shape(nvinfer1::IExecutionContext* context,
+                             size_t profile_index);
+
+// MultiProfileNetIOInfos create_contexts(nvinfer1::ICudaEngine* engine);
+// std::unique_ptr<nvinfer1::IExecutionContext> create_context(NetIOInfos&
+// info);
+
+std::unique_ptr<nvinfer1::IExecutionContext> create_context(
+    nvinfer1::ICudaEngine* engine, size_t instance_index);
+
 }  // namespace torchpipe
+
+#if (NV_TENSORRT_MAJOR == 10 && NV_TENSORRT_MINOR >= 2) || \
+    (NV_TENSORRT_MAJOR >= 11)
+#define TRT_USER_MANAGED_MEM 1
+#else
+#define TRT_USER_MANAGED_MEM 0
+#endif

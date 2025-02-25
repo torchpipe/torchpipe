@@ -103,52 +103,62 @@ class LocalFileStreamReader : public nvinfer1::IStreamReader
 }  // namespace
 namespace torchpipe {
 
-void LoadTensorrtFromFile::init(
+void LoadTensorrtEngine::init(
     const std::unordered_map<std::string, std::string>& config,
     const hami::dict& dict_config) {
     HAMI_ASSERT(dict_config);
     if (dict_config->find(TASK_ENGINE_KEY) != dict_config->end()) {
+        HAMI_ASSERT(dict_config->at(TASK_ENGINE_KEY).type() ==
+                    typeid(std::shared_ptr<nvinfer1::ICudaEngine>));
         SPDLOG_INFO(
-            "LoadTensorrtFromFile: aready loaded engine in dict_config, skip "
+            "LoadTensorrtEngine: aready loaded engine in dict_config, skip "
             "loading.");
         return;
     }
     // handle instance index
-    // str::try_update(config, TASK_INDEX_KEY, instance_index_);
-    // str::try_update(config, TASK_INDEX_KEY, instance_num_);
-    // HAMI_ASSERT(instance_num_ >= 1 && instance_index_ >= 0);
+    int instance_num{1};
+    str::try_update(config, "instance_num", instance_num);
+    HAMI_ASSERT(instance_num >= 1);
 
     // initialize converter, get std::shared_ptr<ICudaEngine>
     HAMI_ASSERT(config.find("model") != config.end(),
                 "`model` is not found in config");
 
+    HAMI_ASSERT(hami::filesystem::exists(config.at("model")));
     LocalFileStreamReader reader(config.at("model"));
-    runtime_ = std::make_unique<nvinfer1::IRuntime>();
+    runtime_ = std::unique_ptr<nvinfer1::IRuntime>(
+        nvinfer1::createInferRuntime(*get_trt_logger()));
     allocator_ = std::make_unique<TorchAsyncAllocator>();
     runtime_->setGpuAllocator(allocator_.get());
     auto* engine_ptr = runtime_->deserializeCudaEngine(reader);
     engine_ = std::shared_ptr<nvinfer1::ICudaEngine>(engine_ptr);
+    HAMI_ASSERT(engine_->getNbOptimizationProfiles() == instance_num);
 
     (*dict_config)[TASK_ENGINE_KEY] = engine_;
+    engine_ = nullptr;
 }
 
-void LoadTensorrtFromOnnx::init(
+void Onnx2Tensorrt::init(
     const std::unordered_map<std::string, std::string>& config,
     const hami::dict& dict_config) {
     HAMI_ASSERT(dict_config);
     if (dict_config->find(TASK_ENGINE_KEY) != dict_config->end()) {
+        HAMI_ASSERT(dict_config->at(TASK_ENGINE_KEY).type() ==
+                    typeid(std::shared_ptr<nvinfer1::ICudaEngine>));
         SPDLOG_INFO(
-            "LoadTensorrtFromFile: aready loaded engine in dict_config, skip "
+            "Onnx2Tensorrt: aready loaded engine in dict_config, skip "
             "loading.");
         return;
     }
     // handle instance index
-    // str::try_update(config, TASK_INDEX_KEY, instance_index_);
-    str::try_update(config, TASK_INDEX_KEY, instance_num_);
-    // HAMI_ASSERT(instance_num_ >= 1 && instance_index_ >= 0);
+    int instance_num{1};
+    str::try_update(config, "instance_num", instance_num);
+    // HAMI_ASSERT(instance_num >= 1 && instance_index_ == 0);
+    HAMI_ASSERT(instance_num >= 1);
 
     // set runtime && allocator
-    runtime_ = std::make_unique<nvinfer1::IRuntime>();
+    runtime_ = std::unique_ptr<nvinfer1::IRuntime>(
+        nvinfer1::createInferRuntime(*get_trt_logger()));
     allocator_ = std::make_unique<TorchAsyncAllocator>();
     runtime_->setGpuAllocator(allocator_.get());
 
@@ -158,19 +168,104 @@ void LoadTensorrtFromOnnx::init(
 
     OnnxParams params = config2onnxparams(config);
 
-    auto mem = !hami::filesystem::exists(params.cache_path) ? onnx2trt(params)
-                                                            : nullptr;
+    bool cache_path_exist = hami::filesystem::exists(params.cache_path);
+    auto mem = !cache_path_exist ? onnx2trt(params) : nullptr;
 
-    if (mem) {
+    if (!cache_path_exist) {
+        HAMI_ASSERT(hami::filesystem::exists(params.model));
+        auto mem = onnx2trt(params);
+        HAMI_ASSERT(mem);
+        if (!params.cache_path.empty()) {
+            std::ofstream ff(params.cache_path, std::ios::binary);
+            ff.write(mem->data(), mem->size());
+
+            SPDLOG_INFO(
+                "engine saved to {}. Now start to deserializeCudaEngine",
+                params.cache_path);
+        }
+
         auto* engine_ptr =
             runtime_->deserializeCudaEngine(mem->data(), mem->size());
         engine_ = std::shared_ptr<nvinfer1::ICudaEngine>(engine_ptr);
+        HAMI_ASSERT(engine_);
+
     } else {
+        SPDLOG_INFO(
+            "load engine from cache {}, delete it if "
+            "you want to rebuild engine.",
+            params.cache_path);
         LocalFileStreamReader reader(params.cache_path);
         auto* engine_ptr = runtime_->deserializeCudaEngine(reader);
         engine_ = std::shared_ptr<nvinfer1::ICudaEngine>(engine_ptr);
+        HAMI_ASSERT(engine_->getNbOptimizationProfiles() == instance_num);
     }
 
     (*dict_config)[TASK_ENGINE_KEY] = engine_;
+    engine_ = nullptr;
 }
+
+void TensorrtModelLoadder::post_init(
+    const std::unordered_map<std::string, std::string>& config,
+    const hami::dict& dict_config) {
+    HAMI_ASSERT(dict_config);
+    auto iter = dict_config->find(TASK_ENGINE_KEY);
+    if (iter != dict_config->end()) return;
+
+    std::unordered_map<std::string, std::string> suffix_config;
+    Backend* backend{nullptr};
+    for (size_t i = 0; i < base_config_.size(); ++i) {
+        const auto& filter = base_config_[i].at("filter");
+
+        if (str::endswith(config.at("model"), filter)) {
+            backend = base_dependencies_[i].get();
+            lazy_init_func_[i]();
+            break;
+        }
+    }
+    HAMI_ASSERT(backend);
+    max_ = backend->max();
+    min_ = backend->min();
+
+    HAMI_ASSERT(iter != dict_config->end() &&
+                iter.type() == typeid(std::shared_ptr<nvinfer1::ICudaEngine>));
+
+    engine_ = any_cast<std::shared_ptr<nvinfer1::ICudaEngine>>(iter);
+    // handle instance index
+    int instance_num{1};
+    str::try_update(config, "instance_num", instance_num);
+    // str::try_update(config, TASK_INDEX_KEY, instance_index_);
+    HAMI_ASSERT(engine_->getNbOptimizationProfiles() == instance_num);
+}
+
+// void TensorrtContext::init(
+//     const std::unordered_map<std::string, std::string>& config,
+//     const hami::dict& dict_config) {
+//     HAMI_ASSERT(dict_config);
+//     auto iter = dict_config->find(TASK_ENGINE_KEY);
+//     HAMI_ASSERT(iter != dict_config->end());
+//     HAMI_ASSERT(iter->second.type() ==
+//                 typeid(std::shared_ptr<nvinfer1::ICudaEngine>));
+//     auto engine =
+//         any_cast<std::shared_ptr<nvinfer1::ICudaEngine>>(iter->second);
+//     HAMI_ASSERT(engine_);
+
+//     instance_index_ = str::update<int>(config, TASK_INDEX_KEY);
+
+//     HAMI_ASSERT(instance_index_ >= 0 &&
+//                 instance_index_ < engine_->getNbOptimizationProfiles());
+
+// #if TRT_USER_MANAGED_MEM
+//     // USE_OUT_MEM
+//     auto context_ = std::unique_ptr<nvinfer1::IExecutionContext>(
+//         engine->createExecutionContext(
+//             nvinfer1::ExecutionContextAllocationStrategy::kUSER_MANAGED));
+
+// #else
+//     context_ = unique_ptr<nvinfer1::IExecutionContext>(
+//         engine->engine->createExecutionContext());
+// #endif
+
+//     context_->setOptimizationProfileAsync(instance_index_,
+//                                           c10::cuda::getCurrentCUDAStream());
+// }
 }  // namespace torchpipe

@@ -1,6 +1,7 @@
 #include "hami/builtin/proxy.hpp"
 #include "hami/core/helper.hpp"
 #include "hami/core/reflect.h"
+#include "hami/helper/base_logging.hpp"
 
 namespace hami {
 
@@ -35,5 +36,35 @@ void Placeholder::init(const std::unordered_map<string, string>& config,
 
 HAMI_REGISTER(Backend, BackendProxy);
 HAMI_REGISTER(Backend, Placeholder);
+
+void Reflect::init(const std::unordered_map<string, string>& config,
+                   const dict& dict_config) {
+    constexpr auto default_name = "Reflect";
+    auto name = HAMI_OBJECT_NAME(Backend, this);
+    if (name == std::nullopt) {
+        name = default_name;
+        SPDLOG_WARN(
+            "{}::init, it seems this instance was not created via "
+            "reflection, using default name {}. "
+            "Please configure its dependency via the parameter "
+            "{}::dependency",
+            *name, *name, *name);
+    }
+    auto iter = config.find(*name + "::dependency");
+    HAMI_ASSERT(
+        iter != config.end(),
+        *name + "::dependency not found. Call this backend through A[B]");
+    iter = config.find(iter->second);
+    HAMI_ASSERT(iter != config.end(),
+                "configuration missing for " + iter->second);
+
+    owned_backend_ =
+        std::unique_ptr<Backend>(HAMI_CREATE(Backend, iter->second));
+    HAMI_ASSERT(owned_backend_);
+    owned_backend_->init(config, dict_config);
+    proxy_backend_ = owned_backend_.get();
+}
+
+HAMI_REGISTER(Backend, Reflect, "Reflect,LaunchFromParam");
 
 }  // namespace hami

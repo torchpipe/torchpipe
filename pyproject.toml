@@ -32,7 +32,7 @@ dynamic = ["version"]
 license = {text = "Apache-2.0"}
 name = "hami"
 readme = "README.md"
-requires-python = ">=3.7"
+requires-python = ">=3.8"
 [tool.setuptools_scm]
 write_to = "hami/version.py"
 

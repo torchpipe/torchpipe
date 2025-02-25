@@ -17,6 +17,8 @@ cc_library(
     base_logging.cpp
     params.cpp
     symbol.cpp
+    toml_parser.cpp
+    unique_index.cpp
   DEPS
     :spdlog
     :toml

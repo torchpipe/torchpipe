@@ -293,6 +293,11 @@ void py_init_backend(py::module_& m) {
             // SPDLOG_INFO("init ptr = {}", (long long)&self);
 
             if (!dict_config.is_none()) {
+                if (py::isinstance<py::dict>(dict_config)) {
+                    throw std::invalid_argument(
+                        "Unsupported type(<class 'dict'>) for dict_config. "
+                        "Please use hami.dict instead");
+                }
                 dict_config_dict =
                     py::cast<const PyDict&>(dict_config).to_dict();
             }

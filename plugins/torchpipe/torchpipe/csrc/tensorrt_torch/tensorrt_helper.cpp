@@ -8,6 +8,8 @@
 #include <hami/extension.hpp>
 #include "tensorrt_torch/tensorrt_helper.hpp"
 #include "NvInferPlugin.h"
+#include <c10/cuda/CUDAStream.h>
+
 namespace {
 
 nvinfer1::ILogger::Severity trt_get_log_level(std::string level) {
@@ -45,8 +47,11 @@ class NvLogger : public nvinfer1::ILogger {
     }
 #endif
 };
+nvinfer1::ILogger* get_trt_logger() {
+    static NvLogger gLogger_inplace;
+    return &gLogger_inplace;
+}
 
-NvLogger gLogger_inplace;
 }  // namespace
 
 namespace torchpipe {
@@ -387,7 +392,7 @@ void merge_mean_std(nvinfer1::INetworkDefinition* network,
 }
 
 bool initTrtPlugins() {
-    static bool didInitPlugins = initLibNvInferPlugins(&gLogger_inplace, "");
+    static bool didInitPlugins = initLibNvInferPlugins(get_trt_logger(), "");
     assert(didInitPlugins);
     return didInitPlugins;
 }
@@ -427,11 +432,11 @@ std::unique_ptr<nvinfer1::IHostMemory> onnx2trt(const OnnxParams& params) {
         1U << static_cast<uint32_t>(
             nvinfer1::NetworkDefinitionCreationFlag::kEXPLICIT_BATCH);
     std::unique_ptr<nvinfer1::IBuilder> builder{
-        nvinfer1::createInferBuilder(gLogger_inplace)};
+        nvinfer1::createInferBuilder(*get_trt_logger())};
     std::unique_ptr<nvinfer1::INetworkDefinition> network{
         builder->createNetworkV2(explicitBatch)};
     std::unique_ptr<nvonnxparser::IParser> parser{
-        nvonnxparser::createParser(*network, gLogger_inplace)};
+        nvonnxparser::createParser(*network, *get_trt_logger())};
     std::unique_ptr<nvinfer1::IBuilderConfig> config{
         builder->createBuilderConfig()};
     // builder->setMaxThreads(std::thread::hardware_concurrency()/2);
@@ -645,6 +650,132 @@ OnnxParams config2onnxparams(
     }
 
     return params;
+}
+static auto convert_type(const nvinfer1::DataType& data_type) {
+    NetIOInfo::DataType target_data_type;
+    switch (dtype) {
+        case nvinfer1::DataType::kFLOAT:
+            target_data_type = NetIOInfo::DataType::FP32;
+            break;
+        case nvinfer1::DataType::kINT32:
+            target_data_type = NetIOInfo::DataType::INT32;
+            break;
+        case nvinfer1::DataType::kINT8:
+            target_data_type = NetIOInfo::DataType::INT8;
+            break;
+        case nvinfer1::DataType::kHALF:
+            target_data_type = NetIOInfo::DataType::FP16;
+            break;
+    }
+    throw std::runtime_error("unsupported data type: " +
+                             std::to_string(int(dataType)));
+};
+
+NetIOInfos get_context_shape(nvinfer1::IExecutionContext* context,
+                             size_t profile_index) {
+    static_assert(sizeof(nvinfer1::Dims) == sizeof(NetIOInfo::Dims64));
+    // NetIOInfos io_info;
+    nvinfer1::ICudaEngine* engine = context->getEngine();
+    const auto num_inputsOutputs = engine->getNbIOTensors();
+
+    std::vector<NetIOInfo> io_infos(num_inputsOutputs);
+
+    size_t num_input = 0;
+
+    for (int j = 0; j < num_inputsOutputs; j++) {
+        const auto name = engine->getIOTensorName(j);
+        const auto tensorType = engine->getTensorIOMode(name);
+        const auto dataType = convert_type(engine->getTensorDataType(name));
+
+        io_infos[i].name = name;
+        io_infos[i].type = dataType;
+        if (tensorType == nvinfer1::TensorIOMode::kINPUT) {
+            nvinfer1::Dims min_dims = engine->getProfileShape(
+                name, profile_index, nvinfer1::OptProfileSelector::kMIN);
+            HAMI_ASSERT(context->setInputShape(name, min_dims));
+            memcpy(io_infos[i].min, &min_dims, sizeof(nvinfer1::Dims));
+            num_input++;
+        }
+    }
+    for (int j = 0; j < num_inputsOutputs; j++) {
+        const auto name = engine->getIOTensorName(j);
+        const auto tensorType = engine->getTensorIOMode(name);
+        if (tensorType == nvinfer1::TensorIOMode::kOUTPUT) {
+            nvinfer1::Dims dims = context->getTensorShape(name);
+            memcpy(&io_infos[i].min, &dims, sizeof(nvinfer1::Dims));
+        }
+    }
+    for (int j = 0; j < num_inputsOutputs; j++) {
+        const auto name = engine->getIOTensorName(j);
+        const auto tensorType = engine->getTensorIOMode(name);
+        if (tensorType == nvinfer1::TensorIOMode::kINPUT) {
+            nvinfer1::Dims max_dims = engine->getProfileShape(
+                name, profile_index, nvinfer1::OptProfileSelector::kMAX);
+            HAMI_ASSERT(context->setInputShape(name, max_dims));
+            memcpy(io_infos[i].max, &max_dims, sizeof(nvinfer1::Dims));
+        }
+    }
+    for (int j = 0; j < num_inputsOutputs; j++) {
+        const auto name = engine->getIOTensorName(j);
+        const auto tensorType = engine->getTensorIOMode(name);
+        if (tensorType == nvinfer1::TensorIOMode::kOUTPUT) {
+            nvinfer1::Dims dims = context->getTensorShape(name);
+            memcpy(&io_infos[i].max, &dims, sizeof(nvinfer1::Dims));
+        }
+    }
+    return {{io_infos.begin(), io_infos.begin() + num_input},
+            {io_infos.begin() + num_input, io_infos.end()}};
+};
+
+// MultiProfileNetIOInfos create_contexts(
+//     nvinfer1::ICudaEngine* engine,
+//     std::vector<std::unique_ptr<nvinfer1::IExecutionContext>>& contexts) {
+//     MultiProfileNetIOInfos result;
+//     const auto num_profiles = engine->getNbOptimizationProfiles();
+//     for (const auto profile_index : hami::range(num_profiles)) {
+// #if TRT_USER_MANAGED_MEM
+//         // USE_OUT_MEM
+//         auto context = std::unique_ptr<nvinfer1::IExecutionContext>(
+//             engine->createExecutionContext(
+//                 nvinfer1::ExecutionContextAllocationStrategy::kUSER_MANAGED));
+
+// #else
+//         context_ = unique_ptr<nvinfer1::IExecutionContext>(
+//             engine_->engine->createExecutionContext());
+// #endif
+
+//         context->setOptimizationProfileAsync(profile_index,
+//                                              c10::cuda::getCurrentCUDAStream());
+
+//         auto info = get_context_shape(context.get(), engine, profile_index);
+//         result.infos.push_back(info);
+//         contexts.push_back(std::move(context));
+//     }
+//     return result;
+// }
+
+std::unique_ptr<nvinfer1::IExecutionContext> create_context(
+    nvinfer1::ICudaEngine* engine, size_t instance_index) {
+    const auto num_profiles = engine->getNbOptimizationProfiles();
+    HAMI_ASSERT(instance_index < num_profiles);
+
+#if TRT_USER_MANAGED_MEM
+    // USE_OUT_MEM
+    std::unique_ptr<nvinfer1::IExecutionContext> context =
+        std::unique_ptr<nvinfer1::IExecutionContext>(
+            engine->createExecutionContext(
+                nvinfer1::ExecutionContextAllocationStrategy::kUSER_MANAGED));
+
+#else
+    std::unique_ptr<nvinfer1::IExecutionContext> context =
+        unique_ptr<nvinfer1::IExecutionContext>(
+            engine->createExecutionContext());
+#endif
+
+    context->setOptimizationProfileAsync(profile_index,
+                                         c10::cuda::getCurrentCUDAStream());
+
+    return context;
 }
 
 }  // namespace torchpipe

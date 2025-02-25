@@ -14,6 +14,8 @@ class CatSplit final : public Container {
     virtual void forward(const std::vector<dict>&) override;
 
    private:
+    virtual std::vector<size_t> set_init_order(size_t max_range) const override;
+
     std::pair<size_t, size_t> update_min_max(
         const std::vector<Backend*>& depends) override;
 };

@@ -1,4 +1,4 @@
-// Copyright 2021-2024 NetEase.
+// Copyright 2021-2025 NetEase.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@
 #include <torch/torch.h>
 #include <c10/cuda/CUDACachingAllocator.h>
 #include <c10/cuda/CUDAStream.h>
+#include "helper/net_info.hpp"
 
 namespace torchpipe {
 using dict = hami::dict;
@@ -181,5 +182,14 @@ int static inline torch_pinned_free_async(void* ctx, void* p, size_t size,
 }
 
 std::string get_sm();
+
+// torch::Tensor fix_and_cat_tensor(std::vector<torch::Tensor>& data,
+//                                  const NetIOInfo& info);
+
+void fix_tensor_shape(torch::Tensor& data, const std::vector<size_t>& min,
+                      const std::vector<size_t>& max);
+
+void fix_tensors(std::vector<torch::Tensor>& tensors,
+                 const std::shared_ptr<NetIOInfos>& infos);
 
 }  // namespace torchpipe
