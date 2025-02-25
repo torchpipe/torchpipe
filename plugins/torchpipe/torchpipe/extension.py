@@ -2,7 +2,7 @@ import torch
 
 import os
 import importlib
-
+import logging
 def _get_extension_path(lib_name):
 
     lib_dir = os.path.dirname(__file__)
@@ -50,6 +50,7 @@ def _check_cuda_version():
 
 def _load_library(lib_name):
     lib_path = _get_extension_path(lib_name)
+    logging.info(f"Loading {lib_path}")
     torch.ops.load_library(lib_path)
 
 

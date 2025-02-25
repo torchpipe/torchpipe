@@ -16,13 +16,13 @@ def get_trt_path():
     if not torch.cuda.is_available():
         raise Exception("CUDA is not available. TensorRT requires CUDA.")
     
-    cuda_version = torch.version.cuda
-    if cuda_version.startswith("11"):
+    cuda_version = torch.version.cuda.split('.')[0]  # 获取主版本号
+    if cuda_version == "11":
         trt_path = TrtAddr["cuda11.8"]
-    elif cuda_version.startswith("12"):
+    elif cuda_version == "12":
         trt_path = TrtAddr["cuda12.8"]
     else:
-        raise Exception("TensorRT is not supported for CUDA <= 10")
+        raise NotImplementedError(f"TensorRT not supported for CUDA version {cuda_version}")
     return trt_path
 
 def download_with_progress(url, local_path):
@@ -80,11 +80,11 @@ def download_and_install_trt(
     download_with_progress(trt_path, local_path)
     
     # Extract TensorRT
-    print("Extracting TensorRT...")
+    
     trt_extract_dir = os.path.join(tmp_dir, "TensorRT")
-    if os.path.exists(trt_extract_dir):
-        shutil.rmtree(trt_extract_dir)
-    os.makedirs(trt_extract_dir)
+    print(f"Extracting TensorRT to {trt_extract_dir} ...")
+
+    os.makedirs(trt_extract_dir, exist_ok=True)
     
     import tarfile
     with tarfile.open(local_path) as tar:
@@ -95,7 +95,7 @@ def download_and_install_trt(
     trt_source_dir = os.path.join(trt_extract_dir, extracted_dir)
     
     # Install TensorRT
-    print(f"Installing TensorRT to {install_dir}...")
+    print(f"Installing TensorRT to {install_dir} ...")
     
     # Copy include files
     include_dst = os.path.join(install_dir, "include")

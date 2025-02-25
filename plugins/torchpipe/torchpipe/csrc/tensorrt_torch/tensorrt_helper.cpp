@@ -9,6 +9,7 @@
 #include "tensorrt_torch/tensorrt_helper.hpp"
 #include "NvInferPlugin.h"
 #include <c10/cuda/CUDAStream.h>
+#include <NvOnnxParser.h>
 
 namespace {
 
@@ -45,16 +46,16 @@ class NvLogger : public nvinfer1::ILogger {
             // SPDLOG_TRACE(msg);
             spdlog::trace(msg);
     }
-#endif
+    // #endif
 };
-nvinfer1::ILogger* get_trt_logger() {
-    static NvLogger gLogger_inplace;
-    return &gLogger_inplace;
-}
 
 }  // namespace
 
 namespace torchpipe {
+nvinfer1::ILogger* get_trt_logger() {
+    static NvLogger gLogger_inplace;
+    return &gLogger_inplace;
+}
 
 // https://github.com/maggiez0138/Swin-Transformer-TensorRT/blob/master/trt/trt_utils.py
 void force_layernorn_fp32(nvinfer1::INetworkDefinition* network) {
@@ -133,14 +134,18 @@ bool precision_fpx_count(const std::set<std::string>& target,
     return false;
 }
 
-void modify_layers_precision(std::set<std::string> precision_fpx,
+void modify_layers_precision(std::set<std::string> precision_fpx_input,
                              nvinfer1::INetworkDefinition* network,
                              nvinfer1::DataType dataType,
                              bool is_output = false) {
+    std::set<std::string> precision_fpx;
+    std::transform(
+        precision_fpx_input.begin(), precision_fpx_input.end(),
+        std::inserter(precision_fpx, precision_fpx.begin()),
+        [](const std::string& item) { return hami::str::tolower(item); });
+
     std::set<std::string> layers_founded;
-    for (auto& item : precision_fpx) {
-        item = hami::str::tolower(item);
-    }
+
     for (std::size_t index_l = 0;
          !precision_fpx.empty() && index_l < network->getNbLayers();
          ++index_l) {
@@ -206,16 +211,15 @@ void print_colored_net(
     std::stringstream ss;
 
     // Header
-    ss << colored("==================== Network Inputs ====================",
-                  ANSI_COLOR_CYAN, true)
+    ss << hami::colored(
+              "==================== Network Inputs ====================")
        << "\n";
 
     // Print each input's name and dimensions
     for (std::size_t i = 0; i < net_inputs_ordered_dims.size(); ++i) {
         const auto& item = net_inputs_ordered_dims[i];
-        ss << colored("Input " + std::to_string(input_reorder[i]) + ": ",
-                      ANSI_COLOR_GREEN)
-           << colored(item.first, ANSI_COLOR_YELLOW) << " [";
+        ss << hami::colored("Input " + std::to_string(input_reorder[i]) + ": ")
+           << hami::colored(item.first) << " [";
         for (int j = 0; j < item.second.nbDims; ++j) {
             const int inputS = item.second.d[j];
             ss << inputS;
@@ -225,26 +229,25 @@ void print_colored_net(
     }
 
     // Print current input order
-    ss << "\n" << colored("Current Input Order: (", ANSI_COLOR_MAGENTA);
+    ss << "\n" << hami::colored("Current Input Order: (");
     for (std::size_t i = 0; i < input_reorder.size(); ++i) {
         ss << input_reorder[i];
         if (i != input_reorder.size() - 1) ss << ", ";
     }
-    ss << colored(")", ANSI_COLOR_MAGENTA) << "\n";
+    ss << hami::colored(")") << "\n";
 
     // Footer with instructions
-    ss << colored("========================================================",
-                  ANSI_COLOR_CYAN, true)
+    ss << hami::colored(
+              "========================================================")
        << "\n";
-    ss << colored("Instructions:", ANSI_COLOR_BLUE, true) << "\n";
-    ss << colored(
+    ss << hami::colored("Instructions:") << "\n";
+    ss << hami::colored(
               "1. Use the above information to set ranges (batch sizes) for "
-              "profiles.",
-              ANSI_COLOR_WHITE)
+              "profiles.")
        << "\n";
     if (input_reorder.size() > 1) {
-        ss << colored("2. Reset the input order by modifying `input_reorder`.",
-                      ANSI_COLOR_WHITE)
+        ss << hami::colored(
+                  "2. Reset the input order by modifying `input_reorder`.")
            << "\n";
     }
 
@@ -292,7 +295,7 @@ void print_net(nvinfer1::INetworkDefinition* network,
 
     // Print the final output (assuming SPDLOG_INFO and colored functions are
     // defined)
-    SPDLOG_INFO(colored(ss.str()));
+    SPDLOG_INFO(hami::colored(ss.str()));
 }
 
 // Helper function to apply mean and std normalization
@@ -445,7 +448,7 @@ std::unique_ptr<nvinfer1::IHostMemory> onnx2trt(const OnnxParams& params) {
 
     // todo timecache
     auto b_parsed = parser->parseFromFile(
-        params.model_path.c_str(),
+        params.model.c_str(),
         static_cast<int>(trt_get_log_level(params.log_level)));
     HAMI_ASSERT(b_parsed);
     // todo max workspace size for setMemoryPoolLimit
@@ -494,16 +497,18 @@ std::unique_ptr<nvinfer1::IHostMemory> onnx2trt(const OnnxParams& params) {
         if (!first_profile) first_profile = profile;
 
         // mins: multiple profiles x multiple inputs x multiDims
-        if (params.mins[index_p].size() < network->getNbInputs()) {
-            HAMI_ASSERT(!mins[index_p].empty());
-            params.mins[index_p].resize(network->getNbInputs(),
-                                        params.mins[index_p].back());
-        }
-        if (params.maxs[index_p].size() < network->getNbInputs()) {
-            HAMI_ASSERT(!maxs[index_p].empty());
-            params.maxs[index_p].resize(network->getNbInputs(),
-                                        params.maxs[index_p].back());
-        }
+        // if (params.mins[index_p].size() < network->getNbInputs()) {
+        //     HAMI_ASSERT(!params.mins[index_p].empty());
+        //     params.mins[index_p].resize(network->getNbInputs(),
+        //                                 params.mins[index_p].back());
+        // }
+        // if (params.maxs[index_p].size() < network->getNbInputs()) {
+        //     HAMI_ASSERT(!params.maxs[index_p].empty());
+        //     params.maxs[index_p].resize(network->getNbInputs(),
+        //                                 params.maxs[index_p].back());
+        // }
+        HAMI_ASSERT(params.mins[index_p].size() == network->getNbInputs());
+        HAMI_ASSERT(params.maxs[index_p].size() == network->getNbInputs());
 
         for (int i = 0; i < input_reorder.size(); ++i) {
             if (network->getInput(input_reorder[i])->isShapeTensor()) {
@@ -580,7 +585,7 @@ OnnxParams config2onnxparams(
     const std::unordered_map<std::string, std::string>& config) {
     OnnxParams params;
 
-    hami::str::try_update(config, "model", params.model_path);
+    hami::str::try_update(config, "model", params.model);
     hami::str::try_update(config, "model::cache", params.model_cache);
 
     hami::str::try_update(config, "max_workspace_size",
@@ -651,76 +656,77 @@ OnnxParams config2onnxparams(
 
     return params;
 }
-static auto convert_type(const nvinfer1::DataType& data_type) {
-    NetIOInfo::DataType target_data_type;
-    switch (dtype) {
+static NetIOInfo::DataType convert_type(const nvinfer1::DataType& data_type) {
+    // NetIOInfo::DataType target_data_type;
+    switch (data_type) {
         case nvinfer1::DataType::kFLOAT:
-            target_data_type = NetIOInfo::DataType::FP32;
-            break;
+            return NetIOInfo::DataType::FP32;
+
         case nvinfer1::DataType::kINT32:
-            target_data_type = NetIOInfo::DataType::INT32;
-            break;
+            return NetIOInfo::DataType::INT32;
+
         case nvinfer1::DataType::kINT8:
-            target_data_type = NetIOInfo::DataType::INT8;
-            break;
+            return NetIOInfo::DataType::INT8;
+
         case nvinfer1::DataType::kHALF:
-            target_data_type = NetIOInfo::DataType::FP16;
+            return NetIOInfo::DataType::FP16;
+        default:
             break;
     }
     throw std::runtime_error("unsupported data type: " +
-                             std::to_string(int(dataType)));
+                             std::to_string(int(data_type)));
 };
 
 NetIOInfos get_context_shape(nvinfer1::IExecutionContext* context,
                              size_t profile_index) {
     static_assert(sizeof(nvinfer1::Dims) == sizeof(NetIOInfo::Dims64));
     // NetIOInfos io_info;
-    nvinfer1::ICudaEngine* engine = context->getEngine();
-    const auto num_inputsOutputs = engine->getNbIOTensors();
+    const nvinfer1::ICudaEngine& engine = context->getEngine();
+    const auto num_inputsOutputs = engine.getNbIOTensors();
 
     std::vector<NetIOInfo> io_infos(num_inputsOutputs);
 
     size_t num_input = 0;
 
     for (int j = 0; j < num_inputsOutputs; j++) {
-        const auto name = engine->getIOTensorName(j);
-        const auto tensorType = engine->getTensorIOMode(name);
-        const auto dataType = convert_type(engine->getTensorDataType(name));
+        const auto name = engine.getIOTensorName(j);
+        const auto tensorType = engine.getTensorIOMode(name);
+        const auto dataType = convert_type(engine.getTensorDataType(name));
 
-        io_infos[i].name = name;
-        io_infos[i].type = dataType;
+        io_infos[j].name = name;
+        io_infos[j].type = dataType;
         if (tensorType == nvinfer1::TensorIOMode::kINPUT) {
-            nvinfer1::Dims min_dims = engine->getProfileShape(
+            nvinfer1::Dims min_dims = engine.getProfileShape(
                 name, profile_index, nvinfer1::OptProfileSelector::kMIN);
             HAMI_ASSERT(context->setInputShape(name, min_dims));
-            memcpy(io_infos[i].min, &min_dims, sizeof(nvinfer1::Dims));
+            memcpy(&io_infos[j].min, &min_dims, sizeof(nvinfer1::Dims));
             num_input++;
         }
     }
     for (int j = 0; j < num_inputsOutputs; j++) {
-        const auto name = engine->getIOTensorName(j);
-        const auto tensorType = engine->getTensorIOMode(name);
+        const auto name = engine.getIOTensorName(j);
+        const auto tensorType = engine.getTensorIOMode(name);
         if (tensorType == nvinfer1::TensorIOMode::kOUTPUT) {
             nvinfer1::Dims dims = context->getTensorShape(name);
-            memcpy(&io_infos[i].min, &dims, sizeof(nvinfer1::Dims));
+            memcpy(&io_infos[j].min, &dims, sizeof(nvinfer1::Dims));
         }
     }
     for (int j = 0; j < num_inputsOutputs; j++) {
-        const auto name = engine->getIOTensorName(j);
-        const auto tensorType = engine->getTensorIOMode(name);
+        const auto name = engine.getIOTensorName(j);
+        const auto tensorType = engine.getTensorIOMode(name);
         if (tensorType == nvinfer1::TensorIOMode::kINPUT) {
-            nvinfer1::Dims max_dims = engine->getProfileShape(
+            nvinfer1::Dims max_dims = engine.getProfileShape(
                 name, profile_index, nvinfer1::OptProfileSelector::kMAX);
             HAMI_ASSERT(context->setInputShape(name, max_dims));
-            memcpy(io_infos[i].max, &max_dims, sizeof(nvinfer1::Dims));
+            memcpy(&io_infos[j].max, &max_dims, sizeof(nvinfer1::Dims));
         }
     }
     for (int j = 0; j < num_inputsOutputs; j++) {
-        const auto name = engine->getIOTensorName(j);
-        const auto tensorType = engine->getTensorIOMode(name);
+        const auto name = engine.getIOTensorName(j);
+        const auto tensorType = engine.getTensorIOMode(name);
         if (tensorType == nvinfer1::TensorIOMode::kOUTPUT) {
             nvinfer1::Dims dims = context->getTensorShape(name);
-            memcpy(&io_infos[i].max, &dims, sizeof(nvinfer1::Dims));
+            memcpy(&io_infos[j].max, &dims, sizeof(nvinfer1::Dims));
         }
     }
     return {{io_infos.begin(), io_infos.begin() + num_input},
@@ -772,7 +778,7 @@ std::unique_ptr<nvinfer1::IExecutionContext> create_context(
             engine->createExecutionContext());
 #endif
 
-    context->setOptimizationProfileAsync(profile_index,
+    context->setOptimizationProfileAsync(instance_index,
                                          c10::cuda::getCurrentCUDAStream());
 
     return context;

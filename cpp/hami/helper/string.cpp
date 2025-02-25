@@ -1,5 +1,7 @@
 #include <algorithm>
 #include <string>
+#include <cctype>  //   isspace   iscntrl
+
 #include "hami/helper/string.hpp"
 #include "hami/helper/base_logging.hpp"
 #include "hami/helper/macro.h"
@@ -7,11 +9,10 @@
 namespace hami::str {
 
 std::vector<std::string> str_split(std::string strtem, char a) {
-    std::vector<std::string> strvec;
+    remove_space_and_ctrl(strtem);
     if (strtem.empty()) return {};
 
-    auto itor = std::remove(strtem.begin(), strtem.end(), ' ');
-    strtem.erase(itor, strtem.end());
+    std::vector<std::string> strvec;
 
     std::string::size_type pos1, pos2;
     pos2 = strtem.find(a);
@@ -32,8 +33,7 @@ std::vector<std::string> items_split(std::string strtem, char a, char left,
     std::vector<std::string> strvec;
     if (strtem.empty()) return strvec;
 
-    auto itor = std::remove(strtem.begin(), strtem.end(), ' ');
-    strtem.erase(itor, strtem.end());
+    remove_space_and_ctrl(strtem);
 
     std::string::size_type pos1, pos2;
     pos2 = strtem.find(a);
@@ -108,12 +108,19 @@ bool is_comma_separable(const std::string& strtem, char left, char right) {
     return separable;
 }
 
-std::vector<std::string> flatten_brackets(const std::string& strtem_, char left,
-                                          char right) {
+void remove_space_and_ctrl(std::string& strtem) {
+    strtem.erase(std::remove_if(strtem.begin(), strtem.end(),
+                                [](unsigned char c) {
+                                    return std::isspace(c) || std::iscntrl(c);
+                                }),
+                 strtem.end());
+}
+
+std::vector<std::string> flatten_brackets(const std::string& strtem_in,
+                                          char left, char right) {
     std::vector<std::string> brackets;
-    std::string strtem = strtem_;
-    auto itor = std::remove(strtem.begin(), strtem.end(), ' ');
-    strtem.erase(itor, strtem.end());
+    std::string strtem = strtem_in;
+    remove_space_and_ctrl(strtem);
 
     while (!strtem.empty()) {
         if (brackets.size() > 10000) throw std::invalid_argument("too many []");
@@ -122,10 +129,10 @@ std::vector<std::string> flatten_brackets(const std::string& strtem_, char left,
             auto iter_end = strtem.find_last_of(right);
 
             if (iter_end == std::string::npos) {
-                throw std::invalid_argument("brackets not match: " + strtem_);
+                throw std::invalid_argument("brackets not match: " + strtem_in);
             }
             HAMI_ASSERT(iter_end == strtem.size() - 1,
-                        "brackets not match: " + strtem_);
+                        "brackets not match: " + strtem_in);
 
             brackets.emplace_back(strtem.substr(0, iter_begin));
             strtem = strtem.substr(iter_begin + 1, iter_end - iter_begin - 1);
@@ -202,12 +209,17 @@ std::string post_parentheses_split(const std::string& strtem,
     auto iter = strtem.find(left);
     auto iter_right = strtem.find_last_of(right, strtem.find('['));
 
+    if (iter > strtem.find('[')) {  // A[(b)B]
+        return strtem;
+    }
+
     if (iter == std::string::npos) {
         HAMI_ASSERT(iter_right == std::string::npos);
         return strtem;
     } else {
         HAMI_ASSERT(iter != 0);
-        HAMI_ASSERT(iter_right != std::string::npos);
+        HAMI_ASSERT(iter_right != std::string::npos,
+                    "strtem=" + strtem + "; post=" + post);
         post = strtem.substr(iter + 1, iter_right - 1 - iter);
         return strtem.substr(0, iter) + strtem.substr(iter_right + 1);
     }

@@ -4,11 +4,10 @@
 
 #include "NvInfer.h"
 #include <NvInferRuntime.h>
-#include "tensorrt_torch/net_info.hpp"
+#include "helper/net_info.hpp"
 
 namespace torchpipe {
 constexpr auto TASK_ENGINE_KEY = "_engine";
-constexpr auto TASK_ENGINE_KEY = "_context";
 
 void modify_layers_precision(std::set<std::string> precision_fpx,
                              nvinfer1::INetworkDefinition* network,
@@ -31,7 +30,7 @@ nvinfer1::Dims infer_shape(std::vector<int> config_shape,
                            const nvinfer1::Dims& net_input);
 
 struct OnnxParams {
-    std::string model_path;   // moddel
+    std::string model;        // moddel
     std::string model_cache;  // model::cache
     std::string precision{"fp16"};
     std::set<std::string> precision_fp32;  // precision::fp32

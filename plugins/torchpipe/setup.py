@@ -31,6 +31,9 @@ OPENCV_INCLUDE = os.getenv("OPENCV_INCLUDE", "/usr/local/include/opencv4/")
 OPENCV_LIB = os.getenv("OPENCV_LIB", "/usr/local/lib/")
 
 USE_TENSORRT = os.getenv("TORCHPIPE_USE_TENSORRT", "1") == "1"
+TENSORRT_INCLUDE = os.getenv("TENSORRT_INCLUDE", "/usr/local/include/")
+TENSORRT_LIB = os.getenv("TENSORRT_LIB", "/usr/local/lib/")
+
 NVCC_FLAGS = os.getenv("NVCC_FLAGS", None)
 # Note: the GPU video decoding stuff used to be called "video codec", which
 # isn't an accurate or descriptive name considering there are at least 2 other
@@ -306,29 +309,26 @@ def make_mat_extension():
 
     Extension = CppExtension
     
-    if USE_OPENCV:
-        global OPENCV_INCLUDE, OPENCV_LIB
-        opencv_found =  (Path(OPENCV_INCLUDE) / "opencv2/core.hpp").exists() and ( Path(OPENCV_LIB) / "libopencv_core.so").exists()
-        
-        if not opencv_found:
-            warnings.warn("not found opencv. please set OPENCV_INCLUDE and  OPENCV_LIB.")
-            warnings.warn("Auto download and build Opencv now.")
-            from download_and_build_opencv import download_and_build_opencv
+    global OPENCV_INCLUDE, OPENCV_LIB
+    opencv_found =  (Path(OPENCV_INCLUDE) / "opencv2/core.hpp").exists() and ( Path(OPENCV_LIB) / "libopencv_core.so").exists()
+    
+    if not opencv_found:
+        warnings.warn("not found opencv. please set OPENCV_INCLUDE and  OPENCV_LIB.")
+        warnings.warn("Auto download and build Opencv now.")
+        from download_and_build_opencv import download_and_build_opencv
 
-            OPENCV_INCLUDE, OPENCV_LIB = download_and_build_opencv()
-            os.environ["OPENCV_INCLUDE"] = OPENCV_INCLUDE
-            os.environ["OPENCV_LIB"] = OPENCV_LIB
-            print("new OPENCV_INCLUDE={OPENCV_INCLUDE} OPENCV_LIB={OPENCV_LIB}")
-        print("Building torchpipe with opencv backends support")
-        libraries +=["opencv_core", "opencv_imgproc", "opencv_imgcodecs"]
-        define_macros += [("OPENCV_FOUND", 1)]
-        include_dirs += [OPENCV_INCLUDE]
-        library_dirs  += [OPENCV_LIB]
-            # Extension = CUDAExtension
+        OPENCV_INCLUDE, OPENCV_LIB = download_and_build_opencv()
+        os.environ["OPENCV_INCLUDE"] = OPENCV_INCLUDE
+        os.environ["OPENCV_LIB"] = OPENCV_LIB
+        print("new OPENCV_INCLUDE={OPENCV_INCLUDE} OPENCV_LIB={OPENCV_LIB}")
+    print("Building torchpipe with opencv backends support")
+    libraries +=["opencv_core", "opencv_imgproc", "opencv_imgcodecs"]
+    define_macros += [("OPENCV_FOUND", 1)]
+    include_dirs += [OPENCV_INCLUDE]
+    library_dirs  += [OPENCV_LIB]
+        # Extension = CUDAExtension
         
-    else:
-        warnings.warn("Building torchpipe without Opencv support")
-
+     
     return Extension(
         name="torchpipe.mat",
         sources=sorted(str(s) for s in sources),
@@ -337,6 +337,65 @@ def make_mat_extension():
         libraries = ['hami']+libraries,
         define_macros=define_macros,
         extra_compile_args=extra_compile_args,
+    )
+    
+def get_cuda_include():
+    return Path(CUDA_HOME) / "include/"
+
+def make_trt_extension():
+
+    print("Building tensorrt extension")
+
+    include_dirs = TORCHPIPE_INCLUDE.copy()
+    library_dirs = TORCHPIPE_LIBRARY.copy()
+    
+    include_dirs += HAMI_INCLUDES
+
+    libraries = []
+    define_macros, extra_compile_args = get_macros_and_flags()
+
+    sources = (
+        list(CSRS_DIR.glob("tensorrt_torch/*.cpp"))
+    )
+
+    Extension = CUDAExtension
+    
+
+    global TENSORRT_INCLUDE, TENSORRT_LIB
+    trt_found =  (Path(TENSORRT_INCLUDE) / "NvInfer.h").exists() and ( Path(TENSORRT_LIB) / "libnvonnxparser.so").exists()
+        
+    if not trt_found:
+        warnings.warn("TensorRT not found. Checking environment variables...")
+        warnings.warn("Attempting to auto-download and install TensorRT.")
+        from download_and_install_tensorrt import download_and_install_trt  # 修正导入函数名
+
+        # 调用正确的安装函数并获取路径
+        TENSORRT_INCLUDE, TENSORRT_LIB = download_and_install_trt()  # 修正函数名拼写错误
+        os.environ["TENSORRT_INCLUDE"] = TENSORRT_INCLUDE
+        os.environ["TENSORRT_LIB"] = TENSORRT_LIB
+        # 修正f-string语法错误
+        print(f"New environment variables set:\nTENSORRT_INCLUDE={TENSORRT_INCLUDE}\nTENSORRT_LIB={TENSORRT_LIB}")
+    print("Building torchpipe with tensorrt backends support")
+    libraries +=["nvinfer", "nvinfer_plugin", "nvonnxparser"]
+    define_macros += [("TENSORRT_FOUND", 1)]
+    include_dirs += [TENSORRT_INCLUDE, get_cuda_include()]
+    library_dirs  += [TENSORRT_LIB]
+    
+    native_so_path = os.path.join(os.path.dirname(__file__), "torchpipe/native.so")
+
+    return Extension(
+        name="torchpipe.trt",
+        sources=sorted(str(s) for s in sources),
+        include_dirs=include_dirs + [CSRS_DIR],
+        library_dirs=HAMI_library_dirs + library_dirs + [os.path.dirname(native_so_path)],
+        libraries = ['hami']+libraries,
+        define_macros=define_macros,
+        extra_compile_args=extra_compile_args,
+        extra_link_args=[
+            f'-Wl,-rpath,$ORIGIN/',  
+            '-Wl,--no-as-needed',
+            '-l:native.so'
+        ]
     )
 
 
@@ -353,6 +412,7 @@ if __name__ == "__main__":
         make_C_extension(),
         make_image_extension(),
         make_mat_extension(),
+        make_trt_extension(),
         # *make_video_decoders_extensions(),
     ]
 

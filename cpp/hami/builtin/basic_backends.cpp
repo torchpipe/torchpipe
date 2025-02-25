@@ -114,7 +114,7 @@ void Container::init(const std::unordered_map<std::string, std::string>& config,
         base_config_.resize(backend_names.size());
         base_dependencies_.resize(backend_names.size());
 
-        bool lazy_init = order.size() == backend_names.size();
+        bool lazy_init = order.size() != backend_names.size();
 
         // std::reverse(backend_names.begin(), backend_names.end());
         std::vector<Backend*> backends(backend_names.size());
@@ -201,9 +201,9 @@ std::pair<size_t, size_t> Container::update_min_max(
         max_value = 1;
     }
     HAMI_ASSERT(min_value <= max_value);
-    min_ = min_value;
-    max_ = max_value;
-    // return {min_value, max_value};
+    // min_ = min_value;
+    // max_ = max_value;
+    return {min_value, max_value};
 }
 
 void List::init(const std::unordered_map<std::string, std::string>& config,

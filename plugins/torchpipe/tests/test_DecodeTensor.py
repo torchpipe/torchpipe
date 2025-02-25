@@ -35,4 +35,6 @@ def test_DecodeTensor():
     assert input["result"].shape == (1, 3, 1140, 1200)
     
 if __name__ =="__main__":
+    import time
+    time.sleep(5)
     test_DecodeTensor()

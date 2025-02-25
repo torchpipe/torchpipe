@@ -29,7 +29,7 @@ class Onnx2Tensorrt : public hami::Backend {
     std::unique_ptr<nvinfer1::IGpuAllocator> allocator_;
 };
 
-class TensorrtModelLoadder : public hami::Container {
+class ModelLoadder : public hami::Container {
    public:
     void post_init(const std::unordered_map<std::string, std::string>& config,
                    const hami::dict& dict_config) override;
@@ -39,9 +39,9 @@ class TensorrtModelLoadder : public hami::Container {
     std::vector<size_t> set_init_order(size_t max_range) const override {
         return {};
     }
-    std::unique_ptr<nvinfer1::IRuntime> runtime_;
-    std::shared_ptr<nvinfer1::ICudaEngine> engine_;
-    std::unique_ptr<nvinfer1::IGpuAllocator> allocator_;
+    // std::unique_ptr<nvinfer1::IRuntime> runtime_;
+    // std::shared_ptr<nvinfer1::ICudaEngine> engine_;
+    // std::unique_ptr<nvinfer1::IGpuAllocator> allocator_;
 };
 
 // class TensorrtContext : public hami::Backend {

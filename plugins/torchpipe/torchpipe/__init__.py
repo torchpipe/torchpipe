@@ -9,6 +9,7 @@ from .extension import _load_library
 _load_library("native")
 _load_library("image")
 _load_library("mat")
+_load_library("trt")
 
 # try:
 #     _load_library("_C")

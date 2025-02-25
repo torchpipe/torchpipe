@@ -53,7 +53,7 @@ void Reflect::init(const std::unordered_map<string, string>& config,
     auto iter = config.find(*name + "::dependency");
     HAMI_ASSERT(
         iter != config.end(),
-        *name + "::dependency not found. Call this backend through A[B]");
+        *name + "::dependency not found. Call this backend through A[B].");
     iter = config.find(iter->second);
     HAMI_ASSERT(iter != config.end(),
                 "configuration missing for " + iter->second);

@@ -19,9 +19,11 @@ cc_library(
     symbol.cpp
     toml_parser.cpp
     unique_index.cpp
+    filesystem.cpp
   DEPS
     :spdlog
     :toml
+    stdc++fs
 )
 
 # cc_test(

@@ -30,6 +30,7 @@
 
 #include "helper/torch.hpp"
 #include <hami/extension.hpp>
+#include "NvInferRuntime.h"
 
 namespace torchpipe {
 
@@ -162,84 +163,37 @@ torch::Tensor switch_device(torch::Tensor input) {
                                            // pinned memory， 不怕析构
 }
 
-//  测试 cudaMemcpyAsync 是同步还是异步（非pinnedmemory）
-// 结论 此时 cudaMemcpyAsync 和 cudaMemcpy 差不多
-class TestRun {
-   public:
-    TestRun() {
-        // test_cudaMemcpyAsync();
-    };
+c10::ScalarType trt2torch_type(nvinfer1::DataType dtype) {
+    auto target_dtype = torch::kFloat;
+    switch (dtype) {
+        case nvinfer1::DataType::kFLOAT:
+            target_dtype = torch::kFloat;
+            break;
+        case nvinfer1::DataType::kINT32:
+            target_dtype = torch::kInt;
+            break;
+        case nvinfer1::DataType::kINT8:
+            target_dtype = torch::kChar;
+            break;
 
-    void test_run(int src[]) {
-        while (data_ >= 0) {
-            std::lock_guard<std::mutex> lock(lock_);
-            src[99] = ++data_;
-        }
+        case nvinfer1::DataType::kINT64:
+            target_dtype = torch::kLong;
+            break;
+
+        case nvinfer1::DataType::kBOOL:
+            target_dtype = torch::kBool;
+            break;
+        case nvinfer1::DataType::kHALF:
+            target_dtype = torch::kHalf;
+            break;
+        default:
+            SPDLOG_ERROR(
+                "out: only support type of kFLOAT, kINT32, kINT64, kINT8, "
+                "kBOOL, kHALF");
+            throw std::runtime_error("unsupportted datatype");
     }
-
-    // void test_cudaMemcpyAsync() {
-    //   int* src = new int[1000000];
-
-    //   int final_data[100]{0};
-
-    //   int* device_data = NULL;
-    //   size_t size = 1000000 * sizeof(int);
-    //   cudaMalloc((void**)&device_data, size);
-    //   auto stream = c10::cuda::getCurrentCUDAStream();
-    //   stream.synchronize(); // todo 此处 d
-
-    //   std::thread th(&TestRun::test_run, this, src);
-    //   std::this_thread::sleep_for(std::chrono::milliseconds(10));
-
-    //   {
-    //     std::lock_guard<std::mutex> lock(lock_);
-    //     std::cout << "before cudaMemcpyAsync data_= " << data_ << " src[99] "
-    //               << src[99] << std::endl;
-    //     {
-    //       TimeGuard z("cudaMemcpyAsync");
-    //       // cudaMemcpyAsync(device_data, src, 1000000*sizeof(int),
-    //       // cudaMemcpyHostToDevice, stream);
-    //       cudaMemcpy(
-    //           device_data, src, 1000000 * sizeof(int),
-    //           cudaMemcpyHostToDevice);
-    //     }
-    //     if (true) {
-    //       delete src;
-    //       {
-    //         TimeGuard z("synchronize");
-    //         stream.synchronize(); // todo 此处 d
-    //       }
-
-    //       std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-    //       std::cout << "finish" << std::endl;
-    //       ;
-    //       std::abort();
-    //     }
-    //     src[99] += 1;
-    //   }
-
-    //   std::cout << "after cudaMemcpyAsync data_= " << data_ << " src[99] "
-    //             << src[99] << std::endl;
-
-    //   stream.synchronize(); // todo 此处 d
-    //   cudaMemcpyAsync(
-    //       final_data,
-    //       device_data,
-    //       100 * sizeof(int),
-    //       cudaMemcpyDeviceToHost,
-    //       stream);
-    //   stream.synchronize(); // todo 此处 d
-    //   data_ = -100;
-    //   std::cout << " stop | data_= " << data_ << " src[99] = " << src[99]
-    //             << " final_data[99]=" << final_data[99] << std::endl;
-
-    //   th.join();
-    //   std::abort();
-    // }
-    std::atomic<int> data_{1};
-    std::mutex lock_;
-};
-// TestRun tmp;
+    return target_dtype;
+}
 
 torch::Tensor async2cpu(torch::Tensor input) {
     //  auto options=torch::TensorOptions()
@@ -638,6 +592,38 @@ void fix_tensor_shape(torch::Tensor& data, const NetIOInfo::Dims64 min,
                                 hami::str::vec2str(data.sizes().vec()));
 }
 
+c10::ScalarType netinfo2torch_type(NetIOInfo::DataType dtype) {
+    switch (dtype) {
+        case NetIOInfo::DataType::INT4:
+        case NetIOInfo::DataType::INT8:
+            return torch::kInt8;
+        case NetIOInfo::DataType::UINT8:
+            return torch::kUInt8;
+        case NetIOInfo::DataType::INT32:
+            return torch::kInt32;
+        case NetIOInfo::DataType::INT64:
+            return torch::kInt64;
+        case NetIOInfo::DataType::BOOL:
+            return torch::kBool;
+        case NetIOInfo::DataType::FP4:
+        case NetIOInfo::DataType::FP8:
+        case NetIOInfo::DataType::FP16:
+            return torch::kFloat16;
+        case NetIOInfo::DataType::FP32:
+            return torch::kFloat32;
+        case NetIOInfo::DataType::BF16:
+            return torch::kBFloat16;
+        case NetIOInfo::DataType::BF32:
+            return torch::kFloat32;  // BF32 is not directly supported in
+                                     // PyTorch, fallback to Float32
+        case NetIOInfo::DataType::RESERVED_INT:
+        case NetIOInfo::DataType::RESERVED_FP:
+        case NetIOInfo::DataType::RESERVED_BF:
+        case NetIOInfo::DataType::UNKNOWN:
+        default:
+            throw std::runtime_error("Unsupported or unknown data type");
+    }
+}
 void fix_tensors(std::vector<torch::Tensor>& tensors,
                  const std::shared_ptr<NetIOInfos>& infos) {
     const auto num_inputs = tensors.size();
@@ -649,6 +635,40 @@ void fix_tensors(std::vector<torch::Tensor>& tensors,
         fix_tensor_shape(tensors[i], infos->first.at(i).min,
                          infos->first.at(i).max);
     }
+}
+
+void check_tensor(const torch::Tensor& tensor, const NetIOInfo& infos) {
+    HAMI_ASSERT(tensor.sizes().size() == infos.min.nbDims);
+    for (size_t i = 0; i < infos.min.nbDims; ++i) {
+        HAMI_ASSERT(tensor.sizes()[i] >= infos.min.d[i]);
+        HAMI_ASSERT(tensor.sizes()[i] <= infos.max.d[i]);
+        HAMI_ASSERT(tensor.scalar_type() == netinfo2torch_type(infos.type));
+        HAMI_ASSERT(tensor.is_cuda() &&
+                    infos.device == NetIOInfo::Device::GPU);  // todo
+        HAMI_ASSERT(tensor.is_contiguous());
+    }
+}
+void check_batched_inputs(const std::vector<torch::Tensor>& tensors,
+                          const std::vector<NetIOInfo>& infos) {
+    const auto num_inputs = tensors.size();
+    HAMI_ASSERT(
+        infos.size() == num_inputs,
+        "number of inputs from model does not match that from the data");
+
+    for (size_t i = 0; i < num_inputs; ++i) {
+        check_tensor(tensors[i], infos[i]);
+    }
+}
+
+bool match(NetIOInfo::Dims64* dst, const torch::Tensor& src) {
+    if (dst->nbDims != src.sizes().size()) return false;
+    for (size_t i = 0; i < dst->nbDims; ++i) {
+        if (dst->d[i] != src.sizes()[i]) {
+            dst->d[i] = src.sizes()[i];
+            return false;
+        }
+    }
+    return true;
 }
 
 }  // namespace torchpipe

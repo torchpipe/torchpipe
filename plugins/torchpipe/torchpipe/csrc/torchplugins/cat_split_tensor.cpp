@@ -10,9 +10,9 @@ void CatTensor::init(
     const std::unordered_map<std::string, std::string>& config_param,
     const dict& dict_config) {
     if (dict_config &&
-        dict_config->find("net_io_infos") != dict_config->end()) {
-        net_shapes_ =
-            dict_get<std::shared_ptr<NetIOInfos>>(dict_config, "net_io_infos");
+        dict_config->find(TASK_IO_INFO_KEY) != dict_config->end()) {
+        net_shapes_ = dict_get<std::shared_ptr<NetIOInfos>>(dict_config,
+                                                            TASK_IO_INFO_KEY);
         for (const auto& item : net_shapes_->first) {
             HAMI_ASSERT(item.max.nbDims == item.min.nbDims &&
                         0 != item.max.nbDims);

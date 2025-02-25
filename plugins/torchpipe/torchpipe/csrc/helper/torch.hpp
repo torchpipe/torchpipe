@@ -186,10 +186,17 @@ std::string get_sm();
 // torch::Tensor fix_and_cat_tensor(std::vector<torch::Tensor>& data,
 //                                  const NetIOInfo& info);
 
-void fix_tensor_shape(torch::Tensor& data, const std::vector<size_t>& min,
-                      const std::vector<size_t>& max);
+void fix_tensor_shape(torch::Tensor& data, const NetIOInfo::Dims64 min,
+                      const NetIOInfo::Dims64& max);
 
 void fix_tensors(std::vector<torch::Tensor>& tensors,
                  const std::shared_ptr<NetIOInfos>& infos);
+
+void check_batched_inputs(const std::vector<torch::Tensor>& tensors,
+                          const std::vector<NetIOInfo>& infos);
+
+bool match(NetIOInfo::Dims64* dst, const torch::Tensor& src);
+
+c10::ScalarType netinfo2torch_type(NetIOInfo::DataType dtype);
 
 }  // namespace torchpipe

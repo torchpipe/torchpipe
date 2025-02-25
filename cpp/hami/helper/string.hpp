@@ -19,6 +19,7 @@ using str_map = std::unordered_map<string, string>;
 using mapmap = std::unordered_map<string, str_map>;
 
 std::vector<std::string> str_split(std::string strtem, char a);
+void remove_space_and_ctrl(std::string& strtem);
 
 template <typename T>
 std::vector<T> str_split(const std::string& input, char delimiter = ',') {
@@ -28,10 +29,7 @@ std::vector<T> str_split(const std::string& input, char delimiter = ',') {
     std::vector<T> result;
     std::string trimmed_input = input;
 
-    // Remove all spaces from the input string
-    trimmed_input.erase(
-        std::remove(trimmed_input.begin(), trimmed_input.end(), ' '),
-        trimmed_input.end());
+    remove_space_and_ctrl(trimmed_input);
 
     if (trimmed_input.empty()) {
         return result;
@@ -110,7 +108,8 @@ std::vector<std::vector<std::vector<T>>> str_split(std::string input,
                                                    char outer_delimiter) {
     std::vector<std::vector<std::vector<T>>> result;
 
-    input.erase(std::remove(input.begin(), input.end(), ' '), input.end());
+    remove_space_and_ctrl(input);
+
     if (input.empty()) {
         return result;
     }
@@ -362,8 +361,6 @@ void try_update(const str::str_map& config, const std::string& key,
     static_assert(std::is_integral_v<T>, "T must be an integral type");
     auto iter = config.find(key);
     if (iter == config.end()) {
-        SPDLOG_DEBUG("parameter {} not found, default to {}", key,
-                     default_value);
         return;
     }
 

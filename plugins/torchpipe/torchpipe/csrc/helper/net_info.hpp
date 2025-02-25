@@ -6,6 +6,7 @@
 #include <string>
 
 namespace torchpipe {
+constexpr auto TASK_IO_INFO_KEY = "net_io_infos";
 struct NetIOInfo {
     enum class DataType {
         RESERVED_INT = 0,
@@ -42,13 +43,18 @@ struct NetIOInfo {
         int64_t d[MAX_DIMS];
     };
 
+    enum class Device { CPU = 0, GPU = 1 };
+
     Dims64 min;
     Dims64 max;
     DataType type{DataType::FP32};
+    Device device{Device::GPU};
     std::optional<std::string> name;
 };
 
 using NetIOInfos = std::pair<std::vector<NetIOInfo>, std::vector<NetIOInfo>>;
 
 bool is_all_positive(NetIOInfos& info);
+
+size_t elementSize(NetIOInfo::DataType info);
 }  // namespace torchpipe
