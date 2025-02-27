@@ -38,7 +38,7 @@ import torch
 
 def test_backend():
     import torchpipe
-    backend = _C.init("SyncTensor[ResizeTensor]", {"resize_h": "112","resize_w": "113"})
+    backend = _C.init("StreamGuard[ResizeTensor]", {"resize_h": "112","resize_w": "113"})
     with pytest.raises(RuntimeError):
         backend.init({})
     

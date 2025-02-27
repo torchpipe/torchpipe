@@ -579,7 +579,15 @@ void fix_tensor_shape(torch::Tensor& data, const NetIOInfo::Dims64 min,
         }
     }
 
-    if (data.sizes().size() + 1 == min.nbDims) {
+    bool in_error = false;
+    if (sizes.size() == min.nbDims) {
+        for (size_t i = 0; i < sizes.size(); ++i) {
+            if (sizes[i] < min.d[i] || sizes[i] > max.d[i]) {
+                in_error = true;
+                break;
+            }
+        }
+    } else if (sizes.size() + 1 == min.nbDims) {
         if ((sizes[0] >= min.d[1] && sizes[0] <= max.d[1]) &&
             sizes[1] >= min.d[2] && sizes[1] <= max.d[2] &&
             sizes[2] >= min.d[3] && sizes[2] <= max.d[3]) {
@@ -587,14 +595,14 @@ void fix_tensor_shape(torch::Tensor& data, const NetIOInfo::Dims64 min,
             return;
         }
     }
-
-    throw std::invalid_argument("fix_tensor_shape: invalid tensor shape : " +
-                                hami::str::vec2str(data.sizes().vec()));
+    if (in_error)
+        throw std::invalid_argument(
+            "fix_tensor_shape: invalid tensor shape : " +
+            hami::str::vec2str(data.sizes().vec()));
 }
 
 c10::ScalarType netinfo2torch_type(NetIOInfo::DataType dtype) {
     switch (dtype) {
-        case NetIOInfo::DataType::INT4:
         case NetIOInfo::DataType::INT8:
             return torch::kInt8;
         case NetIOInfo::DataType::UINT8:
@@ -605,8 +613,6 @@ c10::ScalarType netinfo2torch_type(NetIOInfo::DataType dtype) {
             return torch::kInt64;
         case NetIOInfo::DataType::BOOL:
             return torch::kBool;
-        case NetIOInfo::DataType::FP4:
-        case NetIOInfo::DataType::FP8:
         case NetIOInfo::DataType::FP16:
             return torch::kFloat16;
         case NetIOInfo::DataType::FP32:
@@ -614,8 +620,9 @@ c10::ScalarType netinfo2torch_type(NetIOInfo::DataType dtype) {
         case NetIOInfo::DataType::BF16:
             return torch::kBFloat16;
         case NetIOInfo::DataType::BF32:
-            return torch::kFloat32;  // BF32 is not directly supported in
-                                     // PyTorch, fallback to Float32
+        case NetIOInfo::DataType::INT4:
+        case NetIOInfo::DataType::FP4:
+        case NetIOInfo::DataType::FP8:
         case NetIOInfo::DataType::RESERVED_INT:
         case NetIOInfo::DataType::RESERVED_FP:
         case NetIOInfo::DataType::RESERVED_BF:

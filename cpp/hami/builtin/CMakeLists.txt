@@ -24,6 +24,7 @@ cc_library(
     parser.cpp
     cat_split.cpp
     ioc.cpp
+    generate_backend.cpp
   DEPS
     :spdlog
     :core

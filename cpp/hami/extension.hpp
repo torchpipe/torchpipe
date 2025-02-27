@@ -15,6 +15,7 @@
 #include "hami/builtin/parser.hpp"
 #include "hami/builtin/basic_backends.hpp"
 #include "hami/builtin/proxy.hpp"
+#include "hami/builtin/generate_backend.hpp"
 
 using hami::TASK_DATA_KEY;
 using hami::TASK_DEFAULT_NODE_NAME_KEY;

@@ -58,6 +58,11 @@ class Proxy : public Backend {
     std::unique_ptr<Backend> owned_backend_;
 };
 
+class InstanceProxy : public Proxy {
+   public:
+    void init(const std::unordered_map<string, string>& config,
+              const dict& dict_config) override;
+};
 class Placeholder : public Proxy {
    public:
     void init(const std::unordered_map<string, string>& config,

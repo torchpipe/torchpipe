@@ -199,4 +199,5 @@ bool match(NetIOInfo::Dims64* dst, const torch::Tensor& src);
 
 c10::ScalarType netinfo2torch_type(NetIOInfo::DataType dtype);
 
+// device_count();
 }  // namespace torchpipe

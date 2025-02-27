@@ -1,7 +1,7 @@
 #include <algorithm>
 #include <string>
 #include <cctype>  //   isspace   iscntrl
-
+#include <stack>
 #include "hami/helper/string.hpp"
 #include "hami/helper/base_logging.hpp"
 #include "hami/helper/macro.h"
@@ -291,4 +291,146 @@ size_t replace_once(std::string& str, const std::string& from,
     return std::string::npos;  // 返回未找到的标志
 }
 
+namespace config_parser {
+
+// Check if all brackets in the string are properly closed
+bool areBracketsBalanced(const std::string& str) {
+    std::stack<char> stack;
+    for (char ch : str) {
+        if (ch == '(' || ch == '[' || ch == '{') {
+            stack.push(ch);
+        } else if (ch == ')' || ch == ']' || ch == '}') {
+            if (stack.empty()) return false;
+            char top = stack.top();
+            stack.pop();
+            if ((ch == ')' && top != '(') || (ch == ']' && top != '[') ||
+                (ch == '}' && top != '{')) {
+                return false;
+            }
+        }
+    }
+    return stack.empty();
+}
+
+// Find all valid inner separators (those not inside any brackets)
+std::vector<size_t> findValidSeparators(const std::string& str, char sep) {
+    std::vector<size_t> validSeparators;
+    std::stack<char> bracketStack;
+
+    for (size_t i = 0; i < str.length(); ++i) {
+        char ch = str[i];
+        if (ch == '(' || ch == '[' || ch == '{') {
+            bracketStack.push(ch);
+        } else if (ch == ')' || ch == ']' || ch == '}') {
+            if (!bracketStack.empty()) {
+                bracketStack.pop();
+            }
+        } else if (ch == sep && bracketStack.empty()) {
+            validSeparators.push_back(i);
+        }
+    }
+    return validSeparators;
+}
+
+// Function to find valid outer separators between two inner separators
+size_t findValidOuterSeparator(const std::string& str, char outer_sp,
+                               size_t start, size_t end) {
+    std::stack<char> bracketStack;
+    size_t lastValidPos = std::string::npos;
+
+    for (size_t i = start; i < end; ++i) {
+        char ch = str[i];
+        if (ch == '(' || ch == '[' || ch == '{') {
+            bracketStack.push(ch);
+        } else if (ch == ')' || ch == ']' || ch == '}') {
+            if (!bracketStack.empty()) {
+                bracketStack.pop();
+            }
+        } else if (ch == outer_sp && bracketStack.empty()) {
+            lastValidPos = i;
+        }
+    }
+    return lastValidPos;
+}
+
+// Split the string into key-value pairs
+std::unordered_map<std::string, std::string> map_split(
+    std::string strtem, char inner_sp, char outer_sp,
+    const std::string& default_key) {
+    remove_space_and_ctrl(strtem);
+    std::unordered_map<std::string, std::string> result;
+
+    // Check if brackets are balanced
+    if (!areBracketsBalanced(strtem)) {
+        throw std::invalid_argument("Unbalanced brackets in the input string.");
+    }
+
+    // Find all valid inner separators
+    std::vector<size_t> validInnerSeparators =
+        findValidSeparators(strtem, inner_sp);
+
+    // If no valid inner separators, treat the whole string as value with
+    // default key
+    if (validInnerSeparators.empty()) {
+        if (default_key.empty()) {
+            throw std::invalid_argument(
+                "default_key is empty. All key values must be explicitly "
+                "provided");
+        }
+        result[default_key] = strtem;
+        return result;
+    }
+
+    std::vector<std::string> key_values;
+    // Process the first key-value pair
+    size_t firstInner = validInnerSeparators[0];
+    size_t outerPos = findValidOuterSeparator(strtem, outer_sp, 0, firstInner);
+    if (outerPos == std::string::npos) {
+        throw std::invalid_argument(
+            "No valid outer separator found before the first inner separator.");
+    }
+    key_values.push_back(strtem.substr(0, validInnerSeparators[0] - 1));
+
+    // Process the remaining key-value pairs
+    for (size_t i = 1; i < validInnerSeparators.size(); ++i) {
+        size_t prevInner = validInnerSeparators[i - 1];
+        size_t currInner = validInnerSeparators[i];
+        outerPos =
+            findValidOuterSeparator(strtem, outer_sp, prevInner + 1, currInner);
+        if (outerPos == std::string::npos) {
+            throw std::invalid_argument(
+                "No valid outer separator found between two inner separators.");
+        }
+        key_values.push_back(
+            strtem.substr(prevInner + 1, outerPos - (prevInner + 1)));
+        key_values.push_back(
+            strtem.substr(outerPos + 1, currInner - (outerPos + 1)));
+    }
+
+    // Process the last key-value pair
+    size_t lastInner = validInnerSeparators.back();
+    key_values.push_back(strtem.substr(lastInner + 1));
+
+    for (size_t i = 0; i < key_values.size() / 2; ++i) {
+        result[key_values[i * 2]] = key_values[i * 2 + 1];
+    }
+
+    const std::unordered_set<char> invalid(
+        {inner_sp, outer_sp, '{', '}', '[', ']', '(', ')'});
+    for (const auto& kv : result) {
+        if (kv.first.empty())
+            throw std::invalid_argument(
+                "Empty key. When providing multiple configuration pairs, each "
+                "key must be explicitly provided");
+        for (char item : kv.first) {
+            if (invalid.count(item) != 0) {
+                throw std::invalid_argument("Invalid character in key.");
+            }
+        }
+    }
+
+    return result;
+}
+
+}  // namespace config_parser
 }  // namespace hami::str

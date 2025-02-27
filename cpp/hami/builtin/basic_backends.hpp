@@ -67,6 +67,11 @@ class HAMI_EXPORT Dependency : public Backend {
         dependency_name_ = name;
     }
 
+    void set_dependency_name(
+        const std::unordered_map<std::string, std::string>& config,
+        const std::string& default_cls_name,
+        const std::string& default_dep_name);
+
     Backend* injected_dependency_{nullptr};  ///< The injected dependency.
 
    private:

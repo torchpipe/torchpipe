@@ -67,4 +67,32 @@ void Reflect::init(const std::unordered_map<string, string>& config,
 
 HAMI_REGISTER(Backend, Reflect, "Reflect,LaunchFromParam");
 
+void InstanceProxy::init(const std::unordered_map<string, string>& config,
+                         const dict& dict_config) {
+    constexpr auto default_name = "InstanceProxy";
+    auto name = HAMI_OBJECT_NAME(Backend, this);
+    if (name == std::nullopt) {
+        name = default_name;
+        SPDLOG_WARN(
+            "{}::init, it seems this instance was not created via "
+            "reflection, using default name {}. "
+            "Please configure its dependency via the parameter "
+            "{}::dependency",
+            *name, *name, *name);
+    }
+    auto iter = config.find(*name + "::dependency");
+    HAMI_ASSERT(
+        iter != config.end(),
+        *name + "::dependency not found. Call this backend through A[B].");
+    // iter = config.find(iter->second);
+    // HAMI_ASSERT(iter != config.end(),
+    //             "configuration missing for " + iter->second);
+
+    proxy_backend_ = HAMI_INSTANCE_GET(Backend, iter->second);
+    HAMI_ASSERT(proxy_backend_,
+                "InstanceProxy: backend not found : " + iter->second);
+}
+
+HAMI_REGISTER(Backend, InstanceProxy, "InstanceProxy");
+
 }  // namespace hami

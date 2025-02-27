@@ -13,6 +13,11 @@
 #include <algorithm>
 
 namespace hami::str {
+const auto ITEM_DELIMITERS = std::unordered_set<char>{
+    ',',
+    ';',
+    '/',
+};
 
 using string = std::string;
 using str_map = std::unordered_map<string, string>;
@@ -230,6 +235,10 @@ bool is_comma_separable(const std::string& strtem, char left, char right);
  * '=', '/') split "a=1,b=2" to {{"a", "1"}, {"b", "2"}} by
  * config_split("a=1,b=2", '=', ',') split "a" to {{"a", "1"}} by
  * config_split("a", '=', ',', "1")
+ *
+ *
+ * keya=A[B,C(a=d)](a,d){a=d},D,keyb=E => keya="A[B,C(a=d)](a,d){a=d},D" and
+ * keyb=E
  */
 std::unordered_map<std::string, std::string> map_split(
     std::string strtem, char inner_sp, char outer,
@@ -346,10 +355,10 @@ static inline void try_update(
         return;
     }
 
-    if (valid_inputs.count(iter->second) == 0) {
+    if (!valid_inputs.empty() && valid_inputs.count(iter->second) == 0) {
         throw std::invalid_argument(
             "parameter " + key + " is out of range: " + iter->second +
-            ", valid inputs are " + str::join(valid_inputs, ','));
+            ", valid inputs are `" + str::join(valid_inputs, ',') + "`.");
     }
 
     default_value = iter->second;
@@ -443,7 +452,36 @@ static inline bool endswith(const std::string& str, const std::string& suffix) {
     }
     return std::equal(str.end() - suffix.size(), str.end(), suffix.cbegin());
 }
+namespace config_parser {
 
+// Find all valid  separators (those not inside any brackets)
+std::vector<size_t> findValidSeparators(const std::string& str, char sep);
+
+/**
+ * @brief Split a string into key-value pairs
+ *
+ * Parses strings like "a=b,c=d" into a map {a:b, c:d}
+ * - inner_sp is the character that separates keys from values (e.g., '=')
+ * - outer_sp is the character that separates key-value pairs (e.g., ',')
+ * - Separators inside brackets are not treated as separators; entire
+ * bracketed content is treated as a single unit
+ * - Special cases like "a=b,c,c=d" result in {a:"b,c", c:d}
+ * - If no valid inner_sp is found outside brackets, returns
+ *   {default_key:strtem} if !default_key.empty(), else throws exception
+ *
+ * @param strtem Input string to parse
+ * @param inner_sp Character separating keys from values (e.g. '=')
+ * @param outer_sp Character separating key-value pairs (e.g. ',')
+ * @param default_key Default key to use when inner separator is missing
+ * @return std::unordered_map<std::string, std::string> Resulting key-value
+ * map
+ * @throws std::invalid_argument if no inner separator is found and
+ * default_key is empty
+ */
+std::unordered_map<std::string, std::string> map_split(
+    std::string strtem, char inner_sp, char outer_sp,
+    const std::string& default_key = "");
+}  // namespace config_parser
 }  // namespace str
 
 }  // namespace hami

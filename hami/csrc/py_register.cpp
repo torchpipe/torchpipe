@@ -22,7 +22,10 @@ std::unordered_map<std::type_index, any2obj_func>& get_type_map() {
 }
 
 void try_insert(const std::type_index& type, const any2obj_func& func) {
-    SPDLOG_INFO("Registering hash converter for type {}", type.name());
+    SPDLOG_INFO(
+        "Registering hash converter for type {}. Type hash is "
+        "likely unique, but not guaranteed according to C++ standard",
+        type.name());
 
     auto [it, inserted] = get_type_map().emplace(type, func);
     if (!inserted) {

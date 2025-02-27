@@ -1,5 +1,8 @@
 # from ._C import *
 import torch
+
+torch.cuda.init()
+
 import hami
 from .extension import _load_library
 

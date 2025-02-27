@@ -1,20 +1,82 @@
-
-
-
-
+import pytest
+import torch
 import torchpipe
-
-init = "ModelLoadder[(.onnx)Onnx2Tensorrt,(.trt)LoadTensorrtEngine], TensorrtInferTensor"
-forward = "CatSplit[S[GpuTensor,CatTensor],S[ContiguousTensor,TensorrtInferTensor,LaunchFromParam[post_processor]],SplitTensor]"
-backend_str = f"""
-IoC[{init}; {forward}]
-"""
-
-
-import time
-# time.sleep(5)
-
-print(f"backend_str={backend_str}")
+import os
+import tempfile
 import hami
-hami.init(backend_str)
-hami.init(backend_str, {"post_processor": "Identity"})
+
+# Pipeline configuration strings
+INIT_STR = "ModelLoadder[(.onnx)Onnx2Tensorrt,(.trt)LoadTensorrtEngine], TensorrtInferTensor"
+FORWARD_STR = "CatSplit[S[GpuTensor,CatTensor],S[ContiguousTensor,TensorrtInferTensor,LaunchFromParam[post_processor]],SplitTensor]"
+BACKEND_STR = f"IoC[{INIT_STR}; {FORWARD_STR}]"
+
+class Identity(torch.nn.Module):
+    """Simple identity model that multiplies input by 2"""
+    def forward(self, x):
+        return x * 2
+
+def get_tmp_onnx(model: torch.nn.Module, input_shape: list) -> str:
+    """
+    Export PyTorch model to ONNX format
+    
+    Args:
+        model: PyTorch model to export
+        input_shape: Input tensor shape
+    
+    Returns:
+        Path to temporary ONNX file
+    """
+    onnx_path = tempfile.mktemp(suffix=".onnx")
+    model.eval()
+    input_data = torch.randn(input_shape)
+    torch.onnx.export(
+        model, 
+        input_data, 
+        onnx_path,
+        input_names=["input"], 
+        output_names=["output"],
+        dynamic_axes={"input": {0: "batch_size"}}
+    )
+    return onnx_path
+
+@pytest.fixture
+def model_config():
+    """Fixture to create model configuration and ONNX file"""
+    config = {
+        "model_type": "onnx",
+        "post_processor": "Identity"
+    }
+    
+    # Create temporary ONNX model
+    tmp_onnx = get_tmp_onnx(Identity(), [1, 3, 224, 224])
+    config["model"] = tmp_onnx
+    
+    yield config, tmp_onnx
+    
+    # Cleanup temporary file
+    os.remove(tmp_onnx)
+
+def test_tensorrt_inference(model_config):
+    """
+    Test TensorRT inference pipeline
+    
+    Tests if the model correctly processes input tensor and produces expected output
+    """
+    config, _ = model_config
+    
+    # Initialize model
+    model = hami.init(BACKEND_STR, config)
+    
+    # Prepare input data
+    input_tensor = torch.ones((1, 3, 224, 224))
+    data = {"data": input_tensor}
+    
+    # Run inference
+    model(data)
+    
+    # Verify results
+    result = data['result']
+    expected = input_tensor * 2
+    expected = expected.cuda()
+    
+    assert torch.allclose(result, expected), "Model output does not match expected values"

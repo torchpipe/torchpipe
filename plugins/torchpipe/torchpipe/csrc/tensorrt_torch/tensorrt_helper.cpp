@@ -25,9 +25,10 @@ nvinfer1::ILogger::Severity trt_get_log_level(std::string level) {
     throw std::invalid_argument(
         "log_level must be one of info, error, verbose, warning");
 }
-const static std::unordered_set<std::string> FP16_ENABLE{"fp16", "int8",
-                                                         "best"};
-const static std::unordered_set<std::string> INT8_ENABLE{"int8", "best"};
+const static std::unordered_set<std::string> FP16_ENABLE{"fp16", "int8", "best",
+                                                         "FP16", "INT8"};
+const static std::unordered_set<std::string> INT8_ENABLE{"int8", "best",
+                                                         "INT8"};
 
 class NvLogger : public nvinfer1::ILogger {
    public:
@@ -212,7 +213,7 @@ void print_colored_net(
 
     // Header
     ss << hami::colored(
-              "==================== Network Inputs ====================")
+              "\n==================== Network Inputs ====================")
        << "\n";
 
     // Print each input's name and dimensions
@@ -228,21 +229,14 @@ void print_colored_net(
         ss << "]\n";
     }
 
-    // Print current input order
-    ss << "\n" << hami::colored("Current Input Order: (");
-    for (std::size_t i = 0; i < input_reorder.size(); ++i) {
-        ss << input_reorder[i];
-        if (i != input_reorder.size() - 1) ss << ", ";
-    }
-    ss << hami::colored(")") << "\n";
-
     // Footer with instructions
     ss << hami::colored(
               "========================================================")
        << "\n";
     ss << hami::colored("Instructions:") << "\n";
     ss << hami::colored(
-              "1. Use the above information to set ranges (batch sizes) for "
+              "1. Use the above information to set ranges (through parameters: "
+              "max/min) for "
               "profiles.")
        << "\n";
     if (input_reorder.size() > 1) {
@@ -259,43 +253,43 @@ void print_net(nvinfer1::INetworkDefinition* network,
                const std::vector<int>& input_reorder,
                const std::vector<std::pair<std::string, nvinfer1::Dims>>&
                    net_inputs_ordered_dims) {
-    std::stringstream ss;
+    // std::stringstream ss;
 
-    // Header
-    ss << "==================== Network Inputs ====================\n";
+    // // Header
+    // ss << "==================== Network Inputs ====================\n";
 
-    // Print each input's name and dimensions
-    for (std::size_t i = 0; i < net_inputs_ordered_dims.size(); ++i) {
-        const auto& item = net_inputs_ordered_dims[i];
-        ss << "Input " << input_reorder[i] << ": " << item.first << " [";
-        for (int j = 0; j < item.second.nbDims; ++j) {
-            const int inputS = item.second.d[j];
-            ss << inputS;
-            if (j != item.second.nbDims - 1) ss << " x ";
-        }
-        ss << "]\n";
-    }
+    // // Print each input's name and dimensions
+    // for (std::size_t i = 0; i < net_inputs_ordered_dims.size(); ++i) {
+    //     const auto& item = net_inputs_ordered_dims[i];
+    //     ss << "Input " << input_reorder[i] << ": " << item.first << " [";
+    //     for (int j = 0; j < item.second.nbDims; ++j) {
+    //         const int inputS = item.second.d[j];
+    //         ss << inputS;
+    //         if (j != item.second.nbDims - 1) ss << " x ";
+    //     }
+    //     ss << "]\n";
+    // }
 
-    // Print current input order
-    ss << "\nCurrent Input Order: (";
-    for (std::size_t i = 0; i < input_reorder.size(); ++i) {
-        ss << input_reorder[i];
-        if (i != input_reorder.size() - 1) ss << ", ";
-    }
-    ss << ")\n";
+    // // Print current input order
+    // ss << "\nCurrent Input Order: (";
+    // for (std::size_t i = 0; i < input_reorder.size(); ++i) {
+    //     ss << input_reorder[i];
+    //     if (i != input_reorder.size() - 1) ss << ", ";
+    // }
+    // ss << ")\n";
 
-    // Footer with instructions
-    ss << "========================================================\n";
-    ss << "Instructions:\n";
-    ss << "1. Use the above information to set ranges (batch sizes) for "
-          "profiles.\n";
-    if (input_reorder.size() > 1) {
-        ss << "2. Reset the input order by modifying `input_reorder`.\n";
-    }
+    // // Footer with instructions
+    // ss << "========================================================\n";
+    // ss << "Instructions:\n";
+    // ss << "1. Use the above information to set ranges (batch sizes) for "
+    //       "profiles.\n";
+    // if (input_reorder.size() > 1) {
+    //     ss << "2. Reset the input order by modifying `input_reorder`.\n";
+    // }
 
-    // Print the final output (assuming SPDLOG_INFO and colored functions are
-    // defined)
-    SPDLOG_INFO(hami::colored(ss.str()));
+    // // Print the final output (assuming SPDLOG_INFO and colored functions are
+    // // defined)
+    // SPDLOG_INFO(hami::colored(ss.str()));
 }
 
 // Helper function to apply mean and std normalization
@@ -429,7 +423,129 @@ nvinfer1::Dims infer_shape(std::vector<int> config_shape,
     return out;
 }
 
-std::unique_ptr<nvinfer1::IHostMemory> onnx2trt(const OnnxParams& params) {
+void update_min_max_setting(
+    std::vector<std::vector<std::vector<int>>>& mins,
+    std::vector<std::vector<std::vector<int>>>& maxs,
+    const std::vector<std::pair<std::string, nvinfer1::Dims>>&
+        net_inputs_ordered_dims) {
+    // Get the number of network inputs
+    size_t net_inputs = net_inputs_ordered_dims.size();
+
+    // Determine the number of profiles based on max of mins and maxs sizes
+    size_t profile_num = std::max(mins.size(), maxs.size());
+    if (profile_num == 0) {
+        // Create a single profile by default
+        mins.resize(1);
+        maxs.resize(1);
+        profile_num = 1;
+    } else {
+        // Ensure both mins and maxs have the same number of profiles
+        mins.resize(profile_num);
+        maxs.resize(profile_num);
+    }
+
+    // Process each profile
+    for (size_t p = 0; p < profile_num; ++p) {
+        auto& min_profile = mins[p];
+        auto& max_profile = maxs[p];
+
+        // Ensure each profile has entries for all network inputs
+        if (min_profile.size() < net_inputs) {
+            min_profile.resize(net_inputs);
+        }
+        if (max_profile.size() < net_inputs) {
+            max_profile.resize(net_inputs);
+        }
+
+        // Process each input
+        for (size_t i = 0; i < net_inputs; ++i) {
+            const auto& input_dims = net_inputs_ordered_dims[i].second;
+            HAMI_ASSERT(input_dims.nbDims > 0,
+                        "Input " + std::to_string(i) + " has no dimensions");
+
+            // Check if this input's dimensions are configured in the current
+            // profile
+            if (min_profile[i].size() < input_dims.nbDims) {
+                min_profile[i].resize(input_dims.nbDims, -1);
+            }
+            if (max_profile[i].size() < input_dims.nbDims) {
+                max_profile[i].resize(input_dims.nbDims, -1);
+            }
+
+            // Process each dimension in the input
+            for (int d = 0; d < input_dims.nbDims; ++d) {
+                int current_net_dim = input_dims.d[d];
+
+                if (current_net_dim == -1) {
+                    // Handle dynamic dimensions
+                    if (min_profile[i][d] == -1) {
+                        min_profile[i][d] = 1;
+                    }
+                    if (max_profile[i][d] == -1) {
+                        max_profile[i][d] = 1;
+                    }
+                } else {
+                    // Use network's dimension as default if not configured
+                    if (min_profile[i][d] == -1) {
+                        min_profile[i][d] = current_net_dim;
+                    }
+                    if (max_profile[i][d] == -1) {
+                        max_profile[i][d] = current_net_dim;
+                    }
+                    HAMI_ASSERT(max_profile[i][d] == current_net_dim &&
+                                    min_profile[i][d] == current_net_dim,
+                                "For input " + std::to_string(i) +
+                                    ", dimension " + std::to_string(d) +
+                                    ": config value (" +
+                                    std::to_string(max_profile[i][d]) +
+                                    ") must match network dimension (" +
+                                    std::to_string(current_net_dim) + ")");
+                }
+
+                // Ensure max >= min
+                if (max_profile[i][d] < min_profile[i][d]) {
+                    max_profile[i][d] = min_profile[i][d];
+                }
+            }
+        }
+    }
+
+    // Validate the configurations
+    for (size_t p = 0; p < profile_num; ++p) {
+        // Check for matching input and dimension sizes in each profile
+        HAMI_ASSERT(
+            mins[p].size() == net_inputs,
+            "Profile " + std::to_string(p) + " has mismatched input size");
+        HAMI_ASSERT(
+            maxs[p].size() == net_inputs,
+            "Profile " + std::to_string(p) + " has mismatched input size");
+
+        for (size_t i = 0; i < net_inputs; ++i) {
+            const auto& input_dims = net_inputs_ordered_dims[i].second;
+            HAMI_ASSERT(input_dims.nbDims == mins[p][i].size(),
+                        "Input " + std::to_string(i) + " in profile " +
+                            std::to_string(p) +
+                            " has mismatched dimension size");
+            HAMI_ASSERT(input_dims.nbDims == maxs[p][i].size(),
+                        "Input " + std::to_string(i) + " in profile " +
+                            std::to_string(p) +
+                            " has mismatched dimension size");
+
+            // Check max >= min for each dimension
+            for (int d = 0; d < input_dims.nbDims; ++d) {
+                HAMI_ASSERT(maxs[p][i][d] >= mins[p][i][d],
+                            "For profile " + std::to_string(p) + ", input " +
+                                std::to_string(i) + ", dimension " +
+                                std::to_string(d) + ": max (" +
+                                std::to_string(maxs[p][i][d]) +
+                                ") must be >= min (" +
+                                std::to_string(mins[p][i][d]) + ")");
+            }
+        }
+    }
+}
+
+std::unique_ptr<nvinfer1::IHostMemory> onnx2trt(OnnxParams& params) {
     HAMI_ASSERT(initTrtPlugins());
     const auto explicitBatch =
         1U << static_cast<uint32_t>(
@@ -442,7 +558,7 @@ std::unique_ptr<nvinfer1::IHostMemory> onnx2trt(const OnnxParams& params) {
         nvonnxparser::createParser(*network, *get_trt_logger())};
     std::unique_ptr<nvinfer1::IBuilderConfig> config{
         builder->createBuilderConfig()};
-    // builder->setMaxThreads(std::thread::hardware_concurrency()/2);
+    builder->setMaxThreads(std::thread::hardware_concurrency() / 2);
     auto max_threads = builder->getMaxThreads();
     SPDLOG_INFO("tensorrt builder: max_threads={}", max_threads);
 
@@ -490,6 +606,7 @@ std::unique_ptr<nvinfer1::IHostMemory> onnx2trt(const OnnxParams& params) {
     merge_mean_std(network.get(), params.mean, params.std);
 
     // profile
+    update_min_max_setting(params.mins, params.maxs, net_inputs_ordered_dims);
     const auto profile_num = params.mins.size();
     nvinfer1::IOptimizationProfile* first_profile = nullptr;
     for (size_t index_p = 0; index_p < profile_num; ++index_p) {
@@ -590,8 +707,10 @@ OnnxParams config2onnxparams(
 
     hami::str::try_update(config, "max_workspace_size",
                           params.max_workspace_size);
-    HAMI_ASSERT(params.max_workspace_size >= 1 &&
-                params.max_workspace_size < 1024 * 1024 * 1024);
+    HAMI_ASSERT(
+        params.max_workspace_size >= 1 &&
+            params.max_workspace_size < 1'000'000'000,
+        "max_workspace_size must be in MB and between 1 and 1,000,000,000");
     params.max_workspace_size = 1024 * 1024 * params.max_workspace_size;
 
     hami::str::try_update(config, "model::timingcache", params.timingcache);
@@ -732,33 +851,6 @@ NetIOInfos get_context_shape(nvinfer1::IExecutionContext* context,
     return {{io_infos.begin(), io_infos.begin() + num_input},
             {io_infos.begin() + num_input, io_infos.end()}};
 };
-
-// MultiProfileNetIOInfos create_contexts(
-//     nvinfer1::ICudaEngine* engine,
-//     std::vector<std::unique_ptr<nvinfer1::IExecutionContext>>& contexts) {
-//     MultiProfileNetIOInfos result;
-//     const auto num_profiles = engine->getNbOptimizationProfiles();
-//     for (const auto profile_index : hami::range(num_profiles)) {
-// #if TRT_USER_MANAGED_MEM
-//         // USE_OUT_MEM
-//         auto context = std::unique_ptr<nvinfer1::IExecutionContext>(
-//             engine->createExecutionContext(
-//                 nvinfer1::ExecutionContextAllocationStrategy::kUSER_MANAGED));
-
-// #else
-//         context_ = unique_ptr<nvinfer1::IExecutionContext>(
-//             engine_->engine->createExecutionContext());
-// #endif
-
-//         context->setOptimizationProfileAsync(profile_index,
-//                                              c10::cuda::getCurrentCUDAStream());
-
-//         auto info = get_context_shape(context.get(), engine, profile_index);
-//         result.infos.push_back(info);
-//         contexts.push_back(std::move(context));
-//     }
-//     return result;
-// }
 
 std::unique_ptr<nvinfer1::IExecutionContext> create_context(
     nvinfer1::ICudaEngine* engine, size_t instance_index) {

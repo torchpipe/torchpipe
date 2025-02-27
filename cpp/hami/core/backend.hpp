@@ -168,6 +168,15 @@ class HAMI_EXPORT Backend {
             throw std::invalid_argument("input_output.size() < min()");
         }
     }
+
+    /**
+     * @brief Helper function to reflect the class name X, if an instance is
+     * created via HAMI_CREATE(Backend, X). Here, X is a subclass of Backend.
+     * X may have multiple aliases during registration: HAMI_REGISTER(Backend,
+     * X, "X,X2"). This function correctly distinguishes whether the instance
+     * created via HAMI_CREATE was instantiated with X or X2 as the parameter.
+     */
+    // void get_class_name(std::string& default_name) const;
 };
 
 using MaxBackend = Backend;

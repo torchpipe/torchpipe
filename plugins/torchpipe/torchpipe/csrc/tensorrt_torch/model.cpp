@@ -165,13 +165,14 @@ void Onnx2Tensorrt::init(
     runtime_->setGpuAllocator(allocator_.get());
 
     // initialize converter, get std::shared_ptr<ICudaEngine>
-    HAMI_ASSERT(config.find("model") != config.end(),
-                "`model` is not found in config");
+    HAMI_ASSERT(config.find("model") != config.end() ||
+                    config.find("model::cache") != config.end(),
+                "Neither `model` nor `model::cache` is found in config");
 
     OnnxParams params = config2onnxparams(config);
 
     bool model_cache_exist = hami::filesystem::exists(params.model_cache);
-    auto mem = !model_cache_exist ? onnx2trt(params) : nullptr;
+    // auto mem = !model_cache_exist ? onnx2trt(params) : nullptr;
 
     if (!model_cache_exist) {
         HAMI_ASSERT(hami::filesystem::exists(params.model));
@@ -213,21 +214,34 @@ void ModelLoadder::post_init(
     auto iter = dict_config->find(TASK_ENGINE_KEY);
     if (iter != dict_config->end()) return;
 
+    std::string model_type;
+    if (config.find("model_type") != config.end()) {
+        model_type = config.at("model_type");
+    }
+
     std::unordered_map<std::string, std::string> suffix_config;
     Backend* backend{nullptr};
     for (size_t i = 0; i < base_config_.size(); ++i) {
         const auto& filter = base_config_[i].at("filter");
 
-        if (hami::str::endswith(config.at("model"), filter)) {
+        if ((model_type == filter) || ("." + model_type == filter) ||
+            (config.find("model") != config.end() &&
+             hami::str::endswith(config.at("model"), filter))) {
             backend = base_dependencies_[i].get();
             lazy_init_func_[i]();
             break;
         }
     }
-    HAMI_ASSERT(backend);
+    HAMI_ASSERT(
+        backend,
+        "ModelLoader: You must set one of the parameters `model_type` or "
+        "`model`. We will select the appropriate model loader based on the "
+        "precondition from "
+        "ModelLoader[(model_suffix_a)A, (model_suffix_b)B].");
     max_ = backend->max();
     min_ = backend->min();
 
+    iter = dict_config->find(TASK_ENGINE_KEY);
     HAMI_ASSERT(iter != dict_config->end());
     // HAMI_ASSERT(iter != dict_config->end() &&
     //             iter.type() ==

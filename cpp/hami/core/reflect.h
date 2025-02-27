@@ -63,7 +63,7 @@ class HAMI_EXPORT ClassRegistryBase {
     typedef std::map<std::string, ObjectGetter> ClassMap;
     ClassMap getter_map_;
     std::mutex getter_map_mutex_;
-    std::unordered_map<ClassName*, std::string> class_name_map_;
+    std::unordered_map<const ClassName*, std::string> class_name_map_;
     std::unordered_map<std::string, ClassName*> reverse_class_name_map_;
     std::unordered_map<std::string, std::shared_ptr<ClassName>>
         reverse_class_name_map_owner_;
@@ -197,7 +197,7 @@ class HAMI_EXPORT ClassRegistryBase {
         }
     }
 
-    std::optional<std::string> GetObjectName(ClassName* name) {
+    std::optional<std::string> GetObjectName(const ClassName* name) {
         std::lock_guard<std::mutex> guard(class_name_map_mutex_);
         auto iter = class_name_map_.find(name);
         if (iter != class_name_map_.end()) {
@@ -267,6 +267,11 @@ if (names.size() >= 3) {
     static hami::ClassRegister<base_class_type> class_name##RegistryTag( \
         hami::ClassRegistry_NewObject<base_class_type, class_name>,      \
         #class_name, {#class_name, ##__VA_ARGS__});
+
+#define HAMI_REGISTER_BACKEND(class_name, ...)                                 \
+    static hami::ClassRegister<hami::Backend> class_name##RegistryTag(         \
+        hami::ClassRegistry_NewObject<hami::Backend, class_name>, #class_name, \
+        {#class_name, ##__VA_ARGS__});
 
 #define HAMI_INSTANCE_REGISTER(base_class_type, register_name,       \
                                backend_instance)                     \

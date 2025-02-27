@@ -3,43 +3,117 @@
 #include "hami/core/helper.hpp"
 #include "hami/core/event.hpp"
 #include "hami/core/backend.hpp"
+#include "hami/helper/base_logging.hpp"
 
 namespace hami {
 
 bool event_guard(Backend* dependency, const std::vector<dict>& inputs) {
-  const bool all_have_event = std::all_of(inputs.begin(), inputs.end(), [](const auto& item) {
-    return item->find(TASK_EVENT_KEY) != item->end();
-  });
+    const bool all_have_event =
+        std::all_of(inputs.begin(), inputs.end(), [](const auto& item) {
+            return item->find(TASK_EVENT_KEY) != item->end();
+        });
 
-  if (all_have_event) {
-    return false;
-  }
-  const bool none_have_event = std::none_of(inputs.begin(), inputs.end(), [](const auto& item) {
-    return item->find(TASK_EVENT_KEY) != item->end();
-  });
-
-  if (none_have_event) {
-    auto ev = make_event(inputs.size());
-    for (auto& item : inputs) {
-      (*item)[TASK_EVENT_KEY] = ev;
+    if (all_have_event) {
+        return false;
     }
-    dependency->forward(inputs);
+    const bool none_have_event =
+        std::none_of(inputs.begin(), inputs.end(), [](const auto& item) {
+            return item->find(TASK_EVENT_KEY) != item->end();
+        });
 
-    auto exc = ev->wait_and_get_except();
+    if (none_have_event) {
+        auto ev = make_event(inputs.size());
+        for (auto& item : inputs) {
+            (*item)[TASK_EVENT_KEY] = ev;
+        }
+        dependency->forward(inputs);
 
-    for (auto& item : inputs) {
-      item->erase(TASK_EVENT_KEY);
+        auto exc = ev->wait_and_get_except();
+
+        for (auto& item : inputs) {
+            item->erase(TASK_EVENT_KEY);
+        }
+
+        if (exc) {
+            std::rethrow_exception(exc);
+        }
+    } else {
+        throw std::logic_error(
+            "event_guard: Inconsistent event state in inputs. All inputs "
+            "should be either async or "
+            "sync.");
+    }
+    return true;
+}
+
+std::string get_dependency_name_force(
+    const Backend* this_ptr,
+    const std::unordered_map<std::string, std::string>& config) {
+    auto name = HAMI_OBJECT_NAME(Backend, this_ptr);
+    HAMI_ASSERT(name != std::nullopt,
+                "this instance was not created via reflection");
+    auto iter = config.find(*name + "::dependency");
+    HAMI_ASSERT(iter != config.end(), *name + "::dependency" + " not found. ");
+    return iter->second;
+}
+
+std::optional<std::string> get_dependency_name(
+    const Backend* this_ptr,
+    const std::unordered_map<std::string, std::string>& config) {
+    auto name = HAMI_OBJECT_NAME(Backend, this_ptr);
+    if (name == std::nullopt) {
+        return std::nullopt;
     }
 
-    if (exc) {
-      std::rethrow_exception(exc);
+    auto iter = config.find(*name + "::dependency");
+    if (iter == config.end()) return std::nullopt;
+    return iter->second;
+}
+
+std::optional<std::string> get_dependency_name(
+    const Backend* this_ptr,
+    const std::unordered_map<std::string, std::string>& config,
+    const std::string& default_name) {
+    auto name = HAMI_OBJECT_NAME(Backend, this_ptr);
+    if (name == std::nullopt) {
+        name = default_name;
+        SPDLOG_WARN(
+            "{}::init, it seems this instance was not created via reflection, "
+            "using default name {}. "
+            "Please configure its dependency via the parameter {}::dependency",
+            *name, *name, *name);
     }
-  } else {
-    throw std::logic_error(
-        "event_guard: Inconsistent event state in inputs. All inputs should be either async or "
-        "sync.");
-  }
-  return true;
+    auto iter = config.find(*name + "::dependency");
+    if (iter == config.end()) {
+        SPDLOG_INFO(
+            "Dependency configuration " + *name +
+            "::dependency not found. "
+            "please specify dependencies in the configuration through " +
+            *name + "[X] or {" + *name + "::dependency, X} or do it manually.");
+        return std::nullopt;
+    }
+
+    return iter->second;
+}
+
+std::string get_dependency_name(
+    const Backend* this_ptr,
+    const std::unordered_map<std::string, std::string>& config,
+    const std::string& default_cls_name, const std::string& default_dep_name) {
+    auto name = get_dependency_name(this_ptr, config, default_cls_name);
+    if (name == std::nullopt) {
+        return default_dep_name;
+    }
+    return *name;
+}
+
+std::string get_cls_name(const Backend* this_ptr,
+                         const std::string& default_cls_name) {
+    auto name = HAMI_OBJECT_NAME(Backend, this_ptr);
+    if (name == std::nullopt) {
+        return default_cls_name;
+    }
+    return *name;
 }
 
 }  // namespace hami

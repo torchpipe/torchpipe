@@ -34,9 +34,9 @@ class TensorrtInferTensor : public hami::Backend {
 
    private:
     std::vector<torch::Tensor> inputs_;
-    std::vector<torch::Tensor> outputs_;
+    // std::vector<torch::Tensor> outputs_;
     // std::vector<void*> binding_;
-    std::vector<bool> should_change_shape_;
+    // std::vector<bool> should_change_shape_;
     size_t mem_size_ = 0;
 
     cudaEvent_t input_finish_event_{};

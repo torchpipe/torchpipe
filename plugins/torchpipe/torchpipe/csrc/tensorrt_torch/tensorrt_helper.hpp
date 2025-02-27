@@ -46,7 +46,7 @@ struct OnnxParams {
     std::vector<std::vector<std::vector<int>>> maxs;  // max
 };
 
-std::unique_ptr<nvinfer1::IHostMemory> onnx2trt(const OnnxParams& params);
+std::unique_ptr<nvinfer1::IHostMemory> onnx2trt(OnnxParams& params);
 
 OnnxParams config2onnxparams(
     const std::unordered_map<std::string, std::string>& config);

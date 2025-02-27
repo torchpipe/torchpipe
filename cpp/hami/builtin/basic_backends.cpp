@@ -6,6 +6,8 @@
 #include "hami/helper/string.hpp"
 #include "hami/builtin/basic_backends.hpp"
 #include "hami/helper/macro.h"
+#include "hami/core/helper.hpp"
+
 namespace hami {
 void Dependency::init(
     const std::unordered_map<std::string, std::string>& config,
@@ -13,22 +15,10 @@ void Dependency::init(
     HAMI_ASSERT(!shared_owned_dependency_, "Duplicate initialization");
     pre_init(config, dict_config);
 
-    // if (dependency_name_.empty())
-    {
-        constexpr auto default_name = "Dependency";
-        auto name = HAMI_OBJECT_NAME(Backend, this);
-        if (name == std::nullopt) {
-            name = default_name;
-            SPDLOG_WARN(
-                "{}::init, it seems this instance was not created via "
-                "reflection, using default name {}. "
-                "Please configure its dependency via the parameter "
-                "{}::dependency",
-                *name, *name, *name);
-        }
-        auto iter = config.find(*name + "::dependency");
-        if (iter != config.end()) {
-            dependency_name_ = iter->second;
+    if (dependency_name_.empty()) {
+        auto dep = get_dependency_name(this, config);
+        if (dep.has_value()) {
+            dependency_name_ = *dep;
         }
     }
     if (!dependency_name_.empty()) {
@@ -46,11 +36,17 @@ void Dependency::init(
         inject_dependency(backend.get());
     } else {
         SPDLOG_DEBUG(
-            "Dependency configuration {}::dependency not found, skipping "
-            "dependency injection process",
-            dependency_name_);
+            "*::dependency not found, skipping "
+            "dependency injection process");
     }
     post_init(config, dict_config);
+}
+
+void Dependency::set_dependency_name(
+    const std::unordered_map<std::string, std::string>& config,
+    const std::string& default_cls_name, const std::string& default_dep_name) {
+    dependency_name_ =
+        get_dependency_name(this, config, default_cls_name, default_dep_name);
 }
 
 void Dependency::inject_dependency(Backend* dependency) {

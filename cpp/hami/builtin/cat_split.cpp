@@ -55,4 +55,6 @@ std::vector<size_t> CatSplit::set_init_order(size_t max_range) const {
     return {1, 0, 2};
 }
 
+HAMI_REGISTER_BACKEND(CatSplit);
+
 }  // namespace hami

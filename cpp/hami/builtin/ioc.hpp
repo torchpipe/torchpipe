@@ -34,6 +34,14 @@ class IoC : public Backend {
         const std::unordered_map<std::string, std::string>& config,
         const dict& dict_config) {}
 
+    ~IoC() {
+        // order is important here
+        forward_backend_.release();
+        while (!base_dependencies_.empty()) {
+            base_dependencies_.pop_back();
+        }
+    }
+
    private:
     void init_phase(const std::string& phase_config,
                     const std::unordered_map<std::string, std::string>& config,

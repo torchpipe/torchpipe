@@ -2,6 +2,7 @@
 
 #include <string>
 #include <vector>
+#include "hami/builtin/basic_backends.hpp"
 
 namespace hami {
 
@@ -25,4 +26,47 @@ class Aspect : public Container {
 
    private:
 };
+
+// class DefineBackend : public Backend {
+//    public:
+//     void init(const std::unordered_map<std::string, std::string>& config,
+//               const dict& dict_config) override;
+
+//     void inject_dependency(Backend* dependency) override final {
+//         if (!proxy_backend_) {
+//             throw std::runtime_error("DefineBackend was not initialized
+//             yet");
+//         } else
+//             proxy_backend_->inject_dependency(dependency);
+//     }
+
+//     void forward(const std::vector<dict>& inputs,
+//                  Backend* dependency) override {
+//         proxy_backend_->forward(inputs, dependency);
+//     }
+//     bool try_forward(const std::vector<dict>& input_output,
+//                      size_t timeout) override {
+//         return proxy_backend_->try_forward(input_output, timeout);
+//     }
+//     void forward(const std::vector<dict>& inputs) override {
+//         proxy_backend_->forward(inputs);
+//     }
+//     [[nodiscard]] virtual size_t max() const override {
+//         return proxy_backend_->max();
+//     }
+
+//     [[nodiscard]] virtual size_t min() const override {
+//         return proxy_backend_->min();
+//     }
+
+//    protected:
+//     // Backend* dependency_{nullptr};
+//     // Backend* proxy_backend_{nullptr};
+//     std::unique_ptr<Backend> proxy_backend_;
+
+//    private:
+//     virtual std::pair<std::string, str::str_map> order() const;
+// };
 }  // namespace hami
+
+// #define HAMI_DEFINE_BACKEND(ClsName, main_backend, config)

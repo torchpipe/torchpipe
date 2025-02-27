@@ -10,7 +10,7 @@
 namespace hami {
 
 void IoC::init(const std::unordered_map<std::string, std::string>& in_config,
-               const dict& dict_config) {
+               const dict& in_dict_config) {
     constexpr auto default_name = "IoC";
     auto name = HAMI_OBJECT_NAME(Backend, this);
     if (!name) {
@@ -32,9 +32,10 @@ void IoC::init(const std::unordered_map<std::string, std::string>& in_config,
     std::vector<std::string> phases = str::items_split(backend_setting, ';');
     HAMI_ASSERT(phases.size() == 2, "IoC requires two phases separated by ';'");
 
+    auto dict_config = in_dict_config ? in_dict_config : make_dict();
     init_phase(phases[0], config, dict_config);  // Initialization phase
 
-    std::unordered_map<std::string, Backend*> backend_map;
+    // std::unordered_map<std::string, Backend*> backend_map;
     std::unordered_set<std::string> keys;
     for (size_t i = 0; i < base_config_.size(); ++i) {
         const auto& item = base_config_[i];
@@ -45,22 +46,35 @@ void IoC::init(const std::unordered_map<std::string, std::string>& in_config,
                 main_backend);
         keys.insert(main_backend);
         size_t find_start = 0;
+        std::unordered_map<void*, std::string> registered_backends;
         while (phases[1].find(main_backend, find_start) != std::string::npos) {
-            std::string register_name = "ioc.placeholder." + main_backend +
-                                        "." + std::to_string(i) + "." +
-                                        std::to_string(get_unique_index());
+            std::string register_name;
+            if (registered_backends.find(base_dependencies_[i].get()) ==
+                registered_backends.end()) {
+                register_name = "ioc.proxy." + main_backend +
+                                "." +  // std::to_string(i) + "." +
+                                std::to_string(get_unique_index());
+                HAMI_INSTANCE_REGISTER(Backend, register_name,
+                                       base_dependencies_[i].get());
+                registered_backends[base_dependencies_[i].get()] =
+                    register_name;
+            } else {
+                register_name =
+                    registered_backends[base_dependencies_[i].get()];
+            }
+
             // todo check illegal name
-            find_start = str::replace_once(
-                phases[1], main_backend, "Placeholder[" + register_name + "]");
-            backend_map[register_name] = base_dependencies_[i].get();
+            find_start =
+                str::replace_once(phases[1], main_backend,
+                                  "InstanceProxy[" + register_name + "]");
         }
     }
     forward_backend_ = init_backend(phases[1], config, dict_config);
-    for (const auto& item : backend_map) {
-        Backend* backend = HAMI_INSTANCE_GET(Backend, item.first);
-        HAMI_ASSERT(backend);
-        backend->inject_dependency(item.second);
-    }
+    // for (const auto& item : backend_map) {
+    //     Backend* backend = HAMI_INSTANCE_GET(Backend, item.first);
+    //     HAMI_ASSERT(backend);
+    //     backend->inject_dependency(item.second);
+    // }
     post_init(config, dict_config);
 }
 
