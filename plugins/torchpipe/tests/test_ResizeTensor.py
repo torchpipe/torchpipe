@@ -32,7 +32,7 @@ import torch
 #     ]
     
 #     for test_input in test_cases:
-#         input_dict = _C.dict(test_input)
+#         input_dict = _C.Dict(test_input)
 #         backend(input_dict)
 #         assert pytest.approx(input_dict["result"]) == test_input["data"]
 

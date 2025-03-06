@@ -38,7 +38,7 @@ def test_ioc_forward():
     ]
 
     for test_input in test_cases:
-        input_dict = _C.dict(test_input)
+        input_dict = _C.Dict(test_input)
         ioc(input_dict)
         assert pytest.approx(input_dict["result"]) == test_input["data"]
 
@@ -53,9 +53,9 @@ def test_ioc_phase_initialization():
         "BackendC::param3": "value3"
     }
     dict_config = {}
-    # ioc.init(config, hami.dict())
+    # ioc.init(config, hami.Dict())
     with pytest.raises(RuntimeError):
-        ioc.init(config, hami.dict())
+        ioc.init(config, hami.Dict())
 
  
     

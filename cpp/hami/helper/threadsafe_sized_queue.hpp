@@ -46,10 +46,11 @@ class ThreadSafeSizedQueue {
         // https://wanghenshui.github.io/2019/08/23/notify-one-pred
     }
 
-    void wait(int time_out) {
-        std::unique_lock<std::mutex> lk(mut_);
-        data_cond_.wait_for(lk, std::chrono::milliseconds(time_out));
-    }
+    // bool wait(int time_out) {
+    //     std::unique_lock<std::mutex> lk(mut_);
+    //     return std::cv_status::timeout !=
+    //            data_cond_.wait_for(lk, std::chrono::milliseconds(time_out));
+    // }
 
     // void PushIfEmpty(const T& new_value, size_t size) {
     //   {
@@ -205,10 +206,17 @@ class ThreadSafeSizedQueue {
         return true;
     }
 
-    void Wait(int time_out) {
+    // bool wait_for(int time_out) {
+    //     std::unique_lock<std::mutex> lk(mut_);
+    //     return data_cond_.wait_for(lk,
+    //     std::chrono::milliseconds(int(time_out)),
+    //                                [this] { return !data_queue_.empty(); });
+    // }
+
+    bool wait_for(int time_out) {
         std::unique_lock<std::mutex> lk(mut_);
-        data_cond_.wait_for(lk, std::chrono::milliseconds(int(time_out)),
-                            [this] { return !data_queue_.empty(); });
+        return data_cond_.wait_for(lk, std::chrono::milliseconds((time_out)),
+                                   [this] { return !data_queue_.empty(); });
     }
 
     void WaitLessThan(int num, int time_out) {

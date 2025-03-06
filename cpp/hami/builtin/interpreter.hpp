@@ -3,8 +3,12 @@
 #include "hami/builtin/proxy.hpp"
 namespace hami {
 
+// constexpr auto DEFAULT_INIT_CONFIG =
+//     "List[RegisterInstances[BackgroundThread[BackendProxy]], "
+//     "RegisterNode[Aspect[Batching, "
+//     "InstanceDispatcher]]]";
 constexpr auto DEFAULT_INIT_CONFIG =
-    "List[RegisterInstances[BackgroundThread[BackendProxy]], "
+    "List[RegisterInstances[BackgroundThread[ProxyFromParam[backend]]], "
     "RegisterNode[Aspect[Batching, "
     "InstanceDispatcher]]]";
 

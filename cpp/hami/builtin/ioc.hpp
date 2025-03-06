@@ -27,8 +27,8 @@ class IoC : public Backend {
     void forward(const std::vector<dict>& input_output) override {
         forward_backend_->forward(input_output);
     }
-    [[nodiscard]] size_t max() const override { forward_backend_->max(); }
-    [[nodiscard]] size_t min() const override { forward_backend_->min(); }
+    [[nodiscard]] size_t max() const override;
+    [[nodiscard]] size_t min() const override ;
 
     virtual void post_init(
         const std::unordered_map<std::string, std::string>& config,

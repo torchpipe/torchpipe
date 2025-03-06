@@ -175,7 +175,9 @@ std::string get_dependency_name(
     const Backend* this_ptr,
     const std::unordered_map<std::string, std::string>& config,
     const std::string& default_cls_name, const std::string& default_dep_name);
-
+std::string get_dependency_name_force(
+    const Backend* this_ptr,
+    const std::unordered_map<std::string, std::string>& config);
 std::string get_cls_name(const Backend* this_ptr,
                          const std::string& default_cls_name);
 }  // namespace hami

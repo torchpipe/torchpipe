@@ -17,6 +17,7 @@ cc_library(
     reflect.cpp
     backend.cpp
     helper.cpp
+    queue.cpp
   DEPS
     :helper
 )

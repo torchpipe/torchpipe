@@ -293,7 +293,7 @@ T str2int(const str::str_map& config, const std::string& key) {
     return result_value;
 }
 
-template <typename T>
+template <typename T = std::string>
 T update(const str::str_map& config, const std::string& key) {
     static_assert(std::is_integral_v<T>, "T must be an integral type");
     auto iter = config.find(key);

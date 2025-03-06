@@ -9,79 +9,94 @@
 #include "hami/helper/threadsafe_queue.hpp"
 
 namespace hami {
-class BatchingEvent : public Dependency {
- public:
-  void pre_init(const std::unordered_map<string, string>& config, const dict&) override final;
-  void forward_impl(const std::vector<dict>& inputs, Backend* dependency) override final;
-  virtual void run();
-  ~BatchingEvent() {
-    bInited_.store(false);
-    if (thread_.joinable()) {
-      thread_.join();
+class Batching : public DynamicDependency {
+   public:
+    void init(const std::unordered_map<string, string>& config,
+              const dict&) override final;
+    void forward(const std::vector<dict>& inputs) override final;
+    virtual void run();
+    ~Batching() {
+        bInited_.store(false);
+        if (thread_.joinable()) {
+            thread_.join();
+        }
     }
-  }
 
- private:
-  std::atomic_bool bInited_{false};
-  int batching_timeout_ = 0;
-  std::thread thread_;
-  ThreadSafeSizedQueue<dict> input_queue_;
+   private:
+    bool try_forward(const std::vector<dict>& input_output, size_t req_size,
+                     size_t timeout) {
+        if (instances_state_->query_avaliable(req_size, timeout, false)) {
+            injected_dependency_->forward(input_output);
+            return true;
+        }
+
+        return false;
+    }
+
+    std::atomic_bool bInited_{false};
+    int batching_timeout_ = 0;
+    std::thread thread_;
+    ThreadSafeSizedQueue<dict> input_queue_;
+    std::shared_ptr<InstancesState> instances_state_;
 };
 
-class BackgroundThreadEvent : public Backend {
- public:
-  void init(const std::unordered_map<string, string>& config, const dict&) override final;
-  void forward(const std::vector<dict>& inputs) override final {
-    // HAMI_ASSERT(dependency == nullptr || dependency_ == dependency, "dependency must be the
-    // same");
-    batched_queue_.push(inputs);
-  }
-
-  virtual void run();
-  ~BackgroundThreadEvent() {
-    bInited_.store(false);
-    if (thread_.joinable()) {
-      thread_.join();
+class BackgroundThread : public Backend {
+   public:
+    void init(const std::unordered_map<string, string>& config,
+              const dict&) override final;
+    void forward(const std::vector<dict>& inputs) override final {
+        // HAMI_ASSERT(dependency == nullptr || dependency_ == dependency,
+        // "dependency must be the same");
+        batched_queue_.push(inputs);
     }
-  }
 
-  [[nodiscard]] size_t max() const override final { return dependency_->max(); }
-  [[nodiscard]] size_t min() const override final { return dependency_->min(); }
+    virtual void run();
+    ~BackgroundThread() {
+        bInited_.store(false);
+        if (thread_.joinable()) {
+            thread_.join();
+        }
+    }
 
- private:
-  std::atomic_bool bInited_{false};
-  std::atomic_bool bStoped_{false};
-  std::thread thread_;
-  ThreadSafeQueue<std::vector<dict>> batched_queue_;
-  std::string dependency_name_;
-  std::unique_ptr<Backend> dependency_;
-  std::exception_ptr init_eptr_;
+    [[nodiscard]] size_t max() const override final {
+        return dependency_->max();
+    }
+    [[nodiscard]] size_t min() const override final {
+        return dependency_->min();
+    }
 
-  const std::unordered_map<std::string, std::string>* config_{nullptr};
-  dict dict_config_;
+   private:
+    std::atomic_bool bInited_{false};
+    std::atomic_bool bStoped_{false};
+    std::thread thread_;
+    ThreadSafeQueue<std::vector<dict>> batched_queue_;
+    std::string dependency_name_;
+    std::unique_ptr<Backend> dependency_;
+    std::exception_ptr init_eptr_;
+    std::function<void(void)> init_task_;
+    // std::function<void(void)> init_task_;
+    // void forward_task(const std::vector<dict>& inputs);
 };
 
 class InstanceDispatcher : public Backend {
- public:
-  void init(const std::unordered_map<std::string, std::string>& config,
-            const dict& dict_config) override final;
-  virtual bool try_forward(const std::vector<dict>& inputs, size_t timeout) override;
-  virtual void forward(const std::vector<dict>& inputs) override {
-    while (!try_forward(inputs, 500)) {
-    };
-  }
-  [[nodiscard]] size_t max() const override final { return max_; }
-  [[nodiscard]] size_t min() const override final { return min_; }
+   public:
+    void init(const std::unordered_map<std::string, std::string>& config,
+              const dict& dict_config) override final;
+    virtual void forward(const std::vector<dict>& inputs) override;
 
- private:
-  virtual std::pair<size_t, size_t> update_min_max(const std::vector<Backend*>& depends);
+    [[nodiscard]] size_t max() const override final { return max_; }
+    [[nodiscard]] size_t min() const override final { return min_; }
 
-  size_t max_{std::numeric_limits<std::size_t>::max()};
-  size_t min_{1};
+   private:
+    void update_min_max(const std::vector<Backend*>& deps);
 
- protected:
-  std::vector<Backend*> base_dependencies_;
-  std::unique_ptr<InstancesState> instances_state_;
+    size_t max_{std::numeric_limits<std::size_t>::max()};
+    size_t min_{1};
+
+   protected:
+    std::vector<Backend*> base_dependencies_;
+    // std::unique_ptr<InstancesState> instances_state_;
+    std::shared_ptr<InstancesState> instances_state_;
 };
 
 // IOC[instancedd, executor]

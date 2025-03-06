@@ -558,9 +558,14 @@ std::unique_ptr<nvinfer1::IHostMemory> onnx2trt(OnnxParams& params) {
         nvonnxparser::createParser(*network, *get_trt_logger())};
     std::unique_ptr<nvinfer1::IBuilderConfig> config{
         builder->createBuilderConfig()};
-    builder->setMaxThreads(std::thread::hardware_concurrency() / 2);
-    auto max_threads = builder->getMaxThreads();
-    SPDLOG_INFO("tensorrt builder: max_threads={}", max_threads);
+    size_t max_threads = std::thread::hardware_concurrency();
+    if (max_threads <= 5) {
+        max_threads = 1;
+    } else {
+        max_threads = max_threads / 2 - 1;
+    }
+    if (builder->setMaxThreads(max_threads))
+        SPDLOG_INFO("tensorrt builder: max_threads={}", max_threads);
 
     // todo timecache
     auto b_parsed = parser->parseFromFile(
@@ -674,6 +679,11 @@ std::unique_ptr<nvinfer1::IHostMemory> onnx2trt(OnnxParams& params) {
         }
         config->addOptimizationProfile(profile);
     }
+
+#if (NV_TENSORRT_MAJOR == 10 && NV_TENSORRT_MINOR >= 1) || \
+    (NV_TENSORRT_MAJOR >= 11)
+    // config->setFlag(nvinfer1::BuilderFlag::kWEIGHT_STREAMING);
+#endif
 
     // build engine
     SPDLOG_INFO(

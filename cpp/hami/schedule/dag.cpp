@@ -7,6 +7,7 @@
 #include "hami/helper/base_logging.hpp"
 #include "hami/core/helper.hpp"
 #include "hami/core/reflect.h"
+#include "hami/helper/timer.hpp"
 
 namespace hami {
 void DagDispatcher::init(

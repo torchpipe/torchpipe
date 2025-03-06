@@ -649,7 +649,9 @@ void check_tensor(const torch::Tensor& tensor, const NetIOInfo& infos) {
     for (size_t i = 0; i < infos.min.nbDims; ++i) {
         HAMI_ASSERT(tensor.sizes()[i] >= infos.min.d[i]);
         HAMI_ASSERT(tensor.sizes()[i] <= infos.max.d[i]);
-        HAMI_ASSERT(tensor.scalar_type() == netinfo2torch_type(infos.type));
+        HAMI_ASSERT(tensor.scalar_type() == netinfo2torch_type(infos.type),
+                    "Input tensor data type does not match the data type "
+                    "required by the model");
         HAMI_ASSERT(tensor.is_cuda() &&
                     infos.device == NetIOInfo::Device::GPU);  // todo
         HAMI_ASSERT(tensor.is_contiguous());

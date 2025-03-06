@@ -23,9 +23,8 @@ namespace hami {
 class Proxy : public Backend {
    public:
     void init(const std::unordered_map<string, string>& config,
-              const dict& dict_config) override {
-        // proxy_backend_ = owned_backend_.get();
-    }
+              const dict& dict_config) override;
+
     void inject_dependency(Backend* dependency) override {
         if (!proxy_backend_) {
             proxy_backend_ = dependency;
@@ -37,10 +36,7 @@ class Proxy : public Backend {
                  Backend* dependency) override {
         proxy_backend_->forward(inputs, dependency);
     }
-    bool try_forward(const std::vector<dict>& input_output,
-                     size_t timeout) override {
-        return proxy_backend_->try_forward(input_output, timeout);
-    }
+
     void forward(const std::vector<dict>& inputs) override {
         proxy_backend_->forward(inputs);
     }
@@ -58,7 +54,13 @@ class Proxy : public Backend {
     std::unique_ptr<Backend> owned_backend_;
 };
 
-class InstanceProxy : public Proxy {
+// class InstanceProxy : public Proxy {
+//    public:
+//     void init(const std::unordered_map<string, string>& config,
+//               const dict& dict_config) override;
+// };
+
+class DI : public Proxy {
    public:
     void init(const std::unordered_map<string, string>& config,
               const dict& dict_config) override;
@@ -103,10 +105,7 @@ class ProxyV2 : public Backend {
                  Backend* dependency) override {
         proxy_backend_->forward(inputs, dependency);
     }
-    bool try_forward(const std::vector<dict>& input_output,
-                     size_t timeout) override {
-        return proxy_backend_->try_forward(input_output, timeout);
-    }
+
     void forward(const std::vector<dict>& inputs) override {
         proxy_backend_->forward(inputs);
     }

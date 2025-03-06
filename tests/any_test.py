@@ -1,38 +1,38 @@
 import pytest
 import hami._C as _C
-from hami import dict as hami_dict
+from hami import Dict as hami_dict
 
 def test_any_basic_types():
     # Integer
-    a = _C.any(1)
+    a = _C.Any(1)
     assert a.value == 1
     
     # Large integer overflow
     with pytest.raises(Exception):
-        _C.any(321112222222321112222222)
+        _C.Any(321112222222321112222222)
     
     # Double
     try:
-        f = _C.any(32323423423423423.3)
+        f = _C.Any(32323423423423423.3)
     except:
-        f = _C.any()
+        f = _C.Any()
         f.set_double(3232342342342342.1)
         val = f.as_double()
         assert isinstance(val, float)
 
 def test_any_containers():
     # String list
-    str_list = _C.any(["dd"])
+    str_list = _C.Any(["dd"])
     assert str_list.value[0] == "dd"
     
     # Integer list
-    int_list = _C.any([1, 2])
+    int_list = _C.Any([1, 2])
     assert isinstance(int_list.value, list)
     assert int_list.value == [1, 2]
 
     # Dictionary with float values
     test_dict = {"dd": 21.1, "ddd": 2.2}
-    dict_any = _C.any(test_dict)
+    dict_any = _C.Any(test_dict)
     result_dict = dict_any.value
     
     assert len(result_dict) == len(test_dict)
@@ -43,7 +43,7 @@ def test_any_containers():
             assert result_dict[key] == value
 
 def test_dict_operations():
-    d = _C.dict({"key1": "value1"})
+    d = _C.Dict({"key1": "value1"})
     d['key2'] = 2
     d['key3'] = "value3"
     
@@ -59,7 +59,7 @@ def test_identity_backend():
     backend.init({"param1": "value1"}).init({})
     
     # String input
-    input_str = _C.dict({"data": "test_string"})
+    input_str = _C.Dict({"data": "test_string"})
     backend(input_str)
     assert input_str['result'] == "test_string"
     assert backend.max() == 1

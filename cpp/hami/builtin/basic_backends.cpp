@@ -78,6 +78,17 @@ Dependency::~Dependency() {
     }
 }
 
+void DynamicDependency::inject_dependency(Backend* dependency) {
+    HAMI_ASSERT(dependency && !injected_dependency_);
+
+    injected_dependency_ = dependency;
+}
+size_t DynamicDependency::max() const {
+    HAMI_ASSERT(injected_dependency_,
+                "Dependency not initialized. Call inject_dependency first.");
+    return injected_dependency_->max();
+}
+
 void Container::init(const std::unordered_map<std::string, std::string>& config,
                      const dict& dict_config) {
     constexpr auto default_name = "Container";

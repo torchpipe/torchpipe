@@ -2,7 +2,7 @@
 from enum import Enum
 from typing import Callable, List, Optional, Any, Dict
 
-from hami._C import any, dict, Backend, create, Event
+from hami._C import Any, dict, Backend, create, Event
 
 
 

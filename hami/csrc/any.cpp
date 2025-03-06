@@ -55,10 +55,10 @@ namespace py = pybind11;
 using namespace pybind11::literals;
 
 void init_any(py::module_& m) {
-    py::class_<hami::any, std::shared_ptr<hami::any>> hami_any(m, "any");
+    py::class_<hami::any, std::shared_ptr<hami::any>> hami_any(m, "Any");
 
     hami_any.doc() =
-        "hami.any provides object wrapper for "
+        "hami.Any provides object wrapper for "
         "hami::any class. It allows to pass different types of objects"
         "into C++ based core of the project.";
     hami_any
@@ -66,7 +66,7 @@ void init_any(py::module_& m) {
             auto re = object2any(obj);
             if (re == std::nullopt) {
                 throw py::type_error(
-                    "The input data is not supported by hami.any.");
+                    "The input data is not supported by hami.Any.");
             }
             return *re;
         }))

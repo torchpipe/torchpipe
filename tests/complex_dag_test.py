@@ -19,4 +19,4 @@ for x in test_config:
 
     data = hami.parse_from_file(toml_path)
     print(data)
-    hami._C.init("Interpreter", {}, hami.dict({"config": data}))
+    hami._C.init("Interpreter", {}, hami.Dict({"config": data}))

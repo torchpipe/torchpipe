@@ -26,10 +26,7 @@ class GenerateBackend : public Backend {
                  Backend* dependency) override {
         proxy_backend_->forward(inputs, dependency);
     }
-    bool try_forward(const std::vector<dict>& input_output,
-                     size_t timeout) override {
-        return proxy_backend_->try_forward(input_output, timeout);
-    }
+
     void forward(const std::vector<dict>& inputs) override {
         proxy_backend_->forward(inputs);
     }

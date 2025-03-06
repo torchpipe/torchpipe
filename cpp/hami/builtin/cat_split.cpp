@@ -1,6 +1,7 @@
 #include "hami/builtin/cat_split.hpp"
 #include "hami/helper/macro.h"
 #include "hami/core/task_keys.hpp"
+#include "hami/helper/base_logging.hpp"
 
 constexpr auto EXPECTED_DEPENDENCIES = 3;
 
@@ -22,6 +23,7 @@ void CatSplit::post_init(
         base_dependencies_[2]->max() == std::numeric_limits<size_t>::max(),
         "CatSplit requires a spliting backend with max() == "
         "std::numeric_limits<size_t>::max()");
+    SPDLOG_INFO("CatSplit: range=[{}, {}]", min_, max_);
 }
 
 void CatSplit::forward(const std::vector<dict>& data) {
@@ -34,7 +36,7 @@ void CatSplit::forward(const std::vector<dict>& data) {
     data[0]->erase(TASK_RESULT_KEY);
 
     // second stage: batching inference
-    base_dependencies_[1]->forward({data[0]});
+    base_dependencies_.at(1)->forward({data.at(0)});
     iter = data[0]->find(TASK_RESULT_KEY);
     HAMI_ASSERT(iter != data[0]->end(),
                 "CatSplit requires a result key in the second input");
@@ -42,7 +44,7 @@ void CatSplit::forward(const std::vector<dict>& data) {
     data[0]->erase(TASK_RESULT_KEY);
 
     // third stage: Split
-    base_dependencies_[2]->forward(data);
+    base_dependencies_.at(2)->forward(data);
 }
 
 std::pair<size_t, size_t> CatSplit::update_min_max(

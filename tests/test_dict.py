@@ -1,19 +1,19 @@
 import pytest
 import hami._C as _C
-from hami import dict as hami_dict
+from hami import Dict as hami_dict
 
 def test_dict_basic():
     # Test construction
-    d = _C.dict()
+    d = _C.Dict()
     assert len(d) == 0
     
     # Test with initial data
-    d = _C.dict({"a": 1, "b": "two"})
+    d = _C.Dict({"a": 1, "b": "two"})
     assert d["a"] == 1
     assert d["b"] == "two"
 
 def test_dict_operations():
-    d = _C.dict()
+    d = _C.Dict()
     
     # Test set/get
     d["key"] = "value"
@@ -33,7 +33,7 @@ def test_dict_operations():
     assert len(d) == 0
 
 def test_dict_types():
-    d = _C.dict()
+    d = _C.Dict()
     
     # Test different value types
     test_values = {

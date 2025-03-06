@@ -358,6 +358,9 @@ std::unordered_map<std::string, std::string> map_split(
     std::string strtem, char inner_sp, char outer_sp,
     const std::string& default_key) {
     remove_space_and_ctrl(strtem);
+    if (strtem.empty()) {
+        return {};
+    }
     std::unordered_map<std::string, std::string> result;
 
     // Check if brackets are balanced
@@ -375,7 +378,8 @@ std::unordered_map<std::string, std::string> map_split(
         if (default_key.empty()) {
             throw std::invalid_argument(
                 "default_key is empty. All key values must be explicitly "
-                "provided");
+                "provided. IMPUT" +
+                strtem);
         }
         result[default_key] = strtem;
         return result;

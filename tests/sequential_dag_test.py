@@ -8,7 +8,7 @@ class BackendManager:
         "backend": "Identity"
     }
     
-    BACKEND_TEMPLATE = "List[RegisterInstances[BackgroundThread[BackendProxy]],RegisterNode[Aspect[Batching, InstanceDispatcher]]]"
+    BACKEND_TEMPLATE = "List[RegisterInstances[BackgroundThread[BackendProxy]],RegisterNode[DI[Batching, InstanceDispatcher]]]"
 
     def __init__(self):
         self.backends = {}
@@ -42,7 +42,7 @@ def backend_manager():
 @pytest.fixture
 def dag_model():
     dag_config = create_dag_config()
-    return hami._C.init("DagDispatcher", {}, hami.dict({"config": dag_config}))
+    return hami._C.init("DagDispatcher", {}, hami.Dict({"config": dag_config}))
 
 def test_dag(backend_manager, dag_model):
     input_data = {"data": 2, "node_name": "node_a"}

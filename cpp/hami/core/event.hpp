@@ -297,7 +297,7 @@ class HAMI_EXPORT Event {
     }
 
     /// 设置回调函数
-    void add_const_callback(std::function<void()> callback) {
+    void append_callback(std::function<void()> callback) {
         std::lock_guard<std::mutex> lk(mut);
         // assert(!callback_);
         callbacks_.emplace_back(callback);

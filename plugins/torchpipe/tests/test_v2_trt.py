@@ -8,12 +8,14 @@ import hami
 # Pipeline configuration strings
 INIT_STR = "ModelLoadder[(.onnx)Onnx2Tensorrt,(.trt)LoadTensorrtEngine], TensorrtInferTensor"
 FORWARD_STR = "CatSplit[S[GpuTensor,CatTensor],S[ContiguousTensor,TensorrtInferTensor,ProxyFromParam[post_processor]],SplitTensor]"
-BACKEND_STR = f"IoC[{INIT_STR}; {FORWARD_STR}]"
+BACKEND_STR = f"StreamGuard[TensorrtTensor]"
 
-class Identity(torch.nn.Module):
-    """Simple identity model that multiplies input by 2"""
+class Conv(torch.nn.Module):
+    def __init__(self):
+        super(Conv, self).__init__()
+        self.conv = torch.nn.Conv2d(3, 1, kernel_size=3, stride=2, padding=1)
     def forward(self, x):
-        return x * 2
+        return self.conv(x)
 
 def get_tmp_onnx(model: torch.nn.Module, input_shape: list) -> str:
     """
@@ -28,7 +30,7 @@ def get_tmp_onnx(model: torch.nn.Module, input_shape: list) -> str:
     """
     onnx_path = tempfile.mktemp(suffix=".onnx")
     model.eval()
-    input_data = torch.randn(input_shape)
+    input_data = torch.randn(input_shape).cuda().half()
     torch.onnx.export(
         model, 
         input_data, 
@@ -48,10 +50,11 @@ def model_config():
     }
     
     # Create temporary ONNX model
-    tmp_onnx = get_tmp_onnx(Identity(), [1, 3, 224, 224])
+    torch_model = Conv().cuda().half()
+    tmp_onnx = get_tmp_onnx(torch_model, [1, 3, 224, 224])
     config["model"] = tmp_onnx
     
-    yield config, tmp_onnx
+    yield config, torch_model, tmp_onnx
     
     # Cleanup temporary file
     os.remove(tmp_onnx)
@@ -62,13 +65,13 @@ def test_tensorrt_inference(model_config):
     
     Tests if the model correctly processes input tensor and produces expected output
     """
-    config, _ = model_config
+    config, torch_model, _ = model_config
     
     # Initialize model
     model = hami.init(BACKEND_STR, config)
     
     # Prepare input data
-    input_tensor = torch.ones((1, 3, 224, 224))
+    input_tensor = torch.ones((1, 3, 224, 224)).half()*10
     data = {"data": input_tensor}
     
     # Run inference
@@ -76,7 +79,16 @@ def test_tensorrt_inference(model_config):
     
     # Verify results
     result = data['result']
-    expected = input_tensor * 2
+    expected = torch_model(input_tensor.cuda())
     expected = expected.cuda()
-    
-    assert torch.allclose(result, expected), "Model output does not match expected values"
+    # print(result, expected)
+    assert torch.allclose(result, expected, rtol=1e-2, atol=1e-2), "Model output does not match expected values"
+if __name__ == "__main__":
+    import time
+    # time.sleep(5)
+    pytest.main(["-s", __file__])
+    # model = Conv()
+    # x = torch.ones((1, 3, 224, 224))
+    # y = model(x)
+    # assert(y.shape == (1, 1, 112, 112))
+    # print(y.shape)

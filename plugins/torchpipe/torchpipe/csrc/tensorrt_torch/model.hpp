@@ -5,6 +5,12 @@
 
 namespace torchpipe {
 
+// #if (NV_TENSORRT_MAJOR == 9 && NV_TENSORRT_MINOR < 3) || NV_TENSORRT_MAJOR <
+// 9
+#if (NV_TENSORRT_MAJOR == 10 && NV_TENSORRT_MINOR < 1) || NV_TENSORRT_MAJOR < 10
+#error Only support TensorRT 10.1 and above
+#endif
+
 class LoadTensorrtEngine : public hami::Backend {
    public:
     void init(const std::unordered_map<std::string, std::string>& config,

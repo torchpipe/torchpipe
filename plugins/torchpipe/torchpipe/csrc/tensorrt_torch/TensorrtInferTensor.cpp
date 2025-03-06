@@ -137,25 +137,40 @@ void TensorrtInferTensor::forward(const std::vector<hami::dict>& input_output) {
 
 #else
 
-    // context_->getEngine().getDeviceMemorySizeForProfileV2(instance_index_);
     if (mem_size_ == 0) mem_size_ = context_->updateDeviceMemorySizeForShapes();
+    // if (mem_size_ == 0) mem_size_ =
+    // [[maybe_unused]] auto zz = context_->updateDeviceMemorySizeForShapes();
+    // [[maybe_unused]] auto tt =
+    //     context_->getEngine().getDeviceMemorySizeForProfile(instance_index_);
+    // [[maybe_unused]] auto tt2 = context_->getEngine().getDeviceMemorySize();
+
+    // bool use_v2 = context_->getEngine().getWeightStreamingBudgetV2() <
+    //               context_->getEngine().getStreamableWeightsSize();
 #endif
+    torch::Tensor mem;
+    void* mem_ptr = nullptr;
     if (mem_size_ > 0) {
         const double mem_size_mb =
             static_cast<double>(mem_size_) / (1024 * 1024);
-        SPDLOG_DEBUG("mem_size: {} MB", mem_size_mb);
-        torch::Tensor mem = torch_allocate(mem_size_);
-#if NV_TENSORRT_MAJOR == 10 && NV_TENSORRT_MINOR <= 1
-        context_->setDeviceMemory(mem.data_ptr());
+        SPDLOG_INFO("model context memory size: {} MB", mem_size_mb);
+        mem = torch_allocate(mem_size_);
+        mem_ptr = mem.data_ptr();
+#if NV_TENSORRT_MAJOR < 10 && NV_TENSORRT_MINOR < 1
+        context_->setDeviceMemory(mem_ptr);
 #else
-        context_->setDeviceMemoryV2(mem.data_ptr(), mem_size_);
+        // if (use_v2)
+        //     context_->setDeviceMemoryV2(mem.data_ptr(), mem_size_);
+        // else
+        context_->setDeviceMemory(mem_ptr);  // todo
 #endif
     }
 #endif
 
     HAMI_ASSERT(context_->setInputConsumedEvent(input_finish_event_));
 
-    HAMI_ASSERT(context_->enqueueV3(c10::cuda::getCurrentCUDAStream()));
+    HAMI_ASSERT(context_->enqueueV3(c10::cuda::getCurrentCUDAStream()),
+                "TensorRT inference execution failed. Check TensorRT logs for "
+                "detailed error information.");
     cudaEventSynchronize(input_finish_event_);
     inputs.clear();
     input_output[0]->erase(TASK_DATA_KEY);

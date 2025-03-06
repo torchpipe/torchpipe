@@ -65,11 +65,11 @@ void IoC::init(const std::unordered_map<std::string, std::string>& in_config,
 
             // todo check illegal name
             find_start =
-                str::replace_once(phases[1], main_backend,
-                                  "InstanceProxy[" + register_name + "]");
+                str::replace_once(phases[1], main_backend, register_name);
         }
     }
     forward_backend_ = init_backend(phases[1], config, dict_config);
+    HAMI_ASSERT(forward_backend_, "IoC init failed");
     // for (const auto& item : backend_map) {
     //     Backend* backend = HAMI_INSTANCE_GET(Backend, item.first);
     //     HAMI_ASSERT(backend);
@@ -77,6 +77,9 @@ void IoC::init(const std::unordered_map<std::string, std::string>& in_config,
     // }
     post_init(config, dict_config);
 }
+
+[[nodiscard]] size_t IoC::max() const { forward_backend_->max(); }
+[[nodiscard]] size_t IoC::min() const { forward_backend_->min(); }
 
 void IoC::init_phase(const std::string& phase_config,
                      const std::unordered_map<std::string, std::string>& config,

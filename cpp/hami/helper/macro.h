@@ -88,8 +88,6 @@ inline constexpr const char* file_name(const char* path) {
 #define HAMI_FATAL_ASSERT(x, ...) HAMI_ASSERT(x, __VA_ARGS__)
 #define IPIPE_ASSERT(x, ...) HAMI_ASSERT(x, __VA_ARGS__)
 
-#define SHUTDOWN_TIMEOUT 500
-
 #define STR_CONFIG_GET(config, key)                                          \
     auto iter = config.find(#key);                                           \
     HAMI_ASSERT(iter != config.end(),                                        \

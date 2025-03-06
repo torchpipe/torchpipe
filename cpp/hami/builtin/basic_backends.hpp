@@ -83,6 +83,48 @@ class HAMI_EXPORT Dependency : public Backend {
 };
 
 /**
+ * @brief Backend with injectable dependency.
+ *
+ * This backend allows injecting a dependency, which can be used for chaining or
+ * delegation.
+ */
+class HAMI_EXPORT DynamicDependency : public Backend {
+   public:
+    /**
+     * @brief Injects a dependency into the backend or the backend's dependency
+     * if alread exists.
+     *
+     * @param dependency Pointer to the dependency. Should not be nullptr.
+     *
+     * @throw std::invalid_argument If the provided dependency is nullptr.
+     */
+    void inject_dependency(Backend* dependency) override final;
+
+    virtual void forward(const std::vector<dict>& input_output) override {
+        Backend::forward(input_output, injected_dependency_);
+    }
+    // virtual void forward(const std::vector<dict>& input_output,
+    //                      Backend* dependency) override final {
+    //     if (dependency == nullptr) {
+    //         throw std::invalid_argument("null dependency is not allowed");
+    //     }
+    //     forward_impl(input_output, dependency);
+    // }
+
+    [[nodiscard]] size_t max() const override;
+    [[nodiscard]] size_t min() const override {
+        return injected_dependency_ ? injected_dependency_->min() : 1;
+    }
+
+   protected:
+    Backend* injected_dependency_{nullptr};  ///< The injected dependency.
+
+    //    private:
+    //     virtual void forward_impl(const std::vector<dict>& input_output,
+    //                               Backend* dependency);
+};
+
+/**
  * @brief A container that can hold multiple backends.
  * As it has multiple dependent backends, we treat it as a `container` of
  * backends and it is not allowed to modify its dependencies at runtime.

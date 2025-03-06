@@ -29,7 +29,7 @@ def test_backend_execution():
     ]
     
     for test_input in test_cases:
-        input_dict = _C.dict(test_input)
+        input_dict = _C.Dict(test_input)
         backend(input_dict)
         assert pytest.approx(input_dict["result"]) == test_input["data"]
 
@@ -38,6 +38,6 @@ def test_backend_with_event():
     backend.init({})
     
     # Test with event
-    input_data = _C.dict({"data": 100, "event": 1})
+    input_data = _C.Dict({"data": 100, "event": 1})
     backend(input_data)
     assert input_data["result"] == 100

@@ -9,6 +9,8 @@
 #include "hami/csrc/dict.hpp"
 #include "hami/csrc/converts.hpp"
 #include "hami/helper/macro.h"
+#include "hami/core/queue.hpp"
+#include "hami/helper/base_logging.hpp"
 
 namespace hami {
 
@@ -21,7 +23,7 @@ PyDict::PyDict(const py::dict& data) {
         const std::string key = py::cast<std::string>(item.first);
         auto second = object2any(item.second);
         if (second == std::nullopt) {
-            throw py::type_error("hami.any: The input type is unknown.");
+            throw py::type_error("hami.Any: The input type is unknown.");
         }
         data_->insert_or_assign(key, *second);
     }
@@ -50,7 +52,7 @@ dict PyDict::py2dict(py::dict data) {
         const std::string key = py::cast<std::string>(item.first);
         auto second = object2any(item.second);
         if (second == std::nullopt) {
-            throw py::type_error("hami.any: The input type is unknown.");
+            throw py::type_error("hami.Any: The input type is unknown.");
         }
         result->insert_or_assign(key, *second);
     }
@@ -67,7 +69,7 @@ void PyDict::dict2py(dict data, py::dict result,
 void PyDict::set(const std::string& key, const py::object& value) {
     auto data = object2any(value);
     if (data == std::nullopt)
-        throw py::type_error("The input type is unknown by hami.any.");
+        throw py::type_error("The input type is unknown by hami.Any.");
     data_->insert_or_assign(key, *data);
     // (*data)[key] = data;
 }
@@ -84,10 +86,10 @@ py::object PyDict::get(const std::string& key) const {
 }
 
 void init_dict(py::module_& m) {
-    py::class_<PyDict> hami_dict(m, "dict");
+    py::class_<PyDict> hami_dict(m, "Dict");
 
     hami_dict.doc() =
-        "hami.dict provides an object wrapper for the "
+        "hami.Dict provides an object wrapper for the "
         "hami::dict class, which is essentially a wrapper around "
         "std::shared_ptr<std::unordered_map<std::string, std::any>>.";
     hami_dict.def(py::init<>())
@@ -141,6 +143,51 @@ void init_dict(py::module_& m) {
             repr += "}";
             return repr;
         });
+    // Register base exception
+    py::register_exception<hami::queue::QueueException>(m, "QueueError");
+
+    // Try to map our exceptions to Python's queue module exceptions
+    try {
+        // Import Python's queue module to get standard exception types
+        py::module queue_module = py::module::import("queue");
+        py::object py_empty = queue_module.attr("Empty");
+        py::object py_full = queue_module.attr("Full");
+
+        // Register exceptions with correct inheritance relationship
+        py::exception<hami::queue::QueueEmptyException>(m, "Empty",
+                                                        py_empty.ptr());
+        py::exception<hami::queue::QueueFullException>(m, "Full",
+                                                       py_full.ptr());
+    } catch (...) {
+        // If import fails, register with standard exceptions
+        SPDLOG_ERROR(
+            "Failed to import Python's queue module. register with standard "
+            "exceptions.");
+        py::register_exception<hami::queue::QueueEmptyException>(m, "Empty");
+        py::register_exception<hami::queue::QueueFullException>(m, "Full");
+    }
+
+    m.def("default_queue", &default_queue);
+    py::class_<Queue>(m, "Queue")
+        .def(py::init<size_t>(), py::arg("maxsize") = 0)
+        .def(
+            "put",
+            [](Queue& self, PyDict item, bool block,
+               std::optional<double> timeout) {
+                self.put(item.to_dict(), block, timeout);
+            },
+            py::arg("item"), py::arg("block") = true,
+            py::arg("timeout") = std::nullopt)
+        .def(
+            "get",
+            [](Queue& self, bool block, std::optional<double> timeout) {
+                auto re = self.get(block, timeout);
+                return PyDict(re);
+            },
+            py::arg("block") = true, py::arg("timeout") = std::nullopt)
+        .def("qsize", &Queue::qsize)
+        .def("empty", &Queue::empty)
+        .def("full", &Queue::full);
 }
 
 }  // namespace hami

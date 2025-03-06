@@ -28,7 +28,7 @@ bool judge(const dict& obj);
 
 python -> 
 ```python
-bool judge(obj: hami.dict): ...
+bool judge(obj: hami.Dict): ...
 register_judge(name="YourJudge",judge)
 backend="Py::YourJudge[Forward[node_name], Identity]"
 backend="Py::YourJudge[Forward[pipeline.node_name], Identity]"
@@ -165,7 +165,7 @@ forward=Aspect[Restart,Dag]
 final: 
 节点级别初始化：   nodel-level IOC controler         三个位置调度 （before dag/ batching ）
 -  per node  instances。0123 （instance_num）  Aspect[BackgroundThread, backend] 线程安全, 通过callback获取状态
-- per node scheduler Aspect[Batching, InstanceDispatcher] 线程安全   
+- per node scheduler DI[Batching, InstanceDispatcher] 线程安全   
     (Batching)知道底层状态的方法：设置回调，传入状态结构体，通过callback修改状态； 
  
 ```toml
@@ -195,7 +195,7 @@ Interperter:
 # 三个位置调度 （before dag/ batching）
 Aspect[Restart, DagDispatcher,Batching, InstanceDispatcher] 
 Aspect[Restart, DagDispatcher;ContiguousBatching, InstanceDispatcher]
-entry = Aspect[Restart,Dag]() => (Container, schedule = Aspect[Batching, InstanceDispatcher])
+entry = Aspect[Restart,Dag]() => (Container, schedule = DI[Batching, InstanceDispatcher])
 
 
 Aspect[Restart,Dag]

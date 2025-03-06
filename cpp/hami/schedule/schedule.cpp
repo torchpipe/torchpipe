@@ -6,39 +6,37 @@
 #include "hami/builtin/aspect.hpp"
 #include "hami/builtin/proxy.hpp"
 #include "hami/helper/string.hpp"
+#include "hami/helper/timer.hpp"
+
+#include "hami/core/reflect.h"
+
+#include "hami/helper/macro.h"
+
 #include "hami/helper/macro.h"
 #include "hami/core/helper.hpp"
 #include "hami/core/task_keys.hpp"
 #include "hami/helper/string.hpp"
 
 namespace hami {
-void BatchingEvent::pre_init(const std::unordered_map<string, string>& config,
-                             const dict& dict_config) {
-    if (config.find("batching_timeout") != config.end()) {
-        batching_timeout_ = stoi(config.at("batching_timeout"));
-    } else {
-        batching_timeout_ = 2;
-        SPDLOG_WARN("batching_timeout not found, using default value: {}",
-                    batching_timeout_);
-    }
+void Batching::init(const std::unordered_map<string, string>& config,
+                    const dict& dict_config) {
+    str::try_update(config, "batching_timeout", batching_timeout_);
     HAMI_ASSERT(batching_timeout_ >= 0);
     if (batching_timeout_ > 0) {
         bInited_.store(true);
-        thread_ = std::thread(&BatchingEvent::run, this);
-        SPDLOG_INFO(
-            "BatchingEvent thread inited. Timeout = {}, Max Batch Size = {}",
-            batching_timeout_, max());
+        thread_ = std::thread(&Batching::run, this);
     } else {
-        SPDLOG_INFO(
-            "BatchingEvent thread not inited. Timeout = {}, Max Batch Size = "
-            "{}",
-            batching_timeout_, max());
+        SPDLOG_INFO("Batching thread not inited because batching_timeout_ = 0");
     }
+    HAMI_ASSERT(dict_config);
+    instances_state_ = dict_get<std::shared_ptr<InstancesState>>(
+        dict_config, TASK_RESOURCE_STATE_KEY);
+    HAMI_ASSERT(instances_state_);
 }
 
-void BatchingEvent::forward_impl(const std::vector<dict>& inputs,
-                                 Backend* dependency) {
-    HAMI_ASSERT(injected_dependency_ == dependency);
+void Batching::forward(const std::vector<dict>& inputs) {
+    HAMI_FATAL_ASSERT(backend::is_all_evented(inputs) && injected_dependency_);
+
     if (bInited_.load())
         input_queue_.push(inputs, get_request_size<dict>);
     else {
@@ -46,27 +44,37 @@ void BatchingEvent::forward_impl(const std::vector<dict>& inputs,
     }
 }
 
-void BatchingEvent::run() {
+void Batching::run() {
+    while (bInited_.load() && !input_queue_.wait_for(batching_timeout_)) {
+    };
     const size_t max_bs = max();
+    SPDLOG_INFO("Batching thread inited. Timeout = {} Max Batch Size = {}",
+                batching_timeout_, max_bs);
     std::vector<dict> cached_data;
-
+    bool already_batching_timout = false;
     while (bInited_.load()) {
         const auto cached_size = get_request_size(cached_data);
-
-        if (input_queue_.size() + cached_size >= max_bs) {
+        // size_t req_size =
+        if (input_queue_.size() + cached_size >= max_bs ||
+            already_batching_timout) {
             std::size_t new_pop = 0;
-            while (cached_size + new_pop < max_bs) {
-                new_pop += input_queue_.front_size();
+            while (cached_size + new_pop < max_bs && !input_queue_.empty()) {
+                const auto front_size = input_queue_.front_size();
                 if (cached_size + new_pop > max_bs) {
                     break;
                 }
+                new_pop += front_size;
                 cached_data.push_back(input_queue_.pop());
             }
 
-            if (!injected_dependency_->try_forward(cached_data,
-                                                   SHUTDOWN_TIMEOUT))
+            if (!try_forward(cached_data, new_pop + cached_size,
+                             SHUTDOWN_TIMEOUT))
                 continue;
-        } else if (cached_size + input_queue_.size() == 0) {
+            else {
+                already_batching_timout = false;
+                cached_data.clear();
+            }
+        } else if (cached_size == 0) {
             dict tmp_dict;
             if (!input_queue_.wait_pop(
                     tmp_dict,
@@ -81,46 +89,26 @@ void BatchingEvent::run() {
         } else {
             std::size_t new_pop = 0;
 
-            if (cached_size == 0) {
-                HAMI_FATAL_ASSERT(!input_queue_.empty());
-                new_pop += input_queue_.front_size();
-                cached_data.push_back(input_queue_.pop());
-                // it is guaranteed that new_pop < max_bs for one input
-            }
             std::shared_ptr<Event> event = any_cast<std::shared_ptr<Event>>(
                 cached_data[0]->at(TASK_EVENT_KEY));
-            auto time_es = event->time_passed();
+            auto time_es = int(event->time_passed());
 
             if (time_es < batching_timeout_) {
-                input_queue_.wait(int(batching_timeout_ - time_es));
-                continue;
-            }
-
-            while (!input_queue_.empty() && (cached_size + new_pop < max_bs)) {
-                new_pop += input_queue_.front_size();
-                if (cached_size + new_pop > max_bs) {
-                    // new_pop -= input_queue_.front_size();
-                    break;
+                if (!input_queue_.wait_for(int(batching_timeout_ - time_es))) {
+                    already_batching_timout = true;
                 }
-                cached_data.push_back(input_queue_.pop());
+            } else {
+                already_batching_timout = true;
             }
-            if (cached_size + new_pop > max_bs) {
-                continue;  // go to another branch
-            }
-
-            if (!injected_dependency_->try_forward(cached_data,
-                                                   SHUTDOWN_TIMEOUT))
-                continue;
         }
-        cached_data.clear();
+
     }  // end while
 }
 
-HAMI_PROXY_WITH_DEPENDENCY(Batching, "Aspect[EventGuard,BatchingEvent]");
-
 void InstanceDispatcher::init(const std::unordered_map<string, string>& config,
                               const dict& dict_config) {
-    instances_state_ = std::make_unique<InstancesState>();
+    instances_state_ = dict_get<std::shared_ptr<InstancesState>>(
+        dict_config, TASK_RESOURCE_STATE_KEY);
     auto iter = config.find("node_name");
     HAMI_ASSERT(iter != config.end(), "node_name not found");
     std::string node_name = iter->second;
@@ -132,47 +120,38 @@ void InstanceDispatcher::init(const std::unordered_map<string, string>& config,
         base_dependencies_.push_back(
             HAMI_INSTANCE_GET(Backend, node_name + "." + std::to_string(i)));
         HAMI_ASSERT(base_dependencies_.back());
-        instances_state_->add(i, base_dependencies_.back()->min(),
-                              base_dependencies_.back()->max());
+        instances_state_->add_and_set_range(i, base_dependencies_.back()->min(),
+                                            base_dependencies_.back()->max());
     }
-
-    // std::sort(base_dependencies_.begin(), base_dependencies_.end(),
-    //           [](const Backend* a, const Backend* b) { return a->max() >=
-    //           b->max(); });
 
     update_min_max(base_dependencies_);
 }
 
-std::pair<size_t, size_t> InstanceDispatcher::update_min_max(
-    const std::vector<Backend*>& depends) {
+void InstanceDispatcher::update_min_max(const std::vector<Backend*>& deps) {
     // union
-    size_t max_value = 1;
-    size_t min_value = std::numeric_limits<size_t>::max();
-
-    for (const Backend* depend : depends) {
-        min_value = std::min(min_value, depend->min());
-        max_value = std::max(max_value, depend->max());
+    HAMI_ASSERT(max_ == 1 && min_ == std::numeric_limits<size_t>::max());
+    for (const Backend* depend : deps) {
+        min_ = std::min(min_, depend->min());
+        max_ = std::max(max_, depend->max());
     }
 
-    HAMI_ASSERT(min_value <= max_value);
-    return {min_value, max_value};
+    HAMI_ASSERT(min_ <= max_);
 }
 
-bool InstanceDispatcher::try_forward(const std::vector<dict>& inputs,
-                                     size_t timeout) {
+void InstanceDispatcher::forward(const std::vector<dict>& inputs) {
+    HAMI_ASSERT(backend::is_none_or_all_evented_and_unempty(inputs));
     const size_t req_size = get_request_size(inputs);
-    size_t valid_index{};
-    if (!instances_state_->wait_resource(req_size, valid_index, timeout)) {
-        SPDLOG_INFO("InstanceDispatcher::try_forward, req_size={}", req_size);
+    //
+    std::optional<size_t> index;
+    do {
+        index = instances_state_->query_avaliable(req_size, 100, true);
+    } while (!index);
+    size_t valid_index{*index};
 
-        return false;
-    }
-    SPDLOG_INFO("InstanceDispatcher::try_forward success, req_size={}",
-                req_size);
+    SPDLOG_INFO("InstanceDispatcher::forward, req_size={}, index=", req_size,
+                valid_index);
 
-    HAMI_ASSERT(valid_index < base_dependencies_.size(),
-                "InstanceDispatcher: no valid backend found. req_size={}",
-                req_size);
+    HAMI_FATAL_ASSERT(valid_index < base_dependencies_.size());
 
     std::shared_ptr<Event> event;
     auto iter = inputs.back()->find(TASK_EVENT_KEY);
@@ -180,48 +159,36 @@ bool InstanceDispatcher::try_forward(const std::vector<dict>& inputs,
         event = any_cast<std::shared_ptr<Event>>(iter->second);
     }
     if (event) {
-        event->set_callback([this, valid_index]() {
-            instances_state_->finished_instance(valid_index);
+        event->append_callback([this, valid_index]() {
+            instances_state_->remove_lock(valid_index);
         });
         base_dependencies_[valid_index]->forward(inputs);
     } else {
         auto resource_guard = [this, valid_index](void*) {
-            instances_state_->finished_instance(valid_index);
+            instances_state_->remove_lock(valid_index);
         };
         std::unique_ptr<void, decltype(resource_guard)> guard(nullptr,
                                                               resource_guard);
 
         base_dependencies_[valid_index]->forward(inputs);
     }
-    return true;
 }
 
-void BackgroundThreadEvent::init(
-    const std::unordered_map<string, string>& config, const dict& dict_config) {
-    constexpr auto default_name = "BackgroundThreadEvent";
-    auto name = HAMI_OBJECT_NAME(Backend, this);
-    if (name == std::nullopt) {
-        name = default_name;
-        SPDLOG_WARN(
-            "{}::init, it seems this instance was not created via reflection, "
-            "using default name {}. "
-            "Please configure its dependency via the parameter {}::dependency",
-            *name, *name, *name);
-    }
-    auto iter = config.find(*name + "::dependency");
-    if (iter != config.end()) {
-        dependency_name_ = iter->second;
-        config_ = &config;
-        dict_config_ = dict_config;
-    } else {
-        SPDLOG_WARN(
-            "Dependency configuration {}::dependency not found, skipping "
-            "dependency injection process",
-            *name);
-        throw std::runtime_error("BackgroundThreadEvent: no dependency found");
-    }
+void BackgroundThread::init(const std::unordered_map<string, string>& config,
+                            const dict& dict_config) {
+    const auto dependency_name = get_dependency_name_force(this, config);
 
-    thread_ = std::thread(&BackgroundThreadEvent::run, this);
+    dependency_ =
+        std::unique_ptr<Backend>(HAMI_CREATE(Backend, dependency_name));
+    HAMI_ASSERT(dependency_);
+
+    init_task_ = [this, config, dict_config]() {
+        dependency_->init(config, dict_config);
+
+        bInited_.store(true);
+    };
+
+    thread_ = std::thread(&BackgroundThread::run, this);
     while (!bInited_.load() && (!bStoped_.load())) {
         std::this_thread::yield();
     }
@@ -229,18 +196,12 @@ void BackgroundThreadEvent::init(
     HAMI_ASSERT(bInited_.load() && (!bStoped_.load()));
 }
 
-void BackgroundThreadEvent::run() {
+// void BackgroundThread::forward_task(const std::vector<dict>& inputs) {}
+void BackgroundThread::run() {
 #ifndef NCATCH_SUB
     try {
 #endif
-
-        dependency_ =
-            std::unique_ptr<Backend>(HAMI_CREATE(Backend, dependency_name_));
-        HAMI_ASSERT(dependency_,
-                    "`" + dependency_name_ + "` is not a valid backend");
-        dependency_->init(*config_, dict_config_);
-
-        bInited_.store(true);
+        init_task_();
 
 #ifndef NCATCH_SUB
     } catch (const std::exception& e) {
@@ -254,16 +215,13 @@ void BackgroundThreadEvent::run() {
     while (bInited_.load()) {
         std::vector<dict> tasks;
         {
-            auto succ =
-                batched_queue_.wait_pop(tasks, 50);  // for exit this thread
+            auto succ = batched_queue_.wait_pop(
+                tasks, SHUTDOWN_TIMEOUT);  // for exit this thread
 
             if (!succ) {
                 assert(tasks.empty());
                 continue;
             }
-        }
-        for (std::size_t i = 0; i < tasks.size(); ++i) {
-            tasks[i]->erase(TASK_RESULT_KEY);
         }
 
         std::vector<std::shared_ptr<Event>> events;
@@ -279,9 +237,10 @@ void BackgroundThreadEvent::run() {
 #ifndef NCATCH_SUB
         try {
 #endif
-            HAMI_FATAL_ASSERT(tasks.size() >= min() || tasks.size() <= max());
-            for (auto item : tasks) {
+
+            for (const auto& item : tasks) {
                 item->erase(TASK_EVENT_KEY);
+                item->erase(TASK_RESULT_KEY);
             }
             dependency_->forward(tasks);
 
@@ -307,10 +266,20 @@ void BackgroundThreadEvent::run() {
     bStoped_.store(true);
 }
 
-HAMI_REGISTER(Backend, BackgroundThreadEvent, "BackgroundThreadEvent");
-HAMI_PROXY_WITH_DEPENDENCY(BackgroundThread,
-                           "Aspect[EventGuard,BackgroundThreadEvent]");
+HAMI_REGISTER(Backend, BackgroundThread, "BackgroundThread");
 
 HAMI_REGISTER(Backend, InstanceDispatcher);
-HAMI_REGISTER(Backend, BatchingEvent);
+HAMI_REGISTER(Backend, Batching);
+
+class SharedInstancesState : public Backend {
+   public:
+    void init(const std::unordered_map<std::string, std::string>& config,
+              const dict& dict_config) override final {
+        HAMI_ASSERT(dict_config, "dict_config is empty");
+        auto res = std::make_shared<InstancesState>();
+        (*dict_config)[TASK_RESOURCE_STATE_KEY] = res;
+    }
+};
+
+HAMI_REGISTER_BACKEND(SharedInstancesState);
 }  // namespace hami

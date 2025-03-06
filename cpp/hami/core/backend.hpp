@@ -116,20 +116,6 @@ class HAMI_EXPORT Backend {
             forward(input_output);
     }
 
-    virtual bool try_forward(const std::vector<dict>& input_output,
-                             size_t timeout) {
-        forward(input_output);
-        return true;
-        // throw std::runtime_error("try_forward not supported by default");
-        // return false;
-    }
-
-    // virtual bool try_forward(const std::vector<dict>& input_output, size_t
-    // timeout) {
-    //   forward(input_output);
-    //   return true;
-    // }
-
     Backend() = default;
     Backend(const Backend&) = delete;
     Backend(const Backend&&) = delete;
@@ -184,7 +170,7 @@ using MaxBackend = Backend;
 /**
  * @brief Base class for all backends that support event-driven processing.
  */
-class EventBackend : public Backend {
+class HasEventForwardGuard : public Backend {
    public:
     virtual void forward(const std::vector<dict>& inputs) override final;
     /**
@@ -224,4 +210,24 @@ HAMI_EXPORT std::unique_ptr<Backend> init_backend(
         void forward(const std::vector<hami::dict>& input) override;          \
     };
 
+namespace backend {
+void evented_forward(Backend& self, const std::vector<dict>& inputs);
+// void evented_forward(const Backend* self, const std::vector<dict>& inputs);
+
+/**
+ * Checks if either all inputs have events or none have events
+ *
+ * @param inputs Vector of dictionary items to check
+ * @return true if all items have events or if no items have events
+ * @return false if there's a mix of items with and without events
+ */
+bool is_none_or_all_evented_and_unempty(const std::vector<dict>& inputs);
+bool is_all_evented(const std::vector<dict>& inputs);
+
+std::string get_dependency_name(
+    const Backend* this_ptr,
+    const std::unordered_map<std::string, std::string>& config,
+    const std::optional<std::string>& defualt_cls_name = std::nullopt);
+
+}  // namespace backend
 }  // namespace hami

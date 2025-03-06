@@ -3,7 +3,7 @@
 
 ```toml
 IoC[ModelLoadder[(.onnx)Onnx2Tensorrt,(.trt)LoadTensorrtEngine], TensorrtInferTensor; 
- CatSplit[S[GpuTensor,CatTensor],S[ContiguousTensor,TensorrtInferTensor,LaunchFromParam[post_processor]],SplitTensor]]
+ CatSplit[S[GpuTensor,CatTensor],S[ContiguousTensor,TensorrtInferTensor,ProxyFromParam[post_processor]],SplitTensor]]
 
 
 fix
@@ -13,7 +13,7 @@ constexpr auto DEFAULT_INIT_CONFIG =
 to
 IoC[InstanceDispitcher,Aspect[Batching, "
     "InstanceDispatcher];Aspect],
-node_entrypoint = IoC[RegisterInstances[BackgroundThread[BackendProxy]], RegisterNode[Aspect[Batching, InstanceDispatcher]]; Forward[node.{node_name}]]
+node_entrypoint = IoC[RegisterInstances[BackgroundThread[BackendProxy]], RegisterNode[DI[Batching, InstanceDispatcher]]; Forward[node.{node_name}]]
 
 
 InstanceDispatcher[*PreCat*, *CatedHandle*]
@@ -55,13 +55,46 @@ Interpreter:
 ```toml
 entrypoint:
 
-MultipleNodesIoC[RegisterInstances[BackgroundThread[BackendProxy]], "
+init=List[RegisterInstances[BackgroundThread[BackendProxy]], "
     "RegisterNode[Aspect[Batching, "
-    "InstanceDispatcher]]; DagDispatcher]
-
-IoC[RegisterInstances[BackgroundThread[BackendProxy]], "
-    "RegisterNode[Aspect[Batching, "
-    "InstanceDispatcher]]; Forward[node.{node_name}]]
+    "InstanceDispatcher]]]
 ```
 
 string Dict Backend Event, List
+
+
+
+
+<!-- 
+-https://github.com/pytorch/tensordict/blob/main/GETTING_STARTED.md -->
+
+
+support trt 9.3
+
+
+- ThroughputBenchmark
+https://github.com/pytorch/pytorch/blob/main/torch/utils/throughput_benchmark.py
+https://github.com/pytorch/pytorch/blob/9b7130b8db62e9e550366419fa33c0f530d80beb/torch/csrc/utils/throughput_benchmark.cpp#L46
+
+
+tensorboard timeline
+
+
+Repost[Z, dddsa]
+
+- entrypoint 从Interpreter独立
+
+
+builtin types: Any, Dict, Backend, Event, Queue
+builtin container: IoC Proxy/DI Sequential/S  ProxyFromParam RegisterNode/RegisterInstances
+
+CatSplit, DagDispatcher, InstanceDispatcher
+
+Queue, Recv, Send  Q_i B_i B_c
+
+BackgroundThread
+
+二元操作而非多元操作，filter 
+
+basic and simple parser rules：
+ 

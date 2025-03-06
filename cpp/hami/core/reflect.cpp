@@ -2,6 +2,9 @@
 #include "hami/helper/base_logging.hpp"
 #include "hami/helper/string.hpp"
 #include "hami/core/backend.hpp"
+#include "hami/core/queue.hpp"
+#include "hami/core/event.hpp"
+
 namespace hami {
 
 bool hami_load() {
@@ -85,5 +88,7 @@ ClassRegistryBase<RegistryType>& ClassRegistryInstance() {
 
 // 显式实例化所需类型
 template ClassRegistryBase<Backend>& ClassRegistryInstance<Backend>();
+template ClassRegistryBase<Queue>& ClassRegistryInstance<Queue>();
+template ClassRegistryBase<Event>& ClassRegistryInstance<Event>();
 
 }  // namespace hami

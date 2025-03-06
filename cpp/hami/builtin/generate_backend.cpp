@@ -54,6 +54,7 @@ void GenerateBackend::init(
         order_config.insert_or_assign(pair.first, pair.second);
     }
     proxy_backend_ = init_backend(orders.first, order_config, dict_config);
+    HAMI_ASSERT(proxy_backend_, "GenerateBackend init failed");
 }
 
 std::unordered_map<std::string, std::string>

@@ -208,6 +208,82 @@ static void register_backend(const std::string& aspect_name, py::object obj) {
     // HAMI_INSTANCE_REGISTER(Backend, aspect_name, backend);
 }
 
+void forward_backend(Backend& self, const py::object& input_output) {
+    // SPDLOG_INFO("ref_count {}", input_output.ref_count());
+    std::vector<dict> data;
+    if (py::isinstance<PyDict>(input_output)) {
+        data = {py::cast<PyDict&>(input_output).to_dict()};
+    } else if (py::isinstance<py::list>(input_output)) {
+        // Check if input_output is empty
+        if (py::len(input_output) == 0) {
+            throw std::invalid_argument("input list cannot be empty");
+        }
+
+        for (const auto& item : input_output) {
+            HAMI_ASSERT(py::isinstance<PyDict>(item),
+                        " Unsupported input type. Please provide one of "
+                        "the following: dict, hami.Dict, or "
+                        "List[hami.Dict].");
+            PyDict data_inside = py::cast<PyDict>(item);
+            data.push_back(data_inside.to_dict());
+        }
+    } else if (py::isinstance<py::dict>(input_output)) {
+        py::dict py_dict = py::cast<py::dict>(input_output);
+        dict input = PyDict::py2dict(py_dict);
+        if (input_output.contains(TASK_EVENT_KEY)) {
+            throw py::key_error(
+                std::string("The input dictionary contains key[`") +
+                TASK_EVENT_KEY +
+                "`]. This indicates an asynchronous call. In this "
+                "case, writing "
+                "back values to the Python dictionary is not "
+                "supported yet. "
+                "Please use hami.Dict instead of dict as input.");
+#if 0  // todo: add event support
+                py::dict py_dict = py::cast<py::dict>(input_output);
+                dict input = PyDict::py2dict(py_dict);
+                data.push_back(input);
+                auto pyevent = any_cast<std::shared_ptr<Event>>(input->at(TASK_EVENT_KEY));
+                auto event = make_event();
+                (*input)[TASK_EVENT_KEY] = event;
+                static const std::unordered_set<std::string> ignore_keys = {TASK_DATA_KEY};
+                event->set_final_callback([input, py_dict, pyevent, event]() {
+                  input->erase(TASK_EVENT_KEY);
+                  py::gil_scoped_acquire gil_lock;
+                  try{
+                    PyDict::dict2py(input, py_dict, ignore_keys);
+                    pyevent->notify_all_after_check_exception(event.get());
+                  }
+                  catch(...){
+                    pyevent->set_exception_and_notify_all(std::current_exception());
+                  }
+    
+                });
+                py::gil_scoped_release rl;
+                self.forward(data);
+#endif
+        }
+
+        {
+            py::gil_scoped_release rl;
+            data.push_back(input);
+            self.forward(data);
+        }
+        static const std::unordered_set<std::string> ignore_keys = {
+            TASK_DATA_KEY};
+        PyDict::dict2py(input, py_dict, ignore_keys);
+        return;
+
+    } else {
+        throw std::invalid_argument(
+            "unsupported input type. Try Union[dict, hami.Dict, "
+            "List[hami.Dict]");
+    }
+
+    py::gil_scoped_release rl;
+    self.forward(data);
+}
+
 }  // namespace
 void py_init_backend(py::module_& m) {
     m.def("create", &create_backend_from_py, py::arg("name"),
@@ -252,13 +328,13 @@ void py_init_backend(py::module_& m) {
         },
         py::arg("name"), py::arg("backend"),
         R"pbdoc(
-        Register a named python backend instance (hami.Backend, or a backend instance implemented the forward(self, List[hami.dict]) method).
+        Register a named python backend instance (hami.Backend, or a backend instance implemented the forward(self, List[hami.Dict]) method).
         Usage: Forward[name] to execute the forward method only, or Init[name] to initialize the backend, or Launch to execute both.
 
         Parameters:
             name (str): The name to be registered.
-            backend : A) An instance with a forward(self, [hami.dict]) method, or 
-                      B) a default constructable <class 'type'> with a forward(self, [hami.dict]) method, or 
+            backend : A) An instance with a forward(self, [hami.Dict]) method, or 
+                      B) a default constructable <class 'type'> with a forward(self, [hami.Dict]) method, or 
                       C) a hami.Backend.
                  max()(default to maximum) and min()(default=1) method can alse be implemented.
                 An init method can  be provided if to be used with Init.
@@ -296,7 +372,7 @@ void py_init_backend(py::module_& m) {
                 if (py::isinstance<py::dict>(dict_config)) {
                     throw std::invalid_argument(
                         "Unsupported type(<class 'dict'>) for dict_config. "
-                        "Please use hami.dict instead");
+                        "Please use hami.Dict instead");
                 }
                 dict_config_dict =
                     py::cast<const PyDict&>(dict_config).to_dict();
@@ -317,88 +393,45 @@ void py_init_backend(py::module_& m) {
                 dict_config (dict, optional): Shared configuration. Defaults to None.
         )pbdoc");
     hami_backend
+        .def("__call__", &forward_backend, py::arg("input_output"),
+             R"pbdoc(
+                Process input/output data. Support Union[dict, hami.Dict, List[hami.Dict]. The 'data' must be filled, and the results are stored in 'result' and other key-value pairs.
+             )pbdoc")
         .def(
-            "__call__",
-            [](Backend& self, const py::object& input_output) {
-                // SPDLOG_INFO("ref_count {}", input_output.ref_count());
-                std::vector<dict> data;
-                if (py::isinstance<PyDict>(input_output)) {
-                    data = {py::cast<PyDict&>(input_output).to_dict()};
-                } else if (py::isinstance<py::list>(input_output)) {
-                    // Check if input_output is empty
-                    if (py::len(input_output) == 0) {
-                        throw std::invalid_argument(
-                            "input list cannot be empty");
-                    }
+            "forward",
+            [](Backend& self,
+               const std::variant<PyDict, std::vector<PyDict>, py::dict,
+                                  std::vector<py::dict>>& input_output,
+               std::optional<Backend*> dep) {
+                std::vector<dict> inputs;
 
-                    for (const auto& item : input_output) {
-                        HAMI_ASSERT(
-                            py::isinstance<PyDict>(item),
-                            " Unsupported input type. Please provide one of "
-                            "the following: dict, hami.dict, or "
-                            "List[hami.dict].");
-                        PyDict data_inside = py::cast<PyDict>(item);
-                        data.push_back(data_inside.to_dict());
+                if (std::holds_alternative<PyDict>(input_output)) {
+                    inputs.push_back(std::get<PyDict>(input_output).to_dict());
+                } else if (std::holds_alternative<py::dict>(input_output)) {
+                    auto data = std::get<py::dict>(input_output);
+                    inputs.push_back(PyDict::py2dict(data));
+                } else if (std::holds_alternative<std::vector<PyDict>>(
+                               input_output)) {
+                    auto data = std::get<std::vector<PyDict>>(input_output);
+                    for (auto& item : data) {
+                        inputs.push_back(item.to_dict());
                     }
-                } else if (py::isinstance<py::dict>(input_output)) {
-                    py::dict py_dict = py::cast<py::dict>(input_output);
-                    dict input = PyDict::py2dict(py_dict);
-                    if (input_output.contains(TASK_EVENT_KEY)) {
-                        throw py::key_error(
-                            std::string("The input dictionary contains key[`") +
-                            TASK_EVENT_KEY +
-                            "`]. This indicates an asynchronous call. In this "
-                            "case, writing "
-                            "back values to the Python dictionary is not "
-                            "supported yet. "
-                            "Please use hami.dict instead of dict as input.");
-#if 0  // todo: add event support
-                py::dict py_dict = py::cast<py::dict>(input_output);
-                dict input = PyDict::py2dict(py_dict);
-                data.push_back(input);
-                auto pyevent = any_cast<std::shared_ptr<Event>>(input->at(TASK_EVENT_KEY));
-                auto event = make_event();
-                (*input)[TASK_EVENT_KEY] = event;
-                static const std::unordered_set<std::string> ignore_keys = {TASK_DATA_KEY};
-                event->set_final_callback([input, py_dict, pyevent, event]() {
-                  input->erase(TASK_EVENT_KEY);
-                  py::gil_scoped_acquire gil_lock;
-                  try{
-                    PyDict::dict2py(input, py_dict, ignore_keys);
-                    pyevent->notify_all_after_check_exception(event.get());
-                  }
-                  catch(...){
-                    pyevent->set_exception_and_notify_all(std::current_exception());
-                  }
-    
-                });
-                py::gil_scoped_release rl;
-                self.forward(data);
-#endif
+                } else if (std::holds_alternative<std::vector<py::dict>>(
+                               input_output)) {
+                    auto data = std::get<std::vector<py::dict>>(input_output);
+                    for (auto& item : data) {
+                        inputs.push_back(PyDict::py2dict(item));
                     }
-
-                    {
-                        py::gil_scoped_release rl;
-                        data.push_back(input);
-                        self.forward(data);
-                    }
-                    static const std::unordered_set<std::string> ignore_keys = {
-                        TASK_DATA_KEY};
-                    PyDict::dict2py(input, py_dict, ignore_keys);
-                    return;
-
-                } else {
-                    throw std::invalid_argument(
-                        "unsupported input type. Try Union[dict, hami.dict, "
-                        "List[hami.dict]");
                 }
-
                 py::gil_scoped_release rl;
-                self.forward(data);
+                if (dep)
+                    return self.forward(inputs, *dep);
+                else
+                    return self.forward(inputs);
             },
-            py::arg("input_output"),
+            py::arg("input_output"), py::arg("dependency"),
             R"pbdoc(
-                Process input/output data. Support Union[dict, hami.dict, List[hami.dict]. The 'data' must be filled, and the results are stored in 'result' and other key-value pairs.
+                Process input/output data. Support Union[dict, hami.Dict, List[hami.Dict]. The 'data' must be filled, and the results are stored in 'result' and other key-value pairs.
              )pbdoc")
         .def("min", &Backend::min, R"pbdoc(
                 Get the minimum size of the input/output data.

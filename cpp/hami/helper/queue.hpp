@@ -1,0 +1,347 @@
+#pragma once
+
+#include <queue>
+#include <mutex>
+#include <condition_variable>
+#include <optional>
+#include <stdexcept>
+#include <chrono>
+#include <functional>
+
+namespace hami::queue {
+
+class QueueException : public std::runtime_error {
+   public:
+    using std::runtime_error::runtime_error;
+};
+
+class QueueEmptyException : public QueueException {
+   public:
+    QueueEmptyException() : QueueException("Queue is empty") {}
+    using QueueException::QueueException;
+};
+
+class QueueFullException : public QueueException {
+   public:
+    QueueFullException() : QueueException("Queue is full") {}
+    using QueueException::QueueException;
+};
+
+template <typename T>
+class SizedQueue {
+   private:
+    struct SizedElement {
+        T value;
+        size_t size;
+
+        SizedElement(const T& val, size_t sz = 1) : value(val), size(sz) {}
+    };
+
+    std::queue<SizedElement> queue_;
+    size_t totalSize_ = 0;
+    size_t maxSize_;
+
+   public:
+    explicit SizedQueue(size_t maxSize = 0) : maxSize_(maxSize) {}
+
+    // Push an element with a specified size
+    void push(const T& value, size_t size = 1) {
+        if (maxSize_ > 0 && totalSize_ + size > maxSize_) {
+            throw QueueFullException();
+        }
+        queue_.push(SizedElement(value, size));
+        totalSize_ += size;
+    }
+
+    // Pop the front element and reduce the total size
+    void pop() {
+        if (queue_.empty()) {
+            throw QueueEmptyException();
+        }
+        totalSize_ -= queue_.front().size;
+        queue_.pop();
+    }
+
+    // Get the front element
+    T front() const {
+        if (queue_.empty()) {
+            throw QueueEmptyException();
+        }
+        return queue_.front().value;
+    }
+
+    // Get the total size of the queue
+    size_t size() const { return totalSize_; }
+
+    // Check if the queue is empty
+    bool empty() const { return queue_.empty(); }
+
+    // Check if the queue is full
+    bool full() const { return maxSize_ > 0 && totalSize_ >= maxSize_; }
+};
+
+template <typename T>
+class ThreadSafeQueue {
+   private:
+    std::queue<T> queue_;
+    mutable std::mutex mutex_;
+    std::condition_variable cond_;
+    size_t maxsize_;
+
+   public:
+    explicit ThreadSafeQueue(size_t maxsize = 0) : maxsize_(maxsize) {}
+
+    template <typename U,
+              typename = std::enable_if_t<std::is_convertible_v<U, T>>>
+    void put(U&& item, bool block = true,
+             std::optional<double> timeout = std::nullopt) {
+        std::unique_lock<std::mutex> lock(mutex_);
+
+        if (maxsize_ > 0) {
+            if (!block) {
+                if (queue_.size() >= maxsize_) {
+                    throw QueueFullException();
+                }
+            } else {
+                auto predicate = [this] { return queue_.size() < maxsize_; };
+
+                if (timeout) {
+                    if (!cond_.wait_for(lock,
+                                        std::chrono::duration<double>(*timeout),
+                                        predicate)) {
+                        throw QueueFullException("Queue is full after timeout");
+                    }
+                } else {
+                    cond_.wait(lock, predicate);
+                }
+            }
+        }
+
+        queue_.push(std::forward<U>(item));
+        cond_.notify_one();
+    }
+
+    template <typename Rep, typename Period>
+    bool try_put(const T& item, std::chrono::duration<Rep, Period> timeout) {
+        std::unique_lock<std::mutex> lock(mutex_);
+
+        if (maxsize_ > 0 && queue_.size() >= maxsize_) {
+            auto predicate = [this] { return queue_.size() < maxsize_; };
+            if (!cond_.wait_for(lock, timeout, predicate)) {
+                return false;
+            }
+        }
+
+        queue_.push(item);
+        cond_.notify_one();
+        return true;
+    }
+
+    T get(bool block = true, std::optional<double> timeout = std::nullopt) {
+        std::unique_lock<std::mutex> lock(mutex_);
+
+        if (queue_.empty()) {
+            if (!block) {
+                throw QueueEmptyException();
+            } else {
+                auto predicate = [this] { return !queue_.empty(); };
+
+                if (timeout) {
+                    if (!cond_.wait_for(lock,
+                                        std::chrono::duration<double>(*timeout),
+                                        predicate)) {
+                        throw QueueEmptyException(
+                            "Queue is empty after timeout");
+                    }
+                } else {
+                    cond_.wait(lock, predicate);
+                }
+            }
+        }
+
+        T item = std::move(queue_.front());
+        queue_.pop();
+        cond_.notify_one();
+        return item;
+    }
+
+    template <typename Rep, typename Period>
+    std::optional<T> try_get(std::chrono::duration<Rep, Period> timeout) {
+        std::unique_lock<std::mutex> lock(mutex_);
+
+        if (queue_.empty()) {
+            auto predicate = [this] { return !queue_.empty(); };
+            if (!cond_.wait_for(lock, timeout, predicate)) {
+                return std::nullopt;
+            }
+        }
+
+        T item = std::move(queue_.front());
+        queue_.pop();
+        cond_.notify_one();
+        return item;
+    }
+
+    template <typename Rep, typename Period>
+    bool wait_for(std::function<bool(size_t)> size_condition,
+                  std::chrono::duration<Rep, Period> timeout) {
+        std::unique_lock<std::mutex> lock(mutex_);
+
+        auto predicate = [this, size_condition]() {
+            return size_condition(queue_.size());
+        };
+        return cond_.wait_for(lock, timeout, predicate);
+    }
+
+    size_t qsize() const noexcept {
+        std::lock_guard<std::mutex> lock(mutex_);
+        return queue_.size();
+    }
+
+    bool empty() const noexcept {
+        std::lock_guard<std::mutex> lock(mutex_);
+        return queue_.empty();
+    }
+
+    bool full() const noexcept {
+        std::lock_guard<std::mutex> lock(mutex_);
+        return maxsize_ > 0 && queue_.size() >= maxsize_;
+    }
+};
+
+template <typename T>
+class ThreadSafeSizedQueue {
+   private:
+    struct SizedElement {
+        T value;
+        size_t size;
+
+        SizedElement(const T& val, size_t sz = 1) : value(val), size(sz) {}
+    };
+
+    std::queue<SizedElement> queue_;
+    size_t totalSize_ = 0;
+    size_t maxSize_;
+    mutable std::mutex mutex_;
+    std::condition_variable cond_;
+
+   public:
+    explicit ThreadSafeSizedQueue(size_t maxSize = 0) : maxSize_(maxSize) {}
+
+    // Push an element with a specified size
+    void push(const T& value, size_t size = 1, bool block = true,
+              std::optional<double> timeout = std::nullopt) {
+        std::unique_lock<std::mutex> lock(mutex_);
+
+        if (maxSize_ > 0) {
+            if (!block) {
+                if (totalSize_ + size > maxSize_) {
+                    throw QueueFullException();
+                }
+            } else {
+                auto predicate = [this, size] {
+                    return totalSize_ + size <= maxSize_;
+                };
+
+                if (timeout) {
+                    if (!cond_.wait_for(lock,
+                                        std::chrono::duration<double>(*timeout),
+                                        predicate)) {
+                        throw QueueFullException("Queue is full after timeout");
+                    }
+                } else {
+                    cond_.wait(lock, predicate);
+                }
+            }
+        }
+
+        queue_.push(SizedElement(value, size));
+        totalSize_ += size;
+        cond_.notify_one();
+    }
+
+    // Pop the front element and reduce the total size
+    void pop() {
+        std::unique_lock<std::mutex> lock(mutex_);
+
+        if (queue_.empty()) {
+            throw QueueEmptyException();
+        }
+
+        totalSize_ -= queue_.front().size;
+        queue_.pop();
+        cond_.notify_one();
+    }
+
+    // Get the front element
+    T front() const {
+        std::unique_lock<std::mutex> lock(mutex_);
+
+        if (queue_.empty()) {
+            throw QueueEmptyException();
+        }
+
+        return queue_.front().value;
+    }
+
+    // Get the total size of the queue
+    size_t size() const {
+        std::lock_guard<std::mutex> lock(mutex_);
+        return totalSize_;
+    }
+
+    // Check if the queue is empty
+    bool empty() const {
+        std::lock_guard<std::mutex> lock(mutex_);
+        return queue_.empty();
+    }
+
+    // Check if the queue is full
+    bool full() const {
+        std::lock_guard<std::mutex> lock(mutex_);
+        return maxSize_ > 0 && totalSize_ >= maxSize_;
+    }
+
+    // Try to push an element with a specified size within a timeout
+    template <typename Rep, typename Period>
+    bool try_push(const T& value, size_t size,
+                  std::chrono::duration<Rep, Period> timeout) {
+        std::unique_lock<std::mutex> lock(mutex_);
+
+        if (maxSize_ > 0 && totalSize_ + size > maxSize_) {
+            auto predicate = [this, size] {
+                return totalSize_ + size <= maxSize_;
+            };
+            if (!cond_.wait_for(lock, timeout, predicate)) {
+                return false;
+            }
+        }
+
+        queue_.push(SizedElement(value, size));
+        totalSize_ += size;
+        cond_.notify_one();
+        return true;
+    }
+
+    // Try to pop an element within a timeout
+    template <typename Rep, typename Period>
+    std::optional<std::pair<T, size_t>> try_pop(
+        std::chrono::duration<Rep, Period> timeout) {
+        std::unique_lock<std::mutex> lock(mutex_);
+
+        if (queue_.empty()) {
+            auto predicate = [this] { return !queue_.empty(); };
+            if (!cond_.wait_for(lock, timeout, predicate)) {
+                return std::nullopt;
+            }
+        }
+
+        std::pair<T, size_t> item = std::move(queue_.front());
+        totalSize_ -= item.second;
+        queue_.pop();
+        cond_.notify_one();
+        return item;
+    }
+};
+
+}  // namespace hami::queue

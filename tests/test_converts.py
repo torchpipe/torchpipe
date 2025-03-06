@@ -13,18 +13,18 @@ def test_type_converts():
     ]
     
     for value, expected_type in test_cases:
-        any_obj = _C.any(value)
+        any_obj = _C.Any(value)
         assert isinstance(any_obj.value, expected_type)
 
 def test_numeric_converts():
     # Test numeric conversions
-    num = _C.any(42)
+    num = _C.Any(42)
     
     # Integer conversions
     assert isinstance(num.value, int)
     
     # Float conversions
-    float_num = _C.any(3.14)
+    float_num = _C.Any(3.14)
     assert isinstance(float_num.value, float)
     assert float_num.value == pytest.approx(3.14)
 
@@ -32,10 +32,10 @@ def test_container_converts():
     # Test list conversions
     list_data = [1, "two", 3.0]
     with pytest.raises(RuntimeError):
-        list_any = _C.any(list_data)
+        list_any = _C.Any(list_data)
     
     dict_data = {"a": 1.0, "b": 2.0, "c": 3.0}
-    dict_any = _C.any(dict_data)
+    dict_any = _C.Any(dict_data)
     for key, value in dict_data.items():
         if isinstance(value, float):
             assert dict_any.value[key] == pytest.approx(value)

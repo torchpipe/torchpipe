@@ -82,6 +82,20 @@ T dict_get(dict data, const string& key, bool return_default = false) {
 }
 
 template <typename T = string>
+T dict_pop(dict data, const string& key) {
+    auto iter = data->find(key);
+    if (iter != data->end()) {
+        if (iter->second.type() != typeid(T))
+            throw_wrong_type(typeid(T).name(), iter->second.type().name());
+        T result = any_cast<T>(iter->second);
+        data->erase(iter);
+        return result;
+    } else {
+        throw std::invalid_argument("remove: can not found key: " + key);
+    }
+}
+
+template <typename T = string>
 std::vector<T> dict_gets(dict data, const string& key) {
     auto iter = data->find(key);
     if (iter != data->end()) {

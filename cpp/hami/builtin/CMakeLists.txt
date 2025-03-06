@@ -25,6 +25,8 @@ cc_library(
     cat_split.cpp
     ioc.cpp
     generate_backend.cpp
+    result_queue.cpp
+    benchmark.cpp
   DEPS
     :spdlog
     :core

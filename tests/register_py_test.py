@@ -29,13 +29,13 @@ class TestPyComponent:
             backend_config
         )
         self.backend_a = hami._C.init(
-            "RegisterNode[Aspect[Batching, InstanceDispatcher]]",
+            "RegisterNode[DI[Batching, InstanceDispatcher]]",
             {
                 "node_name": backend_config["node_name"],
                 "instance_num": backend_config["instance_num"]
             }
         )
-        self.list = hami._C.init("List[RegisterInstances[BackgroundThread[BackendProxy]], RegisterNode[Aspect[Batching, InstanceDispatcher]]]",
+        self.list = hami._C.init("List[RegisterInstances[BackgroundThread[BackendProxy]], RegisterNode[DI[Batching, InstanceDispatcher]]]",
                                  {
                                     "node_name": "tmpss",
                                     "instance_num": backend_config["instance_num"],
@@ -70,6 +70,6 @@ class PY:
     def __init__(self, *args, **kwargs) -> None:
         pass
 
-    def forward(self, inout: List[hami.dict]):
+    def forward(self, inout: List[hami.Dict]):
         """Process data by copying 'data' to 'result'"""
         inout[0]['result'] = inout[0]['data']
