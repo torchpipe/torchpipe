@@ -130,11 +130,14 @@ class cmake_build(setuptools.Command):
                 "-DPY_EXT_SUFFIX={}".format(
                     sysconfig.get_config_var("EXT_SUFFIX") or ""
                 ),
+                
                 "-DPY_VERSION={}".format(
                     str(sys.version_info[0]) + "." + str(sys.version_info[1])
                 ),
             ]
-            cmake_args.append("-DCMAKE_BUILD_TYPE=%s" % CMAKE_BUILD_TYPE)
+            cmake_args.append(f"-DCMAKE_BUILD_TYPE={CMAKE_BUILD_TYPE}")
+            if _debug:
+                cmake_args.append("-DCMAKE_CXX_FLAGS=-Wall -Werror -Wno-error=sign-compare"),
             if WINDOWS:
                 cmake_args.extend(
                     [

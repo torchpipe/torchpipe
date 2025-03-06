@@ -64,6 +64,9 @@ class DI : public Proxy {
    public:
     void init(const std::unordered_map<string, string>& config,
               const dict& dict_config) override;
+    void inject_dependency(Backend* dependency) override {
+        throw std::runtime_error("DI: inject_dependency Unillegal");
+    }
 };
 class Placeholder : public Proxy {
    public:

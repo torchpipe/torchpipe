@@ -136,24 +136,7 @@ class HAMI_EXPORT Backend {
      * @throws std::invalid_argument if the size of input_output is less than
      * min().
      */
-    void safe_forward(const std::vector<dict>& input_output) {
-        size_t io_size = input_output.size();
-        if (io_size >= min() && io_size <= max()) {
-            forward(input_output);
-        } else if (1 == max()) {  // special case
-            for (const auto& item : input_output) {
-                forward({item});
-            }
-        } else if (input_output.size() > max()) {
-            forward(std::vector<dict>(input_output.begin(),
-                                      input_output.begin() + max()));
-            const auto& left = std::vector<dict>(input_output.begin() + max(),
-                                                 input_output.end());
-            if (!left.empty()) safe_forward(left);
-        } else if (input_output.size() < min()) {
-            throw std::invalid_argument("input_output.size() < min()");
-        }
-    }
+    void safe_forward(const std::vector<dict>& input_output);
 
     /**
      * @brief Helper function to reflect the class name X, if an instance is

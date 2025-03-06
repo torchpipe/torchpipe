@@ -19,6 +19,22 @@ void LaunchBase::init(
     post_init(config, dict_config);
 }
 
+size_t Forward::min() const {
+    {
+        SPDLOG_INFO("Forward::min {}", (long long)(injected_dependency_));
+        return injected_dependency_ ? injected_dependency_->min() : 1;
+    }
+}
+
+void Forward::inject_dependency(Backend* dependency) {
+    if (injected_dependency_) {
+        throw std::runtime_error(
+            "inject_dependency  should not be called twice by Forward");
+    } else {
+        injected_dependency_ = dependency;
+    }
+}
+
 void LaunchBase::inject_dependency(Backend* dependency) {
     if (dependency == nullptr) {
         throw std::invalid_argument("null dependency is not allowed");

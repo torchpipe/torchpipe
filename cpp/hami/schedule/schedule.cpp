@@ -87,7 +87,7 @@ void Batching::run() {
             continue;
 
         } else {
-            std::size_t new_pop = 0;
+            // std::size_t new_pop = 0;
 
             std::shared_ptr<Event> event = any_cast<std::shared_ptr<Event>>(
                 cached_data[0]->at(TASK_EVENT_KEY));

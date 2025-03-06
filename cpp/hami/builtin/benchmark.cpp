@@ -79,7 +79,7 @@ void Benchmark::forward(const std::vector<dict>& input, Backend* dependency) {
         main_task_ = [this, dependency](size_t client_index) {
             while (bInited_.load()) {
                 auto item = inputs_->try_get(SHUTDOWN_TIMEOUT_MS);
-                SPDLOG_INFO("input = {}", inputs_->qsize());
+                SPDLOG_INFO("input = {}", inputs_->size());
                 if (item) {
                     auto data = *item;
                     auto& state = *(data);
@@ -123,7 +123,7 @@ void Benchmark::forward(const std::vector<dict>& input, Backend* dependency) {
                                  std::chrono::milliseconds(SHUTDOWN_TIMEOUT))) {
         };
         SPDLOG_INFO("req_times = {} inputs_ size {}", req_times,
-                    inputs_->qsize());
+                    inputs_->size());
     }
     bNoNewData_.store(true);
 

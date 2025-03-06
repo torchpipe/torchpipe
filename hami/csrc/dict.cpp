@@ -172,20 +172,33 @@ void init_dict(py::module_& m) {
         .def(py::init<size_t>(), py::arg("maxsize") = 0)
         .def(
             "put",
-            [](Queue& self, PyDict item, bool block,
+            [](Queue& self, PyDict item, size_t size, bool block,
                std::optional<double> timeout) {
-                self.put(item.to_dict(), block, timeout);
+                auto data = item.to_dict();
+                py::gil_scoped_release release;
+                self.put(data, size, block, timeout);
             },
-            py::arg("item"), py::arg("block") = true,
+            py::arg("item"), py::arg("size") = 1, py::arg("block") = true,
             py::arg("timeout") = std::nullopt)
         .def(
             "get",
             [](Queue& self, bool block, std::optional<double> timeout) {
-                auto re = self.get(block, timeout);
-                return PyDict(re);
+                if (block) {
+                    std::pair<dict, size_t> result;
+                    {
+                        py::gil_scoped_release release;
+                        result = self.get(block, timeout);
+                    }
+                    return std::pair<PyDict, size_t>(PyDict(result.first),
+                                                     result.second);
+                } else {
+                    auto re = self.get(block, timeout);
+                    return std::pair<PyDict, size_t>(PyDict(re.first),
+                                                     re.second);
+                }
             },
             py::arg("block") = true, py::arg("timeout") = std::nullopt)
-        .def("qsize", &Queue::qsize)
+        .def("size", &Queue::size)
         .def("empty", &Queue::empty)
         .def("full", &Queue::full);
 }

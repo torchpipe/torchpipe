@@ -11,7 +11,6 @@
 #include "hami/core/any.hpp"
 #include "hami/core/event.hpp"
 #include "hami/helper/base_logging.hpp"
-// #define HASH_ADD(type, name) \
 
 namespace hami::local {
 using namespace hami;

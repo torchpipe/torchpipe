@@ -112,9 +112,7 @@ class HAMI_EXPORT DynamicDependency : public Backend {
     // }
 
     [[nodiscard]] size_t max() const override;
-    [[nodiscard]] size_t min() const override {
-        return injected_dependency_ ? injected_dependency_->min() : 1;
-    }
+    [[nodiscard]] size_t min() const override;
 
    protected:
     Backend* injected_dependency_{nullptr};  ///< The injected dependency.

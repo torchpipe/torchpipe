@@ -12,8 +12,8 @@
 // InstanceDispatcher, Batching (动态dependency)
 // forward instance="node_name.0"
 namespace hami {
-// IoC[SharedResourceState,InstanceDispitcher,Batching;DI[Batching,
-// InstanceDispitcher]]
+// IoC[SharedInstancesState,InstanceDispatcher,Batching;DI[Batching,
+// InstanceDispatcher]]
 constexpr auto TASK_RESOURCE_STATE_KEY = "resource_state";
 // class ResourceState {
 //    public:

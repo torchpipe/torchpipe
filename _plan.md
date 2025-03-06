@@ -8,12 +8,12 @@ IoC[ModelLoadder[(.onnx)Onnx2Tensorrt,(.trt)LoadTensorrtEngine], TensorrtInferTe
 
 fix
 constexpr auto DEFAULT_INIT_CONFIG =
-  dag_entrypoint  "IoC[RegisterInstances[BackgroundThread[Reflect[backend]]], RegisterNode[Block[Batching, "
+  dag_entrypoint  "IoC[InstancesRegister[BackgroundThread[Reflect[backend]]], Register[Block[Batching, "
     "InstanceDispatcher]];Forward[node.{node_name}]]";
 to
-IoC[InstanceDispitcher,Aspect[Batching, "
+IoC[InstanceDispatcher,Aspect[Batching, "
     "InstanceDispatcher];Aspect],
-node_entrypoint = IoC[RegisterInstances[BackgroundThread[BackendProxy]], RegisterNode[DI[Batching, InstanceDispatcher]]; Forward[node.{node_name}]]
+node_entrypoint = IoC[InstancesRegister[BackgroundThread[BackendProxy]], Register[DI[Batching, InstanceDispatcher]]; Forward[node.{node_name}]]
 
 
 InstanceDispatcher[*PreCat*, *CatedHandle*]
@@ -47,16 +47,16 @@ max 4 curr 3 timeout
 Interpreter (forword parse)=> entrypoint  : DagDispatcher or 对应的节点
 
 Interpreter (init parse)=> per-node initialization => 独立的dict_config
- List[RegisterInstances[BackgroundThread[BackendProxy]], "
-    "RegisterNode[Aspect[Batching, "
+ List[InstancesRegister[BackgroundThread[BackendProxy]], "
+    "Register[Aspect[Batching, "
     "InstanceDispatcher]]] -->
 
 Interpreter:
 ```toml
 entrypoint:
 
-init=List[RegisterInstances[BackgroundThread[BackendProxy]], "
-    "RegisterNode[Aspect[Batching, "
+init=List[InstancesRegister[BackgroundThread[BackendProxy]], "
+    "Register[Aspect[Batching, "
     "InstanceDispatcher]]]
 ```
 
@@ -86,7 +86,7 @@ Repost[Z, dddsa]
 
 
 builtin types: Any, Dict, Backend, Event, Queue
-builtin container: IoC Proxy/DI Sequential/S  ProxyFromParam RegisterNode/RegisterInstances
+builtin container: IoC Proxy/DI Sequential/S  Reflect[cls_name] Register/InstancesRegister InstanceFromParam Forward[instance_name]
 
 CatSplit, DagDispatcher, InstanceDispatcher
 

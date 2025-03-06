@@ -41,6 +41,8 @@ void Interpreter::init(
         }
         (*new_dict_config)[TASK_CONFIG_KEY] = dual_config;
         auto tmp = init_backend(init_config, item.second, new_dict_config);
+        SPDLOG_INFO("Interpreter: node({})[{} {}]", item.first, tmp->min(),
+                    tmp->max());
         inited_dependencies_.emplace_back(std::move(tmp));
     }
 
@@ -61,6 +63,8 @@ void Interpreter::init(
     }
 
     owned_backend_ = init_backend(entry_name, global_config, new_dict_config);
+    SPDLOG_INFO("Interpreter: entrypoint({})[{} {}]", entry_name,
+                owned_backend_->min(), owned_backend_->max());
     proxy_backend_ = owned_backend_.get();
 }
 

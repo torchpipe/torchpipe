@@ -8,7 +8,7 @@ constexpr auto INIT_STR =
     "TensorrtInferTensor";
 constexpr auto FORWARD_STR =
     "CatSplit[S[GpuTensor,CatTensor],S[ContiguousTensor,"
-    "Forward[TensorrtInferTensor],ProxyFromParam[post_processor]],"
+    "Forward[TensorrtInferTensor],Reflect[post_processor]],"
     "SplitTensor]";
 const auto BACKEND_STR =
     std::string() + "IoC[" + INIT_STR + "; " + FORWARD_STR + "]";

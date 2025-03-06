@@ -193,7 +193,7 @@ class ThreadSafeQueue {
         return cond_.wait_for(lock, timeout, predicate);
     }
 
-    size_t qsize() const noexcept {
+    size_t size() const noexcept {
         std::lock_guard<std::mutex> lock(mutex_);
         return queue_.size();
     }
@@ -229,8 +229,10 @@ class ThreadSafeSizedQueue {
     explicit ThreadSafeSizedQueue(size_t maxSize = 0) : maxSize_(maxSize) {}
 
     // Push an element with a specified size
-    void push(const T& value, size_t size = 1, bool block = true,
-              std::optional<double> timeout = std::nullopt) {
+    template <typename U,
+              typename = std::enable_if_t<std::is_convertible_v<U, T>>>
+    void put(U&& value, size_t size = 1, bool block = true,
+             std::optional<double> timeout = std::nullopt) {
         std::unique_lock<std::mutex> lock(mutex_);
 
         if (maxSize_ > 0) {
@@ -255,22 +257,29 @@ class ThreadSafeSizedQueue {
             }
         }
 
-        queue_.push(SizedElement(value, size));
+        queue_.push(SizedElement(std::forward<U>(value), size));
         totalSize_ += size;
         cond_.notify_one();
     }
 
-    // Pop the front element and reduce the total size
-    void pop() {
+    std::pair<T, size_t> get(bool block = true,
+                             std::optional<double> timeout = std::nullopt) {
         std::unique_lock<std::mutex> lock(mutex_);
 
         if (queue_.empty()) {
-            throw QueueEmptyException();
+            auto predicate = [this] { return !queue_.empty(); };
+            if (!cond_.wait_for(lock, std::chrono::duration<double>(*timeout),
+                                predicate)) {
+                throw QueueEmptyException();
+            }
         }
 
-        totalSize_ -= queue_.front().size;
+        auto item = std::make_pair(std::move(queue_.front().value),
+                                   queue_.front().size);
+        totalSize_ -= item.second;
         queue_.pop();
         cond_.notify_one();
+        return item;
     }
 
     // Get the front element
@@ -302,10 +311,21 @@ class ThreadSafeSizedQueue {
         return maxSize_ > 0 && totalSize_ >= maxSize_;
     }
 
+    template <typename Rep, typename Period>
+    bool wait_for(std::function<bool(size_t)> size_condition,
+                  std::chrono::duration<Rep, Period> timeout) {
+        std::unique_lock<std::mutex> lock(mutex_);
+
+        auto predicate = [this, size_condition]() {
+            return size_condition(totalSize_);
+        };
+        return cond_.wait_for(lock, timeout, predicate);
+    }
+
     // Try to push an element with a specified size within a timeout
     template <typename Rep, typename Period>
-    bool try_push(const T& value, size_t size,
-                  std::chrono::duration<Rep, Period> timeout) {
+    bool try_put(const T& value, size_t size,
+                 std::chrono::duration<Rep, Period> timeout) {
         std::unique_lock<std::mutex> lock(mutex_);
 
         if (maxSize_ > 0 && totalSize_ + size > maxSize_) {
@@ -325,7 +345,7 @@ class ThreadSafeSizedQueue {
 
     // Try to pop an element within a timeout
     template <typename Rep, typename Period>
-    std::optional<std::pair<T, size_t>> try_pop(
+    std::optional<std::pair<T, size_t>> try_get(
         std::chrono::duration<Rep, Period> timeout) {
         std::unique_lock<std::mutex> lock(mutex_);
 
@@ -336,7 +356,8 @@ class ThreadSafeSizedQueue {
             }
         }
 
-        std::pair<T, size_t> item = std::move(queue_.front());
+        auto item = std::make_pair(std::move(queue_.front().value),
+                                   queue_.front().size);
         totalSize_ -= item.second;
         queue_.pop();
         cond_.notify_one();

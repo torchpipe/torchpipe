@@ -51,7 +51,7 @@ void IoC::init(const std::unordered_map<std::string, std::string>& in_config,
             std::string register_name;
             if (registered_backends.find(base_dependencies_[i].get()) ==
                 registered_backends.end()) {
-                register_name = "ioc.proxy." + main_backend +
+                register_name = "ioc." + main_backend +
                                 "." +  // std::to_string(i) + "." +
                                 std::to_string(get_unique_index());
                 HAMI_INSTANCE_REGISTER(Backend, register_name,
@@ -76,10 +76,12 @@ void IoC::init(const std::unordered_map<std::string, std::string>& in_config,
     //     backend->inject_dependency(item.second);
     // }
     post_init(config, dict_config);
+    SPDLOG_INFO("IoC, forward phase: {}, [{}, {}]", phases[1],
+                forward_backend_->min(), forward_backend_->max());
 }
 
-[[nodiscard]] size_t IoC::max() const { forward_backend_->max(); }
-[[nodiscard]] size_t IoC::min() const { forward_backend_->min(); }
+[[nodiscard]] size_t IoC::max() const { return forward_backend_->max(); }
+[[nodiscard]] size_t IoC::min() const { return forward_backend_->min(); }
 
 void IoC::init_phase(const std::string& phase_config,
                      const std::unordered_map<std::string, std::string>& config,

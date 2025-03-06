@@ -90,8 +90,8 @@ class InstanceDispatcher : public Backend {
    private:
     void update_min_max(const std::vector<Backend*>& deps);
 
-    size_t max_{std::numeric_limits<std::size_t>::max()};
-    size_t min_{1};
+    size_t max_{1};
+    size_t min_{std::numeric_limits<std::size_t>::max()};
 
    protected:
     std::vector<Backend*> base_dependencies_;

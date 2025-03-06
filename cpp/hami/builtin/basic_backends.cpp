@@ -54,7 +54,7 @@ void Dependency::inject_dependency(Backend* dependency) {
         throw std::invalid_argument("null dependency is not allowed");
     }
     if (injected_dependency_) {
-        thread_local const auto log_tmp = []() {
+        [[maybe_unused]] thread_local const auto log_tmp = []() {
             SPDLOG_WARN(
                 "Dependency::inject_dependency: dependency already exists(may "
                 "happened in the "
@@ -87,6 +87,12 @@ size_t DynamicDependency::max() const {
     HAMI_ASSERT(injected_dependency_,
                 "Dependency not initialized. Call inject_dependency first.");
     return injected_dependency_->max();
+}
+
+size_t DynamicDependency::min() const {
+    HAMI_ASSERT(injected_dependency_,
+                "Dependency not initialized. Call inject_dependency first.");
+    return injected_dependency_->min();
 }
 
 void Container::init(const std::unordered_map<std::string, std::string>& config,

@@ -25,17 +25,17 @@ class TestPyComponent:
         """Fixture to initialize and clean up backend components"""
         # Initialize backend components
         self.backend_b = hami._C.init(
-            "RegisterInstances[BackgroundThread[BackendProxy]]",
+            "InstancesRegister[BackgroundThread[BackendProxy]]",
             backend_config
         )
         self.backend_a = hami._C.init(
-            "RegisterNode[DI[Batching, InstanceDispatcher]]",
+            "Register[DI[Batching, InstanceDispatcher]]",
             {
                 "node_name": backend_config["node_name"],
                 "instance_num": backend_config["instance_num"]
             }
         )
-        self.list = hami._C.init("List[RegisterInstances[BackgroundThread[BackendProxy]], RegisterNode[DI[Batching, InstanceDispatcher]]]",
+        self.list = hami._C.init("List[InstancesRegister[BackgroundThread[BackendProxy]], Register[DI[Batching, InstanceDispatcher]]]",
                                  {
                                     "node_name": "tmpss",
                                     "instance_num": backend_config["instance_num"],

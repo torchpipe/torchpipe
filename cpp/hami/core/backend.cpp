@@ -5,6 +5,7 @@
 #include "hami/helper/base_logging.hpp"
 #include "hami/helper/string.hpp"
 #include "hami/core/event.hpp"
+#include "hami/core/helper.hpp"
 
 namespace hami {
 
@@ -96,6 +97,25 @@ std::unique_ptr<Backend> init_backend(
 
 Backend* get_backend(const std::string& aspect_name_str) {
     return HAMI_INSTANCE_GET(Backend, aspect_name_str);
+}
+
+void Backend::safe_forward(const std::vector<dict>& input_output) {
+    size_t io_size = get_request_size(input_output);
+    if (io_size >= min() && io_size <= max()) {
+        forward(input_output);
+    } else if (1 == max()) {  // special case
+        for (const auto& item : input_output) {
+            forward({item});
+        }
+    } else if (input_output.size() > max()) {
+        forward(std::vector<dict>(input_output.begin(),
+                                  input_output.begin() + max()));
+        const auto& left =
+            std::vector<dict>(input_output.begin() + max(), input_output.end());
+        if (!left.empty()) safe_forward(left);
+    } else if (input_output.size() < min()) {
+        throw std::invalid_argument("input_output.size() < min()");
+    }
 }
 
 namespace backend {

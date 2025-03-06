@@ -55,7 +55,9 @@ void QueueBackend::run() {
     while (bInited_.load()) {
         auto data = queue_->try_get(SHUTDOWN_TIMEOUT_MS);
         if (!data) continue;
-        target_backend_->forward({*data});
+        auto io_data = (*data).first;
+        (*io_data)[TASK_REQUEST_SIZE_KEY] = (*data).second;
+        target_backend_->forward({io_data});
     }
 }
 
@@ -69,7 +71,7 @@ QueueBackend::~QueueBackend() {
 HAMI_REGISTER_BACKEND(QueueBackend, "QueueBackend,AsyncQueue, Queue");
 
 // SrcFromQueue
-// init = RegisterNode[QueueBackend[x]]
+// init = Register[QueueBackend[x]]
 // QueueBackend[register_name, target_name]
 
 // init = List[Send[target_name]]

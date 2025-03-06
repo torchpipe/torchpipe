@@ -4,7 +4,7 @@
 #include "hami/core/dict.hpp"
 
 namespace hami {
-using Queue = queue::ThreadSafeQueue<dict>;
+using Queue = queue::ThreadSafeSizedQueue<dict>;
 // using SizedQueue = queue::ThreadSafeSizedQueue<dict>;
 Queue& default_queue();
 // SizedQueue& default_sized_queue();

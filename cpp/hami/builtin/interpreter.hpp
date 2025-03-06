@@ -4,13 +4,18 @@
 namespace hami {
 
 // constexpr auto DEFAULT_INIT_CONFIG =
-//     "List[RegisterInstances[BackgroundThread[BackendProxy]], "
-//     "RegisterNode[Aspect[Batching, "
+//     "List[InstancesRegister[BackgroundThread[BackendProxy]], "
+//     "Register[Aspect[Batching, "
 //     "InstanceDispatcher]]]";
-constexpr auto DEFAULT_INIT_CONFIG =
-    "List[RegisterInstances[BackgroundThread[ProxyFromParam[backend]]], "
-    "RegisterNode[Aspect[Batching, "
-    "InstanceDispatcher]]]";
+// constexpr auto DEFAULT_NODE_CONFIG =
+//     "IoC[SharedInstancesState,InstanceDispatcher,Batching;DI[Batching,"
+//     "InstanceDispatcher]]";
+// constexpr auto DEFAULT_NODE_CONFIG = "";
+constexpr auto DEFAULT_NODE_CONFIG = "IoC[Pass;Identity]";
+constexpr auto DEFAULT_INSTANCES_CONFIG = "BackgroundThread[Reflect[backend]]";
+const auto DEFAULT_INIT_CONFIG = std::string("List[InstancesRegister[") +
+                                 DEFAULT_INSTANCES_CONFIG + "], " +
+                                 "Register[" + DEFAULT_NODE_CONFIG + "]]";
 
 class Interpreter : public Proxy {
    public:

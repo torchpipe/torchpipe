@@ -89,8 +89,10 @@ void DI::init(const std::unordered_map<string, string>& config,
     HAMI_ASSERT(proxy_backend_ && dep,
                 "DI: backend not found. name = " + re[0] + re[1]);
     proxy_backend_->inject_dependency(dep);
+    SPDLOG_INFO("DI: {}[{}, {}]-> {}", re[0], proxy_backend_->min(),
+                proxy_backend_->max(), re[1]);
 }
 
-HAMI_REGISTER(Backend, DI, "DI");
+HAMI_REGISTER_BACKEND(DI);
 
 }  // namespace hami
