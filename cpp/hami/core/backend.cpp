@@ -159,25 +159,6 @@ void evented_forward(Backend& self, const std::vector<dict>& inputs) {
     return;
 }
 
-bool is_none_or_all_evented_and_unempty(const std::vector<dict>& inputs) {
-    if (inputs.empty()) {
-        return false;
-    }
-
-    const bool has_event = inputs[0]->find(TASK_EVENT_KEY) != inputs[0]->end();
-
-    return std::all_of(
-        inputs.begin() + 1, inputs.end(), [has_event](const auto& item) {
-            bool item_has_event = item->find(TASK_EVENT_KEY) != item->end();
-            return item_has_event == has_event;
-        });
-}
-bool is_all_evented(const std::vector<dict>& inputs) {
-    return std::all_of(inputs.begin(), inputs.end(), [](const auto& item) {
-        return item->find(TASK_EVENT_KEY) != item->end();
-    });
-}
-
 std::string get_dependency_name(
     const Backend* this_ptr,
     const std::unordered_map<std::string, std::string>& config,

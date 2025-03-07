@@ -19,13 +19,6 @@ void LaunchBase::init(
     post_init(config, dict_config);
 }
 
-size_t Forward::min() const {
-    {
-        SPDLOG_INFO("Forward::min {}", (long long)(injected_dependency_));
-        return injected_dependency_ ? injected_dependency_->min() : 1;
-    }
-}
-
 void Forward::inject_dependency(Backend* dependency) {
     if (injected_dependency_) {
         throw std::runtime_error(

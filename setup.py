@@ -130,7 +130,6 @@ class cmake_build(setuptools.Command):
                 "-DPY_EXT_SUFFIX={}".format(
                     sysconfig.get_config_var("EXT_SUFFIX") or ""
                 ),
-                
                 "-DPY_VERSION={}".format(
                     str(sys.version_info[0]) + "." + str(sys.version_info[1])
                 ),

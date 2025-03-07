@@ -197,16 +197,6 @@ namespace backend {
 void evented_forward(Backend& self, const std::vector<dict>& inputs);
 // void evented_forward(const Backend* self, const std::vector<dict>& inputs);
 
-/**
- * Checks if either all inputs have events or none have events
- *
- * @param inputs Vector of dictionary items to check
- * @return true if all items have events or if no items have events
- * @return false if there's a mix of items with and without events
- */
-bool is_none_or_all_evented_and_unempty(const std::vector<dict>& inputs);
-bool is_all_evented(const std::vector<dict>& inputs);
-
 std::string get_dependency_name(
     const Backend* this_ptr,
     const std::unordered_map<std::string, std::string>& config,

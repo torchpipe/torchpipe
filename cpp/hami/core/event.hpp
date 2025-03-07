@@ -90,6 +90,20 @@ class HAMI_EXPORT Event {
         }
     }
 
+    void try_throw() {
+        std::unique_lock<std::mutex> lk(mut);
+
+        if (eptr_) {
+            std::rethrow_exception(eptr_);
+        }
+    }
+
+    void wait_finish() {
+        std::unique_lock<std::mutex> lk(mut);
+
+        data_cond.wait(lk, [this] { return (num_task == ref_count); });  //
+    }
+
     bool wait(size_t timeout_ms) {
         std::unique_lock<std::mutex> lk(mut);
 
@@ -252,14 +266,6 @@ class HAMI_EXPORT Event {
         return eptr_;
     }
 
-    void try_throw() {
-        std::lock_guard<std::mutex> lk(mut);
-
-        if (eptr_) {
-            std::rethrow_exception(eptr_);
-        }
-    }
-
     void task_add(size_t num) {
         std::lock_guard<std::mutex> lk(mut);
         num_task += num;
@@ -353,8 +359,6 @@ class HAMI_EXPORT Event {
 static inline std::shared_ptr<Event> make_event(size_t num = 1) {
     return std::make_shared<Event>(num);
 }
-
-// void event_guard(const std::vector<dict>& inputs, Backend* dependency);
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 #endif

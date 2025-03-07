@@ -3,7 +3,11 @@ from .commands import get_cmake_dir, get_includes, get_pkgconfig_dir, get_librar
 
 
 from hami._C import Any, Dict, Backend, Event, create, register, init
+
+from hami._C import (Queue, default_queue)
 # from hami import pybackend
 from .parser import parse_from_file
 
 __all__ = ["Any", "Dict", 'Backend', 'Event', 'create', 'create', 'register', 'parse_from_file', 'init']
+
+__all__.extend(['Queue', 'default_queue'])

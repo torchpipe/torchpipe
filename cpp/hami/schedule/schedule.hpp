@@ -7,6 +7,7 @@
 #include "hami/helper/threadsafe_sized_queue.hpp"
 #include "hami/schedule/schedule_states.hpp"
 #include "hami/helper/threadsafe_queue.hpp"
+#include "hami/core/helper.hpp"
 
 namespace hami {
 class Batching : public DynamicDependency {
@@ -44,11 +45,7 @@ class BackgroundThread : public Backend {
    public:
     void init(const std::unordered_map<string, string>& config,
               const dict&) override final;
-    void forward(const std::vector<dict>& inputs) override final {
-        // HAMI_ASSERT(dependency == nullptr || dependency_ == dependency,
-        // "dependency must be the same");
-        batched_queue_.push(inputs);
-    }
+    void forward(const std::vector<dict>& inputs) override final;
 
     virtual void run();
     ~BackgroundThread() {

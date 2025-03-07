@@ -86,7 +86,7 @@ Repost[Z, dddsa]
 
 
 builtin types: Any, Dict, Backend, Event, Queue
-builtin container: IoC Proxy/DI Sequential/S  Reflect[cls_name] Register/InstancesRegister InstanceFromParam Forward[instance_name]
+builtin container: IoC Proxy/DI Sequential/S  Reflect[key_to_cls_name, default=backend] Register/InstancesRegister InstanceFromParam Forward[instance_name]
 
 CatSplit, DagDispatcher, InstanceDispatcher
 

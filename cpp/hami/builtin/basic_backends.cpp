@@ -161,7 +161,11 @@ void Container::init(const std::unordered_map<std::string, std::string>& config,
             base_config_[i] = (pre_config);
             auto backend_ptr =
                 std::unique_ptr<Backend>(HAMI_CREATE(Backend, main_backend));
-            HAMI_ASSERT(backend_ptr, "create " + main_backend + " failed");
+            HAMI_ASSERT(
+                backend_ptr,
+                "create " + main_backend +
+                    " failed. This is not a Backend name. May be this is an "
+                    "instance name and you forgot to use it with Forward[*]");
             if (lazy_init) {
                 auto* pbackend_ptr = backend_ptr.get();
                 lazy_init_func_.emplace_back(

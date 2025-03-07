@@ -133,6 +133,12 @@ def get_macros_and_flags():
     if DEBUG:
         extra_compile_args["cxx"].append("-g")
         extra_compile_args["cxx"].append("-O0")
+        extra_compile_args["cxx"].append("-Wall")
+        extra_compile_args["cxx"].append("-Werror")
+        extra_compile_args["cxx"].append("-Wno-error=sign-compare")
+        extra_compile_args["cxx"].append("-Wno-error=deprecated-declarations")
+        
+                
         if "nvcc" in extra_compile_args:
             # we have to remove "-OX" and "-g" flag if exists and append
             nvcc_flags = extra_compile_args["nvcc"]

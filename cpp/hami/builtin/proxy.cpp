@@ -37,30 +37,12 @@ void Placeholder::init(const std::unordered_map<string, string>& config,
 HAMI_REGISTER(Backend, BackendProxy);
 HAMI_REGISTER(Backend, Placeholder);
 
-void Reflect::init(const std::unordered_map<string, string>& config,
+void Reflect::init(const std::unordered_map<string, string>& in_config,
                    const dict& dict_config) {
-    constexpr auto default_name = "Reflect";
-    auto name = HAMI_OBJECT_NAME(Backend, this);
-    if (name == std::nullopt) {
-        name = default_name;
-        SPDLOG_WARN(
-            "{}::init, it seems this instance was not created via "
-            "reflection, using default name {}. "
-            "Please configure its dependency via the parameter "
-            "{}::dependency",
-            *name, *name, *name);
-    }
-    auto iter = config.find(*name + "::dependency");
-    HAMI_ASSERT(
-        iter != config.end(),
-        *name + "::dependency not found. Call this backend through A[B].");
-    iter = config.find(iter->second);
-    HAMI_ASSERT(iter != config.end(),
-                "configuration missing for " + iter->second);
+    auto config = in_config;
+    auto default_dep = parse_dependency_from_param(this, config, "backend");
 
-    // owned_backend_ =
-    //     std::unique_ptr<Backend>(HAMI_CREATE(Backend, iter->second));
-    owned_backend_ = init_backend(iter->second, config, dict_config);
+    owned_backend_ = init_backend(default_dep, config, dict_config);
     // HAMI_ASSERT(owned_backend_);
     // owned_backend_->init(config, dict_config);
     proxy_backend_ = owned_backend_.get();
@@ -87,7 +69,9 @@ void DI::init(const std::unordered_map<string, string>& config,
     proxy_backend_ = HAMI_INSTANCE_GET(Backend, re[0]);
     auto* dep = HAMI_INSTANCE_GET(Backend, re[1]);
     HAMI_ASSERT(proxy_backend_ && dep,
-                "DI: backend not found. name = " + re[0] + re[1]);
+                "DI: instance name not found. Usage: DI[ins1, ins2], here "
+                "ins1 is a name of instance, not a name of class; name = " +
+                    re[0] + "/" + re[1]);
     proxy_backend_->inject_dependency(dep);
     SPDLOG_INFO("DI: {}[{}, {}]-> {}", re[0], proxy_backend_->min(),
                 proxy_backend_->max(), re[1]);

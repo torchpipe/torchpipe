@@ -54,9 +54,10 @@ void QueueBackend::inject_dependency(Backend* dep) {
 void QueueBackend::run() {
     while (bInited_.load()) {
         auto data = queue_->try_get(SHUTDOWN_TIMEOUT_MS);
-        if (!data) continue;
-        auto io_data = (*data).first;
-        (*io_data)[TASK_REQUEST_SIZE_KEY] = (*data).second;
+        if (!data.first) continue;
+        auto io_data = *(data.first);
+        assert(io_data);
+        (*io_data)[TASK_REQUEST_SIZE_KEY] = data.second;
         target_backend_->forward({io_data});
     }
 }

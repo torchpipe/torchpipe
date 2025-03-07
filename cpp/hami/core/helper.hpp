@@ -21,6 +21,35 @@
 #include "hami/core/backend.hpp"
 
 namespace hami {
+
+class Event;
+
+/**
+ * @brief Helper class for managing event lifecycle and ensuring proper
+ * synchronization
+ *
+ * HasEventHelper manages event objects across multiple dictionaries, ensuring
+ * consistency in asynchronous/synchronous states. It follows RAII principle to
+ * guarantee event cleanup and provides synchronization capabilities.
+ *
+ * Usage:
+ * - Create an HasEventHelper with a collection of dictionaries
+ * - Call wait() to synchronize and clean up events
+ * - Failing to call wait() before destruction will terminate the program
+ *
+ * Note: This class has no effect if all dictionaries already have events
+ */
+class HasEventHelper {
+   public:
+    HasEventHelper(const std::vector<dict>& data);
+    void wait();
+    ~HasEventHelper();
+
+   private:
+    const std::vector<dict>& dicts_;
+    std::shared_ptr<Event> event_;
+};
+
 class DictHelper {
    public:
     DictHelper(const std::vector<dict>& data)
@@ -164,6 +193,10 @@ std::string debug_node_info(const T& config) {
     return "";
 }
 
+std::string parse_dependency_from_param(
+    const Backend* this_ptr,
+    std::unordered_map<std::string, std::string>& config,
+    std::string default_params_name);
 std::optional<std::string> get_dependency_name(
     const Backend* this_ptr,
     const std::unordered_map<std::string, std::string>& config);
@@ -180,4 +213,60 @@ std::string get_dependency_name_force(
     const std::unordered_map<std::string, std::string>& config);
 std::string get_cls_name(const Backend* this_ptr,
                          const std::string& default_cls_name);
+namespace helper {
+/**
+ * Checks if all inputs have a specific key
+ *
+ * @param inputs Vector of dictionary items to check
+ * @param key The key to check for
+ * @return true if all items have the key
+ * @return false if any item does not have the key
+ */
+inline bool all_has_key(const std::vector<dict>& inputs,
+                        const std::string& key) {
+    return std::all_of(inputs.begin(), inputs.end(), [&key](const auto& item) {
+        return item->find(key) != item->end();
+    });
+}
+
+/**
+ * Checks if none of the inputs have a specific key
+ *
+ * @param inputs Vector of dictionary items to check
+ * @param key The key to check for
+ * @return true if no items have the key
+ * @return false if any item has the key
+ */
+inline bool none_has_key(const std::vector<dict>& inputs,
+                         const std::string& key) {
+    return std::all_of(inputs.begin(), inputs.end(), [&key](const auto& item) {
+        return item->find(key) == item->end();
+    });
+}
+
+/**
+ * Checks if all inputs have the key or none have the key, and the vector is not
+ * empty
+ *
+ * @param inputs Vector of dictionary items to check
+ * @param key The key to check for
+ * @return true if all items have the key or none have the key, and the vector
+ * is not empty
+ * @return false otherwise
+ */
+inline bool none_or_all_has_key_and_unempty(const std::vector<dict>& inputs,
+                                            const std::string& key) {
+    if (inputs.empty()) {
+        return false;
+    }
+
+    const bool has_key = inputs[0]->find(key) != inputs[0]->end();
+
+    return std::all_of(inputs.begin() + 1, inputs.end(),
+                       [has_key, &key](const auto& item) {
+                           bool item_has_key = item->find(key) != item->end();
+                           return item_has_key == has_key;
+                       });
+}
+}  // namespace helper
 }  // namespace hami

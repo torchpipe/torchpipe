@@ -7,6 +7,54 @@
 
 namespace hami {
 
+HasEventHelper::HasEventHelper(const std::vector<dict>& data) : dicts_(data) {
+    const bool all_have_event =
+        std::all_of(data.begin(), data.end(), [](const auto& item) {
+            return item->find(TASK_EVENT_KEY) != item->end();
+        });
+
+    if (all_have_event) {
+        return;
+    }
+    const bool none_have_event =
+        std::none_of(data.begin(), data.end(), [](const auto& item) {
+            return item->find(TASK_EVENT_KEY) != item->end();
+        });
+
+    if (none_have_event) {
+        event_ = make_event(data.size());
+        for (auto& item : data) {
+            (*item)[TASK_EVENT_KEY] = event_;
+        }
+    } else {
+        throw std::logic_error(
+            "HasEventHelper: Inconsistent event state in inputs. All "
+            "inputs "
+            "should be either async or "
+            "sync.");
+    }
+    return;
+}
+
+void HasEventHelper::wait() {
+    if (event_) {
+        event_->wait_finish();
+        for (std::size_t i = 0; i < dicts_.size(); ++i) {
+            dicts_[i]->erase(TASK_EVENT_KEY);
+        }
+        std::shared_ptr<Event> tmp;
+        std::swap(tmp, event_);
+        tmp->try_throw();
+    }
+}
+
+HasEventHelper::~HasEventHelper() {
+    if (event_) {
+        SPDLOG_ERROR("HasEventHelper: event not cleared. call wait()");
+        std::terminate();
+    }
+}
+
 bool event_guard(Backend* dependency, const std::vector<dict>& inputs) {
     const bool all_have_event =
         std::all_of(inputs.begin(), inputs.end(), [](const auto& item) {
@@ -107,6 +155,37 @@ std::string get_dependency_name(
     return *name;
 }
 
+std::string parse_dependency_from_param(
+    const Backend* this_ptr,
+    std::unordered_map<std::string, std::string>& config,
+    std::string default_params_name) {
+    auto name = HAMI_OBJECT_NAME(Backend, this_ptr);
+    if (name == std::nullopt) {
+        throw std::runtime_error(
+            "This instance was not created via reflection");
+    }
+    auto iter = config.find(*name + "::dependency");
+    if (iter == config.end()) {
+        if (default_params_name.empty()) {
+            throw std::invalid_argument(
+                "Dependency configuration " + *name +
+                "::dependency not found. Please specify dependencies in the "
+                "configuration "
+                "through " +
+                *name + "[X] or {" + *name + "::dependency, X}.");
+        }
+
+    } else {
+        default_params_name = iter->second;
+        config.erase(iter);
+    }
+    iter = config.find(default_params_name);
+    HAMI_ASSERT(iter != config.end(), "In config, cannot find key `" +
+                                          default_params_name +
+                                          "`, please check the configuration");
+    return iter->second;
+}
+
 std::string get_cls_name(const Backend* this_ptr,
                          const std::string& default_cls_name) {
     auto name = HAMI_OBJECT_NAME(Backend, this_ptr);
@@ -115,5 +194,7 @@ std::string get_cls_name(const Backend* this_ptr,
     }
     return *name;
 }
+
+namespace helper {}  // namespace helper
 
 }  // namespace hami

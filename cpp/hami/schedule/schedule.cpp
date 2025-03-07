@@ -35,13 +35,16 @@ void Batching::init(const std::unordered_map<string, string>& config,
 }
 
 void Batching::forward(const std::vector<dict>& inputs) {
-    HAMI_FATAL_ASSERT(backend::is_all_evented(inputs) && injected_dependency_);
+    HasEventHelper helper(
+        inputs);  // add `event` (and wait for possible exception) if not exist
+    HAMI_FATAL_ASSERT(injected_dependency_);
 
     if (bInited_.load())
         input_queue_.push(inputs, get_request_size<dict>);
     else {
         injected_dependency_->forward(inputs);
     }
+    helper.wait();
 }
 
 void Batching::run() {
@@ -139,7 +142,8 @@ void InstanceDispatcher::update_min_max(const std::vector<Backend*>& deps) {
 }
 
 void InstanceDispatcher::forward(const std::vector<dict>& inputs) {
-    HAMI_ASSERT(backend::is_none_or_all_evented_and_unempty(inputs));
+    HAMI_ASSERT(
+        helper::none_or_all_has_key_and_unempty(inputs, TASK_EVENT_KEY));
     const size_t req_size = get_request_size(inputs);
     //
     std::optional<size_t> index;
@@ -147,9 +151,6 @@ void InstanceDispatcher::forward(const std::vector<dict>& inputs) {
         index = instances_state_->query_avaliable(req_size, 100, true);
     } while (!index);
     size_t valid_index{*index};
-
-    SPDLOG_INFO("InstanceDispatcher::forward, req_size={}, index=", req_size,
-                valid_index);
 
     HAMI_FATAL_ASSERT(valid_index < base_dependencies_.size());
 
@@ -196,6 +197,11 @@ void BackgroundThread::init(const std::unordered_map<string, string>& config,
     HAMI_ASSERT(bInited_.load() && (!bStoped_.load()));
 }
 
+void BackgroundThread::forward(const std::vector<dict>& inputs) {
+    HAMI_ASSERT(helper::all_has_key(inputs, TASK_EVENT_KEY));
+    batched_queue_.push(inputs);
+}
+
 // void BackgroundThread::forward_task(const std::vector<dict>& inputs) {}
 void BackgroundThread::run() {
 #ifndef NCATCH_SUB
@@ -233,7 +239,9 @@ void BackgroundThread::run() {
                 events.push_back(ti_p);
             }
         }
-        HAMI_FATAL_ASSERT(events.size() == tasks.size());
+        HAMI_FATAL_ASSERT(events.size() == tasks.size(),
+                          "event: " + std::to_string(events.size()) +
+                              " tasks: " + std::to_string(tasks.size()));
 #ifndef NCATCH_SUB
         try {
 #endif

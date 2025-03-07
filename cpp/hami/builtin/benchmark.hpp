@@ -43,7 +43,8 @@ class Benchmark : public Backend {
 
    private:
     void run(size_t client_index);
-    std::unordered_map<std::string, std::string> get_output();
+    std::unordered_map<std::string, std::string> get_output(
+        std::exception_ptr& first_exception);
 
    private:
     size_t num_clients_ = 10;

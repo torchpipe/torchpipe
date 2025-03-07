@@ -63,11 +63,12 @@ class SizedQueue {
     }
 
     // Get the front element
-    T front() const {
+    std::pair<const T&, size_t> front() const {
         if (queue_.empty()) {
             throw QueueEmptyException();
         }
-        return queue_.front().value;
+        return std::pair<const T&, size_t>(queue_.front().value,
+                                           queue_.front().size);
     }
 
     // Get the total size of the queue
@@ -267,9 +268,8 @@ class ThreadSafeSizedQueue {
         std::unique_lock<std::mutex> lock(mutex_);
 
         if (queue_.empty()) {
-            auto predicate = [this] { return !queue_.empty(); };
             if (!cond_.wait_for(lock, std::chrono::duration<double>(*timeout),
-                                predicate)) {
+                                [this] { return !queue_.empty(); })) {
                 throw QueueEmptyException();
             }
         }
@@ -283,14 +283,15 @@ class ThreadSafeSizedQueue {
     }
 
     // Get the front element
-    T front() const {
+    std::pair<const T&, size_t> front() const {
         std::unique_lock<std::mutex> lock(mutex_);
 
         if (queue_.empty()) {
             throw QueueEmptyException();
         }
 
-        return queue_.front().value;
+        return std::pair<const T&, size_t>(queue_.front().value,
+                                           queue_.front().size);
     }
 
     // Get the total size of the queue
@@ -345,19 +346,19 @@ class ThreadSafeSizedQueue {
 
     // Try to pop an element within a timeout
     template <typename Rep, typename Period>
-    std::optional<std::pair<T, size_t>> try_get(
+    std::pair<std::optional<T>, size_t> try_get(
         std::chrono::duration<Rep, Period> timeout) {
         std::unique_lock<std::mutex> lock(mutex_);
 
         if (queue_.empty()) {
             auto predicate = [this] { return !queue_.empty(); };
             if (!cond_.wait_for(lock, timeout, predicate)) {
-                return std::nullopt;
+                return std::pair<std::optional<T>, size_t>(std::nullopt, 0);
             }
         }
 
-        auto item = std::make_pair(std::move(queue_.front().value),
-                                   queue_.front().size);
+        auto item = std::pair<std::optional<T>, size_t>(
+            std::move(queue_.front().value), queue_.front().size);
         totalSize_ -= item.second;
         queue_.pop();
         cond_.notify_one();

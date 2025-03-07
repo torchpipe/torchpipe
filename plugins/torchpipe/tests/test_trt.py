@@ -7,7 +7,7 @@ import hami
 
 # Pipeline configuration strings
 INIT_STR = "ModelLoadder[(.onnx)Onnx2Tensorrt,(.trt)LoadTensorrtEngine], TensorrtInferTensor"
-FORWARD_STR = "CatSplit[S[GpuTensor,CatTensor],S[ContiguousTensor,TensorrtInferTensor,ProxyFromParam[post_processor]],SplitTensor]"
+FORWARD_STR = "CatSplit[S[GpuTensor,CatTensor],S[ContiguousTensor,Forward[TensorrtInferTensor],ProxyFromParam[post_processor]],SplitTensor]"
 BACKEND_STR = f"IoC[{INIT_STR}; {FORWARD_STR}]"
 
 class Identity(torch.nn.Module):

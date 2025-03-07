@@ -34,13 +34,13 @@ namespace hami {
 using dict = CustomDict;
 #else
 using dict = std::shared_ptr<std::unordered_map<string, hami::any>>;
-static inline dict make_dict() {
+inline dict make_dict() {
     return std::make_shared<std::unordered_map<string, hami::any>>();
 }
 
 #endif
 
-static inline dict make_dict(string node_name, dict data = nullptr) {
+inline dict make_dict(string node_name, dict data = nullptr) {
     dict data_out;
     if (!data) {
         data_out = std::make_shared<std::unordered_map<string, any>>();
@@ -49,6 +49,17 @@ static inline dict make_dict(string node_name, dict data = nullptr) {
     }
     assert(data_out != nullptr);
     if (!node_name.empty()) (*data_out)["node_name"] = node_name;
+    return data_out;
+}
+
+inline dict deep_copy(dict data) {
+    dict data_out;
+    if (!data) {
+        data_out = std::make_shared<std::unordered_map<string, any>>();
+    } else {
+        data_out = std::make_shared<std::unordered_map<string, any>>(*data);
+    }
+    assert(data_out != nullptr);
     return data_out;
 }
 

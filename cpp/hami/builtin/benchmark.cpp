@@ -37,7 +37,7 @@ void Benchmark::init(const std::unordered_map<std::string, std::string>& config,
 
     inputs_ =
         std::make_unique<queue::ThreadSafeQueue<std::shared_ptr<ProfileState>>>(
-            num_clients_);
+            0);
 
     bInited_.store(true);
 
@@ -64,7 +64,7 @@ void Benchmark::forward(const std::vector<dict>& input, Backend* dependency) {
             while (num_warm_up-- > 0) {
                 std::vector<dict> warm_data;
                 for (size_t i = 0; i < request_batch_; ++i) {
-                    warm_data.push_back(input[dist(engine)]);
+                    warm_data.push_back(deep_copy(input[dist(engine)]));
                 }
                 try {
                     dependency->forward(warm_data);
@@ -79,8 +79,9 @@ void Benchmark::forward(const std::vector<dict>& input, Backend* dependency) {
         main_task_ = [this, dependency](size_t client_index) {
             while (bInited_.load()) {
                 auto item = inputs_->try_get(SHUTDOWN_TIMEOUT_MS);
-                SPDLOG_INFO("input = {}", inputs_->size());
+
                 if (item) {
+                    // SPDLOG_INFO("input = {}", inputs_->size());
                     auto data = *item;
                     auto& state = *(data);
 
@@ -117,20 +118,24 @@ void Benchmark::forward(const std::vector<dict>& input, Backend* dependency) {
         data->arrive_time = std::chrono::steady_clock::now();
 
         for (size_t i = 0; i < request_batch_; ++i) {
-            data->data.push_back(input[dist(engine)]);
+            data->data.push_back(deep_copy(input[dist(engine)]));
         }
         while (!inputs_->try_put(data,
                                  std::chrono::milliseconds(SHUTDOWN_TIMEOUT))) {
         };
-        SPDLOG_INFO("req_times = {} inputs_ size {}", req_times,
-                    inputs_->size());
+        // SPDLOG_INFO("req_times = {} inputs_ size {}", req_times,
+        //             inputs_->size());
     }
     bNoNewData_.store(true);
-
-    auto profile_result = get_output();
+    std::exception_ptr first_exception;
+    auto profile_result = get_output(first_exception);
     dict data = make_dict();
     (*data)[TASK_DATA_KEY] = profile_result;
     target_queue_->put(data);
+
+    if (first_exception) {
+        std::rethrow_exception(first_exception);
+    }
     // get outputs
 }
 
@@ -157,7 +162,8 @@ void Benchmark::run(size_t client_index) {
     main_task_(client_index);
 }
 
-std::unordered_map<std::string, std::string> Benchmark::get_output() {
+std::unordered_map<std::string, std::string> Benchmark::get_output(
+    std::exception_ptr& first_exception) {
     std::vector<std::vector<std::shared_ptr<ProfileState>>> result(
         num_clients_);
 
@@ -193,6 +199,10 @@ std::unordered_map<std::string, std::string> Benchmark::get_output() {
         for (const auto& entry : item) {
             if (entry->exception) {
                 num_exception++;
+
+                if (!first_exception) first_exception = entry->exception;
+                // todo
+
                 if (first_exception_message.empty()) {
                     try {
                         std::rethrow_exception(entry->exception);
@@ -216,7 +226,7 @@ std::unordered_map<std::string, std::string> Benchmark::get_output() {
     profile_result["total_time"] = std::to_string(diff_time.count());
     profile_result["num_clients"] = std::to_string(num_clients_);
     profile_result["request_batch"] = std::to_string(request_batch_);
-    auto qps = size_t(latencies.size() / diff_time.count());
+    auto qps = double(latencies.size() * 1000.0 / diff_time.count());
     profile_result["throughput::qps"] = std::to_string(qps);
     if (latencies.empty()) latencies.push_back(0);
     auto tp_50 = latencies[latencies.size() / 2];

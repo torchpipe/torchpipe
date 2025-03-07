@@ -77,7 +77,9 @@ class Forward : public LaunchBase {
         return injected_dependency_ ? injected_dependency_->max()
                                     : std::numeric_limits<size_t>::max();
     }
-    [[nodiscard]] size_t min() const override;
+    [[nodiscard]] size_t min() const override {
+        return injected_dependency_ ? injected_dependency_->min() : 1;
+    }
 };
 
 class Launch : public LaunchBase {

@@ -167,7 +167,9 @@ void init_dict(py::module_& m) {
         py::register_exception<hami::queue::QueueFullException>(m, "Full");
     }
 
-    m.def("default_queue", &default_queue);
+    m.def("default_queue", &default_queue,
+          pybind11::return_value_policy::reference);
+
     py::class_<Queue>(m, "Queue")
         .def(py::init<size_t>(), py::arg("maxsize") = 0)
         .def(

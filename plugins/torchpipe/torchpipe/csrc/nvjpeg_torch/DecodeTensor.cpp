@@ -4,7 +4,7 @@
 #include "helper/torch.hpp"
 namespace str = hami::str;
 namespace {
-void check_nvjpeg_result(nvjpegStatus_t _e) {
+[[maybe_unused]] void check_nvjpeg_result(nvjpegStatus_t _e) {
     HAMI_ASSERT(_e == NVJPEG_STATUS_SUCCESS,
                 ("nvjpeg error: nvjpegStatus_t = " + std::to_string(int(_e))));
 }
@@ -52,7 +52,7 @@ bool decode(const std::string& data, nvjpegHandle_t handle,
     int h = heights[0];
     int w = widths[0];
 
-    size_t image_size = h * w * nComponents;
+    // size_t image_size = h * w * nComponents;
 
     auto options = torch::TensorOptions()
                        .device(torch::kCUDA, -1)
