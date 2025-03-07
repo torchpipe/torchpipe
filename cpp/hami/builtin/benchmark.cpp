@@ -35,9 +35,8 @@ void Benchmark::init(const std::unordered_map<std::string, std::string>& config,
             total_number_);
     }
 
-    inputs_ =
-        std::make_unique<queue::ThreadSafeQueue<std::shared_ptr<ProfileState>>>(
-            0);
+    inputs_ = std::make_unique<
+        queue::ThreadSafeQueue<std::shared_ptr<ProfileState>>>();
 
     bInited_.store(true);
 
@@ -120,7 +119,7 @@ void Benchmark::forward(const std::vector<dict>& input, Backend* dependency) {
         for (size_t i = 0; i < request_batch_; ++i) {
             data->data.push_back(deep_copy(input[dist(engine)]));
         }
-        while (!inputs_->try_put(data,
+        while (!inputs_->try_put(data, num_clients_ + 100,
                                  std::chrono::milliseconds(SHUTDOWN_TIMEOUT))) {
         };
         // SPDLOG_INFO("req_times = {} inputs_ size {}", req_times,
@@ -167,7 +166,7 @@ std::unordered_map<std::string, std::string> Benchmark::get_output(
     std::vector<std::vector<std::shared_ptr<ProfileState>>> result(
         num_clients_);
 
-    while (!outputs_.wait_for(
+    while (!outputs_.wait_for_new_data(
         [this](size_t queue_size) { return queue_size >= total_number_; },
         SHUTDOWN_TIMEOUT_MS)) {
     }

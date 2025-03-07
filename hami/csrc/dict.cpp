@@ -171,17 +171,15 @@ void init_dict(py::module_& m) {
           pybind11::return_value_policy::reference);
 
     py::class_<Queue>(m, "Queue")
-        .def(py::init<size_t>(), py::arg("maxsize") = 0)
+        .def(py::init<>())
         .def(
             "put",
-            [](Queue& self, PyDict item, size_t size, bool block,
-               std::optional<double> timeout) {
+            [](Queue& self, PyDict item, size_t size) {
                 auto data = item.to_dict();
                 py::gil_scoped_release release;
-                self.put(data, size, block, timeout);
+                self.put(data, size);
             },
-            py::arg("item"), py::arg("size") = 1, py::arg("block") = true,
-            py::arg("timeout") = std::nullopt)
+            py::arg("item"), py::arg("size") = 1)
         .def(
             "get",
             [](Queue& self, bool block, std::optional<double> timeout) {
@@ -201,8 +199,7 @@ void init_dict(py::module_& m) {
             },
             py::arg("block") = true, py::arg("timeout") = std::nullopt)
         .def("size", &Queue::size)
-        .def("empty", &Queue::empty)
-        .def("full", &Queue::full);
+        .def("empty", &Queue::empty);
 }
 
 }  // namespace hami
