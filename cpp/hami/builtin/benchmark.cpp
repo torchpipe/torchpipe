@@ -227,7 +227,7 @@ std::unordered_map<std::string, std::string> Benchmark::get_output(
     profile_result["num_clients"] = std::to_string(num_clients_);
     profile_result["request_batch"] = std::to_string(request_batch_);
     auto qps = double(latencies.size() * 1000.0 / diff_time.count());
-    profile_result["throughput::qps"] = std::to_string(qps);
+    profile_result["throughput::qps"] = std::to_string(size_t(qps));
     if (latencies.empty()) latencies.push_back(0);
     auto tp_50 = latencies[latencies.size() / 2];
     auto tp_99 = latencies[latencies.size() * 99 / 100];

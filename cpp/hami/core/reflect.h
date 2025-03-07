@@ -152,10 +152,11 @@ class HAMI_EXPORT ClassRegistryBase {
 
     void DoUnRegisterObject(const std::string& aspect_name) {
         {
+            printlog("Unregistering named instance '" + aspect_name +
+                     "' (with ownership)");
+
             std::lock_guard<std::mutex> guard(class_name_map_mutex_);
             {
-                printlog("UnRegister Named Instance(w/ ownership): " +
-                         aspect_name);
                 reverse_class_name_map_.erase(aspect_name);
                 reverse_class_name_map_owner_.erase(aspect_name);
             }
@@ -179,12 +180,10 @@ class HAMI_EXPORT ClassRegistryBase {
             std::lock_guard<std::mutex> guard(class_name_map_mutex_);
             auto iter = reverse_class_name_map_.find(aspect_name);
             if (iter != reverse_class_name_map_.end()) {
-                printlog("Get Named Backend-Object: " + aspect_name);
+                printlog("Getting named backend object '" + aspect_name + "'");
                 return iter->second;
             } else {
-                printlog("Get Named Instance: " + aspect_name + " failed." +
-                         std::string(" address: ") +
-                         std::to_string((long long)&reverse_class_name_map_));
+                printlog("Failed to get named instance '" + aspect_name + "'");
                 std::vector<std::string> keys;
                 for (const auto& item : reverse_class_name_map_) {  // NOLINT
                     keys.push_back(item.first);

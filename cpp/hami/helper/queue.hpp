@@ -119,7 +119,7 @@ class ThreadSafeQueue {
         }
 
         queue_.push(std::forward<U>(item));
-        cond_.notify_one();
+        cond_.notify_all();
     }
 
     template <typename Rep, typename Period>
@@ -134,7 +134,7 @@ class ThreadSafeQueue {
         }
 
         queue_.push(item);
-        cond_.notify_one();
+        cond_.notify_all();
         return true;
     }
 
@@ -162,7 +162,7 @@ class ThreadSafeQueue {
 
         T item = std::move(queue_.front());
         queue_.pop();
-        cond_.notify_one();
+        // cond_.notify_one();
         return item;
     }
 
@@ -170,16 +170,14 @@ class ThreadSafeQueue {
     std::optional<T> try_get(std::chrono::duration<Rep, Period> timeout) {
         std::unique_lock<std::mutex> lock(mutex_);
 
-        if (queue_.empty()) {
-            auto predicate = [this] { return !queue_.empty(); };
-            if (!cond_.wait_for(lock, timeout, predicate)) {
-                return std::nullopt;
-            }
+        if (!cond_.wait_for(lock, timeout,
+                            [this] { return !queue_.empty(); })) {
+            return std::nullopt;
         }
 
         T item = std::move(queue_.front());
         queue_.pop();
-        cond_.notify_one();
+        // cond_.notify_one();
         return item;
     }
 
@@ -188,11 +186,14 @@ class ThreadSafeQueue {
                   std::chrono::duration<Rep, Period> timeout) {
         std::unique_lock<std::mutex> lock(mutex_);
 
-        auto predicate = [this, size_condition]() {
+        return cond_.wait_for(lock, timeout, [this, size_condition]() {
             return size_condition(queue_.size());
-        };
-        return cond_.wait_for(lock, timeout, predicate);
+        });
     }
+
+    void notify_one() { cond_.notify_one(); }
+
+    void notify_all() { cond_.notify_all(); }
 
     size_t size() const noexcept {
         std::lock_guard<std::mutex> lock(mutex_);
@@ -202,6 +203,15 @@ class ThreadSafeQueue {
     bool empty() const noexcept {
         std::lock_guard<std::mutex> lock(mutex_);
         return queue_.empty();
+    }
+
+    template <template <typename> class Container>
+    void force_put_without_notify(const Container<T>& values) {
+        std::unique_lock<std::mutex> lock(mutex_);
+
+        for (const auto& value : values) {
+            queue_.push(value);
+        }
     }
 
     bool full() const noexcept {
@@ -234,33 +244,36 @@ class ThreadSafeSizedQueue {
               typename = std::enable_if_t<std::is_convertible_v<U, T>>>
     void put(U&& value, size_t size = 1, bool block = true,
              std::optional<double> timeout = std::nullopt) {
-        std::unique_lock<std::mutex> lock(mutex_);
+        {
+            std::unique_lock<std::mutex> lock(mutex_);
 
-        if (maxSize_ > 0) {
-            if (!block) {
-                if (totalSize_ + size > maxSize_) {
-                    throw QueueFullException();
-                }
-            } else {
-                auto predicate = [this, size] {
-                    return totalSize_ + size <= maxSize_;
-                };
-
-                if (timeout) {
-                    if (!cond_.wait_for(lock,
-                                        std::chrono::duration<double>(*timeout),
-                                        predicate)) {
-                        throw QueueFullException("Queue is full after timeout");
+            if (maxSize_ > 0) {
+                if (!block) {
+                    if (totalSize_ + size > maxSize_) {
+                        throw QueueFullException();
                     }
                 } else {
-                    cond_.wait(lock, predicate);
+                    auto predicate = [this, size] {
+                        return totalSize_ + size <= maxSize_;
+                    };
+
+                    if (timeout) {
+                        if (!cond_.wait_for(
+                                lock, std::chrono::duration<double>(*timeout),
+                                predicate)) {
+                            throw QueueFullException(
+                                "Queue is full after timeout");
+                        }
+                    } else {
+                        cond_.wait(lock, predicate);
+                    }
                 }
             }
-        }
 
-        queue_.push(SizedElement(std::forward<U>(value), size));
-        totalSize_ += size;
-        cond_.notify_one();
+            queue_.push(SizedElement(std::forward<U>(value), size));
+            totalSize_ += size;
+        }
+        cond_.notify_all();
     }
 
     std::pair<T, size_t> get(bool block = true,
@@ -278,7 +291,7 @@ class ThreadSafeSizedQueue {
                                    queue_.front().size);
         totalSize_ -= item.second;
         queue_.pop();
-        cond_.notify_one();
+        // cond_.notify_one();
         return item;
     }
 
@@ -312,6 +325,8 @@ class ThreadSafeSizedQueue {
         return maxSize_ > 0 && totalSize_ >= maxSize_;
     }
 
+    // please note that there is no notify when get() called. So call it
+    // by yourself.
     template <typename Rep, typename Period>
     bool wait_for(std::function<bool(size_t)> size_condition,
                   std::chrono::duration<Rep, Period> timeout) {
@@ -340,10 +355,22 @@ class ThreadSafeSizedQueue {
 
         queue_.push(SizedElement(value, size));
         totalSize_ += size;
-        cond_.notify_one();
+        cond_.notify_all();
         return true;
     }
 
+    template <template <typename> class Container>
+    void force_put_without_notify(const Container<T>& values,
+                                  size_t size_per_item = 1) {
+        std::unique_lock<std::mutex> lock(mutex_);
+        for (const auto& value : values) {
+            queue_.push(SizedElement(value, size_per_item));
+            totalSize_ += size_per_item;
+        }
+    }
+
+    void notify_one() { cond_.notify_one(); }
+    void notify_all() { cond_.notify_all(); }
     // Try to pop an element within a timeout
     template <typename Rep, typename Period>
     std::pair<std::optional<T>, size_t> try_get(
@@ -361,7 +388,7 @@ class ThreadSafeSizedQueue {
             std::move(queue_.front().value), queue_.front().size);
         totalSize_ -= item.second;
         queue_.pop();
-        cond_.notify_one();
+        // cond_.notify_one();
         return item;
     }
 };
