@@ -21,21 +21,28 @@ include(CMakeParseArguments)
 # )
 #
 
+# set(Python3_EXECUTABLE "/opt/python/cp310-cp310/bin/python3")
+# set(Python3_INCLUDE_DIRS "/opt/python/cp310-cp310/include/python3.10")
+# set(Python3_LIBRARIES "/opt/python/cp310-cp310/lib/libpython3.10.so")
+
+
+message(STATUS "Python3_EXECUTABLE: ${Python3_EXECUTABLE}")
+
 # 首先尝试常规方式查找 pybind11
-find_package(pybind11 QUIET)
+# find_package(pybind11 QUIET)
 
 if(NOT pybind11_FOUND)
   # 如果没有找到 pybind11，使用 Python 脚本获取目录
-  find_package(Python COMPONENTS Interpreter Development REQUIRED)
+  find_package(Python3  REQUIRED)
   
   execute_process(
     COMMAND
-      "${Python_EXECUTABLE}" "-c"
+      "${Python3_EXECUTABLE}" "-c"
       "import pybind11; print(pybind11.get_include(), end='')"
     OUTPUT_VARIABLE PYBIND11_INCLUDE_DIR
     RESULT_VARIABLE PYBIND11_FIND_RESULT
   )
-
+  message("v${Python3_EXECUTABLE} ${PYBIND11_FIND_RESULT}")
   if(NOT PYBIND11_FIND_RESULT EQUAL 0)
     message(FATAL_ERROR "Failed to find pybind11 using Python")
   endif()
@@ -46,7 +53,7 @@ if(NOT pybind11_FOUND)
   # 获取 pybind11 的 CMake 目录
   execute_process(
     COMMAND
-      "${Python_EXECUTABLE}" "-c"
+      "${Python3_EXECUTABLE}" "-c"
       "import pybind11; print(pybind11.get_cmake_dir(), end='')"
     OUTPUT_VARIABLE PYBIND11_CMAKE_DIR
     RESULT_VARIABLE PYBIND11_FIND_RESULT
@@ -70,7 +77,7 @@ include_directories(${pybind11_INCLUDE_DIRS})
 if(NOT DEFINED PYTHON_MODULE_EXTENSION OR NOT DEFINED PYTHON_MODULE_DEBUG_POSTFIX)
   execute_process(
     COMMAND
-      "${Python_EXECUTABLE}" "-c"
+      "${Python3_EXECUTABLE}" "-c"
       "import sys, importlib; s = importlib.import_module('distutils.sysconfig' if sys.version_info < (3, 10) else 'sysconfig'); print(s.get_config_var('EXT_SUFFIX') or s.get_config_var('SO'))"
     OUTPUT_VARIABLE _PYTHON_MODULE_EXT_SUFFIX
     ERROR_VARIABLE _PYTHON_MODULE_EXT_SUFFIX_ERR
@@ -113,9 +120,33 @@ function(pybind_extension)
   endif()
 
   add_library(${PY_NAME} SHARED)
+
+
+
   target_sources(${PY_NAME} 
     PRIVATE ${PY_SRCS} ${PY_HDRS}
   )
+
+  target_link_options(${PY_NAME} PRIVATE
+    "-static-libstdc++" 
+    "-static-libgcc"
+    "-Wl,--exclude-libs,ALL"
+  )
+
+
+  # "-Wl,--no-as-needed"
+  # "-Wl,--exclude-libs=ALL " # 排除其他动态库依赖
+
+  # "-Wl,--version-script=${CMAKE_SOURCE_DIR}/glibc_version.map"
+
+  
+#   target_link_options(${PY_NAME} PRIVATE
+#   "-static-libc"
+#   "-Wl,--whole-archive,/usr/lib64/libc-2.28.a"
+#   "-Wl,--no-whole-archive"
+# )
+
+ 
   target_link_libraries(${PY_NAME}
     PUBLIC ${PY_DEPS}
     PRIVATE ${PY_LINKOPTS}
@@ -127,6 +158,7 @@ function(pybind_extension)
   target_compile_options(${PY_NAME} PRIVATE ${PY_COPTS})
   target_compile_definitions(${PY_NAME} PUBLIC ${PY_DEFINES})
 
+  
   # -fvisibility=hidden is required to allow multiple modules compiled against
   # different pybind versions to work properly, and for some features (e.g.
   # py::module_local). 
@@ -138,10 +170,23 @@ function(pybind_extension)
     set_target_properties(${PY_NAME} PROPERTIES CUDA_VISIBILITY_PRESET "hidden")
   endif()
 
+  set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/hami)
+
   set_target_properties(
     ${PY_NAME}
     PROPERTIES PREFIX ""
                DEBUG_POSTFIX "${PYTHON_MODULE_DEBUG_POSTFIX}"
                SUFFIX "${PYTHON_MODULE_EXTENSION}")
+
+  
+  # # 确保静态链接的库不会被动态链接
+  target_link_options(${PY_NAME} PRIVATE -Wl,--exclude-libs,ALL)
+
+
+set_target_properties(${PY_NAME} PROPERTIES
+  LINK_FLAGS "-Wl,--enable-new-dtags,-rpath,\\$ORIGIN"
+)
+
+
 
 endfunction()

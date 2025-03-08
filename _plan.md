@@ -98,3 +98,7 @@ BackgroundThread
 
 basic and simple parser rules：
  
+
+ test : pip install torch==2.7 --index-url https://download.pytorch.org/whl/nightly/cu118
+
+ pip install torch==2.7 -i https://pypi.tuna.tsinghua.edu.cn/simple

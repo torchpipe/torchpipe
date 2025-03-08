@@ -63,13 +63,29 @@ function(cc_dynamic_library)
     string(REGEX REPLACE "^lib" "" LIB_NAME_WITHOUT_PREFIX ${CC_DYNAMIC_LIB_NAME})
     set_target_properties(${CC_DYNAMIC_LIB_NAME} PROPERTIES OUTPUT_NAME ${LIB_NAME_WITHOUT_PREFIX})
 
+    set_target_properties(${CC_DYNAMIC_LIB_NAME} PROPERTIES
+      LINK_FLAGS "-Wl,--enable-new-dtags,-rpath,\\$ORIGIN"
+    )
+
+
+    target_link_options(${CC_DYNAMIC_LIB_NAME} PRIVATE
+        "-static-libstdc++" 
+        "-static-libgcc"
+      
+      )
+      # target_link_options(${CC_DYNAMIC_LIB_NAME} PRIVATE -Wl,--exclude-libs,ALL)
+
+  
+      # "-Wl,--no-as-needed"
+      # "-Wl,--version-script=${CMAKE_SOURCE_DIR}/glibc_version.map"
+
 
     target_sources(${CC_DYNAMIC_LIB_NAME} 
       PRIVATE ${CC_DYNAMIC_LIB_SRCS} ${CC_DYNAMIC_LIB_HDRS})
     
       # see https://github.com/NVIDIA/TensorRT-LLM/blob/0d0583a639cb120f09ae4af50dd0722bdd60a5df/cpp/tensorrt_llm/CMakeLists.txt
     target_link_libraries(${CC_DYNAMIC_LIB_NAME}
-    PRIVATE -Wl,--whole-archive -Wl,--allow-multiple-definition ${CC_DYNAMIC_LIB_DEPS} "-Wl,-no-whole-archive"
+    PRIVATE -Wl,--whole-archive  ${CC_DYNAMIC_LIB_DEPS} "-Wl,-no-whole-archive"
       PRIVATE ${CC_DYNAMIC_LIB_LINKOPTS}
     )
 

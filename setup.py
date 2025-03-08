@@ -12,12 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from distutils.spawn import find_executable
-from distutils import sysconfig, log
+# from distutils.spawn import find_executable
+import shutil
+# from distutils import sysconfig, log
 import setuptools
 import setuptools.command.build_py
 import setuptools.command.develop
 import setuptools.command.build_ext
+
+# from logging import log
+import logging as log
 
 from contextlib import contextmanager
 import os
@@ -39,8 +43,8 @@ CMAKE_BUILD_TYPE = "Debug" if _debug else "Release"
 
 WINDOWS = os.name == "nt"
 
-CMAKE = find_executable("cmake3") or find_executable("cmake")
-MAKE = find_executable("make")
+CMAKE = shutil.which("cmake3") or shutil.which("cmake")
+MAKE = shutil.which("make")
 
 BUILD_INFO = {}
 ################################################################################
@@ -124,12 +128,9 @@ class cmake_build(setuptools.Command):
                 CMAKE,
                 "-G",
                 "Ninja",
-                "-DPYTHON_INCLUDE_DIR={}".format(sysconfig.get_python_inc()),
                 "-DPYTHON_EXECUTABLE={}".format(sys.executable),
+                "-DPython3_EXECUTABLE={}".format(sys.executable),
                 "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
-                "-DPY_EXT_SUFFIX={}".format(
-                    sysconfig.get_config_var("EXT_SUFFIX") or ""
-                ),
                 "-DPY_VERSION={}".format(
                     str(sys.version_info[0]) + "." + str(sys.version_info[1])
                 ),
@@ -151,11 +152,12 @@ class cmake_build(setuptools.Command):
                     cmake_args.extend(["-A", "Win32", "-T", "host=x86"])
                 cmake_args.extend(["-G", "Visual Studio 16 2019"])
             else:
-                cmake_args.append(
-                    "-DPYTHON_LIBRARY={}".format(
-                        sysconfig.get_python_lib(standard_lib=True)
-                    )
-                )
+                pass
+                # cmake_args.append(
+                #     "-DPYTHON_LIBRARY={}".format(
+                #         sysconfig.get_python_lib(standard_lib=True)
+                #     )
+                # )
             if True:
                 cmake_args.append(f"-DCMAKE_LIBRARY_OUTPUT_DIRECTORY={CMAKE_LIBRARY_OUTPUT_DIRECTORY}") 
                 cmake_args += [
@@ -168,6 +170,7 @@ class cmake_build(setuptools.Command):
                     cmake_args += ["-DUSE_CXX11_ABI=ON"]
                 else:
                     cmake_args += ["-DUSE_CXX11_ABI=OFF"]
+                log.info(f"USE_CXX11_ABI: {use_cxx11_abi()}" )
             
             if "CMAKE_ARGS" in os.environ:
                 extra_cmake_args = shlex.split(os.environ["CMAKE_ARGS"])

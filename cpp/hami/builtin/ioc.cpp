@@ -26,7 +26,8 @@ void IoC::init(const std::unordered_map<std::string, std::string>& in_config,
     HAMI_ASSERT(iter != config.end(),
                 "Dependency configuration missing for " + *name);
 
-    const auto& backend_setting = iter->second;
+    auto backend_setting = iter->second;
+    SPDLOG_INFO("IoC: {}", backend_setting);
     config.erase(iter);
 
     std::vector<std::string> phases = str::items_split(backend_setting, ';');
@@ -86,6 +87,7 @@ void IoC::init(const std::unordered_map<std::string, std::string>& in_config,
 void IoC::init_phase(const std::string& phase_config,
                      const std::unordered_map<std::string, std::string>& config,
                      const dict& dict_config) {
+    SPDLOG_INFO("Ioc init phase: {}", phase_config);
     auto backend_names = str::items_split(phase_config, ',', '[', ']');
     HAMI_ASSERT(backend_names.size() >= 1,
                 "Container: backend_names.size() should >= 1");

@@ -73,8 +73,8 @@ void DI::init(const std::unordered_map<string, string>& config,
                 "ins1 is a name of instance, not a name of class; name = " +
                     re[0] + "/" + re[1]);
     proxy_backend_->inject_dependency(dep);
-    SPDLOG_INFO("DI: {}[{}, {}]-> {}", re[0], proxy_backend_->min(),
-                proxy_backend_->max(), re[1]);
+    SPDLOG_INFO("DI: {} -> {} [{}, {}]", re[0], re[1], proxy_backend_->min(),
+                proxy_backend_->max());
 }
 
 HAMI_REGISTER_BACKEND(DI);

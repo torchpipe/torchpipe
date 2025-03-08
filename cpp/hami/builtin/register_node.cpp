@@ -10,7 +10,10 @@ void Register::pre_init(
     const dict& dict_config) {
     auto iter = config.find("node_name");
     HAMI_ASSERT(iter != config.end(), "node_name not found");
-
+    for (const auto & item: config)
+    {
+        SPDLOG_INFO("[Register] {}: {}", item.first, item.second);
+    }
     set_registered_name("node." + iter->second);
 }
 

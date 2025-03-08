@@ -1,0 +1,24 @@
+FROM quay.io/pypa/manylinux_2_28_x86_64 AS base
+
+LABEL maintainer="hydzhang@hotmail.com"
+ENV DEBIAN_FRONTEND=noninteractive
+
+ENV LC_ALL=en_US.UTF-8
+ENV LANG=en_US.UTF-8
+ENV LANGUAGE=en_US.UTF-8
+
+# Install common dependencies
+COPY ./common/install_base.sh install_base.sh
+RUN bash ./install_base.sh && rm install_base.sh
+
+ARG NINJA_VERSION=1.12.1
+COPY ./common/install_ninja.sh install_ninja.sh
+RUN if [ -n "${NINJA_VERSION}" ]; then bash ./install_ninja.sh; fi
+RUN rm install_ninja.sh
+
+ARG CCACHE_VERSION=4.8.3
+COPY ./common/install_ccache.sh install_ccache.sh
+RUN if [ -n "${CCACHE_VERSION}" ]; then bash ./install_ccache.sh; fi
+RUN rm install_ccache.sh
+
+CMD ["bash"]

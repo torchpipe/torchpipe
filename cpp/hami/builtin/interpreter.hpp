@@ -1,4 +1,6 @@
+
 #pragma once
+
 #include "hami/core/backend.hpp"
 #include "hami/builtin/proxy.hpp"
 namespace hami {
@@ -8,11 +10,11 @@ namespace hami {
 //     "Register[Aspect[Batching, "
 //     "InstanceDispatcher]]]";
 constexpr auto DEFAULT_NODE_CONFIG =
-    "IoC[SharedInstancesState,InstanceDispatcher,Batching;DI[Batching,"
+    u8"IoC[SharedInstancesState,InstanceDispatcher,Batching;DI[Batching,"
     "InstanceDispatcher]]";
 // constexpr auto DEFAULT_NODE_CONFIG = "IoC[Pass;Identity]";
-constexpr auto DEFAULT_INSTANCES_CONFIG = "BackgroundThread[Reflect[backend]]";
-const auto DEFAULT_INIT_CONFIG = std::string("List[InstancesRegister[") +
+constexpr auto DEFAULT_INSTANCES_CONFIG = u8"BackgroundThread[Reflect[backend]]";
+static const auto DEFAULT_INIT_CONFIG = std::string("List[InstancesRegister[") +
                                  DEFAULT_INSTANCES_CONFIG + "], " +
                                  "Register[" + DEFAULT_NODE_CONFIG + "]]";
 

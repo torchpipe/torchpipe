@@ -47,7 +47,7 @@ void Benchmark::init(const std::unordered_map<std::string, std::string>& config,
     // stages_.resize(num_clients_, Stage::WaitingForWarmup)
 }
 
-void Benchmark::forward(const std::vector<dict>& input, Backend* dependency) {
+void Benchmark::forward_with_dependency(const std::vector<dict>& input, Backend* dependency) {
     HAMI_ASSERT(input.size() > 1 && dependency);
 
     {

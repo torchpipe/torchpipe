@@ -13,3 +13,5 @@ hami/version.py
 .setuptools-cmake-build/
 version.py
 plugins/torchpipe/torchpipe/native.so
+wheelhouse/
+.pytest_cache/

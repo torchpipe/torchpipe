@@ -30,6 +30,7 @@
 #include <mutex>
 #include <memory>
 #include <optional>
+#include <stdexcept>
 
 #include "hami/helper/macro.h"
 

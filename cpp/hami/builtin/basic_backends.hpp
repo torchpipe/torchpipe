@@ -23,9 +23,9 @@ class HAMI_EXPORT Dependency : public Backend {
     void inject_dependency(Backend* dependency) override final;
 
     virtual void forward(const std::vector<dict>& input_output) override final {
-        forward(input_output, injected_dependency_);
+        forward_with_dependency(input_output, injected_dependency_);
     }
-    virtual void forward(const std::vector<dict>& input_output,
+    virtual void forward_with_dependency(const std::vector<dict>& input_output,
                          Backend* dependency) override final {
         if (dependency == nullptr) {
             throw std::invalid_argument("null dependency is not allowed");
@@ -101,7 +101,7 @@ class HAMI_EXPORT DynamicDependency : public Backend {
     void inject_dependency(Backend* dependency) override final;
 
     virtual void forward(const std::vector<dict>& input_output) override {
-        Backend::forward(input_output, injected_dependency_);
+        Backend::forward_with_dependency(input_output, injected_dependency_);
     }
     // virtual void forward(const std::vector<dict>& input_output,
     //                      Backend* dependency) override final {
@@ -206,6 +206,10 @@ class HAMI_EXPORT SingleBackend : public Backend {
                 "SingleBackend only supports single input");
         }
         forward(input_output[0]);
+    }
+
+    void forward_with_dependency(const std::vector<dict>& input_output, Backend*dep) override {
+        Backend::forward_with_dependency(input_output, dep);
     }
 
     /**

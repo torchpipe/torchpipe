@@ -107,7 +107,7 @@ class HAMI_EXPORT Backend {
      * @param input_output Input/output data to be processed.
      * @param dependency Pointer to the backend dependency.
      */
-    virtual void forward(const std::vector<dict>& input_output,
+    virtual void forward_with_dependency(const std::vector<dict>& input_output,
                          Backend* dependency) {
         if (dependency)
             throw std::runtime_error(

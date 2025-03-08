@@ -39,6 +39,7 @@ void Dependency::init(
             "*::dependency not found, skipping "
             "dependency injection process");
     }
+    SPDLOG_INFO("Dependency dependency_name_ = {}", dependency_name_);
     post_init(config, dict_config);
 }
 

@@ -1,6 +1,6 @@
 import pytest
-import torch
-import torchpipe
+# import torch
+# import torchpipe
 import os
 import tempfile
 import hami
@@ -10,51 +10,16 @@ INIT_STR = "ModelLoadder[(.onnx)Onnx2Tensorrt,(.trt)LoadTensorrtEngine], Tensorr
 FORWARD_STR = "CatSplit[S[GpuTensor,CatTensor],S[ContiguousTensor,TensorrtInferTensor,ProxyFromParam[post_processor]],SplitTensor]"
 BACKEND_STR = f"StreamGuard[TensorrtTensor]"
 BACKEND_STR = "Identity"
-class Conv(torch.nn.Module):
-    def __init__(self):
-        super(Conv, self).__init__()
-        self.conv = torch.nn.Conv2d(3, 1, kernel_size=3, stride=2, padding=1)
-    def forward(self, x):
-        return self.conv(x)
-
-def get_tmp_onnx(model: torch.nn.Module, input_shape: list) -> str:
-    """
-    Export PyTorch model to ONNX format
-    
-    Args:
-        model: PyTorch model to export
-        input_shape: Input tensor shape
-    
-    Returns:
-        Path to temporary ONNX file
-    """
-    onnx_path = tempfile.mktemp(suffix=".onnx")
-    model.eval()
-    input_data = torch.randn(input_shape).cuda().half()
-    torch.onnx.export(
-        model, 
-        input_data, 
-        onnx_path,
-        input_names=["input"], 
-        output_names=["output"],
-        dynamic_axes={"input": {0: "batch_size"}}
-    )
-    return onnx_path
-
+  
 
 def model_config():
     """Fixture to create model configuration and ONNX file"""
     config = {
         "model_type": "onnx",
         "post_processor": "Identity"
-    }
+    } 
     
-    # Create temporary ONNX model
-    torch_model = Conv().cuda().half()
-    tmp_onnx = get_tmp_onnx(torch_model, [1, 3, 224, 224])
-    config["model"] = tmp_onnx
-    
-    return config, torch_model, tmp_onnx
+    return config, None, None
     
     # Cleanup temporary file
     os.remove(tmp_onnx)
@@ -76,8 +41,8 @@ def test_tensorrt_inference():
         
     
     # Prepare input data
-    input_tensor = torch.ones((1, 3, 224, 224)).half()*10
-    data = {"data": input_tensor.cuda()}
+    input_tensor = 1
+    data = {"data": input_tensor}
     
     # Run inference
     # model(data)
@@ -94,15 +59,8 @@ def test_tensorrt_inference():
     # pdb.set_trace()
     
     
-    os.remove(tmp_onnx)
     return 
-    # Verify results
-    result = data['result']
-    expected = torch_model(input_tensor.cuda())
-    expected = expected.cuda()
-    # print(result, expected)
-    assert torch.allclose(result, expected, rtol=1e-2, atol=1e-2), "Model output does not match expected values"
-    
+   
 if __name__ == "__main__":
     import time
     # time.sleep(5)

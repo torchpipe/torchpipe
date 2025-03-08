@@ -12,9 +12,9 @@ class LaunchBase : public Backend {
     void inject_dependency(Backend* dependency) override;
 
     virtual void forward(const std::vector<dict>& input_output) override final {
-        forward(input_output, injected_dependency_);
+        forward_with_dependency(input_output, injected_dependency_);
     }
-    virtual void forward(const std::vector<dict>& input_output,
+    virtual void forward_with_dependency(const std::vector<dict>& input_output,
                          Backend* dependency) override final {
         if (dependency == nullptr) {
             throw std::invalid_argument("null dependency is not allowed");
