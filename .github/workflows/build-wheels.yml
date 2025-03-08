@@ -20,7 +20,7 @@ jobs:
     - name: Generate manylinux2014 wheels
       run: |
         docker run --rm -v ${{ github.workspace }}:/src manylinux2014 \
-          bash -c "cd /src && bash script/generate_manylinux2014.sh"
+          bash -c "cd /src && bash scripts/generate_manylinux2014.sh"
 
     - name: Run automatic tests
       run: |
@@ -46,7 +46,7 @@ jobs:
     - name: Generate manylinux2_28 wheels
       run: |
         docker run --rm -v ${{ github.workspace }}:/src manylinux2_28 \
-          bash -c "cd /src && bash script/generate_manylinux2_28.sh"
+          bash -c "cd /src && bash scripts/generate_manylinux2_28.sh"
 
     - name: Run automatic tests
       run: |
