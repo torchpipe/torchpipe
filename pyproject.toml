@@ -32,9 +32,10 @@ dynamic = ["version"]
 license = {text = "Apache-2.0"}
 name = "hami"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.7"
 [tool.setuptools_scm]
-write_to = "hami/version.py"
+# write_to = "hami/version.py"
+# version_file = "VERSION.txt"
 
 [project.urls]
 Homepage = "https://github.com/torchpipe/torchpipe"
@@ -45,7 +46,7 @@ packages = ["hami", "hami._C"]
 zip-safe = true
 [tool.setuptools.dynamic]
 dependencies = {file = "requirements.txt"}
-version = {file = "VERSION"}
+# version = {file = "VERSION"}
 
 [tool.setuptools.exclude-package-data]
 "*" = ["*.h", "*.cc", "*.bak", "*.in", "csrc/*", "CMakeLists.txt", "hami/csrc/"]

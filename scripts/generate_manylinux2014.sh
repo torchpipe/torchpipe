@@ -9,7 +9,7 @@ export PYVER=313
 for PYVER in 37; do
     rm -rf .setuptools-cmake-build/
     rm -rf build/
-    rm -rf dist/*
+    rm -rf dist/*.whl
     # export PYVER=312
     export PATH="/opt/python/cp${PYVER}-cp${PYVER}m/bin:$PATH"
 
@@ -20,7 +20,7 @@ for PYVER in 37; do
     /opt/python/cp${PYVER}-cp${PYVER}m/bin/python3 setup.py -q bdist_wheel 
     # cibuildwheel --platform linux
 
-    auditwheel repair --plat manylinux2014_x86_64 dist/hami-1.0.0a0-cp$PYVER-cp${PYVER}m-linux_x86_64.whl 
+    auditwheel repair --plat manylinux2014_x86_64 dist/hami-*-cp$PYVER-cp${PYVER}m-linux_x86_64.whl 
 
 done
 
@@ -30,7 +30,7 @@ ldd .setuptools-cmake-build/hami/*.so
 for PYVER in 38 39 310 311 312 313; do
     rm -rf .setuptools-cmake-build/
     rm -rf build/
-    rm -rf dist/*
+    rm -rf dist/*.whl
     # export PYVER=312
     export PATH="/opt/python/cp${PYVER}-cp${PYVER}/bin:$PATH"
 
@@ -39,7 +39,7 @@ for PYVER in 38 39 310 311 312 313; do
     /opt/python/cp${PYVER}-cp${PYVER}/bin/python3  -m pip install build pybind11 auditwheel-symbols setuptools
     /opt/python/cp${PYVER}-cp${PYVER}/bin/python3 setup.py -q bdist_wheel 
 
-    auditwheel repair --plat manylinux2014_x86_64 dist/hami-1.0.0a0-cp$PYVER-cp$PYVER-linux_x86_64.whl 
+    auditwheel repair --plat manylinux2014_x86_64 dist/hami-*-cp$PYVER-cp$PYVER-linux_x86_64.whl 
 
 done
 

@@ -75,6 +75,23 @@ assert CMAKE, 'Could not find "cmake" executable!'
 ################################################################################
 # Utilities
 ################################################################################
+required_setup_deps=["cmake", "ninja", "pybind11"]
+def is_package_installed(package_name):
+    try:
+        import importlib
+        importlib.import_module(package_name)
+        return True
+    except ImportError:
+        return False
+
+def install_package(package_name):
+    subprocess.check_call([sys.executable, "-m", "pip", "install", package_name])
+
+# Check and install missing dependencies
+for dep in required_setup_deps:
+    if not is_package_installed(dep):
+        print(f"Installing missing setup dependency: {dep}")
+        install_package(dep)
 
 
 @contextmanager
@@ -123,17 +140,24 @@ class cmake_build(setuptools.Command):
         os.makedirs(CMAKE_BUILD_DIR, exist_ok=True)
 
         with cd(CMAKE_BUILD_DIR):
+
+            ninja = shutil.which('ninja')
+            assert ninja
+            if ninja:
+                cmake_args = [CMAKE, "-G", "Ninja", f"-DCMAKE_MAKE_PROGRAM={ninja}"]    # pass in the ninja build path
+            else:
+                cmake_args = [CMAKE]
+
             # configure
-            cmake_args = [
-                CMAKE,
-                "-G",
-                "Ninja",
+            cmake_args += [
                 "-DPYTHON_EXECUTABLE={}".format(sys.executable),
                 "-DPython3_EXECUTABLE={}".format(sys.executable),
                 "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
                 "-DPY_VERSION={}".format(
                     str(sys.version_info[0]) + "." + str(sys.version_info[1])
                 ),
+                "-DCMAKE_C_COMPILER={}".format(shutil.which("gcc")),
+                "-DCMAKE_CXX_COMPILER={}".format(shutil.which("g++")),
             ]
             cmake_args.append(f"-DCMAKE_BUILD_TYPE={CMAKE_BUILD_TYPE}")
             if _debug:
@@ -162,10 +186,10 @@ class cmake_build(setuptools.Command):
                 cmake_args.append(f"-DCMAKE_LIBRARY_OUTPUT_DIRECTORY={CMAKE_LIBRARY_OUTPUT_DIRECTORY}") 
                 cmake_args += [
                     "-DBUILD_PYBIND=ON", # build pybind
-                    f"-DCMAKE_MAKE_PROGRAM={shutil.which('ninja')}",  # pass in the ninja build path
                     "-DUSE_CCACHE=ON",  # use ccache if available
                     "-DUSE_MANYLINUX:BOOL=ON",  # use manylinux settings
                 ]
+
                 if use_cxx11_abi():
                     cmake_args += ["-DUSE_CXX11_ABI=ON"]
                 else:
@@ -192,6 +216,7 @@ class cmake_build(setuptools.Command):
             subprocess.check_call(build_args, env=env)
 
             BUILD_INFO["USE_CXX11_ABI"] = use_cxx11_abi()
+            
             import pybind11
             BUILD_INFO["PYBIND11_VERSION"] = pybind11.__version__
             BUILD_INFO["CMAKE_BUILD_TYPE"] = CMAKE_BUILD_TYPE
@@ -236,4 +261,6 @@ ext_modules = [
 setuptools.setup(
     ext_modules=ext_modules,
     cmdclass=cmdclass,
+    use_scm_version=True,
+    setup_requires=required_setup_deps
 )
