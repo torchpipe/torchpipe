@@ -36,10 +36,11 @@ requires-python = ">=3.7"
 [tool.setuptools_scm]
 # write_to = "hami/version.py"
 # version_file = "VERSION.txt"
-version_scheme = "guess-next-rc"
 local_scheme = "time-dot-node"
 normalize = false
 write_to = "VERSION.txt"
+fallback_version = "0.0.0"
+
 
 [project.urls]
 Homepage = "https://github.com/torchpipe/torchpipe"
