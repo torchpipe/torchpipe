@@ -12,6 +12,7 @@ jobs:
     strategy:
       matrix:
         image_type: [manylinux2014, manylinux2_28]
+
     steps:
     - uses: actions/checkout@v4
       with:
@@ -25,25 +26,28 @@ jobs:
     - name: Build Docker image
       run: |
         docker build -t ${{ matrix.image_type }} \
-          -f docker/Dockerfile.${{ matrix.image_type }} docker/
+          -f docker/Dockerfile.${{ matrix.image_type }} \
+          docker/
 
-    - name: Generate wheels
+    - name: Generate wheels and clean
       run: |
         docker run --rm \
           -v ${{ github.workspace }}:/src \
           -v ${{ github.workspace }}/wheelhouse/${{ matrix.image_type }}:/wheelhouse \
           ${{ matrix.image_type }} \
           bash -c "cd /src && \
-          bash scripts/generate_${{ matrix.image_type }}.sh"
+                  bash scripts/generate_${{ matrix.image_type }}.sh && \
+                  rm -rf .eggs .pytest_cache"
 
-    - name: Run tests
+    - name: Run tests and clean
       run: |
         docker run --rm \
           -v ${{ github.workspace }}:/src \
           -v ${{ github.workspace }}/wheelhouse/${{ matrix.image_type }}:/wheelhouse \
           ${{ matrix.image_type }} \
           bash -c "cd /src && \
-          bash scripts/pytest_${{ matrix.image_type }}.sh"
+                  bash scripts/pytest_${{ matrix.image_type }}.sh && \
+                  rm -rf .eggs .pytest_cache"
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
@@ -64,11 +68,12 @@ jobs:
     - name: Combine wheel files
       run: |
         mkdir -p merged_wheelhouse
-        find artifacts -name '*.whl' -exec cp {} merged_wheelhouse/ \;
+        # 将所有 artifact 中的 wheel 文件复制到 merged_wheelhouse
+        find artifacts -mindepth 1 -type f -name '*.whl' -exec cp {} merged_wheelhouse/ \;
 
     - name: Publish to PyPI
       run: |
-        twine upload merged_wheelhouse_stop_this_task_right_now/*.whl
+        twine upload merged_wheelhouse/*.whl
       env:
         TWINE_USERNAME: __token__
         TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
