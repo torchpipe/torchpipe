@@ -17,7 +17,7 @@ for PYVER in 37; do
 
     pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
 
-    /opt/python/cp${PYVER}-cp${PYVER}m/bin/python3  -m pip install build pybind11 auditwheel-symbols setuptools
+    /opt/python/cp${PYVER}-cp${PYVER}m/bin/python3  -m pip install build pybind11 auditwheel-symbols setuptools setuptools_scm
     # python3 -m build
     /opt/python/cp${PYVER}-cp${PYVER}m/bin/python3 setup.py -q bdist_wheel 
     # cibuildwheel --platform linux

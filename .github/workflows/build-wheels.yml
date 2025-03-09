@@ -20,6 +20,7 @@ jobs:
 
     - name: Generate manylinux2014 wheels
       run: |
+        rm -rf /tmp/manylinux2014
         mkdir -p /tmp/manylinux2014
         cp -r ${{ github.workspace }}/* /tmp/manylinux2014/
         cp -rf ${{ github.workspace }}/.git/ /tmp/manylinux2014/
@@ -46,6 +47,7 @@ jobs:
 
     - name: Generate manylinux2_28 wheels
       run: |
+        rm -rf /tmp/manylinux2_28
         mkdir -p /tmp/manylinux2_28
         cp -r ${{ github.workspace }}/* /tmp/manylinux2_28/
         cp -rf ${{ github.workspace }}/.git /tmp/manylinux2_28/
