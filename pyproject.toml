@@ -25,7 +25,7 @@ classifiers = [
   "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 dependencies = [
-  'tomli>=2.0.1; python_version < "3.11"',
+  'tomli>=2.0.1; python_version <= "3.13"',
 ]
 description = "A simplified dependency injection and batched backend scheduling C++ library"
 dynamic = ["version"]

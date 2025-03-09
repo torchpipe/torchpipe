@@ -4,6 +4,8 @@ rm -rf wheelhouse/*manylinux_2_28_x86_64.whl
 
 rm -rf hami.egg-info/*
 
+git config --global --add safe.directory .
+
 export PYVER=313
 
 for PYVER in 38 39 310 311 312 313; do
@@ -23,7 +25,7 @@ for PYVER in 38 39 310 311 312 313; do
     # for whl in dist/hami-*-cp${PYVER}*-linux_x86_64.whl; do
     #     auditwheel repair --plat manylinux_2_28_x86_64 "$whl"
     # done
-    
+
 done
 
 ldd .setuptools-cmake-build/hami/*.so
