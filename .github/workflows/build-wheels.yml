@@ -3,6 +3,7 @@ name: Build Manylinux Wheels
 on:
   push:
     branches: [ v1 ]
+    tags: [ 'v*' ]
   pull_request:
     branches: [ v1 ]
 
