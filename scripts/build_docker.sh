@@ -1,3 +1,4 @@
+set -e
 docker build -f docker/Dockerfile.manylinux2_28 -t hami:228 docker/
 # hami::228
 
