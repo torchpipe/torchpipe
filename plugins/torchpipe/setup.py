@@ -441,7 +441,7 @@ if __name__ == "__main__":
             "hami":"hami>=0.0.1"
         },
         ext_modules=extensions,
-        python_requires=">=3.7",
+        python_requires=">=3.8",
         cmdclass={
             "build_ext": BuildExtension.with_options(no_python_abi_suffix=True),
             "clean": clean,
