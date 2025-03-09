@@ -8,12 +8,11 @@ on:
 
 jobs:
   build-manylinux2014:
-    # runs-on: ubuntu-latest 
     runs-on: self-hosted
     steps:
     - uses: actions/checkout@v4
       with:
-          submodules: true
+        submodules: true
 
     - name: Build manylinux2014 image
       run: docker build -t manylinux2014 -f docker/Dockerfile.manylinux2014 docker/
@@ -35,12 +34,11 @@ jobs:
         path: wheelhouse/*manylinux2014*.whl
 
   build-manylinux2_28:
-    # runs-on: ubuntu-latest
     runs-on: self-hosted
     steps:
     - uses: actions/checkout@v4
       with:
-          submodules: true
+        submodules: true
 
     - name: Build manylinux2_28 image
       run: docker build -t manylinux2_28 -f docker/Dockerfile.manylinux2_28 docker/
@@ -64,7 +62,6 @@ jobs:
   publish-to-pypi:
     needs: [build-manylinux2014, build-manylinux2_28]
     if: startsWith(github.ref, 'refs/tags/v')
-    # runs-on: ubuntu-latest
     runs-on: self-hosted
     steps:
     - name: Download all artifacts
