@@ -2,7 +2,6 @@ name: Build Manylinux Wheels
 
 on:
   push:
-    branches: [ v1 ]
     tags: [ 'v*' ]
   pull_request:
     branches: [ v1 ]
@@ -73,6 +72,9 @@ jobs:
       run: |
         mkdir -p wheelhouse
         find artifacts -name '*.whl' -exec cp {} wheelhouse/ \;
+
+    - name: Install twine
+      run: pip install twine
 
     - name: Publish to PyPI
       run: |
