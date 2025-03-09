@@ -7,60 +7,52 @@ on:
     branches: [ v1 ]
 
 jobs:
-  build-manylinux2014:
+  build-wheels:
     runs-on: [self-hosted, linux, X64]
+    strategy:
+      matrix:
+        image_type: [manylinux2014, manylinux2_28]
     steps:
     - uses: actions/checkout@v4
       with:
         submodules: true
 
-    - name: Build manylinux2014 image
-      run: docker build -t manylinux2014 -f docker/Dockerfile.manylinux2014 docker/
-
-    - name: Generate manylinux2014 wheels
+    - name: Clean workspace
       run: |
-        docker run --rm -v ${{ github.workspace }}:/src manylinux2014 \
-          bash -c "cd /src && bash scripts/generate_manylinux2014.sh"
+        rm -rf wheelhouse/${{ matrix.image_type }}
+        mkdir -p wheelhouse/${{ matrix.image_type }}
 
-    - name: Run automatic tests
+    - name: Build Docker image
       run: |
-        docker run --rm -v ${{ github.workspace }}:/src manylinux2014 \
-          bash -c "cd /src && bash scripts/pytest_manylinux2014.sh"
+        docker build -t ${{ matrix.image_type }} \
+          -f docker/Dockerfile.${{ matrix.image_type }} docker/
 
-    - name: Upload manylinux2014 artifacts
+    - name: Generate wheels
+      run: |
+        docker run --rm \
+          -v ${{ github.workspace }}:/src \
+          -v ${{ github.workspace }}/wheelhouse/${{ matrix.image_type }}:/wheelhouse \
+          ${{ matrix.image_type }} \
+          bash -c "cd /src && \
+          bash scripts/generate_${{ matrix.image_type }}.sh"
+
+    - name: Run tests
+      run: |
+        docker run --rm \
+          -v ${{ github.workspace }}:/src \
+          -v ${{ github.workspace }}/wheelhouse/${{ matrix.image_type }}:/wheelhouse \
+          ${{ matrix.image_type }} \
+          bash -c "cd /src && \
+          bash scripts/pytest_${{ matrix.image_type }}.sh"
+
+    - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: manylinux2014-wheels
-        path: wheelhouse/*manylinux2014*.whl
-
-  build-manylinux2_28:
-    runs-on: [self-hosted, linux, X64]
-    steps:
-    - uses: actions/checkout@v4
-      with:
-        submodules: true
-
-    - name: Build manylinux2_28 image
-      run: docker build -t manylinux2_28 -f docker/Dockerfile.manylinux2_28 docker/
-
-    - name: Generate manylinux2_28 wheels
-      run: |
-        docker run --rm -v ${{ github.workspace }}:/src manylinux2_28 \
-          bash -c "cd /src && bash scripts/generate_manylinux2_28.sh"
-
-    - name: Run automatic tests
-      run: |
-        docker run --rm -v ${{ github.workspace }}:/src manylinux2_28 \
-          bash -c "cd /src && bash scripts/pytest_manylinux2_28.sh"
-
-    - name: Upload manylinux2_28 artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: manylinux2_28-wheels
-        path: wheelhouse/*manylinux2_28*.whl
+        name: ${{ matrix.image_type }}-wheels
+        path: wheelhouse/${{ matrix.image_type }}/*.whl
 
   publish-to-pypi:
-    needs: [build-manylinux2014, build-manylinux2_28]
+    needs: [build-wheels]
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: [self-hosted, linux, X64]
     steps:
@@ -71,12 +63,12 @@ jobs:
 
     - name: Combine wheel files
       run: |
-        mkdir -p wheelhouse
-        find artifacts -name '*.whl' -exec cp {} wheelhouse/ \;
+        mkdir -p merged_wheelhouse
+        find artifacts -name '*.whl' -exec cp {} merged_wheelhouse/ \;
 
     - name: Publish to PyPI
       run: |
-        twine upload wheelhouse/*.whl
+        twine upload merged_wheelhouse_stop_this_task_right_now/*.whl
       env:
         TWINE_USERNAME: __token__
         TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
