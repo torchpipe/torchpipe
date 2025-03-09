@@ -20,11 +20,7 @@ jobs:
 
     - name: Generate manylinux2014 wheels
       run: |
-        rm -rf /tmp/manylinux2014
-        mkdir -p /tmp/manylinux2014
-        cp -r ${{ github.workspace }}/* /tmp/manylinux2014/
-        cp -rf ${{ github.workspace }}/.git/ /tmp/manylinux2014/
-        docker run --rm -v /tmp/manylinux2014:/src manylinux2014 \
+        docker run --rm -v ${{ github.workspace }}:/src manylinux2014 \
           bash -c "cd /src && bash scripts/generate_manylinux2014.sh && bash scripts/pytest_manylinux2014.sh"
 
 
@@ -32,7 +28,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: manylinux2014-wheels
-        path: /tmp/manylinux2014/wheelhouse/*manylinux2014*.whl
+        path: ${{ github.workspace }}/wheelhouse/*manylinux2014*.whl
 
   build-manylinux2_28:
     runs-on: [self-hosted, linux, X64]
@@ -47,18 +43,14 @@ jobs:
 
     - name: Generate manylinux2_28 wheels
       run: |
-        rm -rf /tmp/manylinux2_28
-        mkdir -p /tmp/manylinux2_28
-        cp -r ${{ github.workspace }}/* /tmp/manylinux2_28/
-        cp -rf ${{ github.workspace }}/.git /tmp/manylinux2_28/
-        docker run --rm -v /tmp/manylinux2_28:/src manylinux2_28 \
+        docker run --rm -v ${{ github.workspace }}:/src manylinux2_28 \
           bash -c "cd /src && bash scripts/generate_manylinux2_28.sh && bash scripts/pytest_manylinux2_28.sh"
 
     - name: Upload manylinux2_28 artifacts
       uses: actions/upload-artifact@v4
       with:
         name: manylinux2_28-wheels
-        path: /tmp/manylinux2_28/wheelhouse/*manylinux_2_28*.whl
+        path: ${{ github.workspace }}/wheelhouse/*manylinux_2_28*.whl
 
   publish-to-pypi:
     needs: [build-manylinux2014, build-manylinux2_28]
@@ -78,6 +70,10 @@ jobs:
     - name: Install twine
       run: pip install twine
 
+    - name: Validate wheels
+      run: |
+        twine check wheelhouse/*.whl
+        
     - name: Publish to PyPI
       run: |
         twine upload wheelhouse/*.whl
