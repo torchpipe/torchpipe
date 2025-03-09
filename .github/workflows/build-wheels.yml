@@ -17,14 +17,14 @@ jobs:
         path: ${{ github.workspace }}/code/
 
     - name: Build manylinux2014 image
-      run: cd ${{ github.workspace }}/code/ && docker build -t manylinux2014 -f docker/Dockerfile.manylinux2014 docker/
+      run: cd ${{ github.workspace }}/code/ &&  ls ${{ github.workspace }}/code/ && docker build -t manylinux2014 -f docker/Dockerfile.manylinux2014 docker/ 
     
     - name: mkdir wheelhouse
       run: mkdir -p ${{ github.workspace }}/wheelhouse
 
     - name: Generate manylinux2014 wheels
       run: |
-        docker run --rm -v ${{ github.workspace }}/src manylinux2014 \
+        docker run --rm -v ${{ github.workspace }}:/src manylinux2014 \
           bash -c "cd /src/code/ && bash scripts/generate_manylinux2014.sh && bash scripts/pytest_manylinux2014.sh && cp /src/code/wheelhouse/*.whl /src/wheelhouse/ && rm -rf /src/code/"
 
     - name: Upload manylinux2014 artifacts
@@ -43,14 +43,14 @@ jobs:
         path: ${{ github.workspace }}/code/
 
     - name: Build manylinux2_28 image
-      run: cd ${{ github.workspace }}/code/ && docker build -t manylinux2_28 -f docker/Dockerfile.manylinux2_28 docker/
+      run: docker build -t manylinux2_28 -f docker/Dockerfile.manylinux2_28 docker/
 
     - name: mkdir wheelhouse
       run: mkdir -p ${{ github.workspace }}/wheelhouse
 
     - name: Generate manylinux2_28 wheels
       run: |
-        docker run --rm -v ${{ github.workspace }}/src manylinux2_28 \
+        docker run --rm -v ${{ github.workspace }}:/src manylinux2_28 \
           bash -c "cd /src && bash scripts/generate_manylinux2_28.sh && bash scripts/pytest_manylinux2_28.sh && cp -r /src/code/wheelhouse/*.whl /src/wheelhouse/ && rm -rf /src/code/"
 
     - name: Upload manylinux2_28 artifacts
