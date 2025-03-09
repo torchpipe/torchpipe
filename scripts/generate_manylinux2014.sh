@@ -2,7 +2,7 @@
 set -e
 rm -rf wheelhouse/*manylinux2014_x86_64.whl
 
-rm -rf hami.egg-info/*
+rm -rf hami*.egg-info/*
 
 git config --global --add safe.directory .
 
@@ -22,7 +22,7 @@ for PYVER in 37; do
     /opt/python/cp${PYVER}-cp${PYVER}m/bin/python3 setup.py -q bdist_wheel 
     # cibuildwheel --platform linux
 
-    auditwheel repair --plat manylinux2014_x86_64 dist/hami-*-cp$PYVER-cp${PYVER}m-linux_x86_64.whl 
+    auditwheel repair --plat manylinux2014_x86_64 dist/hami*-cp$PYVER-cp${PYVER}m-linux_x86_64.whl 
 
 done
 
@@ -41,7 +41,7 @@ for PYVER in 38 39 310 311 312 313; do
     /opt/python/cp${PYVER}-cp${PYVER}/bin/python3  -m pip install build pybind11 auditwheel-symbols setuptools
     /opt/python/cp${PYVER}-cp${PYVER}/bin/python3 setup.py -q bdist_wheel 
 
-    auditwheel repair --plat manylinux2014_x86_64 dist/hami-*-cp$PYVER-cp$PYVER-linux_x86_64.whl 
+    auditwheel repair --plat manylinux2014_x86_64 dist/hami*-cp$PYVER-cp$PYVER-linux_x86_64.whl 
 
 done
 

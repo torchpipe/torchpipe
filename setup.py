@@ -266,6 +266,7 @@ ext_modules = [
 ]
 
 setuptools.setup(
+    name="hami-core",
     ext_modules=ext_modules,
     cmdclass=cmdclass,
     # use_scm_version=True,
