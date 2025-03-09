@@ -1,5 +1,12 @@
 
 set -e
+
+
+# docker run --rm  --name hami2014 --gpus=all --ipc=host --network=host -v $(pwd):/workspace --shm-size 1G --ulimit memlock=-1 --ulimit stack=67108864  --privileged=true  -w /workspace \
+#  -it hami:2014  bash
+ 
+
+
 rm -rf wheelhouse/*manylinux_2_28_x86_64.whl
 
 rm -rf hami.egg-info/*
