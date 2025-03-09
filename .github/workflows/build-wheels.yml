@@ -52,7 +52,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: manylinux2_28-wheels
-        path: /tmp/manylinux2_28/wheelhouse/*manylinux2_28*.whl
+        path: /tmp/manylinux2_28/wheelhouse/*manylinux_2_28*.whl
 
   publish-to-pypi:
     needs: [build-manylinux2014, build-manylinux2_28]

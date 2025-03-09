@@ -33,6 +33,30 @@ import multiprocessing
 import glob
 import shutil
 
+
+################################################################################
+# Packages
+################################################################################
+required_setup_deps=["cmake", "ninja", "pybind11", "setuptools_scm"]
+def is_package_installed(package_name):
+    try:
+        import importlib
+        importlib.import_module(package_name)
+        return True
+    except ImportError:
+        return False
+
+def install_package(package_name):
+    subprocess.check_call([sys.executable, "-m", "pip", "install", package_name])
+
+# Check and install missing dependencies
+for dep in required_setup_deps:
+    if not is_package_installed(dep):
+        print(f"Installing missing setup dependency: {dep}")
+        install_package(dep)
+
+
+
 TOP_DIR = os.path.realpath(os.path.dirname(__file__))
 
 CMAKE_BUILD_DIR = os.path.join(TOP_DIR, ".setuptools-cmake-build")
@@ -75,23 +99,6 @@ assert CMAKE, 'Could not find "cmake" executable!'
 ################################################################################
 # Utilities
 ################################################################################
-required_setup_deps=["cmake", "ninja", "pybind11"]
-def is_package_installed(package_name):
-    try:
-        import importlib
-        importlib.import_module(package_name)
-        return True
-    except ImportError:
-        return False
-
-def install_package(package_name):
-    subprocess.check_call([sys.executable, "-m", "pip", "install", package_name])
-
-# Check and install missing dependencies
-for dep in required_setup_deps:
-    if not is_package_installed(dep):
-        print(f"Installing missing setup dependency: {dep}")
-        install_package(dep)
 
 
 @contextmanager
@@ -216,7 +223,7 @@ class cmake_build(setuptools.Command):
             subprocess.check_call(build_args, env=env)
 
             BUILD_INFO["USE_CXX11_ABI"] = use_cxx11_abi()
-            
+
             import pybind11
             BUILD_INFO["PYBIND11_VERSION"] = pybind11.__version__
             BUILD_INFO["CMAKE_BUILD_TYPE"] = CMAKE_BUILD_TYPE
