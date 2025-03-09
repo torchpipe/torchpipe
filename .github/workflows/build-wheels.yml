@@ -43,7 +43,7 @@ jobs:
         path: ${{ github.workspace }}/code/
 
     - name: Build manylinux2_28 image
-      run: docker build -t manylinux2_28 -f docker/Dockerfile.manylinux2_28 docker/
+      run: cd ${{ github.workspace }}/code/ && docker build -t manylinux2_28 -f docker/Dockerfile.manylinux2_28 docker/
 
     - name: mkdir wheelhouse
       run: mkdir -p ${{ github.workspace }}/wheelhouse
