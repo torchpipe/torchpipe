@@ -37,7 +37,7 @@ jobs:
           ${{ matrix.image_type }} \
           bash -c "cd /src && \
                   bash scripts/generate_${{ matrix.image_type }}.sh && \
-                  rm -rf .eggs .pytest_cache"
+                  rm -rf .eggs .pytest_cache hami.egg-info"
 
     - name: Run tests and clean
       run: |
