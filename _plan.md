@@ -85,7 +85,9 @@ Repost[Z, dddsa]
 - entrypoint 从Interpreter独立
 
 
-builtin types: Any, Dict, Backend, Event, Queue
+ Limited Data typesbuiltin types: Any, Dict, Backend
+   (异步), Event, Queue(default queue), 
+   （more schedule）TypedDict, KVStorage(req_id, resp_id, data) 
 builtin container: IoC Proxy/DI Sequential/S  Reflect[key_to_cls_name, default=backend] Register/InstancesRegister InstanceFromParam Forward[instance_name]
 
 CatSplit, DagDispatcher, InstanceDispatcher
@@ -94,7 +96,7 @@ Queue, Recv, Send  Q_i B_i B_c
 
 BackgroundThread
 
-二元操作而非多元操作，filter 
+二元操作，filter 
 
 basic and simple parser rules：
  
@@ -102,3 +104,29 @@ basic and simple parser rules：
  test : pip install torch==2.7 --index-url https://download.pytorch.org/whl/nightly/cu118
 
  pip install torch==2.7 -i https://pypi.tuna.tsinghua.edu.cn/simple
+
+
+ inline scheduling struc
+
+
+
+
+```bash
+pip3 install hami-core --platform manylinux2014_x86_64 --only-binary=:all: --target `python3 -c "import site; print(site.getusersitepackages())"`
+
+# or system wide install: 
+# pip3 install hami-core --platform manylinux2014_x86_64 --only-binary=:all:   --target `python3 -c "import site; print(site.getsitepackages()[0])"`
+
+```
+
+
+
+帮我实现一个类帮我实现一个KVStorage，c++17, 英语注释,类名自行修改。不要对外暴露InnerMap，也可以不要InnerMap。 如果insert时找不到req_id 抛异常，其他也类似，如get
+要求：
+
+- 双重unordered_map： KVStorage(req_id : str, key : str, value: std::any)
+- 线程安全：内锁和外锁两把锁
+- remove(req_id)
+- optional<std::any> get
+- insert(req_id, key, value) insert_or_assign
+- ... 提供更多函数

@@ -93,9 +93,11 @@ std::vector<T> str_split(const std::string& input, char delimiter = ',') {
 }
 
 template <typename T>
-std::vector<std::vector<T>> str_split(const std::string& input,
+std::vector<std::vector<T>> str_split(const std::string& in_input,
                                       char inner_delimiter,
                                       char outer_delimiter) {
+    auto input = in_input;
+    remove_space_and_ctrl(input);
     std::vector<std::vector<T>> result;
     std::vector<std::string> outer_split = str_split(input, outer_delimiter);
     result.reserve(outer_split.size());
@@ -240,9 +242,9 @@ bool is_comma_separable(const std::string& strtem, char left, char right);
  * keya=A[B,C(a=d)](a,d){a=d},D,keyb=E => keya="A[B,C(a=d)](a,d){a=d},D" and
  * keyb=E
  */
-std::unordered_map<std::string, std::string> map_split(
-    std::string strtem, char inner_sp, char outer,
-    const std::string& default_value);
+// std::unordered_map<std::string, std::string> map_split(
+//     std::string strtem, char inner_sp, char outer,
+//     const std::string& default_value);
 
 /**
  * call map_split(strtem, '=', '/', "1") if find '/', else  map_split(strtem,
@@ -452,7 +454,7 @@ static inline bool endswith(const std::string& str, const std::string& suffix) {
     }
     return std::equal(str.end() - suffix.size(), str.end(), suffix.cbegin());
 }
-namespace config_parser {
+// namespace config_parser {
 
 // Find all valid  separators (those not inside any brackets)
 std::vector<size_t> findValidSeparators(const std::string& str, char sep);
@@ -481,7 +483,7 @@ std::vector<size_t> findValidSeparators(const std::string& str, char sep);
 std::unordered_map<std::string, std::string> map_split(
     std::string strtem, char inner_sp, char outer_sp,
     const std::string& default_key = "");
-}  // namespace config_parser
+// }  // namespace config_parser
 }  // namespace str
 
 }  // namespace hami

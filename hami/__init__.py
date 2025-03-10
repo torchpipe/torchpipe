@@ -2,7 +2,7 @@
 from importlib.metadata import version, PackageNotFoundError
 
 try:
-    __version__ = version("package-name")
+    __version__ = version("hami")
 except PackageNotFoundError:
     # package is not installed
     pass

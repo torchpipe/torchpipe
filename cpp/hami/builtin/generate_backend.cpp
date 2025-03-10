@@ -14,7 +14,7 @@ std::string GenerateBackend::get_latest_backend(
         return setting;
     }
     auto item = brackets.back();
-    auto delim = str::config_parser::findValidSeparators(item, ';');
+    auto delim = str::findValidSeparators(item, ';');
     if (!delim.empty()) (item = item.substr(delim.back() + 1));
     auto items = str::items_split(item, ',');
     HAMI_ASSERT(items.size() > 0);
@@ -59,7 +59,7 @@ void GenerateBackend::init(
 
 std::unordered_map<std::string, std::string>
 GenerateBackend::parse_order_config(const std::string& setting) {
-    return str::config_parser::map_split(setting, '=', ',');
+    return str::map_split(setting, '=', ',');
 }
 
 }  // namespace hami

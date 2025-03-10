@@ -5,6 +5,7 @@ cc_library(
   NAME 
     helper
   HDRS
+    kvstorage.hpp
     string.hpp
     base_logging.hpp
     macro.h

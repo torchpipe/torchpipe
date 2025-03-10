@@ -68,11 +68,11 @@ function(cc_dynamic_library)
     )
 
 
-    target_link_options(${CC_DYNAMIC_LIB_NAME} PRIVATE
-        "-static-libstdc++" 
-        "-static-libgcc"
-      
-      )
+    # target_link_options(${CC_DYNAMIC_LIB_NAME} PRIVATE
+    #     "-static-libstdc++" 
+    #     "-Wl,--exclude-libs=libstdc++.a"  # 指定库名（不带路径）
+    #     "-Wl,-Bsymbolic-functions"  # 优先使用本地符号定义
+    #   )
       # target_link_options(${CC_DYNAMIC_LIB_NAME} PRIVATE -Wl,--exclude-libs,ALL)
 
   

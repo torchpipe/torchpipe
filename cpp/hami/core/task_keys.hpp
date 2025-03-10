@@ -68,7 +68,7 @@ static inline const std::unordered_map<string, string> TASK_KEY_MAP(
      {"TASK_DEFAULT_NAME_KEY", TASK_DEFAULT_NAME_KEY},
      {"TASK_REQUEST_SIZE_KEY", TASK_REQUEST_SIZE_KEY}});
 
-static inline void try_replace_inner_key(string& key) {
+static inline bool try_replace_inner_key(string& key) {
     static const string prefix = "TASK_";
     static const string suffix = "_KEY";
     static const size_t prefix_suffix_len = prefix.size() + suffix.size();
@@ -81,8 +81,23 @@ static inline void try_replace_inner_key(string& key) {
             throw std::runtime_error("Inner key not supported: " + key);
         }
         key = iter->second;
+        return true;
     }
-    return;
+    return false;
+}
+
+static inline void try_replace_inner_key(
+    std::unordered_map<string, string>& kv) {
+    std::unordered_map<string, string> re;
+    for (const auto& [key, value] : kv) {
+        string new_key = key;
+        string new_value = value;
+
+        try_replace_inner_key(new_key);
+        try_replace_inner_key(new_key);
+        re[new_key] = new_value;
+    }
+    std::swap(kv, re);
 }
 
 static inline bool is_reserved(const string& key) {

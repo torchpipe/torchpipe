@@ -76,6 +76,8 @@ class InstancesState {
         cv_.notify_all();
     }
 
+    void notify_all() { cv_.notify_all(); }
+
    private:
     mutable std::mutex mtx_;
 

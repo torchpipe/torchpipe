@@ -64,6 +64,8 @@ class ThreadSafeQueue {
         // https://wanghenshui.github.io/2019/08/23/notify-one-pred
     }
 
+    void notify_all() { data_cond_.notify_all(); }
+
     void WaitPop(T& value) {
         {
             std::unique_lock<std::mutex> lk(mut_);

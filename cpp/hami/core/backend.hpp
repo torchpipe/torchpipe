@@ -108,7 +108,7 @@ class HAMI_EXPORT Backend {
      * @param dependency Pointer to the backend dependency.
      */
     virtual void forward_with_dependency(const std::vector<dict>& input_output,
-                         Backend* dependency) {
+                                         Backend* dependency) {
         if (dependency)
             throw std::runtime_error(
                 "forward(input_output, dependency) not supported by default");

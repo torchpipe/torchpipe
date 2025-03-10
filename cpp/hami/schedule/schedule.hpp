@@ -18,6 +18,8 @@ class Batching : public DynamicDependency {
     virtual void run();
     ~Batching() {
         bInited_.store(false);
+        input_queue_.notify_all();
+        instances_state_->notify_all();
         if (thread_.joinable()) {
             thread_.join();
         }

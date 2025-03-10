@@ -15,6 +15,9 @@ class DagDispatcher : public HasEventForwardGuard {
    public:
     ~DagDispatcher() {
         bInited_.store(false);
+        for (auto& item : task_queues_) {
+            item->notify_all();
+        }
         for (auto& one_thread : threads_)
             if (one_thread.joinable()) {
                 one_thread.join();

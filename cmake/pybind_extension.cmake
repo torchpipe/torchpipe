@@ -127,11 +127,12 @@ function(pybind_extension)
     PRIVATE ${PY_SRCS} ${PY_HDRS}
   )
 
-  target_link_options(${PY_NAME} PRIVATE
-    "-static-libstdc++" 
-    "-static-libgcc"
-    "-Wl,--exclude-libs,ALL"
-  )
+  # target_link_options(${PY_NAME} PRIVATE
+  #   "-static-libstdc++" 
+  #   "-static-libgcc"
+  #   "-Wl,--exclude-libs,ALL"
+  #   "-Wl,-Bsymbolic-functions"  # 优先使用本地符号定义
+  # )
 
 
   # "-Wl,--no-as-needed"

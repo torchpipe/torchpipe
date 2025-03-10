@@ -225,7 +225,7 @@ std::string post_parentheses_split(const std::string& strtem,
     }
 }
 
-std::unordered_map<std::string, std::string> map_split(
+std::unordered_map<std::string, std::string> raw_map_split(
     std::string strtem, char inner_sp, char outer,
     const std::string& default_key) {
     auto re = std::unordered_map<std::string, std::string>();
@@ -291,7 +291,7 @@ size_t replace_once(std::string& str, const std::string& from,
     return std::string::npos;  // 返回未找到的标志
 }
 
-namespace config_parser {
+// namespace config_parser {
 
 // Check if all brackets in the string are properly closed
 bool areBracketsBalanced(const std::string& str) {
@@ -390,10 +390,12 @@ std::unordered_map<std::string, std::string> map_split(
     size_t firstInner = validInnerSeparators[0];
     size_t outerPos = findValidOuterSeparator(strtem, outer_sp, 0, firstInner);
     if (outerPos == std::string::npos) {
-        throw std::invalid_argument(
-            "No valid outer separator found before the first inner separator.");
+        SPDLOG_INFO(
+            "No valid outer separator found before the first inner separator. "
+            "strtem= {}",
+            strtem);
     }
-    key_values.push_back(strtem.substr(0, validInnerSeparators[0] - 1));
+    key_values.push_back(strtem.substr(0, validInnerSeparators[0]));
 
     // Process the remaining key-value pairs
     for (size_t i = 1; i < validInnerSeparators.size(); ++i) {
@@ -436,5 +438,5 @@ std::unordered_map<std::string, std::string> map_split(
     return result;
 }
 
-}  // namespace config_parser
+// }  // namespace config_parser
 }  // namespace hami::str
