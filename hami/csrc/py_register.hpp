@@ -36,5 +36,6 @@ class ConverterHashRegister {
 };
 
 }  // namespace hami
-#define HAMI_ADD_HASH(T) \
-    static hami::ConverterHashRegister<T> _hami_hash_cpp2py_static;
+#define HAMI_ADD_HASH(T)                  \
+    static hami::ConverterHashRegister<T> \
+        _hami_hash_cpp2py_static_##__COUNTER__;
