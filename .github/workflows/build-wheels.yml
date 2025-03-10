@@ -2,9 +2,9 @@ name: Build and Publish Manylinux Wheels
 
 on:
   push:
-    tags: [ 'v*' ]
+    tags: ['v*']
   pull_request:
-    branches: [ v1 ]
+    branches: [v1]
 
 env:
   PROJECT_ROOT: ${{ github.workspace }}/build-${{ github.run_id }}
@@ -17,13 +17,13 @@ jobs:
     runs-on: [self-hosted, linux, X64]
     steps:
       - name: Prepare workspace
-        run: mkdir -p $PROJECT_ROOT
+        run: mkdir -p "$PROJECT_ROOT"
 
       - uses: actions/checkout@v4
         with:
           submodules: true
           fetch-depth: 1
-          path: $PROJECT_ROOT
+          path: "$PROJECT_ROOT"
 
       - name: Login to Docker Registry
         if: matrix.platform == 'manylinux2014'  # 按需配置
@@ -39,13 +39,13 @@ jobs:
             --cache-from type=registry,ref=your-registry.com/${{ matrix.platform }}-cache:latest \
             --cache-to type=registry,ref=your-registry.com/${{ matrix.platform }}-cache:latest \
             -t ${{ matrix.platform }} \
-            -f docker/Dockerfile.${{ matrix.platform }} \
+            -f "docker/Dockerfile.${{ matrix.platform }}" \
             docker/
 
       - name: Generate wheels
         run: |
-          mkdir -p $PROJECT_ROOT/wheelhouse
-          docker run --rm -v $PROJECT_ROOT:/src ${{ matrix.platform }} \
+          mkdir -p "$PROJECT_ROOT/wheelhouse"
+          docker run --rm -v "$PROJECT_ROOT:/src" ${{ matrix.platform }} \
             bash -c "cd /src && \
               bash scripts/generate_${{ matrix.platform }}.sh && \
               bash scripts/pytest_${{ matrix.platform }}.sh && \
@@ -57,7 +57,7 @@ jobs:
             echo "::error::No wheelhouse directory found"
             exit 1
           fi
-          if [ -z "$(ls $PROJECT_ROOT/wheelhouse/*.whl)" ]; then
+          if [ -z "$(ls -A "$PROJECT_ROOT/wheelhouse"/*.whl 2>/dev/null)" ]; then
             echo "::error::No wheel files generated"
             exit 1
           fi
@@ -66,12 +66,12 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.platform }}-wheels
-          path: $PROJECT_ROOT/wheelhouse
+          path: "$PROJECT_ROOT/wheelhouse"
           if-no-files-found: error
 
       - name: Cleanup
         if: always()
-        run: rm -rf $PROJECT_ROOT
+        run: rm -rf "$PROJECT_ROOT"
 
   publish-to-pypi:
     needs: build-wheels
@@ -82,27 +82,22 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: artifacts
-          pattern: *-wheels
+          pattern: '*-wheels'  # 关键修复点
 
       - name: Combine wheels
         run: |
           mkdir -p wheelhouse
-          # 使用更健壮的版本检测
           latest_version=$(
-            find artifacts -name '*.whl' -printf '%f\n' | 
-            grep -Eo '[0-9]+\.[0-9]+\.[0-9]+([a-zA-Z0-9\.\+-]+)?' | 
+            find artifacts -name '*.whl' -printf '%f\n' |
+            grep -Eo '[0-9]+\.[0-9]+\.[0-9]+([a-zA-Z0-9\.\+-]+)?' |
             sort -V | tail -n1
           )
-          
           if [ -z "$latest_version" ]; then
             echo "::error::Version detection failed"
             exit 1
           fi
-
           echo "Selected version: $latest_version"
-          find artifacts -name "*$latest_version*" -exec cp {} wheelhouse/ \;
-
-          # 验证文件数量
+          find artifacts -name "*${latest_version}*" -exec cp {} wheelhouse/ \;
           file_count=$(ls wheelhouse/*.whl | wc -l)
           if [ "$file_count" -lt 2 ]; then
             echo "::error::Missing platform wheels (found $file_count)"
