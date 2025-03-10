@@ -270,6 +270,6 @@ setuptools.setup(
     ext_modules=ext_modules,
     cmdclass=cmdclass,
     # use_scm_version=True,
-    version="1.0.9",
+    version="1.0.10",
     setup_requires=required_setup_deps
 )

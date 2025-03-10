@@ -87,3 +87,5 @@ jobs:
       env:
         TWINE_USERNAME: __token__
         TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+    - name: Cleanup wheelhouse directory
+      run: rm -rf wheelhouse
