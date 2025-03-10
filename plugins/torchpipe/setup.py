@@ -1,3 +1,6 @@
+import hami
+# os.environ['LD_PRELOAD'] = '/usr/lib/x86_64-linux-gnu/libstdc++.so.6'
+
 import distutils.command.clean
 import distutils.spawn
 import glob
@@ -7,14 +10,14 @@ import subprocess
 import sys
 import warnings
 from pathlib import Path
-import importlib
+# import importlib
 
 import torch
 from pkg_resources import DistributionNotFound, get_distribution, parse_version
 from setuptools import find_packages, setup
 from torch.utils.cpp_extension import BuildExtension, CppExtension, CUDA_HOME, CUDAExtension, ROCM_HOME
 
-import hami
+
 
 FORCE_CUDA = os.getenv("FORCE_CUDA", "1") == "1"
 FORCE_MPS = os.getenv("FORCE_MPS", "0") == "1"
@@ -326,7 +329,7 @@ def make_mat_extension():
         OPENCV_INCLUDE, OPENCV_LIB = download_and_build_opencv()
         os.environ["OPENCV_INCLUDE"] = OPENCV_INCLUDE
         os.environ["OPENCV_LIB"] = OPENCV_LIB
-        print("new OPENCV_INCLUDE={OPENCV_INCLUDE} OPENCV_LIB={OPENCV_LIB}")
+        print(f"new OPENCV_INCLUDE={OPENCV_INCLUDE} OPENCV_LIB={OPENCV_LIB}")
     print("Building torchpipe with opencv backends support")
     libraries +=["opencv_core", "opencv_imgproc", "opencv_imgcodecs"]
     define_macros += [("OPENCV_FOUND", 1)]

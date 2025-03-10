@@ -16,3 +16,4 @@ plugins/torchpipe/torchpipe/native.so
 wheelhouse/
 .pytest_cache/
 .eggs/
+VERSION.txt

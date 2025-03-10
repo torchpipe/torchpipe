@@ -11,10 +11,10 @@ import importlib
 import requests
 import zipfile
 
-import torch
+# import torch
 from pkg_resources import DistributionNotFound, get_distribution, parse_version
-from setuptools import find_packages, setup
-
+# from setuptools import find_packages, setup
+import logging
 def default_cxx11_abi():
     use_cxx11_abi = False
     try:
@@ -23,10 +23,18 @@ def default_cxx11_abi():
     except ImportError:
         pass
     return use_cxx11_abi
-    
-# ... (rest of your existing imports and constants)
 
-def download_and_build_opencv(cxx11_abi : bool = default_cxx11_abi(), install_dir="/usr/local/"):
+
+def exist_return(install_dir):
+        OPENCV_INCLUDE = os.path.join(install_dir, "include/opencv4")
+        OPENCV_LIB = os.path.join(install_dir, "lib")
+        opencv_found =  (Path(OPENCV_INCLUDE) / "opencv2/core.hpp").exists() and ( Path(OPENCV_LIB) / "libopencv_core.so").exists()
+        if opencv_found:
+            logging.info(f" Opencv founded in {install_dir}.  Setting it through OPENCV_INCLUDE and OPENCV_LIB")
+            return OPENCV_INCLUDE, OPENCV_LIB
+        else:
+            return None, None
+def download_and_build_opencv(cxx11_abi : bool = default_cxx11_abi(), install_dir=None):
     """
     Downloads and builds OpenCV from source if not already installed.
     """
@@ -34,7 +42,27 @@ def download_and_build_opencv(cxx11_abi : bool = default_cxx11_abi(), install_di
     tmp_dir = tempfile.gettempdir()
     os.makedirs(tmp_dir, exist_ok=True)
     print(f"build in tmp_dir: {tmp_dir}")
+
+    if install_dir is None:
+        install_dir = "/usr/local/"
+        OPENCV_INCLUDE, OPENCV_LIB = exist_return(install_dir)
+        if OPENCV_INCLUDE and OPENCV_LIB:
+            return OPENCV_INCLUDE, OPENCV_LIB
     
+    if not os.path.exists(install_dir):
+        try:
+            os.makedirs(install_dir, exist_ok=True)
+        except:
+            pass
+        
+    if not os.access(install_dir, os.W_OK):
+        install_dir = os.path.expanduser("~/opencv_install")
+        print(f"No write permission for {install_dir}. Using {install_dir} instead.")
+
+        OPENCV_INCLUDE, OPENCV_LIB = exist_return(install_dir)
+        if OPENCV_INCLUDE and OPENCV_LIB:
+            return OPENCV_INCLUDE, OPENCV_LIB
+        
     OPENCV_VERSION = "4.5.4"
     OPENCV_URL = f"https://codeload.github.com/opencv/opencv/zip/refs/tags/{OPENCV_VERSION}"
     OPENCV_ZIP = f"opencv-{OPENCV_VERSION}.zip"
@@ -139,7 +167,7 @@ def download_and_build_opencv(cxx11_abi : bool = default_cxx11_abi(), install_di
     OPENCV_INCLUDE = os.path.join(install_dir, "include/opencv4")
     OPENCV_LIB = os.path.join(install_dir, "lib")
 
-    print("OpenCV installation complete. Please manully set OPENCV_INCLUDE={OPENCV_INCLUDE} and OPENCV_LIB={OPENCV_LIB} in your environment.")
+    print(f"OpenCV installation complete. Please manully set OPENCV_INCLUDE={OPENCV_INCLUDE} and OPENCV_LIB={OPENCV_LIB} in your environment.")
 
     return OPENCV_INCLUDE, OPENCV_LIB
 # ... (rest of your existing code)

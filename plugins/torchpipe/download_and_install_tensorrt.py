@@ -1,10 +1,13 @@
-from torch.utils.cpp_extension import BuildExtension, CppExtension, CUDA_HOME
+# from torch.utils.cpp_extension import BuildExtension, CppExtension, CUDA_HOME
 import torch
 import glob
 import os
 import sys
 from tqdm import tqdm
+from typing import Optional
 import shutil
+from pathlib import Path
+import logging
 
 TrtAddr = {
     "cuda11.8": "https://developer.nvidia.com/downloads/compute/machine-learning/tensorrt/10.8.0/tars/TensorRT-10.8.0.43.Linux.x86_64-gnu.cuda-11.8.tar.gz",
@@ -42,8 +45,20 @@ def download_with_progress(url, local_path):
             size = f.write(data)
             pbar.update(size)
 
+
+def exist_return(install_dir):
+    TENSORRT_INCLUDE = os.path.join(install_dir, "include/")
+    TENSORRT_LIB = os.path.join(install_dir, "lib")
+    trt_found =  (Path(TENSORRT_INCLUDE) / "NvInfer.h").exists() and ( Path(TENSORRT_LIB) / "libnvonnxparser.so").exists()
+
+    if trt_found:
+        logging.info(f" Tensorrt founded in {install_dir}.  Setting it through TENSORRT_INCLUDE and TENSORRT_LIB")
+        return TENSORRT_INCLUDE, TENSORRT_LIB
+    else:
+        return None, None
+        
 def download_and_install_trt(
-    install_dir: str = "/usr/local/",
+    install_dir: Optional[str] = None,
     cleanup: bool = True,
     cuda_version: str = None
 ):
@@ -56,6 +71,26 @@ def download_and_install_trt(
         cuda_version: Force specific CUDA version (11 or 12, default: auto-detect)
     """
     # Create temporary directory
+
+    if install_dir is None:
+        install_dir = "/usr/local/"
+        TENSORRT_INCLUDE, TENSORRT_LIB = exist_return(install_dir)
+        if TENSORRT_INCLUDE and TENSORRT_LIB:
+            return TENSORRT_INCLUDE, TENSORRT_LIB
+    
+    if not os.path.exists(install_dir):
+        try:
+            os.makedirs(install_dir, exist_ok=True)
+        except:
+            pass
+    if not os.access(install_dir, os.W_OK):
+        install_dir = os.path.expanduser("~/tensorrt_install")
+        print(f"No write permission for {install_dir}. Using {install_dir} instead.")
+
+        TENSORRT_INCLUDE, TENSORRT_LIB = exist_return(install_dir)
+        if TENSORRT_INCLUDE and TENSORRT_LIB:
+            return TENSORRT_INCLUDE, TENSORRT_LIB
+
     import tempfile
     tmp_dir = tempfile.gettempdir()
     os.makedirs(tmp_dir, exist_ok=True)
@@ -76,7 +111,7 @@ def download_and_install_trt(
     
     # Download TensorRT
     local_path = os.path.join(tmp_dir, os.path.basename(trt_path))
-    print(f"Downloading TensorRT to {local_path}...")
+    print(f"Find No TENSORRT_INCLUDE/TENSORRT_LIB. Downloading TensorRT to {local_path}...")
     download_with_progress(trt_path, local_path)
     
     # Extract TensorRT
