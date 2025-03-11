@@ -16,6 +16,7 @@ import torch
 from pkg_resources import DistributionNotFound, get_distribution, parse_version
 from setuptools import find_packages, setup
 from torch.utils.cpp_extension import BuildExtension, CppExtension, CUDA_HOME, CUDAExtension, ROCM_HOME
+from distutils.util import get_platform
 
 
 
@@ -133,6 +134,10 @@ def get_macros_and_flags():
             nvcc_flags = NVCC_FLAGS.split(" ")
         extra_compile_args["nvcc"] = nvcc_flags
 
+    extra_compile_args["cxx"].append("-Wno-sign-compare")
+    extra_compile_args["cxx"].append("-Wno-deprecated-declarations")    
+
+
     if DEBUG:
         extra_compile_args["cxx"].append("-g")
         extra_compile_args["cxx"].append("-O0")
@@ -149,7 +154,7 @@ def get_macros_and_flags():
             extra_compile_args["nvcc"].append("-O0")
             extra_compile_args["nvcc"].append("-g")
     else:
-        extra_compile_args["cxx"].append("-g0")
+        extra_compile_args["cxx"].extend(["-O2", "-g0"])  
     extra_compile_args['cxx']+=["-std=c++17"]
     return define_macros, extra_compile_args
 
@@ -393,21 +398,26 @@ def make_trt_extension():
     include_dirs += [TENSORRT_INCLUDE, get_cuda_include()]
     library_dirs  += [TENSORRT_LIB]
     
-    native_so_path = os.path.join(os.path.dirname(__file__), "torchpipe/native.so")
+    # native_so_path = os.path.join(os.path.dirname(__file__), "torchpipe/native.so")
+    # if not os.path.exists(native_so_path):
+    #     build_lib_dir = Path(os.getcwd()) / "build" / f"lib.{get_platform()}-cpython-{sys.version_info.major}{sys.version_info.minor}"
+    #     native_so_rel_path = Path("torchpipe") / "native.so"
+    #     native_so_path = build_lib_dir / native_so_rel_path
 
     return Extension(
         name="torchpipe.trt",
         sources=sorted(str(s) for s in sources),
         include_dirs=include_dirs + [CSRS_DIR],
-        library_dirs=HAMI_library_dirs + library_dirs + [os.path.dirname(native_so_path)],
+        library_dirs=HAMI_library_dirs + library_dirs ,
+        # library_dirs=HAMI_library_dirs + library_dirs + [os.path.dirname(native_so_path)],
         libraries = ['hami']+libraries,
         define_macros=define_macros,
         extra_compile_args=extra_compile_args,
-        extra_link_args=[
-            f'-Wl,-rpath,$ORIGIN/',  
-            '-Wl,--no-as-needed',
-            '-l:native.so'
-        ]
+        # extra_link_args=[
+        #     f'-Wl,-rpath,$ORIGIN/',  
+        #     '-Wl,--no-as-needed',
+        #     # '-l:native.so'
+        # ]
     )
 
 

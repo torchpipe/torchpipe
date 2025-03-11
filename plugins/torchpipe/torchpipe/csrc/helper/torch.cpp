@@ -30,7 +30,7 @@
 
 #include "helper/torch.hpp"
 #include <hami/extension.hpp>
-#include "NvInferRuntime.h"
+// #include "NvInferRuntime.h"
 
 namespace torchpipe {
 
@@ -163,37 +163,7 @@ torch::Tensor switch_device(torch::Tensor input) {
                                            // pinned memory， 不怕析构
 }
 
-c10::ScalarType trt2torch_type(nvinfer1::DataType dtype) {
-    auto target_dtype = torch::kFloat;
-    switch (dtype) {
-        case nvinfer1::DataType::kFLOAT:
-            target_dtype = torch::kFloat;
-            break;
-        case nvinfer1::DataType::kINT32:
-            target_dtype = torch::kInt;
-            break;
-        case nvinfer1::DataType::kINT8:
-            target_dtype = torch::kChar;
-            break;
 
-        case nvinfer1::DataType::kINT64:
-            target_dtype = torch::kLong;
-            break;
-
-        case nvinfer1::DataType::kBOOL:
-            target_dtype = torch::kBool;
-            break;
-        case nvinfer1::DataType::kHALF:
-            target_dtype = torch::kHalf;
-            break;
-        default:
-            SPDLOG_ERROR(
-                "out: only support type of kFLOAT, kINT32, kINT64, kINT8, "
-                "kBOOL, kHALF");
-            throw std::runtime_error("unsupportted datatype");
-    }
-    return target_dtype;
-}
 
 torch::Tensor async2cpu(torch::Tensor input) {
     //  auto options=torch::TensorOptions()

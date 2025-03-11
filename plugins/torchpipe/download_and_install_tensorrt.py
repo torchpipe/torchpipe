@@ -84,8 +84,9 @@ def download_and_install_trt(
         except:
             pass
     if not os.access(install_dir, os.W_OK):
-        install_dir = os.path.expanduser("~/tensorrt_install")
-        print(f"No write permission for {install_dir}. Using {install_dir} instead.")
+        new_install_dir = os.path.expanduser("~/tensorrt_install")
+        print(f"No write permission for {install_dir}. Using {new_install_dir} instead.")
+        install_dir = new_install_dir
 
         TENSORRT_INCLUDE, TENSORRT_LIB = exist_return(install_dir)
         if TENSORRT_INCLUDE and TENSORRT_LIB:

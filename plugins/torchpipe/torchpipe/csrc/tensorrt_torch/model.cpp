@@ -1,6 +1,6 @@
 
 #include <filesystem>
-
+#include <fstream>
 #include "hami/helper/macro.h"
 #include "tensorrt_torch/model.hpp"
 #include "tensorrt_torch/allocator.hpp"

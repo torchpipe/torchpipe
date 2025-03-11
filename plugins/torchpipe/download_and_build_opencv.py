@@ -56,8 +56,9 @@ def download_and_build_opencv(cxx11_abi : bool = default_cxx11_abi(), install_di
             pass
         
     if not os.access(install_dir, os.W_OK):
-        install_dir = os.path.expanduser("~/opencv_install")
-        print(f"No write permission for {install_dir}. Using {install_dir} instead.")
+        new_install_dir = os.path.expanduser("~/opencv_install")
+        print(f"No write permission for {install_dir}. Using {new_install_dir} instead.")
+        install_dir = new_install_dir
 
         OPENCV_INCLUDE, OPENCV_LIB = exist_return(install_dir)
         if OPENCV_INCLUDE and OPENCV_LIB:

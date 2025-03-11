@@ -10,6 +10,7 @@
 #include "NvInferPlugin.h"
 #include <c10/cuda/CUDAStream.h>
 #include <NvOnnxParser.h>
+#include <c10/core/ScalarType.h> // Add this line
 
 namespace {
 
@@ -290,6 +291,27 @@ void print_net(nvinfer1::INetworkDefinition* network,
     // // Print the final output (assuming SPDLOG_INFO and colored functions are
     // // defined)
     // SPDLOG_INFO(hami::colored(ss.str()));
+}
+c10::ScalarType trt2torch_type(nvinfer1::DataType dtype) {
+    switch (dtype) {
+        case nvinfer1::DataType::kFLOAT:
+            return c10::ScalarType::Float;
+        case nvinfer1::DataType::kINT32:
+            return c10::ScalarType::Int;
+        case nvinfer1::DataType::kINT8:
+            return c10::ScalarType::Char; // 或 c10::ScalarType::Byte
+        case nvinfer1::DataType::kINT64:
+            return c10::ScalarType::Long;
+        case nvinfer1::DataType::kBOOL:
+            return c10::ScalarType::Bool;
+        case nvinfer1::DataType::kHALF:
+            return c10::ScalarType::Half;
+        default:
+            SPDLOG_ERROR(
+                "Unsupported data type: only support kFLOAT, kINT32, kINT64, kINT8, "
+                "kBOOL, kHALF");
+            throw std::runtime_error("Unsupported datatype");
+    }
 }
 
 // Helper function to apply mean and std normalization
