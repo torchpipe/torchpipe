@@ -5,7 +5,7 @@
 #include "hami/helper/base_logging.hpp"
 
 namespace hami {
-void Interpreter::init(
+void Interpreter::impl_init(
     const std::unordered_map<std::string, std::string>& config,
     const dict& dict_config) {
     // get the dual config from parameter or dict_config

@@ -13,9 +13,9 @@ namespace torchpipe {
 
 class LoadTensorrtEngine : public hami::Backend {
    public:
-    void init(const std::unordered_map<std::string, std::string>& config,
-              const hami::dict& dict_config) override;
-    // void forward(const std::vector<hami::dict>& input) override;
+    void impl_init(const std::unordered_map<std::string, std::string>& config,
+                   const hami::dict& dict_config) override;
+    // void impl_forward(const std::vector<hami::dict>& input) override;
 
    private:
     std::unique_ptr<nvinfer1::IRuntime> runtime_;
@@ -25,9 +25,9 @@ class LoadTensorrtEngine : public hami::Backend {
 
 class Onnx2Tensorrt : public hami::Backend {
    public:
-    void init(const std::unordered_map<std::string, std::string>& config,
-              const hami::dict& dict_config) override;
-    // void forward(const std::vector<hami::dict>& input) override;
+    void impl_init(const std::unordered_map<std::string, std::string>& config,
+                   const hami::dict& dict_config) override;
+    // void impl_forward(const std::vector<hami::dict>& input) override;
 
    private:
     std::unique_ptr<nvinfer1::IRuntime> runtime_;
@@ -39,7 +39,6 @@ class ModelLoadder : public hami::Container {
    public:
     void post_init(const std::unordered_map<std::string, std::string>& config,
                    const hami::dict& dict_config) override;
-    // void forward(const std::vector<hami::dict>& input) override;
 
    private:
     std::vector<size_t> set_init_order(size_t max_range) const override {
@@ -52,9 +51,9 @@ class ModelLoadder : public hami::Container {
 
 // class TensorrtContext : public hami::Backend {
 //    public:
-//     void init(const std::unordered_map<std::string, std::string>& config,
+//     void impl_init(const std::unordered_map<std::string, std::string>&
+//     config,
 //               const hami::dict& dict_config) override;
-//     // void forward(const std::vector<hami::dict>& input) override;
 
 //    private:
 //     std::shared_ptr<nvinfer1::ICudaEngine> engine_;

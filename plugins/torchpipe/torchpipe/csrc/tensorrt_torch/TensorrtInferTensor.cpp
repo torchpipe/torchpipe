@@ -26,7 +26,7 @@ std::string get_dependency(
     return cls;
 }
 
-void TensorrtInferTensor::init(
+void TensorrtInferTensor::impl_init(
     const std::unordered_map<std::string, std::string>& inconfig,
     const hami::dict& dict_config) {
     auto config = inconfig;
@@ -63,7 +63,8 @@ void TensorrtInferTensor::init(
                                                         cudaEventDefault));
 }
 
-void TensorrtInferTensor::forward(const std::vector<hami::dict>& input_output) {
+void TensorrtInferTensor::impl_forward(
+    const std::vector<hami::dict>& input_output) {
     HAMI_ASSERT(input_output.size() == 1,
                 "only support one (batched) input with explicit batch");
 

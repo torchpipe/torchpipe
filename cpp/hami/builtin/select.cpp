@@ -16,7 +16,7 @@ void Select::post_init(
     HAMI_ASSERT(base_dependencies_.size() >= 2);
 }
 
-void Select::forward(const std::vector<dict>& input_output) {
+void Select::impl_forward(const std::vector<dict>& input_output) {
     DictHelper dicts_guard(input_output);
     dicts_guard.keep_alive(TASK_DATA_KEY).erase(TASK_RESULT_KEY);
     std::unordered_map<size_t, std::vector<dict>> inputs;

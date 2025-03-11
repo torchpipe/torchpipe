@@ -4,8 +4,8 @@
 namespace hami {
 
 class EventGuard : public Dependency {
-    void forward_dep_impl(const std::vector<dict>& input_output,
-                          Backend* dependency) override;
+    void custom_forward_with_dep(const std::vector<dict>& input_output,
+                                 Backend* dependency) override;
 };
 
 // TASK_REQUEST_KEYKEY

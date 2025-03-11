@@ -6,7 +6,7 @@ using namespace hami;
 
 namespace torchpipe {
 
-void CatTensor::init(
+void CatTensor::impl_init(
     const std::unordered_map<std::string, std::string>& config_param,
     const dict& dict_config) {
     if (dict_config &&
@@ -20,7 +20,7 @@ void CatTensor::init(
     }
 }
 
-void CatTensor::forward(const std::vector<dict>& input_dict) {
+void CatTensor::impl_forward(const std::vector<dict>& input_dict) {
     std::vector<std::vector<torch::Tensor>> cated_inputs;
     std::vector<size_t> req_size;
     for (const auto& input : input_dict) {
@@ -101,10 +101,10 @@ class GpuTensor : public hami::SingleBackend {
 };
 HAMI_REGISTER(Backend, GpuTensor);
 
-void SplitTensor::init(
+void SplitTensor::impl_init(
     const std::unordered_map<std::string, std::string>& config_param,
     const dict& dict_config) {}
-void SplitTensor::forward(const std::vector<dict>& input_dict) {
+void SplitTensor::impl_forward(const std::vector<dict>& input_dict) {
     std::vector<torch::Tensor> cated_inputs =
         dict_gets<torch::Tensor>(input_dict.front(), TASK_DATA_KEY);
 

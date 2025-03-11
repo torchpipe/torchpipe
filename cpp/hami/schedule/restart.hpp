@@ -8,8 +8,8 @@ namespace hami {
 class RestartEvent : public Dependency {
     void pre_init(const std::unordered_map<string, string>& config,
                   const dict&) override final;
-    void forward_dep_impl(const std::vector<dict>& inputs,
-                          Backend* dependency) override final;
+    void custom_forward_with_dep(const std::vector<dict>& inputs,
+                                 Backend* dependency) override final;
 
     ~RestartEvent() {
         bInited_.store(false);

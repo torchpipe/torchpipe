@@ -38,8 +38,8 @@ void RestartEvent::task_loop(std::size_t thread_index,
     return;
 };
 
-void RestartEvent::forward_dep_impl(const std::vector<dict>& inputs,
-                                    Backend* dependency) {
+void RestartEvent::custom_forward_with_dep(const std::vector<dict>& inputs,
+                                           Backend* dependency) {
     const size_t queue_index = std::rand() % task_queues_.size();
 
     for (auto& item : inputs) {

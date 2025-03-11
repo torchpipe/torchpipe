@@ -14,8 +14,8 @@ namespace hami {
 
 class Add : public SingleBackend {
    public:
-    void init(const std::unordered_map<std::string, std::string>& config,
-              const dict& dict_config) override {
+    void impl_init(const std::unordered_map<std::string, std::string>& config,
+                   const dict& dict_config) override {
         std::string dep = get_dependency_name_force(this, config);
         keys_ = str::map_split(dep, ':', ',');
         try_replace_inner_key(keys_);
@@ -37,8 +37,8 @@ HAMI_REGISTER(Backend, Add);
 
 class AddInt : public SingleBackend {
    public:
-    void init(const std::unordered_map<std::string, std::string>& config,
-              const dict& dict_config) override {
+    void impl_init(const std::unordered_map<std::string, std::string>& config,
+                   const dict& dict_config) override {
         std::string dep = get_dependency_name_force(this, config);
         auto keys = str::map_split(dep, ':', ',');
         try_replace_inner_key(keys);
@@ -63,8 +63,8 @@ HAMI_REGISTER(Backend, AddInt);
 
 class Remove : public SingleBackend {
    public:
-    void init(const std::unordered_map<std::string, std::string>& config,
-              const dict& dict_config) override {
+    void impl_init(const std::unordered_map<std::string, std::string>& config,
+                   const dict& dict_config) override {
         std::string dep = get_dependency_name_force(this, config);
         auto keys = str::str_split(dep, ',');
         for (auto key : keys_) {

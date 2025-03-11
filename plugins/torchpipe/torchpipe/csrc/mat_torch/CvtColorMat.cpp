@@ -10,7 +10,7 @@ using namespace hami;
 
 namespace torchpipe {
 
-void CvtColorMat::init(
+void CvtColorMat::impl_init(
     const std::unordered_map<std::string, std::string>& config_param,
     const dict& dict_config) {
     str::try_update(config_param, "color", color_, VALID_COLOR_SPACE);

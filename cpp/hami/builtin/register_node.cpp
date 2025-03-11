@@ -10,8 +10,7 @@ void Register::pre_init(
     const dict& dict_config) {
     auto iter = config.find("node_name");
     HAMI_ASSERT(iter != config.end(), "node_name not found");
-    for (const auto & item: config)
-    {
+    for (const auto& item : config) {
         SPDLOG_INFO("[Register] {}: {}", item.first, item.second);
     }
     set_registered_name("node." + iter->second);
@@ -22,8 +21,8 @@ HAMI_REGISTER(Backend, Register, "Register,Node");
 class InstancesRegister : public Backend {
    public:
     std::shared_ptr<Backend> owned_backend_;
-    void init(const std::unordered_map<std::string, std::string>& config,
-              const dict& dict_config) override final {
+    void impl_init(const std::unordered_map<std::string, std::string>& config,
+                   const dict& dict_config) override final {
         std::string dependency_name;
         constexpr auto default_name = "InstancesRegister";
         auto name = HAMI_OBJECT_NAME(Backend, this);
@@ -76,7 +75,7 @@ class InstancesRegister : public Backend {
         }
     }
 
-    void forward(const std::vector<dict>& inputs) override final {
+    void impl_forward(const std::vector<dict>& inputs) override final {
         owned_backend_->forward(inputs);
     }
 };

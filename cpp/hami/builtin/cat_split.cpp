@@ -26,7 +26,7 @@ void CatSplit::post_init(
     SPDLOG_INFO("CatSplit: range=[{}, {}]", min_, max_);
 }
 
-void CatSplit::forward(const std::vector<dict>& data) {
+void CatSplit::impl_forward(const std::vector<dict>& data) {
     // first stage: concatenate
     base_dependencies_[0]->forward(data);
     auto iter = data[0]->find(TASK_RESULT_KEY);

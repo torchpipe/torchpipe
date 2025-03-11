@@ -12,8 +12,9 @@
 
 namespace hami {
 
-void Benchmark::init(const std::unordered_map<std::string, std::string>& config,
-                     const dict& dict_config) {
+void Benchmark::impl_init(
+    const std::unordered_map<std::string, std::string>& config,
+    const dict& dict_config) {
     auto dep = get_dependency_name(this, config, "Benchmark");
     if (dep) {
         target_queue_ = HAMI_INSTANCE_GET(Queue, *dep);
@@ -47,8 +48,8 @@ void Benchmark::init(const std::unordered_map<std::string, std::string>& config,
     // stages_.resize(num_clients_, Stage::WaitingForWarmup)
 }
 
-void Benchmark::forward_via(const std::vector<dict>& input,
-                            Backend* dependency) {
+void Benchmark::impl_forward_with_dep(const std::vector<dict>& input,
+                                      Backend* dependency) {
     HAMI_ASSERT(input.size() > 1 && dependency);
 
     {

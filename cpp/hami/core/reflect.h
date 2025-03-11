@@ -310,8 +310,8 @@ if (names.size() >= 3) {
                          config_setting)                                   \
     class derived_aspect_cls : public aspect_class_type {                  \
        public:                                                             \
-        void init(const std::unordered_map<string, string>& config,        \
-                  const dict& dict_config) override {                      \
+        void impl_init(const std::unordered_map<string, string>& config,   \
+                       const dict& dict_config) override {                 \
             auto new_config = config;                                      \
             auto config_addin = multi_str_split(config_setting, '=', '/'); \
             for (const auto& item : config_addin) {                        \

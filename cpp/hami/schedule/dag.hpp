@@ -7,9 +7,11 @@
 #include "hami/helper/threadsafe_queue.hpp"
 namespace hami {
 class DagDispatcher : public HasEventForwardGuard {
+   private:
+    void impl_init(const std::unordered_map<std::string, std::string>& config,
+                   const dict& dict_config) override final;
+
    public:
-    void init(const std::unordered_map<std::string, std::string>& config,
-              const dict& dict_config) override final;
     void evented_forward(const std::vector<dict>& input_output) override final;
 
    public:

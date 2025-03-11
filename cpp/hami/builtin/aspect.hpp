@@ -14,7 +14,7 @@ class Aspect : public Container {
     /**
      * @brief  select a sub-backend.
      */
-    virtual void forward(const std::vector<dict>&) override;
+    virtual void impl_forward(const std::vector<dict>&) override;
 
     void inject_dependency(Backend* dependency) override final {
         base_dependencies_.front()->inject_dependency(dependency);
@@ -29,7 +29,8 @@ class Aspect : public Container {
 
 // class DefineBackend : public Backend {
 //    public:
-//     void init(const std::unordered_map<std::string, std::string>& config,
+//     void impl_init(const std::unordered_map<std::string, std::string>&
+//     config,
 //               const dict& dict_config) override;
 
 //     void inject_dependency(Backend* dependency) override final {
@@ -40,12 +41,12 @@ class Aspect : public Container {
 //             proxy_backend_->inject_dependency(dependency);
 //     }
 
-//     void forward(const std::vector<dict>& inputs,
+//     void impl_forward(const std::vector<dict>& inputs,
 //                  Backend* dependency) override {
 //         proxy_backend_->forward(inputs, dependency);
 //     }
 
-//     void forward(const std::vector<dict>& inputs) override {
+//     void impl_forward(const std::vector<dict>& inputs) override {
 //         proxy_backend_->forward(inputs);
 //     }
 //     [[nodiscard]] virtual size_t max() const override {

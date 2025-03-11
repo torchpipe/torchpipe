@@ -16,8 +16,8 @@ class ResultParser : public Dependency {
     virtual void init_dep_impl(
         const std::unordered_map<std::string, std::string>& config,
         const dict& dict_config) {}
-    void forward_dep_impl(const std::vector<dict>& inputs,
-                          Backend* dependency) override final {
+    void custom_forward_with_dep(const std::vector<dict>& inputs,
+                                 Backend* dependency) override final {
         dependency->safe_forward(inputs);
         for (const auto& item : inputs) {
             parser_(item);

@@ -32,7 +32,7 @@ void QueueBackend::pre_init(
     }
 }
 
-void QueueBackend::init(
+void QueueBackend::impl_init(
     const std::unordered_map<std::string, std::string>& config,
     const dict& dict_config) {
     pre_init(config, dict_config);
@@ -76,8 +76,8 @@ HAMI_REGISTER_BACKEND(QueueBackend, "QueueBackend,AsyncQueue, Queue");
 // QueueBackend[register_name, target_name]
 
 // init = List[Send[target_name]]
-void Send::init(const std::unordered_map<std::string, std::string>& config,
-                const dict&) {
+void Send::impl_init(const std::unordered_map<std::string, std::string>& config,
+                     const dict&) {
     target_name_ = get_dependency_name_force(this, config);
 
     HAMI_ASSERT(!target_name_.empty(), "Send must have target name");

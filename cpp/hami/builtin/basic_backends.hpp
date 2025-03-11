@@ -22,15 +22,16 @@ class HAMI_EXPORT Dependency : public Backend {
      */
     void inject_dependency(Backend* dependency) override final;
 
-    virtual void forward(const std::vector<dict>& input_output) override final {
-        forward_via(input_output, injected_dependency_);
+    virtual void impl_forward(
+        const std::vector<dict>& input_output) override final {
+        forward_with_dep(input_output, injected_dependency_);
     }
-    virtual void forward_via(const std::vector<dict>& input_output,
-                             Backend* dependency) override final {
+    virtual void impl_forward_with_dep(const std::vector<dict>& input_output,
+                                       Backend* dependency) override final {
         if (dependency == nullptr) {
             throw std::invalid_argument("null dependency is not allowed");
         }
-        forward_dep_impl(input_output, dependency);
+        custom_forward_with_dep(input_output, dependency);
     }
 
     [[nodiscard]] size_t max() const override {
@@ -47,8 +48,8 @@ class HAMI_EXPORT Dependency : public Backend {
      *
      * The dependency instance is registered as {node_name}.{A}.{B}.
      */
-    void init(const std::unordered_map<std::string, std::string>& config,
-              const dict& dict_config) override final;
+    void impl_init(const std::unordered_map<std::string, std::string>& config,
+                   const dict& dict_config) override final;
 
     virtual void pre_init(
         const std::unordered_map<std::string, std::string>& config,
@@ -75,8 +76,8 @@ class HAMI_EXPORT Dependency : public Backend {
     Backend* injected_dependency_{nullptr};  ///< The injected dependency.
 
    private:
-    virtual void forward_dep_impl(const std::vector<dict>& input_output,
-                                  Backend* dependency);
+    virtual void custom_forward_with_dep(const std::vector<dict>& input_output,
+                                         Backend* dependency);
     std::string registered_name_{};  ///< The registered name of the backend.
     std::string dependency_name_{};
     std::shared_ptr<Backend> shared_owned_dependency_;
@@ -100,15 +101,15 @@ class HAMI_EXPORT DynamicDependency : public Backend {
      */
     void inject_dependency(Backend* dependency) override final;
 
-    virtual void forward(const std::vector<dict>& input_output) override {
-        Backend::forward_via(input_output, injected_dependency_);
+    virtual void impl_forward(const std::vector<dict>& input_output) override {
+        Backend::forward_with_dep(input_output, injected_dependency_);
     }
-    // virtual void forward(const std::vector<dict>& input_output,
+    // virtual void impl_forward(const std::vector<dict>& input_output,
     //                      Backend* dependency) override final {
     //     if (dependency == nullptr) {
     //         throw std::invalid_argument("null dependency is not allowed");
     //     }
-    //     forward_dep_impl(input_output, dependency);
+    //     custom_forward_with_dep(input_output, dependency);
     // }
 
     [[nodiscard]] size_t max() const override;
@@ -118,7 +119,8 @@ class HAMI_EXPORT DynamicDependency : public Backend {
     Backend* injected_dependency_{nullptr};  ///< The injected dependency.
 
     //    private:
-    //     virtual void forward_dep_impl(const std::vector<dict>& input_output,
+    //     virtual void custom_forward_with_dep(const std::vector<dict>&
+    //     input_output,
     //                               Backend* dependency);
 };
 
@@ -147,8 +149,8 @@ class Container : public Backend {
      * member variable base_config_, and the suffix configuration is passed to
      * A.init.
      */
-    void init(const std::unordered_map<std::string, std::string>& config,
-              const dict& dict_config) override final;
+    void impl_init(const std::unordered_map<std::string, std::string>& config,
+                   const dict& dict_config) override final;
     virtual void post_init(
         const std::unordered_map<std::string, std::string>& config,
         const dict& dict_config) {};
@@ -200,7 +202,7 @@ class HAMI_EXPORT SingleBackend : public Backend {
      * @param input_output Input/output data to be processed.
      * @throws std::invalid_argument If more than one input is provided.
      */
-    void forward(const std::vector<dict>& input_output) override final {
+    void impl_forward(const std::vector<dict>& input_output) override final {
         if (input_output.size() != 1) {
             throw std::invalid_argument(
                 "SingleBackend only supports single input");
@@ -208,9 +210,9 @@ class HAMI_EXPORT SingleBackend : public Backend {
         forward(input_output[0]);
     }
 
-    void forward_via(const std::vector<dict>& input_output,
-                     Backend* dep) override {
-        Backend::forward_via(input_output, dep);
+    void impl_forward_with_dep(const std::vector<dict>& input_output,
+                               Backend* dep) override {
+        Backend::forward_with_dep(input_output, dep);
     }
 
     /**
@@ -228,9 +230,9 @@ class HAMI_EXPORT SingleBackend : public Backend {
 
 class HAMI_EXPORT List : public Backend {
    public:
-    void init(const std::unordered_map<std::string, std::string>& config,
-              const dict& dict_config) override final;
-    void forward(const std::vector<dict>& input_output) override final;
+    void impl_init(const std::unordered_map<std::string, std::string>& config,
+                   const dict& dict_config) override final;
+    void impl_forward(const std::vector<dict>& input_output) override final;
     [[nodiscard]] size_t max() const override final { return 1; }
     [[nodiscard]] size_t min() const override final {
         return std::numeric_limits<size_t>::max();

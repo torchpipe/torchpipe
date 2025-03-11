@@ -18,7 +18,7 @@ inline torch::Tensor cvMat2TorchCUDA(const cv::Mat& image) {
     return re.to(torch::kCUDA);
 }
 
-void Mat2Tensor::init(
+void Mat2Tensor::impl_init(
     const std::unordered_map<std::string, std::string>& config,
     const hami::dict& dict_config) {
     hami::str::try_update(config, "device", device_, {"cpu", "cuda"});

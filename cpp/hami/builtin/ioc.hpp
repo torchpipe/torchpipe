@@ -22,9 +22,9 @@ namespace hami {
  */
 class IoC : public Backend {
    public:
-    void init(const std::unordered_map<std::string, std::string>& config,
-              const dict& dict_config);
-    void forward(const std::vector<dict>& input_output) override {
+    void impl_init(const std::unordered_map<std::string, std::string>& config,
+                   const dict& dict_config);
+    void impl_forward(const std::vector<dict>& input_output) override {
         forward_backend_->forward(input_output);
     }
     [[nodiscard]] size_t max() const override {

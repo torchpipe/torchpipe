@@ -48,8 +48,8 @@ class SyncTensor : public hami::Dependency {
      * 如果init时绑定了新的流（也就是bNeedSync_==true），则forward时当子后端执行完毕后执行当前流上的同步。
      *
      */
-    virtual void forward_dep_impl(const std::vector<dict> &,
-                                  Backend *) override;
+    virtual void custom_forward_with_dep(const std::vector<dict> &,
+                                         Backend *) override;
 
    private:
     bool bNeedSync_ = false;

@@ -9,7 +9,7 @@
 #include "hami/core/helper.hpp"
 
 namespace hami {
-void Dependency::init(
+void Dependency::impl_init(
     const std::unordered_map<std::string, std::string>& config,
     const dict& dict_config) {
     HAMI_ASSERT(!shared_owned_dependency_, "Duplicate initialization");
@@ -68,8 +68,8 @@ void Dependency::inject_dependency(Backend* dependency) {
         injected_dependency_ = dependency;
     }
 }
-void Dependency::forward_dep_impl(const std::vector<dict>& input_output,
-                                  Backend* dependency) {
+void Dependency::custom_forward_with_dep(const std::vector<dict>& input_output,
+                                         Backend* dependency) {
     dependency->safe_forward(input_output);
 }
 
@@ -96,8 +96,9 @@ size_t DynamicDependency::min() const {
     return injected_dependency_->min();
 }
 
-void Container::init(const std::unordered_map<std::string, std::string>& config,
-                     const dict& dict_config) {
+void Container::impl_init(
+    const std::unordered_map<std::string, std::string>& config,
+    const dict& dict_config) {
     constexpr auto default_name = "Container";
     auto name = HAMI_OBJECT_NAME(Backend, this);
     if (name == std::nullopt) {
@@ -224,8 +225,8 @@ std::pair<size_t, size_t> Container::update_min_max(
     return {min_value, max_value};
 }
 
-void List::init(const std::unordered_map<std::string, std::string>& config,
-                const dict& dict_config) {
+void List::impl_init(const std::unordered_map<std::string, std::string>& config,
+                     const dict& dict_config) {
     constexpr auto default_name = "List";
     auto name = HAMI_OBJECT_NAME(Backend, this);
     if (name == std::nullopt) {
@@ -293,7 +294,7 @@ void List::init(const std::unordered_map<std::string, std::string>& config,
     }
 }
 
-void List::forward(const std::vector<dict>& input_output) {
+void List::impl_forward(const std::vector<dict>& input_output) {
     throw std::runtime_error("List::forward not implemented");
 }
 

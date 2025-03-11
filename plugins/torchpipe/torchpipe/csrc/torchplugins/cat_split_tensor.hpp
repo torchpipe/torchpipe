@@ -11,9 +11,10 @@ namespace torchpipe {
 
 class CatTensor : public hami::Backend {
    public:
-    void init(const std::unordered_map<std::string, std::string>& config_param,
-              const dict& dict_config) override;
-    void forward(const std::vector<dict>& input_output) override;
+    void impl_init(
+        const std::unordered_map<std::string, std::string>& config_param,
+        const dict& dict_config) override;
+    void impl_forward(const std::vector<dict>& input_output) override;
 
    private:
     std::shared_ptr<NetIOInfos> net_shapes_;
@@ -21,9 +22,10 @@ class CatTensor : public hami::Backend {
 
 class SplitTensor : public hami::Backend {
    public:
-    void init(const std::unordered_map<std::string, std::string>& config_param,
-              const dict& dict_config) override;
-    void forward(const std::vector<dict>& input_output) override;
+    void impl_init(
+        const std::unordered_map<std::string, std::string>& config_param,
+        const dict& dict_config) override;
+    void impl_forward(const std::vector<dict>& input_output) override;
 
    private:
     std::shared_ptr<std::vector<NetIOInfo>> net_shapes_;

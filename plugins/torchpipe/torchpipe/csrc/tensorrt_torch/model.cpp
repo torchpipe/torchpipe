@@ -131,7 +131,7 @@ class LocalFileStreamReader : public nvinfer1::IStreamReader
 }  // namespace
 namespace torchpipe {
 
-void LoadTensorrtEngine::init(
+void LoadTensorrtEngine::impl_init(
     const std::unordered_map<std::string, std::string>& config,
     const hami::dict& dict_config) {
     HAMI_ASSERT(dict_config);
@@ -168,7 +168,7 @@ void LoadTensorrtEngine::init(
     engine_ = nullptr;
 }
 
-void Onnx2Tensorrt::init(
+void Onnx2Tensorrt::impl_init(
     const std::unordered_map<std::string, std::string>& config,
     const hami::dict& dict_config) {
     HAMI_ASSERT(dict_config);

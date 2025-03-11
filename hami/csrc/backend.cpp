@@ -20,8 +20,8 @@ namespace hami {
 using namespace hami::python;
 class PyInstance : public Backend {
    public:
-    void init(const std::unordered_map<string, string>& config,
-              const dict& dict_config) override final {
+    void impl_init(const std::unordered_map<string, string>& config,
+                   const dict& dict_config) override final {
         py::gil_scoped_acquire gil;
         if (py::hasattr(*obj_, "init")) {
             init_num_params_ =
@@ -45,7 +45,7 @@ class PyInstance : public Backend {
             obj_->attr("init")(config, PyDict(dict_config));
         }
     }
-    void forward(const std::vector<dict>& input_output) override final {
+    void impl_forward(const std::vector<dict>& input_output) override final {
         std::vector<PyDict> py_input_output;
         for (const auto& item : input_output) {
             py_input_output.push_back(PyDict(item));  // no need gil
@@ -84,16 +84,16 @@ using namespace pybind11::literals;
 // class PYBackend : public Backend {
 //  public:
 //   using Backend::Backend;
-//   virtual void init(const std::unordered_map<std::string, std::string>&
+//   virtual void impl_init(const std::unordered_map<std::string, std::string>&
 //   config,
 //                     const dict& dict_config) override {
 //     PYBIND11_OVERRIDE(void, Backend, init, config, dict_config);
 //   }
-//   virtual void forward(const std::vector<dict>& input_output) override {
+//   virtual void impl_forward(const std::vector<dict>& input_output) override {
 //     PYBIND11_OVERRIDE(void, Backend, forward, input_output);
 //   }
 
-//   virtual void init(const std::unordered_map<std::string, std::string>&
+//   virtual void impl_init(const std::unordered_map<std::string, std::string>&
 //   config,
 //                     const PyDict& dict_config) override {
 //     PYBIND11_OVERRIDE(void, Backend, init, config, dict_config);
@@ -425,7 +425,7 @@ void py_init_backend(py::module_& m) {
                 }
                 py::gil_scoped_release rl;
                 if (dep)
-                    return self.forward_via(inputs, *dep);
+                    return self.forward_with_dep(inputs, *dep);
                 else
                     return self.forward(inputs);
             },

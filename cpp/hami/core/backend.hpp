@@ -34,7 +34,7 @@ namespace hami {
  */
 class HAMI_EXPORT Backend {
    public:
-    virtual ~Backend() = default;  ///< Default virtual destructor.
+    virtual ~Backend() = default;
 
     /**
      * @brief Initializes the backend with configuration and shared data.
@@ -46,17 +46,22 @@ class HAMI_EXPORT Backend {
      * @param dict_config Shared data accessible across multiple backends.
      * @throws any Exception thrown during initialization.
      */
-    virtual void init(const std::unordered_map<string, string>& config,
-                      const dict& dict_config) {}
+    void init(const std::unordered_map<string, string>& config,
+              const dict& dict_config) {
+        // Non-Virtual Interface
+        impl_init(config, dict_config);
+    }
 
     /**
      * @brief Processes input/output data.
      *
-     * The size of `input_output` must be within the range [min(), max()].
+     * [min(), max()] give a hit for The range of `input_output`.
      *
      * @param input_output Input/output data to be processed.
      */
-    virtual void forward(const std::vector<dict>& input_output) {}
+    void forward(const std::vector<dict>& input_output) {
+        impl_forward(input_output);
+    }
 
     /**
      * @brief Returns the maximum number of inputs supported.
@@ -108,13 +113,9 @@ class HAMI_EXPORT Backend {
      * @param input_output Input/output data to be processed.
      * @param dependency Pointer to the backend dependency.
      */
-    virtual void forward_via(const std::vector<dict>& input_output,
-                             Backend* dependency) {
-        if (dependency)
-            throw std::runtime_error(
-                "forward(input_output, dependency) not supported by default");
-        else
-            forward(input_output);
+    void forward_with_dep(const std::vector<dict>& input_output,
+                          Backend* dependency) {
+        impl_forward_with_dep(input_output, dependency);
     }
 
     Backend() = default;
@@ -139,14 +140,20 @@ class HAMI_EXPORT Backend {
      */
     void safe_forward(const std::vector<dict>& input_output);
 
-    /**
-     * @brief Helper function to reflect the class name X, if an instance is
-     * created via HAMI_CREATE(Backend, X). Here, X is a subclass of Backend.
-     * X may have multiple aliases during registration: HAMI_REGISTER(Backend,
-     * X, "X,X2"). This function correctly distinguishes whether the instance
-     * created via HAMI_CREATE was instantiated with X or X2 as the parameter.
-     */
-    // void get_class_name(std::string& default_name) const;
+   private:
+    // Non-Virtual Interface
+    virtual void impl_init(const std::unordered_map<string, string>& config,
+                           const dict& dict_config) {}
+    virtual void impl_forward(const std::vector<dict>& input_output) {}
+
+    virtual void impl_forward_with_dep(const std::vector<dict>& input_output,
+                                       Backend* dependency) {
+        if (dependency)
+            throw std::runtime_error(
+                "forward(input_output, dependency) not supported by default");
+        else
+            forward(input_output);
+    }
 };
 
 using MaxBackend = Backend;
@@ -156,7 +163,7 @@ using MaxBackend = Backend;
  */
 class HasEventForwardGuard : public Backend {
    public:
-    virtual void forward(const std::vector<dict>& inputs) override final;
+    virtual void impl_forward(const std::vector<dict>& inputs) override final;
     /**
      * @brief Processes input/output data with an event. inputs[i] has key
      * TASK_EVENT_KEY.
@@ -186,12 +193,13 @@ HAMI_EXPORT std::unique_ptr<Backend> init_backend(
     std::unordered_map<std::string, std::string> config,
     const dict& dict_config = nullptr, const std::string& registered_name = "");
 
-#define BACKEND_CLASS(ClassName)                                              \
-    class ClassName : public hami::Backend {                                  \
-       public:                                                                \
-        void init(const std::unordered_map<std::string, std::string>& config, \
-                  const hami::dict& dict_config) override;                    \
-        void forward(const std::vector<hami::dict>& input) override;          \
+#define BACKEND_CLASS(ClassName)                                          \
+    class ClassName : public hami::Backend {                              \
+       public:                                                            \
+        void impl_init(                                                   \
+            const std::unordered_map<std::string, std::string>& config,   \
+            const hami::dict& dict_config) override;                      \
+        void impl_forward(const std::vector<hami::dict>& input) override; \
     };
 
 namespace backend {

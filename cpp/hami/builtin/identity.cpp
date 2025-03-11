@@ -27,8 +27,8 @@ class Pow : public SingleBackend {
    public:
     enum class DataType { INT = 0, SIZE_T, FLOAT, DOUBLE, STRING };
     DataType data_type_{DataType::INT};
-    void init(const std::unordered_map<std::string, std::string>& config,
-              const dict& dict_config) override {
+    void impl_init(const std::unordered_map<std::string, std::string>& config,
+                   const dict& dict_config) override {
         auto iter = config.find("data_type");
         if (iter != config.end()) {
             const auto& data_type_str = iter->second;

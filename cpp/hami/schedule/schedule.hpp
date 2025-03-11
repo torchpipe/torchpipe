@@ -11,10 +11,10 @@
 
 namespace hami {
 class Batching : public DynamicDependency {
-   public:
-    void init(const std::unordered_map<string, string>& config,
-              const dict&) override final;
-    void forward(const std::vector<dict>& inputs) override final;
+   private:
+    void impl_init(const std::unordered_map<string, string>& config,
+                   const dict&) override final;
+    void impl_forward(const std::vector<dict>& inputs) override final;
     virtual void run();
     ~Batching() {
         bInited_.store(false);
@@ -45,9 +45,9 @@ class Batching : public DynamicDependency {
 
 class BackgroundThread : public Backend {
    public:
-    void init(const std::unordered_map<string, string>& config,
-              const dict&) override final;
-    void forward(const std::vector<dict>& inputs) override final;
+    void impl_init(const std::unordered_map<string, string>& config,
+                   const dict&) override final;
+    void impl_forward(const std::vector<dict>& inputs) override final;
 
     virtual void run();
     ~BackgroundThread() {
@@ -78,10 +78,10 @@ class BackgroundThread : public Backend {
 };
 
 class InstanceDispatcher : public Backend {
-   public:
-    void init(const std::unordered_map<std::string, std::string>& config,
-              const dict& dict_config) override final;
-    virtual void forward(const std::vector<dict>& inputs) override;
+   private:
+    void impl_init(const std::unordered_map<std::string, std::string>& config,
+                   const dict& dict_config) override final;
+    virtual void impl_forward(const std::vector<dict>& inputs) override;
 
     [[nodiscard]] size_t max() const override final { return max_; }
     [[nodiscard]] size_t min() const override final { return min_; }

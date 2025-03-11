@@ -8,8 +8,9 @@
 // #include  "hami/builtin/tree.hpp"
 
 // namespace hami {
-// void Tree::post_init(const std::unordered_map<std::string, std::string>& config,
+// void Tree::post_init(const std::unordered_map<std::string, std::string>&
+// config,
 //                      const dict& dict_config) {}
-// void Tree::forward(const std::vector<dict>&) {}
+// void Tree::impl_forward(const std::vector<dict>&) {}
 
 // }  // namespace hami

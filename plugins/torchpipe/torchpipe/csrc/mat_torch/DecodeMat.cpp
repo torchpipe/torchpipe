@@ -22,8 +22,9 @@ cv::Mat cpu_decode(std::string data) {
     return cv::imdecode(cv::Mat(vectordata), cv::IMREAD_COLOR);
 }
 }  // namespace
-void DecodeMat::init(const std::unordered_map<std::string, std::string>& config,
-                     const hami::dict& dict_config) {
+void DecodeMat::impl_init(
+    const std::unordered_map<std::string, std::string>& config,
+    const hami::dict& dict_config) {
     //   str::try_update(config, "color", color_);
     //   str::try_update(config, "data_format", data_format_);
 

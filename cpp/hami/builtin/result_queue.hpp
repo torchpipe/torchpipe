@@ -8,12 +8,12 @@ namespace hami {
 // init = List[QueueBackend[register_name, optional[target_name]]]
 class QueueBackend : public Backend {
    public:
-    void init(const std::unordered_map<std::string, std::string>& config,
-              const dict&) override final;
+    void impl_init(const std::unordered_map<std::string, std::string>& config,
+                   const dict&) override final;
 
     void inject_dependency(Backend* dep) override;
 
-    void forward(const std::vector<dict>& input) override final {
+    void impl_forward(const std::vector<dict>& input) override final {
         for (auto& item : input) {
             queue_->put(item);
         }
@@ -41,11 +41,11 @@ class QueueBackend : public Backend {
 };
 
 class Send : public Backend {
-   public:
-    void init(const std::unordered_map<std::string, std::string>& config,
-              const dict&) override final;
+   private:
+    void impl_init(const std::unordered_map<std::string, std::string>& config,
+                   const dict&) override final;
 
-    void forward(const std::vector<dict>& input) override final {
+    void impl_forward(const std::vector<dict>& input) override final {
         for (auto& item : input) {
             queue_->put(item);
         }

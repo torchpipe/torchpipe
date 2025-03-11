@@ -10,9 +10,9 @@ namespace torchpipe {
 
 class TensorrtInferTensor : public hami::Backend {
    public:
-    void init(const std::unordered_map<std::string, std::string>& config,
-              const hami::dict& dict_config) override;
-    void forward(const std::vector<hami::dict>& input) override;
+    void impl_init(const std::unordered_map<std::string, std::string>& config,
+                   const hami::dict& dict_config) override;
+    void impl_forward(const std::vector<hami::dict>& input) override;
     [[nodiscard]] size_t max() const {
         return (size_t)info_.first.at(0).max.d[0];
     }
@@ -44,9 +44,10 @@ class TensorrtInferTensor : public hami::Backend {
 
 // class x : public hami::Backend {
 //    public:
-//     void init(const std::unordered_map<std::string, std::string>& config,
+//     void impl_init(const std::unordered_map<std::string, std::string>&
+//     config,
 //               const hami::dict& dict_config) override;
-//     void forward(const std::vector<hami::dict>& input) override;
+//     void impl_forward(const std::vector<hami::dict>& input) override;
 
 //    private:
 //     std::unique_ptr<nvinfer1::IRuntime> runtime_;

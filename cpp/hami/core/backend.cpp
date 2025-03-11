@@ -21,7 +21,7 @@ namespace hami {
 //     } else
 //         default_name = *name;
 // }
-void HasEventForwardGuard::forward(const std::vector<dict>& inputs) {
+void HasEventForwardGuard::impl_forward(const std::vector<dict>& inputs) {
     const bool all_have_event =
         std::all_of(inputs.begin(), inputs.end(), [](const auto& item) {
             return item->find(TASK_EVENT_KEY) != item->end();

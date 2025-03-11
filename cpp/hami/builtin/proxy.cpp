@@ -5,8 +5,8 @@
 
 namespace hami {
 
-void BackendProxy::init(const std::unordered_map<string, string>& config,
-                        const dict& dict_config) {
+void BackendProxy::impl_init(const std::unordered_map<string, string>& config,
+                             const dict& dict_config) {
     auto iter = config.find("backend");
     HAMI_ASSERT(iter != config.end(),
                 "BackendProxy configuration error: 'backend' parameter is "
@@ -23,8 +23,8 @@ void BackendProxy::init(const std::unordered_map<string, string>& config,
     proxy_backend_ = owned_backend_.get();
 }
 
-void Placeholder::init(const std::unordered_map<string, string>& config,
-                       const dict& dict_config) {
+void Placeholder::impl_init(const std::unordered_map<string, string>& config,
+                            const dict& dict_config) {
     auto name = HAMI_OBJECT_NAME(Backend, this);
     HAMI_ASSERT(name != std::nullopt);
 
@@ -37,8 +37,8 @@ void Placeholder::init(const std::unordered_map<string, string>& config,
 HAMI_REGISTER(Backend, BackendProxy);
 HAMI_REGISTER(Backend, Placeholder);
 
-void Reflect::init(const std::unordered_map<string, string>& in_config,
-                   const dict& dict_config) {
+void Reflect::impl_init(const std::unordered_map<string, string>& in_config,
+                        const dict& dict_config) {
     auto config = in_config;
     std::string default_dep;
 
@@ -54,8 +54,8 @@ void Reflect::init(const std::unordered_map<string, string>& in_config,
 
 HAMI_REGISTER(Backend, Reflect, "Reflect,ProxyFromParam");
 
-void Proxy::init(const std::unordered_map<string, string>& config,
-                 const dict& dict_config) {
+void Proxy::impl_init(const std::unordered_map<string, string>& config,
+                      const dict& dict_config) {
     auto name = backend::get_dependency_name(this, config, "Proxy");
 
     proxy_backend_ = HAMI_INSTANCE_GET(Backend, name);
@@ -64,8 +64,8 @@ void Proxy::init(const std::unordered_map<string, string>& config,
 
 HAMI_REGISTER(Backend, Proxy, "Proxy");
 
-void DI::init(const std::unordered_map<string, string>& config,
-              const dict& dict_config) {
+void DI::impl_init(const std::unordered_map<string, string>& config,
+                   const dict& dict_config) {
     auto name = backend::get_dependency_name(this, config);
     auto re = str::str_split(name, ',');
     HAMI_ASSERT(re.size() == 2,

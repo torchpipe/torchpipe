@@ -18,8 +18,8 @@
 #include "hami/helper/string.hpp"
 
 namespace hami {
-void Batching::init(const std::unordered_map<string, string>& config,
-                    const dict& dict_config) {
+void Batching::impl_init(const std::unordered_map<string, string>& config,
+                         const dict& dict_config) {
     str::try_update(config, "batching_timeout", batching_timeout_);
     HAMI_ASSERT(batching_timeout_ >= 0);
     if (batching_timeout_ > 0) {
@@ -34,7 +34,7 @@ void Batching::init(const std::unordered_map<string, string>& config,
     HAMI_ASSERT(instances_state_);
 }
 
-void Batching::forward(const std::vector<dict>& inputs) {
+void Batching::impl_forward(const std::vector<dict>& inputs) {
     HasEventHelper helper(
         inputs);  // add `event` (and wait for possible exception) if not exist
     HAMI_FATAL_ASSERT(injected_dependency_);
@@ -58,8 +58,20 @@ void Batching::run() {
     while (bInited_.load()) {
         const auto cached_size = get_request_size(cached_data);
         // size_t req_size =
-        if (input_queue_.size() + cached_size >= max_bs ||
-            already_batching_timout) {
+        if (cached_size == 0) {
+            dict tmp_dict;
+            if (!input_queue_.wait_pop(
+                    tmp_dict,
+                    SHUTDOWN_TIMEOUT)) {  // every batching_timeout_ ms check
+                                          // that whether bIbited_ is true.
+                // if not, exit this  loop
+                continue;
+            }
+            cached_data.push_back(tmp_dict);
+            continue;
+
+        } else if (input_queue_.size() + cached_size >= max_bs ||
+                   already_batching_timout) {
             std::size_t new_pop = 0;
             while (cached_size + new_pop < max_bs && !input_queue_.empty()) {
                 const auto front_size = input_queue_.front_size();
@@ -77,18 +89,6 @@ void Batching::run() {
                 already_batching_timout = false;
                 cached_data.clear();
             }
-        } else if (cached_size == 0) {
-            dict tmp_dict;
-            if (!input_queue_.wait_pop(
-                    tmp_dict,
-                    SHUTDOWN_TIMEOUT)) {  // every batching_timeout_ ms check
-                                          // that whether bIbited_ is true.
-                // if not, exit this  loop
-                continue;
-            }
-            cached_data.push_back(tmp_dict);
-            continue;
-
         } else {
             // std::size_t new_pop = 0;
 
@@ -108,8 +108,8 @@ void Batching::run() {
     }  // end while
 }
 
-void InstanceDispatcher::init(const std::unordered_map<string, string>& config,
-                              const dict& dict_config) {
+void InstanceDispatcher::impl_init(
+    const std::unordered_map<string, string>& config, const dict& dict_config) {
     instances_state_ = dict_get<std::shared_ptr<InstancesState>>(
         dict_config, TASK_RESOURCE_STATE_KEY);
     auto iter = config.find("node_name");
@@ -141,7 +141,7 @@ void InstanceDispatcher::update_min_max(const std::vector<Backend*>& deps) {
     HAMI_ASSERT(min_ <= max_);
 }
 
-void InstanceDispatcher::forward(const std::vector<dict>& inputs) {
+void InstanceDispatcher::impl_forward(const std::vector<dict>& inputs) {
     HAMI_ASSERT(
         helper::none_or_all_has_key_and_unempty(inputs, TASK_EVENT_KEY));
     const size_t req_size = get_request_size(inputs);
@@ -175,8 +175,8 @@ void InstanceDispatcher::forward(const std::vector<dict>& inputs) {
     }
 }
 
-void BackgroundThread::init(const std::unordered_map<string, string>& config,
-                            const dict& dict_config) {
+void BackgroundThread::impl_init(
+    const std::unordered_map<string, string>& config, const dict& dict_config) {
     const auto dependency_name = get_dependency_name_force(this, config);
 
     dependency_ =
@@ -197,7 +197,7 @@ void BackgroundThread::init(const std::unordered_map<string, string>& config,
     HAMI_ASSERT(bInited_.load() && (!bStoped_.load()));
 }
 
-void BackgroundThread::forward(const std::vector<dict>& inputs) {
+void BackgroundThread::impl_forward(const std::vector<dict>& inputs) {
     HAMI_ASSERT(helper::all_has_key(inputs, TASK_EVENT_KEY));
     batched_queue_.push(inputs);
 }
@@ -281,8 +281,8 @@ HAMI_REGISTER(Backend, Batching);
 
 class SharedInstancesState : public Backend {
    public:
-    void init(const std::unordered_map<std::string, std::string>& config,
-              const dict& dict_config) override final {
+    void impl_init(const std::unordered_map<std::string, std::string>& config,
+                   const dict& dict_config) override final {
         HAMI_ASSERT(dict_config, "dict_config is empty");
         auto res = std::make_shared<InstancesState>();
         (*dict_config)[TASK_RESOURCE_STATE_KEY] = res;

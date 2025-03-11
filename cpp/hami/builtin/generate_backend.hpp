@@ -12,8 +12,8 @@ namespace hami {
  */
 class GenerateBackend : public Backend {
    public:
-    void init(const std::unordered_map<std::string, std::string>& config,
-              const dict& dict_config) override;
+    void impl_init(const std::unordered_map<std::string, std::string>& config,
+                   const dict& dict_config) override;
 
     void inject_dependency(Backend* dependency) override final {
         if (!proxy_backend_) {
@@ -22,12 +22,12 @@ class GenerateBackend : public Backend {
             proxy_backend_->inject_dependency(dependency);
     }
 
-    void forward_via(const std::vector<dict>& inputs,
-                     Backend* dependency) override {
-        proxy_backend_->forward_via(inputs, dependency);
+    void impl_forward_with_dep(const std::vector<dict>& inputs,
+                               Backend* dependency) override {
+        proxy_backend_->forward_with_dep(inputs, dependency);
     }
 
-    void forward(const std::vector<dict>& inputs) override {
+    void impl_forward(const std::vector<dict>& inputs) override {
         proxy_backend_->forward(inputs);
     }
     [[nodiscard]] virtual size_t max() const override {

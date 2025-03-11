@@ -46,7 +46,7 @@ void Aspect::post_init(
     HAMI_ASSERT(base_dependencies_.size() > 0);
 }
 
-void Aspect::forward(const std::vector<dict>& input_output) {
+void Aspect::impl_forward(const std::vector<dict>& input_output) {
     DictHelper dicts_guard(input_output);
     dicts_guard.keep(TASK_DATA_KEY).erase(TASK_RESULT_KEY);
     base_dependencies_.front()->safe_forward(input_output);

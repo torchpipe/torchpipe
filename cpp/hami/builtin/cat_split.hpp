@@ -11,7 +11,7 @@ class CatSplit final : public Container {
     virtual void post_init(const std::unordered_map<std::string, std::string>&,
                            const dict&) override;
 
-    virtual void forward(const std::vector<dict>&) override;
+    virtual void impl_forward(const std::vector<dict>&) override;
 
    private:
     virtual std::vector<size_t> set_init_order(size_t max_range) const override;

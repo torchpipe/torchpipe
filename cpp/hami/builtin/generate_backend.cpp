@@ -40,7 +40,7 @@ void GenerateBackend::replace_dependency_config(
     } while (false);
 }
 
-void GenerateBackend::init(
+void GenerateBackend::impl_init(
     const std::unordered_map<std::string, std::string>& const_config,
     const dict& dict_config) {
     auto orders = order();

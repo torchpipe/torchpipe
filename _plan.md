@@ -135,4 +135,4 @@ pip3 install hami-core --platform manylinux2014_x86_64 --only-binary=:all: --tar
 
 
 
-NVI private: _init _forward _forward_via
+NVI private: _init _forward _forward_with_dep

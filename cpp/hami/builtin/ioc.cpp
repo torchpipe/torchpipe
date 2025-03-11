@@ -9,8 +9,9 @@
 #include "hami/helper/unique_index.hpp"
 namespace hami {
 
-void IoC::init(const std::unordered_map<std::string, std::string>& in_config,
-               const dict& in_dict_config) {
+void IoC::impl_init(
+    const std::unordered_map<std::string, std::string>& in_config,
+    const dict& in_dict_config) {
     constexpr auto default_name = "IoC";
     auto name = HAMI_OBJECT_NAME(Backend, this);
     if (!name) {

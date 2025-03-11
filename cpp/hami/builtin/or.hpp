@@ -11,10 +11,11 @@ namespace hami {
  *
  */
 class Or final : public Container {
- public:
-  virtual void post_init(const std::unordered_map<std::string, std::string>&, const dict&) override;
+   public:
+    virtual void post_init(const std::unordered_map<std::string, std::string>&,
+                           const dict&) override;
 
-  virtual void forward(const std::vector<dict>&) override;
+    virtual void impl_forward(const std::vector<dict>&) override;
 };
 
 }  // namespace hami

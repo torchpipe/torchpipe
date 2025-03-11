@@ -117,7 +117,7 @@ DecodeTensor::~DecodeTensor() {
     nvjpegJpegStateDestroy(state_);
     nvjpegDestroy(handle_);
 }
-void DecodeTensor::init(
+void DecodeTensor::impl_init(
     const std::unordered_map<std::string, std::string>& config,
     const hami::dict& dict_config) {
     str::try_update(config, "color", color_);

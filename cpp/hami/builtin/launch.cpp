@@ -5,7 +5,7 @@
 
 namespace hami {
 
-void LaunchBase::init(
+void LaunchBase::impl_init(
     const std::unordered_map<std::string, std::string>& config,
     const dict& dict_config) {
     auto name = backend::get_dependency_name(this, config, "LaunchBase");

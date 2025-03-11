@@ -10,7 +10,7 @@
 #include "hami/helper/timer.hpp"
 
 namespace hami {
-void DagDispatcher::init(
+void DagDispatcher::impl_init(
     const std::unordered_map<std::string, std::string>& config,
     const dict& dict_config) {
     HAMI_ASSERT(dict_config, "DagDispatcher: dict_config is required");
@@ -267,14 +267,14 @@ void DagDispatcher::execute(std::string node_name,
 
 class DagProxy : public Backend {
    public:
-    void init(const std::unordered_map<std::string, std::string>& config,
-              const dict& dict_config) override {
+    void impl_init(const std::unordered_map<std::string, std::string>& config,
+                   const dict& dict_config) override {
         auto iter = config.find("DagProxy::dependency");
         HAMI_ASSERT(iter != config.end(),
                     "DagProxy: `node_name` not found in config");
         node_name_ = iter->second;
     }
-    void forward(const std::vector<dict>& input_output) override {
+    void impl_forward(const std::vector<dict>& input_output) override {
         for (auto& item : input_output) {
             item->insert_or_assign(TASK_NODE_NAME_KEY, node_name_);
         }

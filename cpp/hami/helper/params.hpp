@@ -50,7 +50,7 @@ class Params {
      *
      * @param config Key-value pairs of parameters.
      */
-    void init(const std::unordered_map<std::string, std::string>& config);
+    void impl_init(const std::unordered_map<std::string, std::string>& config);
 
     std::string& at(const std::string& key);
 

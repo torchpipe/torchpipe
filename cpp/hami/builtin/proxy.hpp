@@ -22,8 +22,8 @@
 namespace hami {
 class Proxy : public Backend {
    public:
-    void init(const std::unordered_map<string, string>& config,
-              const dict& dict_config) override;
+    void impl_init(const std::unordered_map<string, string>& config,
+                   const dict& dict_config) override;
 
     void inject_dependency(Backend* dependency) override {
         if (!proxy_backend_) {
@@ -32,12 +32,12 @@ class Proxy : public Backend {
             proxy_backend_->inject_dependency(dependency);
     }
 
-    void forward_via(const std::vector<dict>& inputs,
-                     Backend* dependency) override {
-        proxy_backend_->forward_via(inputs, dependency);
+    void impl_forward_with_dep(const std::vector<dict>& inputs,
+                               Backend* dependency) override {
+        proxy_backend_->forward_with_dep(inputs, dependency);
     }
 
-    void forward(const std::vector<dict>& inputs) override {
+    void impl_forward(const std::vector<dict>& inputs) override {
         proxy_backend_->forward(inputs);
     }
     [[nodiscard]] virtual size_t max() const override {
@@ -56,22 +56,22 @@ class Proxy : public Backend {
 
 // class InstanceProxy : public Proxy {
 //    public:
-//     void init(const std::unordered_map<string, string>& config,
+//     void impl_init(const std::unordered_map<string, string>& config,
 //               const dict& dict_config) override;
 // };
 
 class DI : public Proxy {
    public:
-    void init(const std::unordered_map<string, string>& config,
-              const dict& dict_config) override;
+    void impl_init(const std::unordered_map<string, string>& config,
+                   const dict& dict_config) override;
     void inject_dependency(Backend* dependency) override {
         throw std::runtime_error("DI: inject_dependency Unillegal");
     }
 };
 class Placeholder : public Proxy {
    public:
-    void init(const std::unordered_map<string, string>& config,
-              const dict& dict_config) override;
+    void impl_init(const std::unordered_map<string, string>& config,
+                   const dict& dict_config) override;
     void inject_dependency(Backend* dependency) override {
         if (!proxy_backend_) {
             proxy_backend_ = dependency;
@@ -91,8 +91,8 @@ class ProxyV2 : public Backend {
         return {setting, dict_setting};
     }
 
-    void init(const std::unordered_map<string, string>& config,
-              const dict& dict_config) override final {
+    void impl_init(const std::unordered_map<string, string>& config,
+                   const dict& dict_config) override final {
         auto execorder = get_order();
         proxy_backend_ = init_backend(execorder.first, execorder.second);
     }
@@ -104,12 +104,12 @@ class ProxyV2 : public Backend {
             proxy_backend_->inject_dependency(dependency);
     }
 
-    void forward_via(const std::vector<dict>& inputs,
-                     Backend* dependency) override {
-        proxy_backend_->forward_via(inputs, dependency);
+    void impl_forward_with_dep(const std::vector<dict>& inputs,
+                               Backend* dependency) override {
+        proxy_backend_->forward_with_dep(inputs, dependency);
     }
 
-    void forward(const std::vector<dict>& inputs) override {
+    void impl_forward(const std::vector<dict>& inputs) override {
         proxy_backend_->forward(inputs);
     }
     [[nodiscard]] virtual size_t max() const override {
@@ -128,16 +128,16 @@ class ProxyV2 : public Backend {
 
 class BackendProxy : public Proxy {
    public:
-    void init(const std::unordered_map<std::string, std::string>& config,
-              const dict& dict_config) override;
+    void impl_init(const std::unordered_map<std::string, std::string>& config,
+                   const dict& dict_config) override;
 
    private:
     // std::unique_ptr<Backend> owned_backend_;
 };
 
 class Reflect : public Proxy {
-    void init(const std::unordered_map<std::string, std::string>& config,
-              const dict& dict_config) override;
+    void impl_init(const std::unordered_map<std::string, std::string>& config,
+                   const dict& dict_config) override;
 };
 
 #define HAMI_PROXY(derived_aspect_cls, setting, ...)                      \
@@ -153,8 +153,8 @@ class Reflect : public Proxy {
     class derived_aspect_cls : public Proxy {                                \
        private:                                                              \
        public:                                                               \
-        void init(const std::unordered_map<string, string>& config,          \
-                  const dict& dict_config) override final {                  \
+        void impl_init(const std::unordered_map<string, string>& config,     \
+                       const dict& dict_config) override final {             \
             auto new_conf = config;                                          \
             auto backend_config = str::flatten_brackets(dependency_setting); \
             HAMI_ASSERT(backend_config.size() == 2);                         \
