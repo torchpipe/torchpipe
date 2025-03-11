@@ -425,7 +425,7 @@ void py_init_backend(py::module_& m) {
                 }
                 py::gil_scoped_release rl;
                 if (dep)
-                    return self.forward_with_dependency(inputs, *dep);
+                    return self.forward_via(inputs, *dep);
                 else
                     return self.forward(inputs);
             },

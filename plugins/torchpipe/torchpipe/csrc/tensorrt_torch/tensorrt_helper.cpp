@@ -703,7 +703,7 @@ std::unique_ptr<nvinfer1::IHostMemory> onnx2trt(OnnxParams& params) {
         std::ofstream file(params.model_cache, std::ios::binary);
         file.write(static_cast<char*>(engine_plan->data()),
                    engine_plan->size());
-        engine_plan.release();
+        // engine_plan.release();
     }
     return engine_plan;
 }

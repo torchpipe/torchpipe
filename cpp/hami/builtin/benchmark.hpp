@@ -29,7 +29,8 @@ struct ProfileState {
 class Benchmark : public Backend {
     void init(const std::unordered_map<std::string, std::string>& config,
               const dict& dict_config) override;
-    void forward_with_dependency(const std::vector<dict>& input, Backend* dependency) override;
+    void forward_via(const std::vector<dict>& input,
+                     Backend* dependency) override;
     ~Benchmark() {
         bInited_.store(false);
         task_cv_.notify_all();

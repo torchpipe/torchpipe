@@ -10,7 +10,7 @@ void ResultParser::pre_init(
     const std::unordered_map<std::string, std::string>& config,
     const dict& dict_config) {
     parser_ = parser_impl();
-    init_impl(config, dict_config);
+    init_dep_impl(config, dict_config);
 }
 
 class ThrowIfNoResult : public ResultParser {

@@ -158,7 +158,7 @@ std::string get_dependency_name(
 std::string parse_dependency_from_param(
     const Backend* this_ptr,
     std::unordered_map<std::string, std::string>& config,
-    std::string default_params_name) {
+    std::string default_params_name, const std::string& default_dep_name) {
     auto name = HAMI_OBJECT_NAME(Backend, this_ptr);
     if (name == std::nullopt) {
         throw std::runtime_error(
@@ -180,9 +180,15 @@ std::string parse_dependency_from_param(
         config.erase(iter);
     }
     iter = config.find(default_params_name);
-    HAMI_ASSERT(iter != config.end(), "In config, cannot find key `" +
-                                          default_params_name +
-                                          "`, please check the configuration");
+    if (iter == config.end()) {
+        HAMI_ASSERT(!default_dep_name.empty(),
+                    "In config, cannot find key `" + default_params_name +
+                        "`, please check the configuration");
+        // SPDLOG_INFO("Using defalut dependency {}", default_dep_name);
+
+        return default_dep_name;
+    }
+
     return iter->second;
 }
 

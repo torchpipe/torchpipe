@@ -7,22 +7,24 @@
 namespace hami {
 
 class ResultParser : public Dependency {
- private:
-  std::function<void(const dict&)> parser_;
+   private:
+    std::function<void(const dict&)> parser_;
 
- public:
-  void pre_init(const std::unordered_map<std::string, std::string>& config,
-                const dict& dict_config) override final;
-  virtual void init_impl(const std::unordered_map<std::string, std::string>& config,
-                         const dict& dict_config) {}
-  void forward_impl(const std::vector<dict>& inputs, Backend* dependency) override final {
-    dependency->safe_forward(inputs);
-    for (const auto& item : inputs) {
-      parser_(item);
+   public:
+    void pre_init(const std::unordered_map<std::string, std::string>& config,
+                  const dict& dict_config) override final;
+    virtual void init_dep_impl(
+        const std::unordered_map<std::string, std::string>& config,
+        const dict& dict_config) {}
+    void forward_dep_impl(const std::vector<dict>& inputs,
+                          Backend* dependency) override final {
+        dependency->safe_forward(inputs);
+        for (const auto& item : inputs) {
+            parser_(item);
+        }
     }
-  }
 
-  virtual std::function<void(const dict&)> parser_impl() const = 0;
+    virtual std::function<void(const dict&)> parser_impl() const = 0;
 };
 
 }  // namespace hami

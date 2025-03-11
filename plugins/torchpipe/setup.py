@@ -258,6 +258,7 @@ def make_image_extension():
     Extension = CppExtension
     
     assert torch.cuda.is_available()
+    extra_link_args=[]
     if USE_NVJPEG:
         nvjpeg_found = CUDA_HOME is not None and (Path(CUDA_HOME) / "include/nvjpeg.h").exists()
 
@@ -271,7 +272,8 @@ def make_image_extension():
             raise RuntimeError("NVJPEG not found. You may need to set CUDA_HOME environment variable.")
     else:
         warnings.warn("Building torchpipe without NVJPEG support")
-
+    nvjpeg_path = Path(CUDA_HOME) / "lib64"
+    extra_link_args = [f'-Wl,-rpath,{nvjpeg_path}']
     return Extension(
         name="torchpipe.image",
         sources=sorted(str(s) for s in sources),
@@ -280,6 +282,7 @@ def make_image_extension():
         libraries = ['hami']+libraries,
         define_macros=define_macros,
         extra_compile_args=extra_compile_args,
+        extra_link_args = extra_link_args,
     )
 
 

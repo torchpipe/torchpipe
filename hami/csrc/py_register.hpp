@@ -14,17 +14,11 @@ py::object any2object_from_hash_register(const any&);
 HAMI_EXPORT void try_insert(const std::type_index& type,
                             const any2obj_func& func);
 template <typename T>
-void register_any2object_hash_converter() {
-    try_insert(typeid(T), any2obj_func([](const any& self) {
-                   return py::cast(any_cast<T>(self));
-               }));
-    //   auto& type_map = get_type_map();
-    //   auto [it, inserted] = type_map.emplace(
-    //       typeid(T), any2obj_func([](const any& self) { return
-    //       py::cast(any_cast<T>(self)); }));
-    //   if (!inserted) {
-    //     throw std::runtime_error("Type already registered");
-    //   }
+void register_any2object_hash_converter(any2obj_func conv = nullptr) {
+    if (!conv)
+        conv = [](const any& self) { return py::cast(any_cast<T>(self)); };
+    try_insert(typeid(T),
+               any2obj_func([conv](const any& self) { return conv(self); }));
 }
 }  // namespace hami::local
 

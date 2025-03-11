@@ -40,9 +40,13 @@ HAMI_REGISTER(Backend, Placeholder);
 void Reflect::init(const std::unordered_map<string, string>& in_config,
                    const dict& dict_config) {
     auto config = in_config;
-    auto default_dep = parse_dependency_from_param(this, config, "backend");
+    std::string default_dep;
+
+    default_dep =
+        parse_dependency_from_param(this, config, "backend", "Identity");
 
     owned_backend_ = init_backend(default_dep, config, dict_config);
+
     // HAMI_ASSERT(owned_backend_);
     // owned_backend_->init(config, dict_config);
     proxy_backend_ = owned_backend_.get();

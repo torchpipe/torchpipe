@@ -22,9 +22,9 @@ class GenerateBackend : public Backend {
             proxy_backend_->inject_dependency(dependency);
     }
 
-    void forward_with_dependency(const std::vector<dict>& inputs,
-                 Backend* dependency) override {
-        proxy_backend_->forward_with_dependency(inputs, dependency);
+    void forward_via(const std::vector<dict>& inputs,
+                     Backend* dependency) override {
+        proxy_backend_->forward_via(inputs, dependency);
     }
 
     void forward(const std::vector<dict>& inputs) override {

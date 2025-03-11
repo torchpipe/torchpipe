@@ -23,14 +23,14 @@ class HAMI_EXPORT Dependency : public Backend {
     void inject_dependency(Backend* dependency) override final;
 
     virtual void forward(const std::vector<dict>& input_output) override final {
-        forward_with_dependency(input_output, injected_dependency_);
+        forward_via(input_output, injected_dependency_);
     }
-    virtual void forward_with_dependency(const std::vector<dict>& input_output,
-                         Backend* dependency) override final {
+    virtual void forward_via(const std::vector<dict>& input_output,
+                             Backend* dependency) override final {
         if (dependency == nullptr) {
             throw std::invalid_argument("null dependency is not allowed");
         }
-        forward_impl(input_output, dependency);
+        forward_dep_impl(input_output, dependency);
     }
 
     [[nodiscard]] size_t max() const override {
@@ -75,8 +75,8 @@ class HAMI_EXPORT Dependency : public Backend {
     Backend* injected_dependency_{nullptr};  ///< The injected dependency.
 
    private:
-    virtual void forward_impl(const std::vector<dict>& input_output,
-                              Backend* dependency);
+    virtual void forward_dep_impl(const std::vector<dict>& input_output,
+                                  Backend* dependency);
     std::string registered_name_{};  ///< The registered name of the backend.
     std::string dependency_name_{};
     std::shared_ptr<Backend> shared_owned_dependency_;
@@ -101,14 +101,14 @@ class HAMI_EXPORT DynamicDependency : public Backend {
     void inject_dependency(Backend* dependency) override final;
 
     virtual void forward(const std::vector<dict>& input_output) override {
-        Backend::forward_with_dependency(input_output, injected_dependency_);
+        Backend::forward_via(input_output, injected_dependency_);
     }
     // virtual void forward(const std::vector<dict>& input_output,
     //                      Backend* dependency) override final {
     //     if (dependency == nullptr) {
     //         throw std::invalid_argument("null dependency is not allowed");
     //     }
-    //     forward_impl(input_output, dependency);
+    //     forward_dep_impl(input_output, dependency);
     // }
 
     [[nodiscard]] size_t max() const override;
@@ -118,7 +118,7 @@ class HAMI_EXPORT DynamicDependency : public Backend {
     Backend* injected_dependency_{nullptr};  ///< The injected dependency.
 
     //    private:
-    //     virtual void forward_impl(const std::vector<dict>& input_output,
+    //     virtual void forward_dep_impl(const std::vector<dict>& input_output,
     //                               Backend* dependency);
 };
 
@@ -208,8 +208,9 @@ class HAMI_EXPORT SingleBackend : public Backend {
         forward(input_output[0]);
     }
 
-    void forward_with_dependency(const std::vector<dict>& input_output, Backend*dep) override {
-        Backend::forward_with_dependency(input_output, dep);
+    void forward_via(const std::vector<dict>& input_output,
+                     Backend* dep) override {
+        Backend::forward_via(input_output, dep);
     }
 
     /**

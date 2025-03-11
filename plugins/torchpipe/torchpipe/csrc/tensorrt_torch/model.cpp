@@ -31,6 +31,32 @@ class LocalFileStreamReader : public nvinfer1::IStreamReader
         }
     }
 
+    std::vector<char> read() {
+        if (!file_stream.is_open() || !file_stream.good()) {
+            throw std::runtime_error("Cannot read from file: " + file_path);
+        }
+
+        // 保存当前位置
+        auto current_pos = file_stream.tellg();
+
+        // 移动到文件末尾以获取文件大小
+        file_stream.seekg(0, std::ios::end);
+        auto file_size = file_stream.tellg();
+
+        // 回到文件开始位置
+        file_stream.seekg(0, std::ios::beg);
+
+        std::vector<char> buffer(file_size);
+
+        if (!file_stream.read(buffer.data(), file_size)) {
+            throw std::runtime_error("Failed to read file: " + file_path);
+        }
+
+        file_stream.seekg(current_pos);
+
+        return buffer;
+    }
+
     ~LocalFileStreamReader() override {
         if (file_stream.is_open()) {
             file_stream.close();
@@ -132,7 +158,9 @@ void LoadTensorrtEngine::init(
         nvinfer1::createInferRuntime(*get_trt_logger()));
     allocator_ = std::make_unique<TorchAsyncAllocator>();
     runtime_->setGpuAllocator(allocator_.get());
-    auto* engine_ptr = runtime_->deserializeCudaEngine(reader);
+    auto data = reader.read();  // core dump if directly use reader...
+    auto* engine_ptr =
+        runtime_->deserializeCudaEngine(data.data(), data.size());
     engine_ = std::shared_ptr<nvinfer1::ICudaEngine>(engine_ptr);
     HAMI_ASSERT(engine_->getNbOptimizationProfiles() == instance_num);
 
@@ -198,9 +226,12 @@ void Onnx2Tensorrt::init(
             "you want to rebuild engine.",
             params.model_cache);
         LocalFileStreamReader reader(params.model_cache);
-        auto* engine_ptr = runtime_->deserializeCudaEngine(reader);
+        auto data = reader.read();  // core dump without this...
+        auto* engine_ptr =
+            runtime_->deserializeCudaEngine(data.data(), data.size());
         engine_ = std::shared_ptr<nvinfer1::ICudaEngine>(engine_ptr);
-        HAMI_ASSERT(engine_->getNbOptimizationProfiles() == instance_num);
+        HAMI_ASSERT(engine_ &&
+                    engine_->getNbOptimizationProfiles() == instance_num);
     }
 
     (*dict_config)[TASK_ENGINE_KEY] = engine_;

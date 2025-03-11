@@ -85,7 +85,9 @@ Repost[Z, dddsa]
 - entrypoint 从Interpreter独立
 
 
- Limited Data typesbuiltin types: Any, Dict, Backend
+ Limited Data types 
+ basic: Bytes
+ builtin types: Any, Dict, Backend
    (异步), Event, Queue(default queue), 
    （more schedule）TypedDict, KVStorage(req_id, resp_id, data) 
 builtin container: IoC Proxy/DI Sequential/S  Reflect[key_to_cls_name, default=backend] Register/InstancesRegister InstanceFromParam Forward[instance_name]
@@ -130,3 +132,7 @@ pip3 install hami-core --platform manylinux2014_x86_64 --only-binary=:all: --tar
 - optional<std::any> get
 - insert(req_id, key, value) insert_or_assign
 - ... 提供更多函数
+
+
+
+NVI private: _init _forward _forward_via

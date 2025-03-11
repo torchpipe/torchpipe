@@ -6,8 +6,8 @@
 
 namespace hami {
 
-void EventGuard::forward_impl(const std::vector<dict>& input_output,
-                              Backend* dependency) {
+void EventGuard::forward_dep_impl(const std::vector<dict>& input_output,
+                                  Backend* dependency) {
     std::vector<dict> evented_data;
     std::vector<dict> data;
 

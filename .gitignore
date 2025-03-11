@@ -17,3 +17,4 @@ wheelhouse/
 .pytest_cache/
 .eggs/
 VERSION.txt
+*.trt

@@ -15,6 +15,8 @@ from .commands import get_cmake_dir, get_includes, get_pkgconfig_dir, get_librar
 from hami._C import Any, Dict, Backend, Event, create, register, init
 
 from hami._C import (Queue, default_queue)
+
+from hami._C import TASK_DATA_KEY, TASK_RESULT_KEY
 # from hami import pybackend
 from .parser import parse_from_file
 

@@ -68,8 +68,8 @@ void Dependency::inject_dependency(Backend* dependency) {
         injected_dependency_ = dependency;
     }
 }
-void Dependency::forward_impl(const std::vector<dict>& input_output,
-                              Backend* dependency) {
+void Dependency::forward_dep_impl(const std::vector<dict>& input_output,
+                                  Backend* dependency) {
     dependency->safe_forward(input_output);
 }
 

@@ -30,6 +30,7 @@ namespace hami {
  * @brief Base class for all backends.
  *
  * Provides the interface for initializing and processing data.
+ *  todo: Non-Virtual Interface (NVI)
  */
 class HAMI_EXPORT Backend {
    public:
@@ -107,8 +108,8 @@ class HAMI_EXPORT Backend {
      * @param input_output Input/output data to be processed.
      * @param dependency Pointer to the backend dependency.
      */
-    virtual void forward_with_dependency(const std::vector<dict>& input_output,
-                                         Backend* dependency) {
+    virtual void forward_via(const std::vector<dict>& input_output,
+                             Backend* dependency) {
         if (dependency)
             throw std::runtime_error(
                 "forward(input_output, dependency) not supported by default");

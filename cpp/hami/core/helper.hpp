@@ -196,7 +196,7 @@ std::string debug_node_info(const T& config) {
 std::string parse_dependency_from_param(
     const Backend* this_ptr,
     std::unordered_map<std::string, std::string>& config,
-    std::string default_params_name);
+    std::string default_params_name, const std::string& default_dep_name = "");
 std::optional<std::string> get_dependency_name(
     const Backend* this_ptr,
     const std::unordered_map<std::string, std::string>& config);

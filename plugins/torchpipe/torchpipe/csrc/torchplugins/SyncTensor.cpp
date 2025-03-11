@@ -57,8 +57,8 @@ void SyncTensor::post_init(
     c10::cuda::getCurrentCUDAStream().synchronize();
 }
 
-void SyncTensor::forward_impl(const std::vector<dict>& input_dicts,
-                              Backend* dependency) {
+void SyncTensor::forward_dep_impl(const std::vector<dict>& input_dicts,
+                                  Backend* dependency) {
     c10::InferenceMode guard;  // optinal
 
     if (bNeedSync_) {
