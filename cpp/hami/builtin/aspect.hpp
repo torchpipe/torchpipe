@@ -16,7 +16,7 @@ class Aspect : public Container {
      */
     virtual void impl_forward(const std::vector<dict>&) override;
 
-    void inject_dependency(Backend* dependency) override final {
+    void impl_inject_dependency(Backend* dependency) override final {
         base_dependencies_.front()->inject_dependency(dependency);
     }
 
@@ -33,7 +33,7 @@ class Aspect : public Container {
 //     config,
 //               const dict& dict_config) override;
 
-//     void inject_dependency(Backend* dependency) override final {
+//     void impl_inject_dependency(Backend* dependency) override final {
 //         if (!proxy_backend_) {
 //             throw std::runtime_error("DefineBackend was not initialized
 //             yet");
@@ -49,11 +49,11 @@ class Aspect : public Container {
 //     void impl_forward(const std::vector<dict>& inputs) override {
 //         proxy_backend_->forward(inputs);
 //     }
-//     [[nodiscard]] virtual size_t max() const override {
+//     [[nodiscard]] virtual size_t impl_max() const override {
 //         return proxy_backend_->max();
 //     }
 
-//     [[nodiscard]] virtual size_t min() const override {
+//     [[nodiscard]] virtual size_t impl_min() const override {
 //         return proxy_backend_->min();
 //     }
 

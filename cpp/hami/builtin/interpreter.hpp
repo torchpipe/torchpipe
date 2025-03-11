@@ -20,7 +20,7 @@ static const auto DEFAULT_INIT_CONFIG =
     "Register[" + DEFAULT_NODE_CONFIG + "]]";
 
 class Interpreter : public Proxy {
-   public:
+   private:
     void impl_init(const std::unordered_map<std::string, std::string>& config,
                    const dict& dict_config) override final;
 

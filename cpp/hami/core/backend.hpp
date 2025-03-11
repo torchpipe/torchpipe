@@ -34,8 +34,7 @@ namespace hami {
  */
 class HAMI_EXPORT Backend {
    public:
-    virtual ~Backend() = default;
-
+    // Non-Virtual Interface
     /**
      * @brief Initializes the backend with configuration and shared data.
      *
@@ -45,10 +44,10 @@ class HAMI_EXPORT Backend {
      * @param config Configuration parameters for the backend.
      * @param dict_config Shared data accessible across multiple backends.
      * @throws any Exception thrown during initialization.
+     * @note Non-Virtual Interface. Use can implement @impl_init
      */
     void init(const std::unordered_map<string, string>& config,
               const dict& dict_config) {
-        // Non-Virtual Interface
         impl_init(config, dict_config);
     }
 
@@ -72,8 +71,8 @@ class HAMI_EXPORT Backend {
      * @return Maximum number of inputs supported. Default to
      * std::numeric_limits<size_t>::max()
      */
-    [[nodiscard]] virtual size_t max() const {
-        return std::numeric_limits<size_t>::max();
+    [[nodiscard]] size_t max() const {
+        return impl_max();
     }
 
     /**
@@ -84,7 +83,7 @@ class HAMI_EXPORT Backend {
      *
      * @return Minimum number of inputs supported.
      */
-    [[nodiscard]] virtual size_t min() const { return 1; }
+    [[nodiscard]] size_t min() const { return impl_min(); }
 
     /**
      * @brief Sets the dependency for the backend.
@@ -103,8 +102,8 @@ class HAMI_EXPORT Backend {
      * @throws std::runtime_error If dependency setting is not supported by this
      * backend.
      */
-    virtual void inject_dependency(Backend* dependency) {
-        throw std::runtime_error("inject_dependency not supported by default");
+     void inject_dependency(Backend* dependency) {
+        impl_inject_dependency(dependency);
     }
 
     /**
@@ -118,6 +117,9 @@ class HAMI_EXPORT Backend {
         impl_forward_with_dep(input_output, dependency);
     }
 
+   public:
+   // helper function
+    virtual ~Backend() = default;
     Backend() = default;
     Backend(const Backend&) = delete;
     Backend(const Backend&&) = delete;
@@ -141,7 +143,7 @@ class HAMI_EXPORT Backend {
     void safe_forward(const std::vector<dict>& input_output);
 
    private:
-    // Non-Virtual Interface
+    // User API
     virtual void impl_init(const std::unordered_map<string, string>& config,
                            const dict& dict_config) {}
     virtual void impl_forward(const std::vector<dict>& input_output) {}
@@ -153,6 +155,13 @@ class HAMI_EXPORT Backend {
                 "forward(input_output, dependency) not supported by default");
         else
             forward(input_output);
+    }
+    [[nodiscard]] virtual size_t impl_min() const { return 1; }
+    [[nodiscard]] virtual size_t impl_max() const {
+        return std::numeric_limits<size_t>::max();
+    }
+    virtual void impl_inject_dependency(Backend* dependency) {
+        throw std::runtime_error("inject_dependency not supported by default");
     }
 };
 

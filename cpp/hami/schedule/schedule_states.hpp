@@ -25,11 +25,7 @@ constexpr auto TASK_RESOURCE_STATE_KEY = "resource_state";
 
 class InstancesState {
    public:
-    void add_and_set_range(size_t handle, size_t min_value, size_t max_value) {
-        std::unique_lock<std::mutex> lock(mtx_);
-        instances_[handle] = {min_value, max_value};
-        avaliable_instances_.insert(handle);
-    }
+    void add_and_set_range(size_t handle, size_t min_value, size_t max_value);
 
     void add(size_t handle) {
         {

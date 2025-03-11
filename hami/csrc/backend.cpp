@@ -19,7 +19,7 @@
 namespace hami {
 using namespace hami::python;
 class PyInstance : public Backend {
-   public:
+   private:
     void impl_init(const std::unordered_map<string, string>& config,
                    const dict& dict_config) override final {
         py::gil_scoped_acquire gil;
@@ -44,6 +44,7 @@ class PyInstance : public Backend {
                 throw std::invalid_argument("init must have 2 arguments");
             obj_->attr("init")(config, PyDict(dict_config));
         }
+        HAMI_ASSERT(!py::hasattr(*obj_, "min") && !py::hasattr(*obj_, "max"));
     }
     void impl_forward(const std::vector<dict>& input_output) override final {
         std::vector<PyDict> py_input_output;
@@ -53,9 +54,10 @@ class PyInstance : public Backend {
         py::gil_scoped_acquire gil;
         obj_->attr("forward")(py_input_output);
     }
-    size_t max() const override final { return max_; }
-    size_t min() const override final { return min_; }
+    size_t impl_max() const override final { return max_; }
+    size_t impl_min() const override final { return min_; }
 
+    public:
     void init_with_obj(const py::object& obj) {
         obj_ = hami::python::make_unique(obj);
         max_ = this->Backend::max();
@@ -70,8 +72,8 @@ class PyInstance : public Backend {
 
    private:
     hami::python::unique_ptr obj_;
-    size_t max_ = 0;
-    size_t min_ = 0;
+    size_t max_ = 1;
+    size_t min_ = 1;
     size_t init_default_params_ = 0;
     size_t init_num_params_ = 0;
 };

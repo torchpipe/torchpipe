@@ -43,7 +43,7 @@ void QueueBackend::impl_init(
     }
 }
 
-void QueueBackend::inject_dependency(Backend* dep) {
+void QueueBackend::impl_inject_dependency(Backend* dep) {
     if (target_backend_) {
         target_backend_->inject_dependency(dep);
     } else {

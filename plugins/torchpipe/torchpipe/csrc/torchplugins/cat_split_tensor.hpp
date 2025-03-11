@@ -10,7 +10,7 @@ using hami::dict;
 namespace torchpipe {
 
 class CatTensor : public hami::Backend {
-   public:
+   private:
     void impl_init(
         const std::unordered_map<std::string, std::string>& config_param,
         const dict& dict_config) override;
@@ -21,7 +21,7 @@ class CatTensor : public hami::Backend {
 };
 
 class SplitTensor : public hami::Backend {
-   public:
+   private:
     void impl_init(
         const std::unordered_map<std::string, std::string>& config_param,
         const dict& dict_config) override;

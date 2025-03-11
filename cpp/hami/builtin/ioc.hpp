@@ -21,16 +21,16 @@ namespace hami {
  * - All initialized backends share the same dict_config if provided
  */
 class IoC : public Backend {
-   public:
+   private:
     void impl_init(const std::unordered_map<std::string, std::string>& config,
                    const dict& dict_config);
     void impl_forward(const std::vector<dict>& input_output) override {
         forward_backend_->forward(input_output);
     }
-    [[nodiscard]] size_t max() const override {
+    [[nodiscard]] size_t impl_max() const override {
         return forward_backend_->max();
     }
-    [[nodiscard]] size_t min() const override {
+    [[nodiscard]] size_t impl_min() const override {
         return forward_backend_->min();
     }
 

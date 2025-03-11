@@ -7,11 +7,11 @@ namespace hami {
 
 // init = List[QueueBackend[register_name, optional[target_name]]]
 class QueueBackend : public Backend {
-   public:
+   private:
     void impl_init(const std::unordered_map<std::string, std::string>& config,
                    const dict&) override final;
 
-    void inject_dependency(Backend* dep) override;
+    void impl_inject_dependency(Backend* dep) override;
 
     void impl_forward(const std::vector<dict>& input) override final {
         for (auto& item : input) {
@@ -20,7 +20,7 @@ class QueueBackend : public Backend {
     }
 
     void run();
-
+   public:
     ~QueueBackend();
 
    protected:

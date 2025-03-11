@@ -31,6 +31,7 @@ def exist_return(install_dir):
         opencv_found =  (Path(OPENCV_INCLUDE) / "opencv2/core.hpp").exists() and ( Path(OPENCV_LIB) / "libopencv_core.so").exists()
         if opencv_found:
             logging.info(f" Opencv founded in {install_dir}.  Setting it through OPENCV_INCLUDE and OPENCV_LIB")
+            # raise RuntimeError(OPENCV_INCLUDE, install_dir, OPENCV_LIB)
             return OPENCV_INCLUDE, OPENCV_LIB
         else:
             return None, None

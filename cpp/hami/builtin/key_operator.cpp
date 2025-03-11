@@ -13,7 +13,7 @@
 namespace hami {
 
 class Add : public SingleBackend {
-   public:
+   private:
     void impl_init(const std::unordered_map<std::string, std::string>& config,
                    const dict& dict_config) override {
         std::string dep = get_dependency_name_force(this, config);
@@ -36,7 +36,7 @@ class Add : public SingleBackend {
 HAMI_REGISTER(Backend, Add);
 
 class AddInt : public SingleBackend {
-   public:
+   private:
     void impl_init(const std::unordered_map<std::string, std::string>& config,
                    const dict& dict_config) override {
         std::string dep = get_dependency_name_force(this, config);
@@ -62,7 +62,7 @@ class AddInt : public SingleBackend {
 HAMI_REGISTER(Backend, AddInt);
 
 class Remove : public SingleBackend {
-   public:
+   private:
     void impl_init(const std::unordered_map<std::string, std::string>& config,
                    const dict& dict_config) override {
         std::string dep = get_dependency_name_force(this, config);

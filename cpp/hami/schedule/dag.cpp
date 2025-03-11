@@ -266,7 +266,7 @@ void DagDispatcher::execute(std::string node_name,
 }
 
 class DagProxy : public Backend {
-   public:
+   private:
     void impl_init(const std::unordered_map<std::string, std::string>& config,
                    const dict& dict_config) override {
         auto iter = config.find("DagProxy::dependency");
@@ -283,7 +283,7 @@ class DagProxy : public Backend {
         injected_dependency_->forward(input_output);
     }
 
-    void inject_dependency(Backend* dependency) override {
+    void impl_inject_dependency(Backend* dependency) override {
         if (!injected_dependency_) {
             injected_dependency_ = dependency;
         } else {

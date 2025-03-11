@@ -50,14 +50,14 @@ void Dependency::set_dependency_name(
         get_dependency_name(this, config, default_cls_name, default_dep_name);
 }
 
-void Dependency::inject_dependency(Backend* dependency) {
+void Dependency::impl_inject_dependency(Backend* dependency) {
     if (dependency == nullptr) {
         throw std::invalid_argument("null dependency is not allowed");
     }
     if (injected_dependency_) {
         [[maybe_unused]] thread_local const auto log_tmp = []() {
             SPDLOG_WARN(
-                "Dependency::inject_dependency: dependency already exists(may "
+                "Dependency::impl_inject_dependency: dependency already exists(may "
                 "happened in the "
                 "pre_init stage). Chain dependency injection "
                 "will be applied.");
@@ -79,18 +79,18 @@ Dependency::~Dependency() {
     }
 }
 
-void DynamicDependency::inject_dependency(Backend* dependency) {
+void DynamicDependency::impl_inject_dependency(Backend* dependency) {
     HAMI_ASSERT(dependency && !injected_dependency_);
 
     injected_dependency_ = dependency;
 }
-size_t DynamicDependency::max() const {
+size_t DynamicDependency::impl_max() const {
     HAMI_ASSERT(injected_dependency_,
                 "Dependency not initialized. Call inject_dependency first.");
     return injected_dependency_->max();
 }
 
-size_t DynamicDependency::min() const {
+size_t DynamicDependency::impl_min() const {
     HAMI_ASSERT(injected_dependency_,
                 "Dependency not initialized. Call inject_dependency first.");
     return injected_dependency_->min();

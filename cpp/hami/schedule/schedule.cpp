@@ -185,6 +185,7 @@ void BackgroundThread::impl_init(
 
     init_task_ = [this, config, dict_config]() {
         dependency_->init(config, dict_config);
+        HAMI_ASSERT(dependency_->min() >=1 && dependency_->min() <= dependency_->max());
 
         bInited_.store(true);
     };
@@ -195,6 +196,7 @@ void BackgroundThread::impl_init(
     }
     if (init_eptr_) std::rethrow_exception(init_eptr_);
     HAMI_ASSERT(bInited_.load() && (!bStoped_.load()));
+    SPDLOG_INFO("BackgroundThread inited: {}[{}, {}]",  dependency_name, dependency_->min(), dependency_->max());
 }
 
 void BackgroundThread::impl_forward(const std::vector<dict>& inputs) {
@@ -280,7 +282,7 @@ HAMI_REGISTER(Backend, InstanceDispatcher);
 HAMI_REGISTER(Backend, Batching);
 
 class SharedInstancesState : public Backend {
-   public:
+   private:
     void impl_init(const std::unordered_map<std::string, std::string>& config,
                    const dict& dict_config) override final {
         HAMI_ASSERT(dict_config, "dict_config is empty");

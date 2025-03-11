@@ -19,7 +19,7 @@ void LaunchBase::impl_init(
     post_init(config, dict_config);
 }
 
-void Forward::inject_dependency(Backend* dependency) {
+void Forward::impl_inject_dependency(Backend* dependency) {
     if (injected_dependency_) {
         throw std::runtime_error(
             "inject_dependency  should not be called twice by Forward");
@@ -28,7 +28,7 @@ void Forward::inject_dependency(Backend* dependency) {
     }
 }
 
-void LaunchBase::inject_dependency(Backend* dependency) {
+void LaunchBase::impl_inject_dependency(Backend* dependency) {
     if (dependency == nullptr) {
         throw std::invalid_argument("null dependency is not allowed");
     }

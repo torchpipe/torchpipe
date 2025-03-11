@@ -9,7 +9,7 @@
 namespace hami {
 
 class LaunchBase : public Backend {
-    void inject_dependency(Backend* dependency) override;
+    void impl_inject_dependency(Backend* dependency) override;
 
     virtual void impl_forward(
         const std::vector<dict>& input_output) override final {
@@ -23,11 +23,11 @@ class LaunchBase : public Backend {
         custom_forward_with_dep(input_output, dependency);
     }
 
-    [[nodiscard]] size_t max() const override {
+    [[nodiscard]] size_t impl_max() const override {
         return injected_dependency_ ? injected_dependency_->max()
                                     : std::numeric_limits<size_t>::max();
     }
-    [[nodiscard]] size_t min() const override {
+    [[nodiscard]] size_t impl_min() const override {
         return injected_dependency_ ? injected_dependency_->min() : 1;
     }
 
@@ -40,6 +40,7 @@ class LaunchBase : public Backend {
     void impl_init(const std::unordered_map<std::string, std::string>& config,
                    const dict& dict_config) override final;
 
+    public:
     virtual void post_init(
         const std::unordered_map<std::string, std::string>& config,
         const dict& dict_config) {}
@@ -72,13 +73,13 @@ class Forward : public LaunchBase {
                                  Backend* dependency) override final {
         dependency->safe_forward(input_output);
     }
-    void inject_dependency(Backend* dependency) override final;
+    void impl_inject_dependency(Backend* dependency) override final;
 
-    [[nodiscard]] size_t max() const override {
+    [[nodiscard]] size_t impl_max() const override {
         return injected_dependency_ ? injected_dependency_->max()
                                     : std::numeric_limits<size_t>::max();
     }
-    [[nodiscard]] size_t min() const override {
+    [[nodiscard]] size_t impl_min() const override {
         return injected_dependency_ ? injected_dependency_->min() : 1;
     }
 };

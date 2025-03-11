@@ -182,26 +182,19 @@ class cmake_build(setuptools.Command):
                 else:
                     cmake_args.extend(["-A", "Win32", "-T", "host=x86"])
                 cmake_args.extend(["-G", "Visual Studio 16 2019"])
-            else:
-                pass
-                # cmake_args.append(
-                #     "-DPYTHON_LIBRARY={}".format(
-                #         sysconfig.get_python_lib(standard_lib=True)
-                #     )
-                # )
-            if True:
-                cmake_args.append(f"-DCMAKE_LIBRARY_OUTPUT_DIRECTORY={CMAKE_LIBRARY_OUTPUT_DIRECTORY}") 
-                cmake_args += [
-                    "-DBUILD_PYBIND=ON", # build pybind
-                    "-DUSE_CCACHE=ON",  # use ccache if available
-                    "-DUSE_MANYLINUX:BOOL=ON",  # use manylinux settings
-                ]
 
-                if use_cxx11_abi():
-                    cmake_args += ["-DUSE_CXX11_ABI=ON"]
-                else:
-                    cmake_args += ["-DUSE_CXX11_ABI=OFF"]
-                log.info(f"USE_CXX11_ABI: {use_cxx11_abi()}" )
+            cmake_args.append(f"-DCMAKE_LIBRARY_OUTPUT_DIRECTORY={CMAKE_LIBRARY_OUTPUT_DIRECTORY}") 
+            cmake_args += [
+                "-DBUILD_PYBIND=ON", # build pybind
+                "-DUSE_CCACHE=ON",  # use ccache if available
+                "-DUSE_MANYLINUX:BOOL=ON",  # use manylinux settings
+            ]
+
+            if use_cxx11_abi():
+                cmake_args += ["-DUSE_CXX11_ABI=ON"]
+            else:
+                cmake_args += ["-DUSE_CXX11_ABI=OFF"]
+            log.info(f"USE_CXX11_ABI: {use_cxx11_abi()}" )
             
             if "CMAKE_ARGS" in os.environ:
                 extra_cmake_args = shlex.split(os.environ["CMAKE_ARGS"])

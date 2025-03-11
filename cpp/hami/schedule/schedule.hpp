@@ -16,6 +16,7 @@ class Batching : public DynamicDependency {
                    const dict&) override final;
     void impl_forward(const std::vector<dict>& inputs) override final;
     virtual void run();
+    public:
     ~Batching() {
         bInited_.store(false);
         input_queue_.notify_all();
@@ -44,12 +45,19 @@ class Batching : public DynamicDependency {
 };
 
 class BackgroundThread : public Backend {
-   public:
+   private:
     void impl_init(const std::unordered_map<string, string>& config,
                    const dict&) override final;
     void impl_forward(const std::vector<dict>& inputs) override final;
 
     virtual void run();
+    [[nodiscard]] size_t impl_max() const override final {
+        return dependency_->max();
+    }
+    [[nodiscard]] size_t impl_min() const override final {
+        return dependency_->min();
+    }
+    public:
     ~BackgroundThread() {
         bInited_.store(false);
         if (thread_.joinable()) {
@@ -57,12 +65,7 @@ class BackgroundThread : public Backend {
         }
     }
 
-    [[nodiscard]] size_t max() const override final {
-        return dependency_->max();
-    }
-    [[nodiscard]] size_t min() const override final {
-        return dependency_->min();
-    }
+
 
    private:
     std::atomic_bool bInited_{false};
@@ -83,8 +86,8 @@ class InstanceDispatcher : public Backend {
                    const dict& dict_config) override final;
     virtual void impl_forward(const std::vector<dict>& inputs) override;
 
-    [[nodiscard]] size_t max() const override final { return max_; }
-    [[nodiscard]] size_t min() const override final { return min_; }
+    [[nodiscard]] size_t impl_max() const override final { return max_; }
+    [[nodiscard]] size_t impl_min() const override final { return min_; }
 
    private:
     void update_min_max(const std::vector<Backend*>& deps);

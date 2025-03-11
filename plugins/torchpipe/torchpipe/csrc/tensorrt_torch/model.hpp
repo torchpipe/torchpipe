@@ -12,7 +12,7 @@ namespace torchpipe {
 #endif
 
 class LoadTensorrtEngine : public hami::Backend {
-   public:
+   private:
     void impl_init(const std::unordered_map<std::string, std::string>& config,
                    const hami::dict& dict_config) override;
     // void impl_forward(const std::vector<hami::dict>& input) override;
@@ -24,7 +24,7 @@ class LoadTensorrtEngine : public hami::Backend {
 };
 
 class Onnx2Tensorrt : public hami::Backend {
-   public:
+   private:
     void impl_init(const std::unordered_map<std::string, std::string>& config,
                    const hami::dict& dict_config) override;
     // void impl_forward(const std::vector<hami::dict>& input) override;

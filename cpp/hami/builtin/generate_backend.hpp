@@ -11,11 +11,11 @@ namespace hami {
  * A=>A;A[B,C]=>C;A[B,C[D]] => D;
  */
 class GenerateBackend : public Backend {
-   public:
+   private:
     void impl_init(const std::unordered_map<std::string, std::string>& config,
                    const dict& dict_config) override;
 
-    void inject_dependency(Backend* dependency) override final {
+    void impl_inject_dependency(Backend* dependency) override final {
         if (!proxy_backend_) {
             throw std::runtime_error("GenerateBackend was not initialized yet");
         } else
@@ -30,11 +30,11 @@ class GenerateBackend : public Backend {
     void impl_forward(const std::vector<dict>& inputs) override {
         proxy_backend_->forward(inputs);
     }
-    [[nodiscard]] virtual size_t max() const override {
+    [[nodiscard]] virtual size_t impl_max() const override {
         return proxy_backend_->max();
     }
 
-    [[nodiscard]] virtual size_t min() const override {
+    [[nodiscard]] virtual size_t impl_min() const override {
         return proxy_backend_->min();
     }
 

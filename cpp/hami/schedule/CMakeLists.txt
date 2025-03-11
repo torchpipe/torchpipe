@@ -11,6 +11,7 @@ cc_library(
     event_guard.cpp
     schedule.cpp
     dag.cpp
+    schedule_states.cpp
   DEPS
     :core
     :helper

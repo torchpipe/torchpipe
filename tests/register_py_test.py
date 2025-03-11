@@ -24,6 +24,8 @@ class TestPyComponent:
     def setup_teardown(self, py_instance, backend_config):
         """Fixture to initialize and clean up backend components"""
         # Initialize backend components
+        import time 
+        # time.sleep(15)
         self.backend_b = hami._C.init(
             "InstancesRegister[BackgroundThread[BackendProxy]]",
             backend_config

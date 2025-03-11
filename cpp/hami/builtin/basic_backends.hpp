@@ -11,7 +11,7 @@ namespace hami {
  * delegation.
  */
 class HAMI_EXPORT Dependency : public Backend {
-   public:
+   private:
     /**
      * @brief Injects a dependency into the backend or the backend's dependency
      * if alread exists.
@@ -20,7 +20,7 @@ class HAMI_EXPORT Dependency : public Backend {
      *
      * @throw std::invalid_argument If the provided dependency is nullptr.
      */
-    void inject_dependency(Backend* dependency) override final;
+    void impl_inject_dependency(Backend* dependency) override final;
 
     virtual void impl_forward(
         const std::vector<dict>& input_output) override final {
@@ -34,11 +34,11 @@ class HAMI_EXPORT Dependency : public Backend {
         custom_forward_with_dep(input_output, dependency);
     }
 
-    [[nodiscard]] size_t max() const override {
+    [[nodiscard]] size_t impl_max() const override {
         return injected_dependency_ ? injected_dependency_->max()
                                     : std::numeric_limits<size_t>::max();
     }
-    [[nodiscard]] size_t min() const override {
+    [[nodiscard]] size_t impl_min() const override {
         return injected_dependency_ ? injected_dependency_->min() : 1;
     }
 
@@ -57,7 +57,7 @@ class HAMI_EXPORT Dependency : public Backend {
     virtual void post_init(
         const std::unordered_map<std::string, std::string>& config,
         const dict& dict_config) {}
-
+   public:
     ~Dependency() override;
 
    protected:
@@ -99,7 +99,7 @@ class HAMI_EXPORT DynamicDependency : public Backend {
      *
      * @throw std::invalid_argument If the provided dependency is nullptr.
      */
-    void inject_dependency(Backend* dependency) override final;
+    void impl_inject_dependency(Backend* dependency) override final;
 
     virtual void impl_forward(const std::vector<dict>& input_output) override {
         Backend::forward_with_dep(input_output, injected_dependency_);
@@ -112,8 +112,8 @@ class HAMI_EXPORT DynamicDependency : public Backend {
     //     custom_forward_with_dep(input_output, dependency);
     // }
 
-    [[nodiscard]] size_t max() const override;
-    [[nodiscard]] size_t min() const override;
+    [[nodiscard]] size_t impl_max() const override;
+    [[nodiscard]] size_t impl_min() const override;
 
    protected:
     Backend* injected_dependency_{nullptr};  ///< The injected dependency.
@@ -154,8 +154,8 @@ class Container : public Backend {
     virtual void post_init(
         const std::unordered_map<std::string, std::string>& config,
         const dict& dict_config) {};
-    [[nodiscard]] size_t max() const override final { return max_; }
-    [[nodiscard]] size_t min() const override final { return min_; }
+    [[nodiscard]] size_t impl_max() const override final { return max_; }
+    [[nodiscard]] size_t impl_min() const override final { return min_; }
 
    private:
     virtual std::pair<size_t, size_t> update_min_max(
@@ -185,7 +185,7 @@ class HAMI_EXPORT SingleBackend : public Backend {
      *
      * @return Maximum number of inputs supported.
      */
-    [[nodiscard]] size_t max() const override final { return 1; }
+    [[nodiscard]] size_t impl_max() const override final { return 1; }
 
     /**
      * @brief Processes a single input/output.
@@ -222,19 +222,19 @@ class HAMI_EXPORT SingleBackend : public Backend {
      * @throws std::runtime_error Always, as SingleBackend does not support
      * dependencies.
      */
-    void inject_dependency(Backend* dependency) override final {
+    void impl_inject_dependency(Backend* dependency) override final {
         throw std::runtime_error(
             "SingleBackend does not support inject dependency");
     }
 };
 
 class HAMI_EXPORT List : public Backend {
-   public:
+   private:
     void impl_init(const std::unordered_map<std::string, std::string>& config,
                    const dict& dict_config) override final;
     void impl_forward(const std::vector<dict>& input_output) override final;
-    [[nodiscard]] size_t max() const override final { return 1; }
-    [[nodiscard]] size_t min() const override final {
+    [[nodiscard]] size_t impl_max() const override final { return 1; }
+    [[nodiscard]] size_t impl_min() const override final {
         return std::numeric_limits<size_t>::max();
     }
 

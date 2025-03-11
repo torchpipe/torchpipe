@@ -9,14 +9,14 @@
 namespace torchpipe {
 
 class TensorrtInferTensor : public hami::Backend {
-   public:
+   private:
     void impl_init(const std::unordered_map<std::string, std::string>& config,
                    const hami::dict& dict_config) override;
     void impl_forward(const std::vector<hami::dict>& input) override;
-    [[nodiscard]] size_t max() const {
+    [[nodiscard]] size_t impl_max() const {
         return (size_t)info_.first.at(0).max.d[0];
     }
-    [[nodiscard]] size_t min() const {
+    [[nodiscard]] size_t impl_min() const {
         return (size_t)info_.first.at(0).min.d[0];
     }
 
