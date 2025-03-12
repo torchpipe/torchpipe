@@ -188,10 +188,13 @@ std::string get_sm();
 
 void fix_tensor_shape(torch::Tensor& data, const NetIOInfo::Dims64 min,
                       const NetIOInfo::Dims64& max);
-
+void fix_tensor_type(torch::Tensor& input, NetIOInfo::DataType desired_type);
+void fix_tensor_device(torch::Tensor& input, NetIOInfo::Device desired_device);
 void fix_tensors(std::vector<torch::Tensor>& tensors,
                  const std::shared_ptr<NetIOInfos>& infos);
 
+torch::Device netinfo2torch_device(NetIOInfo::Device device);
+c10::ScalarType netinfo2torch_type(NetIOInfo::DataType dtype);
 void check_batched_inputs(const std::vector<torch::Tensor>& tensors,
                           const std::vector<NetIOInfo>& infos);
 

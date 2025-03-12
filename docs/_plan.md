@@ -3,7 +3,7 @@
 
 ```toml
 IoC[ModelLoadder[(.onnx)Onnx2Tensorrt,(.trt)LoadTensorrtEngine], TensorrtInferTensor; 
- CatSplit[S[GpuTensor,CatTensor],S[ContiguousTensor,TensorrtInferTensor,ProxyFromParam[post_processor]],SplitTensor]]
+ CatSplit[S[FixTensor,CatTensor],S[ContiguousTensor,TensorrtInferTensor,ProxyFromParam[post_processor]],SplitTensor]]
 
 
 fix
@@ -94,7 +94,7 @@ builtin container: IoC Proxy/DI Sequential/S  Reflect[key_to_cls_name, default=b
 
 CatSplit, DagDispatcher, InstanceDispatcher
 
-Queue, Recv, Send  Q_i B_i B_c
+Queue, Recv, Send Observer  Q_i B_i B_c
 
 BackgroundThread
 

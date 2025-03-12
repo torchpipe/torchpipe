@@ -172,70 +172,7 @@ class Container : public Backend {
     size_t min_{1};
 };
 
-/**
- * @brief A specialized backend that supports only single input and no
- * dependency.
- *
- * Enforces the constraint that only one input is allowed and no dependency can
- * be provided.
- */
-class HAMI_EXPORT BackendOne : public Backend {
-   private:
-    /**
-     * @brief Returns the maximum number of inputs supported (always 1).
-     *
-     * @return Maximum number of inputs supported.
-     */
-    [[nodiscard]] size_t impl_max() const override final { return 1; }
 
-    /**
-     * @brief Processes a single input/output.
-     *
-     * Must be implemented by derived classes.
-     *
-     * @param input_output Single input/output data to be processed.
-     */
-    virtual void forward(const dict& input_output) = 0;
-
-    /**
-     * @brief Processes input/output data with single input.
-     *
-     * @param input_output Input/output data to be processed.
-     * @throws std::invalid_argument If more than one input is provided.
-     */
-    void impl_forward(const std::vector<dict>& input_output) override final;
-
-    void impl_forward_with_dep(const std::vector<dict>& input_output,
-                               Backend* dep) override {
-        Backend::forward_with_dep(input_output, dep);
-    }
-
-    /**
-     * @brief Overrides inject_dependency to disallow setting dependencies.
-     *
-     * @param dependency Pointer to the backend dependency (ignored).
-     * @throws std::runtime_error Always, as BackendOne does not support
-     * dependencies.
-     */
-    void impl_inject_dependency(Backend* dependency) override final {
-        throw std::runtime_error(
-            "BackendOne does not support inject dependency");
-    }
-};
-
-/**
- * @brief A specialized backend that supports only single input and no
- * dependency.
- *
- * Enforces the constraint that only one input is allowed and no dependency can
- * be provided.
- */
-class HAMI_EXPORT ForwardMax : public Backend {
-   private:
-    [[nodiscard]] size_t impl_max() const override final {
-        return std::numeric_limits<std::size_t>::max();
-    }
-};
 
 class HAMI_EXPORT List : public Backend {
    private:

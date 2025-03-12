@@ -524,6 +524,23 @@ std::string get_sm() {
     return std::to_string(prop->major) + "." + std::to_string(prop->minor);
 }
 
+// Function to ensure the tensor is of the desired type
+void fix_tensor_type(torch::Tensor& input, NetIOInfo::DataType in_type ) {
+    auto desired_type = netinfo2torch_type(in_type);
+    if (input.dtype() != desired_type) {
+        input = input.to(desired_type);
+    }
+}
+
+// Function to ensure the tensor is on the desired device
+void fix_tensor_device(torch::Tensor& input, NetIOInfo::Device in_device) {
+    auto desired_device  = netinfo2torch_device(in_device);
+    if (input.device() != desired_device) {
+          input = input.to(desired_device);
+    }
+}
+
+
 void fix_tensor_shape(torch::Tensor& data, const NetIOInfo::Dims64 min,
                       const NetIOInfo::Dims64& max) {
     const auto& sizes = data.sizes();
@@ -568,6 +585,24 @@ void fix_tensor_shape(torch::Tensor& data, const NetIOInfo::Dims64 min,
             "fix_tensor_shape: invalid tensor shape : " +
             hami::str::vec2str(data.sizes().vec()));
 }
+
+
+
+
+
+// Function to convert NetIOInfo::Device to torch::Device
+torch::Device netinfo2torch_device(NetIOInfo::Device device) {
+    switch (device) {
+        case NetIOInfo::Device::CPU:
+            return torch::Device(torch::kCPU);
+        case NetIOInfo::Device::GPU:
+            return torch::Device(torch::kCUDA);
+        default:
+            throw std::invalid_argument("Unknown device type");
+    }
+}
+
+
 
 c10::ScalarType netinfo2torch_type(NetIOInfo::DataType dtype) {
     switch (dtype) {
@@ -645,6 +680,8 @@ void fix_tensors(std::vector<torch::Tensor>& tensors,
     for (size_t i = 0; i < num_inputs; ++i) {
         fix_tensor_shape(tensors[i], infos->first.at(i).min,
                          infos->first.at(i).max);
+        fix_tensor_type(tensors[i], infos->first.at(i).type);
+        fix_tensor_device(tensors[i], infos->first.at(i).device);
     }
 }
 
@@ -660,8 +697,8 @@ void check_input_tensor(const torch::Tensor& tensor, const NetIOInfo& infos) {
                     "required by the model. " +
                         print_torch_scale_type(tensor.scalar_type()) + " vs " +
                         print_torch_scale_type(netinfo2torch_type(infos.type)));
-        HAMI_ASSERT(tensor.is_cuda() &&
-                    infos.device == NetIOInfo::Device::GPU);  // todo
+        HAMI_ASSERT(tensor.is_cuda() &
+                    (infos.device == NetIOInfo::Device::GPU), std::to_string(tensor.is_cuda()) + " vs " + std::to_string(infos.device == NetIOInfo::Device::GPU));  // todo
         HAMI_ASSERT(tensor.is_contiguous());
     }
 }

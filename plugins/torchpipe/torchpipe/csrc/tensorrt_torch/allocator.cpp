@@ -4,7 +4,6 @@
 #include "c10/cuda/CUDACachingAllocator.h"
 #include "c10/cuda/CUDAStream.h"
 
-#define NOT_USE_TORCH_STREAM_ORDERED_REUSE 1
 namespace torchpipe {
 
 void* TorchAsyncAllocator::allocateAsync(uint64_t const size,
@@ -20,18 +19,18 @@ void* TorchAsyncAllocator::allocateAsync(uint64_t const size,
         return 0;
     }();
     if (size == 0) return nullptr;
-    if (stream == nullptr) {
-        return c10::cuda::CUDACachingAllocator::raw_alloc_with_stream(size,
-                                                                      nullptr);
-        // todo aligned?
+    if (stream == nullptr || c10::cuda::getCurrentCUDAStream() != stream) {
+
+        void* ptr = nullptr;
+        cudaError_t err = cudaMallocAsync(&ptr, size, stream);
+        if (err != cudaSuccess) {
+            SPDLOG_ERROR("cudaMallocAsync failed  {}", cudaGetErrorString(err));
+            return nullptr;
+        }
+        return ptr;
     }
 
-    if (c10::cuda::getCurrentCUDAStream() != stream) {
-        SPDLOG_ERROR(
-            "TorchAsyncAllocator was not using current cuda stream, which is "
-            "not supported.");
-        return nullptr;
-    }
+
 
     try {
         torch::Tensor buf =
@@ -50,11 +49,10 @@ void* TorchAsyncAllocator::allocateAsync(uint64_t const size,
             ptr = (char*)ptr + offset;
         }
 
-#if NOT_USE_TORCH_STREAM_ORDERED_REUSE
         std::lock_guard<std::mutex> lock(mutex_);
 
         data_.insert({ptr, buf});
-#endif
+
         return ptr;
     } catch (const std::exception& e) {
         SPDLOG_ERROR("TorchAllocator::allocateAsync failed(size={}): {}", size,
@@ -67,23 +65,26 @@ void* TorchAsyncAllocator::allocateAsync(uint64_t const size,
 
 bool TorchAsyncAllocator::deallocateAsync(void* const memory,
                                           cudaStream_t stream) noexcept {
-    if (stream == nullptr) {
-        c10::cuda::CUDACachingAllocator::raw_delete(memory);
+    bool is_torch_stream = false;
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        is_torch_stream = data_.find(memory) != data_.end();
+    }
+    if (!is_torch_stream) {
+        cudaError_t err = cudaFreeAsync(memory, stream);
+        if (err != cudaSuccess) {
+            SPDLOG_ERROR("cudaFreeAsync failed: {}", cudaGetErrorString(err));
+            return false;
+        }
         return true;
     }
-#if NOT_USE_TORCH_STREAM_ORDERED_REUSE
+    
     std::lock_guard<std::mutex> lock(mutex_);
-    auto it = data_.find(memory);
-    if (it != data_.end()) {
-        data_.erase(it);
-        return true;
-    }
-    // https://pytorch.org/docs/stable/generated/torch.Tensor.record_stream.html#torch.Tensor.record_stream
-    // no need to record stream
-    return false;
-#else
+    data_.erase(memory);
     return true;
-#endif
+
+
+
 }  // override;
 
 }  // namespace torchpipe

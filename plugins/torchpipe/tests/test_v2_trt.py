@@ -1,6 +1,7 @@
 import pytest
-import torch
 import torchpipe
+import torch
+
 import os
 import tempfile
 import hami
@@ -85,7 +86,7 @@ def test_tensorrt_inference(model_config):
     assert torch.allclose(result, expected, rtol=1e-2, atol=1e-2), "Model output does not match expected values"
 if __name__ == "__main__":
     import time
-    # time.sleep(5)
+    time.sleep(5)
     pytest.main(["-s", __file__])
     # model = Conv()
     # x = torch.ones((1, 3, 224, 224))

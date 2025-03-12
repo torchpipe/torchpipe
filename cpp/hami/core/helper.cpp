@@ -110,7 +110,8 @@ std::optional<std::string> get_dependency_name(
     const std::unordered_map<std::string, std::string>& config) {
     auto name = HAMI_OBJECT_NAME(Backend, this_ptr);
     if (name == std::nullopt) {
-        return std::nullopt;
+        throw std::runtime_error(
+            "This instance was not created via reflection");
     }
 
     auto iter = config.find(*name + "::dependency");

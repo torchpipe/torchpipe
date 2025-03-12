@@ -45,15 +45,16 @@ class Send : public Backend {
     void impl_init(const std::unordered_map<std::string, std::string>& config,
                    const dict&) override final;
 
-    void impl_forward(const std::vector<dict>& input) override final {
-        for (auto& item : input) {
-            queue_->put(item);
-        }
-    }
+    void impl_forward(const std::vector<dict>& input) override;
 
-   private:
-    std::string target_name_;
+   protected:
+    // std::string target_name_;
     Queue* queue_{nullptr};
+};
+
+class Observer: public Send {
+   private:
+    void impl_forward(const std::vector<dict>& input) override final;
 };
 
 class Recv : public QueueBackend {

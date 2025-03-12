@@ -7,7 +7,7 @@ constexpr auto INIT_STR =
     "ModelLoadder[(.onnx)Onnx2Tensorrt,(.trt)LoadTensorrtEngine], "
     "TensorrtInferTensor";
 constexpr auto FORWARD_STR =
-    "CatSplit[S[GpuTensor,CatTensor],S[ContiguousTensor,"
+    "CatSplit[S[FixTensor,CatTensor],S[ContiguousTensor,"
     "Forward[TensorrtInferTensor],Reflect[post_processor,Identity]],"
     "SplitTensor]";
 const auto BACKEND_STR =

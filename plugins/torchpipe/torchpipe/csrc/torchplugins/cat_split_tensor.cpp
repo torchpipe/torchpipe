@@ -6,28 +6,12 @@ using namespace hami;
 
 namespace torchpipe {
 
-void CatTensor::impl_init(
-    const std::unordered_map<std::string, std::string>& config_param,
-    const dict& dict_config) {
-    if (dict_config &&
-        dict_config->find(TASK_IO_INFO_KEY) != dict_config->end()) {
-        net_shapes_ = dict_get<std::shared_ptr<NetIOInfos>>(dict_config,
-                                                            TASK_IO_INFO_KEY);
-        for (const auto& item : net_shapes_->first) {
-            HAMI_ASSERT(item.max.nbDims == item.min.nbDims &&
-                        0 != item.max.nbDims);
-        }
-    }
-}
 
 void CatTensor::impl_forward(const std::vector<dict>& input_dict) {
     std::vector<std::vector<torch::Tensor>> cated_inputs;
     std::vector<size_t> req_size;
     for (const auto& input : input_dict) {
         auto data = dict_gets<torch::Tensor>(input, TASK_DATA_KEY);
-        if (net_shapes_) {
-            fix_tensors(data, net_shapes_);
-        }
         req_size.push_back(data[0].size(0));
         cated_inputs.push_back(std::move(data));
     }
@@ -66,6 +50,38 @@ void CatTensor::impl_forward(const std::vector<dict>& input_dict) {
 }
 
 HAMI_REGISTER(Backend, CatTensor);
+
+
+void FixTensor::impl_init(
+    const std::unordered_map<std::string, std::string>& config_param,
+    const dict& dict_config) {
+    if (dict_config &&
+        dict_config->find(TASK_IO_INFO_KEY) != dict_config->end()) {
+        net_shapes_ = dict_get<std::shared_ptr<NetIOInfos>>(dict_config,
+                                                            TASK_IO_INFO_KEY);
+        for (const auto& item : net_shapes_->first) {
+            HAMI_ASSERT(item.max.nbDims == item.min.nbDims &&
+                        0 != item.max.nbDims);
+        }
+    }
+}
+
+void FixTensor::impl_forward(const std::vector<dict>& input_dict) {
+    for (const auto& input : input_dict) {
+        auto data = dict_gets<torch::Tensor>(input, TASK_DATA_KEY);
+        if (net_shapes_) {
+            fix_tensors(data, net_shapes_);
+        }
+        if (data.size() == 1){
+            (*input)[TASK_RESULT_KEY] = data[0];
+        }else{
+            (*input)[TASK_RESULT_KEY] = data;
+        }
+    }
+}
+
+HAMI_REGISTER(Backend, FixTensor);
+
 
 class ContiguousTensor : public hami::BackendOne {
    public:

@@ -20,8 +20,8 @@ image = requests.get(url).content
 
 
 
-
-
+# export LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libstdc++.so.6
+import torchpipe
 import torch
 # import cv2
 import os
@@ -103,10 +103,12 @@ def test_v2():
     
     hami_model  = Torch2Trt(onnx_path, 'config.toml')
 
-    tester.test(hami_model)
+    tester.test(hami_model, fix_shape=True)
     
     
 if __name__ == "__main__":
+    import torchpipe
+
     import time
     # time.sleep(10)
     test_v2()

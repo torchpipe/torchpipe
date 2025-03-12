@@ -78,13 +78,33 @@ HAMI_REGISTER_BACKEND(QueueBackend, "QueueBackend,AsyncQueue, Queue");
 // init = List[Send[target_name]]
 void Send::impl_init(const std::unordered_map<std::string, std::string>& config,
                      const dict&) {
-    target_name_ = get_dependency_name_force(this, config);
-
-    HAMI_ASSERT(!target_name_.empty(), "Send must have target name");
-    queue_ = HAMI_INSTANCE_GET(Queue, target_name_);
-
+    auto target_name = get_dependency_name(this, config);
+    if (target_name)
+        queue_ = HAMI_INSTANCE_GET(Queue, *target_name);
+    else {
+        queue_  = &(default_queue());
+    }
     HAMI_ASSERT(queue_);
 }
+
+void Send::impl_forward(const std::vector<dict>& input)  {
+        for (auto& item : input) {
+            queue_->put(item);
+        }
+    }
+
+ void Observer::impl_forward(const std::vector<dict>& input)  {
+        for (auto& item : input) {
+            (*item)[TASK_RESULT_KEY] = item->at(TASK_DATA_KEY);
+            auto new_dict = deep_copy(item);
+            queue_->put(new_dict);
+        }
+    }
+    
+
+    HAMI_REGISTER_BACKEND(Send);
+     HAMI_REGISTER_BACKEND(Observer);
+
 
 // init = List[Recv[register_name_for_src_que, target_backend_name]]
 void Recv::pre_init(const std::unordered_map<std::string, std::string>& config,

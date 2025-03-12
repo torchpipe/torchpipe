@@ -11,7 +11,7 @@ void Register::pre_init(
     auto iter = config.find("node_name");
     HAMI_ASSERT(iter != config.end(), "node_name not found");
     for (const auto& item : config) {
-        SPDLOG_INFO("[Register] {}: {}", item.first, item.second);
+        SPDLOG_INFO("[Params] {}: {}", item.first, item.second);
     }
     set_registered_name("node." + iter->second);
 }

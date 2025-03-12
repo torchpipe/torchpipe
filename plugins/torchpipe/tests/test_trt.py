@@ -1,6 +1,7 @@
 import pytest
-import torch
 import torchpipe
+
+import torch
 import os
 import tempfile
 import hami

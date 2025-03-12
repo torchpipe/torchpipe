@@ -9,7 +9,12 @@ using hami::dict;
 
 namespace torchpipe {
 
-class CatTensor : public hami::Backend {
+class CatTensor : public hami::BackendMax {
+   private:
+    void impl_forward(const std::vector<dict>& input_output) override;
+};
+
+class FixTensor : public hami::BackendMax {
    private:
     void impl_init(
         const std::unordered_map<std::string, std::string>& config_param,
@@ -19,6 +24,7 @@ class CatTensor : public hami::Backend {
    private:
     std::shared_ptr<NetIOInfos> net_shapes_;
 };
+
 
 class SplitTensor : public hami::Backend {
    private:

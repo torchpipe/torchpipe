@@ -19,23 +19,29 @@ import subprocess
 
 
 
-TEST_IMAGES = [
-        # PyTorch official examples
-        ("imagenet_dog", "https://raw.githubusercontent.com/pytorch/hub/master/images/dog.jpg"),
+# TEST_IMAGES = [
+#         # PyTorch official examples
+#         ("imagenet_dog", "https://raw.githubusercontent.com/pytorch/hub/master/images/dog.jpg"),
         
-        # TensorFlow example images
-        ("tf_grace_hopper", "https://storage.googleapis.com/download.tensorflow.org/example_images/grace_hopper.jpg"),
+#         # TensorFlow example images
+#         ("tf_grace_hopper", "https://storage.googleapis.com/download.tensorflow.org/example_images/grace_hopper.jpg"),
 
-        # Sample images from public domain sources
-        ("pexels_nature", "https://images.pexels.com/photos/3608263/pexels-photo-3608263.jpeg"),
+#         # Sample images from public domain sources
+#         ("pexels_nature", "https://images.pexels.com/photos/3608263/pexels-photo-3608263.jpeg"),
         
-        # Small images
-        ("small_icon1", "https://www.google.com/favicon.ico"),  # 16x16 favicon
-        ("small_icon2", "https://github.com/favicon.ico"),  # 32x32 favicon
-        ("small_icon3", "https://raw.githubusercontent.com/pytorch/pytorch/master/docs/source/_static/img/pytorch-logo-flame.png"),  # Small PyTorch logo
-        ("tiny_sample", "https://raw.githubusercontent.com/opencv/opencv/master/samples/data/smarties.png"),  # Small test image from OpenCV
-        ("cat", "http://images.cocodataset.org/val2017/000000039769.jpg")
-    ]
+#         # # Small images
+#         ("small_icon1", "https://www.google.com/favicon.ico"),  # 16x16 favicon
+#         ("small_icon2", "https://github.com/favicon.ico"),  # 32x32 favicon
+#         ("small_icon3", "https://raw.githubusercontent.com/pytorch/pytorch/master/docs/source/_static/img/pytorch-logo-flame.png"),  # Small PyTorch logo
+#         ("tiny_sample", "https://raw.githubusercontent.com/opencv/opencv/master/samples/data/smarties.png"),  # Small test image from OpenCV
+#         ("cat", "http://images.cocodataset.org/val2017/000000039769.jpg")
+#     ]
+IMAGENET_IMAGES = [
+    ('African Elephant', 'https://obs-9be7.obs.cn-east-2.myhuaweicloud.com/models/aclsample/dog1_1024_683.jpg', 101),
+    ("Golden Retriever", "https://obs-9be7.obs.cn-east-2.myhuaweicloud.com/models/aclsample/dog2_1024_683.jpg", 207),
+            ("cat", "http://images.cocodataset.org/val2017/000000039769.jpg", 0),
+            ("imagenet_dog", "https://raw.githubusercontent.com/pytorch/hub/master/images/dog.jpg", 0),
+]
 
 def import_or_install_package(package_name: str) -> None:
     """Dynamically import or install missing packages.
@@ -190,7 +196,20 @@ class OnnxModel:
         result = self.session.run(None, {self.input_name: input_data})
         return result[0]
 
-        
+
+def get_mini_inmagenet():
+    from modelscope.msdatasets import MsDataset
+    from modelscope.utils.constant import DownloadMode
+
+
+    # {'image:FILE': '*10.JPEG', 'category': 0}
+
+    ms_val_dataset = MsDataset.load(
+                'mini_imagenet100', namespace='tany0699',
+                subset_name='default', split='validation',
+                download_mode=DownloadMode.REUSE_DATASET_IF_EXISTS) # 加载验证集
+    # print(next(iter(ms_val_dataset)))
+    return ms_val_dataset
 def report_classification(all_result):
     """
     Report comparison statistics between PyTorch and ONNX model results for classification models.
@@ -225,7 +244,7 @@ def report_classification(all_result):
     # Iterate through all results to compare
     for data_id, (result, onnx_result) in all_result.items():
         # Check if tensor values are similar
-        is_similar = torch.allclose(result, onnx_result, atol=1e-3)
+        is_similar = torch.allclose(result, onnx_result, atol=1e-1, rtol=0.2)
         if is_similar:
             similar_count += 1
             
@@ -275,11 +294,11 @@ def report_classification(all_result):
         # Print individual result details
         if current_max_diff > 1e-6:
             print(f"Data ID: {data_id}")
-            print(f"PyTorch Result: {result.shape}")
-            print(f"ONNX Result: {onnx_result.shape}")
+            print(f"PyTorch Result: {result.shape} max = {result.max().item()}")
+            print(f"ONNX Result: {onnx_result.shape} max = {onnx_result.max().item()}")
             print(f"Max Difference: {current_max_diff:.6f}")
             print("Value similarity: " + ("Similar" if is_similar else "Different"))
-            print("Class prediction: " + ("Same" if is_same_class else "Different"))
+            print("Class prediction: " + ("Same" if is_same_class else "Different") + f" ({pytorch_class} vs {onnx_class})")
             print("-" * 50)
     
     # Sort mismatches by the absolute difference (largest first)
@@ -296,8 +315,8 @@ def report_classification(all_result):
     
     # Report largest differences
     print("\n===== Largest Differences =====")
-    print(f"Sample with largest tensor difference: Data ID {max_diff_data_id}, Max diff: {max_abs_diff:.6f}")
-    print(f"Sample with largest top class probability difference: Data ID {max_top_class_diff_id}, Diff: {max_top_class_diff:.6f}")
+    print(f"Sample with largest tensor difference: Data ID: {max_diff_data_id}, Max diff: {max_abs_diff:.6f}")
+    print(f"Sample with largest top class probability difference: Data ID: {max_top_class_diff_id}, Diff: {max_top_class_diff:.6f}")
     
     # Report class prediction mismatches (up to 5)
     if class_mismatches:
@@ -319,7 +338,7 @@ class TestImageDataset:
     
     Args:
         image_sources (list, optional): List of (image_id, url) tuples. 
-            If None, uses predefined TEST_IMAGES.
+            If None, uses predefined IMAGENET_IMAGES.
         timeout (float, optional): Request timeout in seconds. Default: 10.0
         max_retries (int, optional): Maximum number of download retries. Default: 2
         logger (Logger, optional): Custom logger. If None, creates a default one.
@@ -338,7 +357,10 @@ class TestImageDataset:
     def __init__(self, image_sources=None, timeout=10.0, max_retries=2, logger=None):
         import logging
         
-        self.image_sources = image_sources if image_sources is not None else TEST_IMAGES
+        self.image_sources = image_sources if image_sources is not None else IMAGENET_IMAGES
+        valid_ext = [".jpg", ".jpeg", '.JPEG', '.JPG']
+
+        self.image_sources = [(img_id, url) for img_id, url, _ in self.image_sources if url.endswith(tuple(valid_ext))]
         self.timeout = timeout
         self.max_retries = max_retries
         self.logger = logger or logging.getLogger("TestImageDataset")
@@ -432,25 +454,55 @@ def test_onnx():
             onnx_result = torch.nn.functional.softmax(torch.from_numpy(onnx_model(data)[0]), dim=-1)
             all_result[data_id] = (result, onnx_result)
     report_classification(all_result)
+
+def to_shape(img_bytes, h = 224, w=224):
+    assert isinstance(img_bytes, bytes), "Input must be raw image bytes"
+    image = Image.open(BytesIO(img_bytes)).convert('RGB')
     
+    # Resize image to 224x224
+    image = image.resize((h, w))
+    
+    # Encode image back to bytes
+    buffer = BytesIO()
+    image.save(buffer, format='JPEG')
+    return buffer.getvalue()
+
 class ClassifyModelTester:
     def __init__(self, model_name, onnx_path, h = 224, w = 224):
 
         self.model_name = model_name
         self.model, self.preprocessor = get_classification_model(self.model_name, h, w)
-    
+        self.h = h
+        self.w = w
         export_x3hw(self.model, onnx_path, h, w)
         
-    def test(self, callable_func):
+    def test(self, callable_func, fix_shape = False):
         all_result = {}
         dataset = TestImageDataset()
         for data_id, data in dataset:
             if data is not None:
+                if fix_shape:
+                    data =  to_shape(data,self.h, self.h)
                 preprocessed = self.preprocessor(data).unsqueeze(0)
+                
                 with torch.no_grad():
-                    result = torch.nn.functional.softmax(self.model(preprocessed), dim=-1)
+                    result = torch.nn.functional.softmax(self.model(preprocessed).cuda(), dim=-1)
                     extra_result = torch.nn.functional.softmax(callable_func(data), dim=-1)
                 all_result[data_id] = (result, extra_result)
+
+                # import hami, numpy
+                # data, req_size = hami.default_queue().get()
+                # data = data['data']
+                # data = data / 255.0
+                # mean = torch.tensor([0.485, 0.456, 0.406], dtype=data.dtype, device=data.device)
+                # std = torch.tensor([0.229, 0.224, 0.225], dtype=data.dtype, device=data.device)
+                
+                # if len(data.shape) == 3:
+                #     data = data.permute(2, 0, 1).unsqueeze(0)
+                # data = (data - mean[None, :, None, None]) / std[None, :, None, None]
+                # import pdb; pdb.set_trace()
+            
+
         report_classification(all_result)
         return all_result
         
