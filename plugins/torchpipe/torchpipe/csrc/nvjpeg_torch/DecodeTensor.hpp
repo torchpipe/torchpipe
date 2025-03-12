@@ -4,7 +4,7 @@
 
 namespace torchpipe {
 
-class DecodeTensor : public hami::SingleBackend {
+class DecodeTensor : public hami::BackendOne {
    public:
     virtual void impl_init(const std::unordered_map<std::string, std::string>&,
                            const hami::dict&) override;

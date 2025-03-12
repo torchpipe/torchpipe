@@ -57,6 +57,7 @@ class HAMI_EXPORT Dependency : public Backend {
     virtual void post_init(
         const std::unordered_map<std::string, std::string>& config,
         const dict& dict_config) {}
+
    public:
     ~Dependency() override;
 
@@ -178,8 +179,8 @@ class Container : public Backend {
  * Enforces the constraint that only one input is allowed and no dependency can
  * be provided.
  */
-class HAMI_EXPORT SingleBackend : public Backend {
-   public:
+class HAMI_EXPORT BackendOne : public Backend {
+   private:
     /**
      * @brief Returns the maximum number of inputs supported (always 1).
      *
@@ -202,13 +203,7 @@ class HAMI_EXPORT SingleBackend : public Backend {
      * @param input_output Input/output data to be processed.
      * @throws std::invalid_argument If more than one input is provided.
      */
-    void impl_forward(const std::vector<dict>& input_output) override final {
-        if (input_output.size() != 1) {
-            throw std::invalid_argument(
-                "SingleBackend only supports single input");
-        }
-        forward(input_output[0]);
-    }
+    void impl_forward(const std::vector<dict>& input_output) override final;
 
     void impl_forward_with_dep(const std::vector<dict>& input_output,
                                Backend* dep) override {
@@ -219,12 +214,26 @@ class HAMI_EXPORT SingleBackend : public Backend {
      * @brief Overrides inject_dependency to disallow setting dependencies.
      *
      * @param dependency Pointer to the backend dependency (ignored).
-     * @throws std::runtime_error Always, as SingleBackend does not support
+     * @throws std::runtime_error Always, as BackendOne does not support
      * dependencies.
      */
     void impl_inject_dependency(Backend* dependency) override final {
         throw std::runtime_error(
-            "SingleBackend does not support inject dependency");
+            "BackendOne does not support inject dependency");
+    }
+};
+
+/**
+ * @brief A specialized backend that supports only single input and no
+ * dependency.
+ *
+ * Enforces the constraint that only one input is allowed and no dependency can
+ * be provided.
+ */
+class HAMI_EXPORT ForwardMax : public Backend {
+   private:
+    [[nodiscard]] size_t impl_max() const override final {
+        return std::numeric_limits<std::size_t>::max();
     }
 };
 

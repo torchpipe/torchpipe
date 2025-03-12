@@ -87,14 +87,20 @@ void DagDispatcher::on_start_node(dict tmp_data, std::size_t task_queue_index) {
 
     // Check if node_name is present in the input
     auto iter_node_name = tmp_data->find(TASK_NODE_NAME_KEY);
+    const auto& roots = dag_parser_->get_roots();
+    std::string node_name;
     if (iter_node_name == tmp_data->end()) {
-        pstack->input_event->set_exception_and_notify_all(
-            std::make_exception_ptr(std::runtime_error(
-                "DagDispatcher: `node_name` not found in input. "
-                "Please set it to specify the target node.")));
-        return;
-    }
-    std::string node_name = any_cast<std::string>(iter_node_name->second);
+        if (roots.size() != 1) {
+            pstack->input_event->set_exception_and_notify_all(
+                std::make_exception_ptr(std::runtime_error(
+                    "DagDispatcher: `node_name` not found in input. "
+                    "Please set it to specify the target node.")));
+            return;
+        } else {
+            node_name = (*roots.begin());
+        }
+    } else
+        node_name = any_cast<std::string>(iter_node_name->second);
     // new event
     auto current_event = make_event();
     (*tmp_data)[TASK_EVENT_KEY] = current_event;

@@ -57,7 +57,8 @@ void Dependency::impl_inject_dependency(Backend* dependency) {
     if (injected_dependency_) {
         [[maybe_unused]] thread_local const auto log_tmp = []() {
             SPDLOG_WARN(
-                "Dependency::impl_inject_dependency: dependency already exists(may "
+                "Dependency::impl_inject_dependency: dependency already "
+                "exists(may "
                 "happened in the "
                 "pre_init stage). Chain dependency injection "
                 "will be applied.");
@@ -300,4 +301,11 @@ void List::impl_forward(const std::vector<dict>& input_output) {
 
 HAMI_REGISTER(Backend, List, "List,Tuple");
 
+void BackendOne::impl_forward(const std::vector<dict>& input_output) {
+    HAMI_ASSERT(input_output.size() == 1,
+                "BackendOne only supports single input");
+
+    HAMI_ASSERT(input_output[0]->find(TASK_DATA_KEY) != input_output[0]->end());
+    forward(input_output[0]);
+}
 }  // namespace hami

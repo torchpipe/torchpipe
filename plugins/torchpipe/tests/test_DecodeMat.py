@@ -42,4 +42,6 @@ def test_DecodeTensor():
     assert input["result"][0,0,-1] == 0
     
 if __name__ == "__main__":
+    import time 
+    time.sleep(5)
     test_DecodeTensor()

@@ -71,9 +71,7 @@ class HAMI_EXPORT Backend {
      * @return Maximum number of inputs supported. Default to
      * std::numeric_limits<size_t>::max()
      */
-    [[nodiscard]] size_t max() const {
-        return impl_max();
-    }
+    [[nodiscard]] size_t max() const { return impl_max(); }
 
     /**
      * @brief Returns the minimum number of inputs supported.
@@ -102,7 +100,7 @@ class HAMI_EXPORT Backend {
      * @throws std::runtime_error If dependency setting is not supported by this
      * backend.
      */
-     void inject_dependency(Backend* dependency) {
+    void inject_dependency(Backend* dependency) {
         impl_inject_dependency(dependency);
     }
 
@@ -118,7 +116,7 @@ class HAMI_EXPORT Backend {
     }
 
    public:
-   // helper function
+    // helper function
     virtual ~Backend() = default;
     Backend() = default;
     Backend(const Backend&) = delete;
@@ -159,13 +157,11 @@ class HAMI_EXPORT Backend {
     [[nodiscard]] virtual size_t impl_min() const { return 1; }
     [[nodiscard]] virtual size_t impl_max() const {
         return std::numeric_limits<size_t>::max();
-    }
+    };
     virtual void impl_inject_dependency(Backend* dependency) {
         throw std::runtime_error("inject_dependency not supported by default");
     }
 };
-
-using MaxBackend = Backend;
 
 /**
  * @brief Base class for all backends that support event-driven processing.

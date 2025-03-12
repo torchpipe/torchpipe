@@ -2,6 +2,14 @@
 from PIL import Image
 import requests
 import hami
+import time
+# time.sleep(10)
+import logging 
+
+# logging.setLevel(logging.INFO)
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+
 import torchpipe
 
 url = "http://images.cocodataset.org/val2017/000000039769.jpg"
@@ -63,33 +71,44 @@ def get_model(toml_path) :
 #         all_result[data_id] = result, onnx_resust
 #     report(all_result)
        
-       
+import torchpipe
+
+class Torch2Trt:
+    def __init__(self, onnx_path, toml_path):
+        config = hami.parser.parse(toml_path)
+        for k, v in config.items():
+            if 'model' in v.keys():
+                v['model'] = onnx_path
+            v['model::cache'] = onnx_path.replace(".onnx",'.trt')
+
+        dict_config = hami.Dict()
+        dict_config['config'] = config
+        pipe = hami.create('Interpreter').init({}, dict_config)
+        print("config = ",config)
+        self.model = pipe
+        
+    def __call__(self, x):
+        data = {'data': x}
+        self.model(data)
+        return data['result']
+    
+
 def test_v2():
     import torchpipe.utils.model_helper as helper
     
-    model, preprocessor = helper.get_classification_model("resnet50", 224, 224)
+    import tempfile
+    onnx_path = os.path.join(tempfile.gettempdir(), "resnet50.onnx")
+    print(f'testing on {onnx_path}')
+    tester = helper.ClassifyModelTester('resnet50', onnx_path)
     
-    onnx_path =  f"{model.__class__.__name__}.onnx"
-    if not os.path.exists(onnx_path) and not os.path.exists(onnx_path.replace(".onnx",'.trt')):
-        helper.export_x3hw(model, onnx_path, 224, 224)
-    
-    # onnx_model = OnnxModel(onnx_path, preprocessor)
-    config =  {"model":onnx_path, "model::cache":onnx_path.replace(".onnx",'.trt'), "instance_num": '1'}
-    config["model"] = onnx_path.replace(".onnx",'.trt')
-    hami_model = hami.init("StreamGuard[TensorrtTensor]",config)
+    hami_model  = Torch2Trt(onnx_path, 'config.toml')
 
-    all_result = {}
-    dataset = helper.TestImageDataset()
-    for data_id, data in dataset:
-        if data is not None:
-            preprocessed = preprocessor(data).unsqueeze(0)
-            with torch.no_grad():
-                result = torch.nn.functional.softmax(model(preprocessed), dim=-1)
-            # onnx_result = torch.nn.functional.softmax(torch.from_numpy(onnx_model(data)[0]), dim=-1)
-            all_result[data_id] = (result, None)
-    helper.report_classification(all_result)
+    tester.test(hami_model)
+    
     
 if __name__ == "__main__":
+    import time
+    # time.sleep(10)
     test_v2()
     
     raise 1
@@ -118,6 +137,4 @@ if __name__ == "__main__":
     print(input[TASK_RESULT_KEY].shape)
 
 
-
-
-
+ 

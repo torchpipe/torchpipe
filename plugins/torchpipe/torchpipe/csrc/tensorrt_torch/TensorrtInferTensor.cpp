@@ -43,15 +43,12 @@ void TensorrtInferTensor::impl_init(
                     "or S[X1, X2, StreamGuard]");
     }
 
-    // initialize converter, get std::shared_ptr<ICudaEngine>
     auto iter = dict_config->find(TASK_ENGINE_KEY);
     HAMI_ASSERT(iter != dict_config->end() &&
-                iter->second.type() ==
-                    typeid(std::shared_ptr<nvinfer1::ICudaEngine>));
+                iter->second.type() == typeid(nvinfer1::ICudaEngine*));
 
-    engine_ =
-        hami::any_cast<std::shared_ptr<nvinfer1::ICudaEngine>>(iter->second);
-    context_ = create_context(engine_.get(), instance_index_);
+    engine_ = hami::any_cast<nvinfer1::ICudaEngine*>(iter->second);
+    context_ = create_context(engine_, instance_index_);
     info_ = get_context_shape(context_.get(), instance_index_);
     HAMI_ASSERT(is_all_positive(info_), "input shape is not positive");
 

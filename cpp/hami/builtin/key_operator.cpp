@@ -12,7 +12,7 @@
 
 namespace hami {
 
-class Add : public SingleBackend {
+class Add : public BackendOne {
    private:
     void impl_init(const std::unordered_map<std::string, std::string>& config,
                    const dict& dict_config) override {
@@ -35,7 +35,7 @@ class Add : public SingleBackend {
 };
 HAMI_REGISTER(Backend, Add);
 
-class AddInt : public SingleBackend {
+class AddInt : public BackendOne {
    private:
     void impl_init(const std::unordered_map<std::string, std::string>& config,
                    const dict& dict_config) override {
@@ -61,7 +61,7 @@ class AddInt : public SingleBackend {
 };
 HAMI_REGISTER(Backend, AddInt);
 
-class Remove : public SingleBackend {
+class Remove : public BackendOne {
    private:
     void impl_init(const std::unordered_map<std::string, std::string>& config,
                    const dict& dict_config) override {

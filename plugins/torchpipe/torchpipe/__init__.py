@@ -18,7 +18,7 @@ from .extension import _load_library
 
 torch.cuda.init()
 
-_load_library("native")
+# _load_library("native")
 _load_library("image")
 _load_library("mat")
 _load_library("trt")

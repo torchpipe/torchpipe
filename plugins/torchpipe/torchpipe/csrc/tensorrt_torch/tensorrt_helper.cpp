@@ -10,7 +10,7 @@
 #include "NvInferPlugin.h"
 #include <c10/cuda/CUDAStream.h>
 #include <NvOnnxParser.h>
-#include <c10/core/ScalarType.h> // Add this line
+#include <c10/core/ScalarType.h>  // Add this line
 
 namespace {
 
@@ -299,7 +299,7 @@ c10::ScalarType trt2torch_type(nvinfer1::DataType dtype) {
         case nvinfer1::DataType::kINT32:
             return c10::ScalarType::Int;
         case nvinfer1::DataType::kINT8:
-            return c10::ScalarType::Char; // 或 c10::ScalarType::Byte
+            return c10::ScalarType::Char;  // 或 c10::ScalarType::Byte
         case nvinfer1::DataType::kINT64:
             return c10::ScalarType::Long;
         case nvinfer1::DataType::kBOOL:
@@ -308,7 +308,8 @@ c10::ScalarType trt2torch_type(nvinfer1::DataType dtype) {
             return c10::ScalarType::Half;
         default:
             SPDLOG_ERROR(
-                "Unsupported data type: only support kFLOAT, kINT32, kINT64, kINT8, "
+                "Unsupported data type: only support kFLOAT, kINT32, kINT64, "
+                "kINT8, "
                 "kBOOL, kHALF");
             throw std::runtime_error("Unsupported datatype");
     }
@@ -447,24 +448,15 @@ nvinfer1::Dims infer_shape(std::vector<int> config_shape,
 
 void update_min_max_setting(
     std::vector<std::vector<std::vector<int>>>& mins,
-    std::vector<std::vector<std::vector<int>>>& maxs,
+    std::vector<std::vector<std::vector<int>>>& maxs, size_t profile_num,
     const std::vector<std::pair<std::string, nvinfer1::Dims>>&
         net_inputs_ordered_dims) {
     // Get the number of network inputs
     size_t net_inputs = net_inputs_ordered_dims.size();
 
-    // Determine the number of profiles based on max of mins and maxs sizes
-    size_t profile_num = std::max(mins.size(), maxs.size());
-    if (profile_num == 0) {
-        // Create a single profile by default
-        mins.resize(1);
-        maxs.resize(1);
-        profile_num = 1;
-    } else {
-        // Ensure both mins and maxs have the same number of profiles
-        mins.resize(profile_num);
-        maxs.resize(profile_num);
-    }
+    // Ensure both mins and maxs have the same number of profiles
+    mins.resize(profile_num);
+    maxs.resize(profile_num);
 
     // Process each profile
     for (size_t p = 0; p < profile_num; ++p) {
@@ -586,6 +578,7 @@ std::unique_ptr<nvinfer1::IHostMemory> onnx2trt(OnnxParams& params) {
     } else {
         max_threads = max_threads / 2 - 1;
     }
+    max_threads = std::min(max_threads, size_t(8));
     if (builder->setMaxThreads(max_threads))
         SPDLOG_INFO("tensorrt builder: max_threads={}", max_threads);
 
@@ -633,7 +626,8 @@ std::unique_ptr<nvinfer1::IHostMemory> onnx2trt(OnnxParams& params) {
     merge_mean_std(network.get(), params.mean, params.std);
 
     // profile
-    update_min_max_setting(params.mins, params.maxs, net_inputs_ordered_dims);
+    update_min_max_setting(params.mins, params.maxs, params.instance_num,
+                           net_inputs_ordered_dims);
     const auto profile_num = params.mins.size();
     nvinfer1::IOptimizationProfile* first_profile = nullptr;
     for (size_t index_p = 0; index_p < profile_num; ++index_p) {
@@ -734,6 +728,8 @@ OnnxParams config2onnxparams(
     const std::unordered_map<std::string, std::string>& config) {
     OnnxParams params;
 
+    params.instance_num = 1;
+    hami::str::try_update(config, "instance_num", params.instance_num);
     hami::str::try_update(config, "model", params.model);
     hami::str::try_update(config, "model::cache", params.model_cache);
 
@@ -887,7 +883,9 @@ NetIOInfos get_context_shape(nvinfer1::IExecutionContext* context,
 std::unique_ptr<nvinfer1::IExecutionContext> create_context(
     nvinfer1::ICudaEngine* engine, size_t instance_index) {
     const auto num_profiles = engine->getNbOptimizationProfiles();
-    HAMI_ASSERT(instance_index < num_profiles);
+    HAMI_ASSERT(instance_index < num_profiles,
+                "instance_index out of range. instance_index=" +
+                    std::to_string(instance_index));
 
 #if TRT_USER_MANAGED_MEM
     // USE_OUT_MEM

@@ -414,10 +414,11 @@ class TestImageDataset:
         return len(self.failed_image_ids)
     
        
-def test_model():
+def test_onnx():
     model, preprocessor = get_classification_model("resnet50", 224, 224)
     
-    onnx_path = export_x3hw(model, 224, 224)
+    onnx_path =  f"{model.__class__.__name__}.onnx"
+    export_x3hw(model,onnx_path, 224, 224)
     
     onnx_model = OnnxModel(onnx_path, preprocessor)
 
@@ -432,6 +433,27 @@ def test_model():
             all_result[data_id] = (result, onnx_result)
     report_classification(all_result)
     
+class ClassifyModelTester:
+    def __init__(self, model_name, onnx_path, h = 224, w = 224):
+
+        self.model_name = model_name
+        self.model, self.preprocessor = get_classification_model(self.model_name, h, w)
+    
+        export_x3hw(self.model, onnx_path, h, w)
+        
+    def test(self, callable_func):
+        all_result = {}
+        dataset = TestImageDataset()
+        for data_id, data in dataset:
+            if data is not None:
+                preprocessed = self.preprocessor(data).unsqueeze(0)
+                with torch.no_grad():
+                    result = torch.nn.functional.softmax(self.model(preprocessed), dim=-1)
+                    extra_result = torch.nn.functional.softmax(callable_func(data), dim=-1)
+                all_result[data_id] = (result, extra_result)
+        report_classification(all_result)
+        return all_result
+        
 if __name__ == "__main__":
-    test_model()
+    test_onnx()
     

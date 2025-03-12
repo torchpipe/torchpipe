@@ -1,3 +1,4 @@
+#include <optional>
 #include <hami/python.hpp>
 #include <hami/extension.hpp>
 #include <torch/csrc/autograd/python_variable.h>

@@ -7,10 +7,10 @@
 using hami::dict;
 
 namespace torchpipe {
-class CropTensor : public hami::SingleBackend {
- public:
-  virtual void forward(const dict&) override;
+class CropTensor : public hami::BackendOne {
+   public:
+    virtual void forward(const dict&) override;
 
- private:
+   private:
 };
 }  // namespace torchpipe

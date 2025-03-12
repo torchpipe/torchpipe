@@ -35,7 +35,7 @@ void DecodeMat::impl_init(
 void DecodeMat::forward(const hami::dict& input_dict) {
     auto& input = *input_dict;
 
-    if (typeid(std::string) != input[TASK_DATA_KEY].type()) {
+    if (typeid(std::string) != input.at(TASK_DATA_KEY).type()) {
         throw std::runtime_error(
             std::string("DecodeMat: not support the input type: ") +
             std::string(input[TASK_DATA_KEY].type().name()));

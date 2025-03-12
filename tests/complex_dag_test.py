@@ -17,6 +17,6 @@ def test_configs():
     for x in test_config:
         toml_path = f"config/{x}.toml"
 
-        data = hami.parse_from_file(toml_path)
+        data = hami.parse(toml_path)
         print(data)
         hami._C.init("Interpreter", {}, hami.Dict({"config": data}))

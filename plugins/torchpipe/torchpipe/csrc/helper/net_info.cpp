@@ -1,3 +1,4 @@
+#include <optional>
 #include "helper/net_info.hpp"
 
 namespace torchpipe {

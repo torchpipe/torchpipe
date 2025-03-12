@@ -11,7 +11,7 @@
 #include "hami/helper/string.hpp"
 
 namespace hami {
-class Identity : public SingleBackend {
+class Identity : public BackendOne {
    public:
     void forward(const dict& input) override {
         auto iter = input->find(TASK_DATA_KEY);
@@ -23,7 +23,7 @@ class Identity : public SingleBackend {
 };
 HAMI_REGISTER(Backend, Identity);
 
-class Pow : public SingleBackend {
+class Pow : public BackendOne {
    public:
     enum class DataType { INT = 0, SIZE_T, FLOAT, DOUBLE, STRING };
     DataType data_type_{DataType::INT};
@@ -90,7 +90,7 @@ class Pow : public SingleBackend {
 };
 HAMI_REGISTER(Backend, Pow);
 
-class PrintKeys : public SingleBackend {
+class PrintKeys : public BackendOne {
     void forward(const dict& input) override final {
         std::string keys;
         for (auto iter = input->begin(); iter != input->end(); ++iter) {

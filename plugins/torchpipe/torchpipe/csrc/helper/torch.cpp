@@ -163,8 +163,6 @@ torch::Tensor switch_device(torch::Tensor input) {
                                            // pinned memory， 不怕析构
 }
 
-
-
 torch::Tensor async2cpu(torch::Tensor input) {
     //  auto options=torch::TensorOptions()
     //   .device(torch::kCPU)
@@ -544,7 +542,7 @@ void fix_tensor_shape(torch::Tensor& data, const NetIOInfo::Dims64 min,
                     "The input tensor can be interpreted as either HWC or "
                     "NCHW.");
             }
-            data = data.permute({2, 0, 1}).squeeze(0);
+            data = data.permute({2, 0, 1}).unsqueeze(0);
             return;
         }
     }
@@ -561,7 +559,7 @@ void fix_tensor_shape(torch::Tensor& data, const NetIOInfo::Dims64 min,
         if ((sizes[0] >= min.d[1] && sizes[0] <= max.d[1]) &&
             sizes[1] >= min.d[2] && sizes[1] <= max.d[2] &&
             sizes[2] >= min.d[3] && sizes[2] <= max.d[3]) {
-            data = data.squeeze(0);
+            data = data.unsqueeze(0);
             return;
         }
     }
@@ -601,6 +599,42 @@ c10::ScalarType netinfo2torch_type(NetIOInfo::DataType dtype) {
             throw std::runtime_error("Unsupported or unknown data type");
     }
 }
+std::string print_torch_scale_type(c10::ScalarType tp) {
+    switch (tp) {
+        case torch::kInt8:
+            return "Int8";
+        case torch::kUInt8:
+            return "UInt8";
+        case torch::kInt16:
+            return "Int16";
+        case torch::kInt32:
+            return "Int32";
+        case torch::kInt64:
+            return "Int64";
+        case torch::kFloat16:
+            return "Float16";
+        case torch::kFloat32:
+            return "Float32";
+        case torch::kFloat64:
+            return "Float64";
+        case torch::kBool:
+            return "Bool";
+        case torch::kBFloat16:
+            return "BFloat16";
+        case torch::kQInt8:
+            return "QInt8";
+        case torch::kQUInt8:
+            return "QUInt8";
+        case torch::kQInt32:
+            return "QInt32";
+        case torch::kComplexFloat:
+            return "ComplexFloat";
+        case torch::kComplexDouble:
+            return "ComplexDouble";
+        default:
+            return "Unknown";
+    }
+}
 void fix_tensors(std::vector<torch::Tensor>& tensors,
                  const std::shared_ptr<NetIOInfos>& infos) {
     const auto num_inputs = tensors.size();
@@ -614,14 +648,18 @@ void fix_tensors(std::vector<torch::Tensor>& tensors,
     }
 }
 
-void check_tensor(const torch::Tensor& tensor, const NetIOInfo& infos) {
-    HAMI_ASSERT(tensor.sizes().size() == infos.min.nbDims);
+void check_input_tensor(const torch::Tensor& tensor, const NetIOInfo& infos) {
+    HAMI_ASSERT(tensor.sizes().size() == infos.min.nbDims,
+                std::to_string(tensor.sizes().size()) + " vs " +
+                    std::to_string(infos.min.nbDims));
     for (size_t i = 0; i < infos.min.nbDims; ++i) {
         HAMI_ASSERT(tensor.sizes()[i] >= infos.min.d[i]);
         HAMI_ASSERT(tensor.sizes()[i] <= infos.max.d[i]);
         HAMI_ASSERT(tensor.scalar_type() == netinfo2torch_type(infos.type),
                     "Input tensor data type does not match the data type "
-                    "required by the model");
+                    "required by the model. " +
+                        print_torch_scale_type(tensor.scalar_type()) + " vs " +
+                        print_torch_scale_type(netinfo2torch_type(infos.type)));
         HAMI_ASSERT(tensor.is_cuda() &&
                     infos.device == NetIOInfo::Device::GPU);  // todo
         HAMI_ASSERT(tensor.is_contiguous());
@@ -635,7 +673,7 @@ void check_batched_inputs(const std::vector<torch::Tensor>& tensors,
         "number of inputs from model does not match that from the data");
 
     for (size_t i = 0; i < num_inputs; ++i) {
-        check_tensor(tensors[i], infos[i]);
+        check_input_tensor(tensors[i], infos[i]);
     }
 }
 

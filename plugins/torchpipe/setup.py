@@ -19,7 +19,6 @@ from torch.utils.cpp_extension import (
     CUDAExtension,
     BuildExtension,
     CUDA_HOME,
-    ROCM_HOME,
 )
 
 # Environment Configuration
@@ -138,6 +137,8 @@ class BuildHelper:
 
     @classmethod
     def create_extension(cls, name: str, sources: List[str], **kwargs):
+        if not isinstance(sources, list):
+            sources = list(sources)
         extra_path = []
         if name != "native":
             native_so_path = os.path.join(os.path.dirname(__file__), "torchpipe/native.so")
@@ -152,12 +153,13 @@ class BuildHelper:
                 config.csrc_dir, 
                 config.opencv_include,
                 config.tensorrt_include, 
-                CUDA_HOME
+                str(Path(CUDA_HOME) / "include/")
             ] + config.hami_includes,
             "library_dirs": [
                 config.hami_lib_dir, 
                 config.opencv_lib,
-                config.tensorrt_lib
+                config.tensorrt_lib,
+                str(Path(CUDA_HOME) / "lib64/")
             ],
             "libraries": ["hami"],  # 基类默认库
             "extra_link_args": [
@@ -172,27 +174,30 @@ class BuildHelper:
             ]
         }
 
-        # 定义需要合并的列表类参数
         list_params = ["include_dirs", "library_dirs", "libraries", "extra_link_args"]
 
-        # 合并参数逻辑
         merged_params = {}
         for key in base_params:
             if key in list_params:
-                # 合并列表并去重（保持顺序）
                 base_list = base_params[key]
                 user_list = kwargs.get(key, [])
                 merged_params[key] = list(dict.fromkeys([*base_list, *user_list]))
             else:
-                # 非列表参数使用用户传入值（若存在）
                 merged_params[key] = kwargs.get(key, base_params[key])
 
-        # 合并剩余未处理的用户参数
         for key in kwargs:
             if key not in merged_params:
                 merged_params[key] = kwargs[key]
-
-        return CppExtension(
+        
+        define_macros, extra_compile_args = BuildHelper.get_compile_args()
+        if 'define_macros' not in merged_params:
+            merged_params['define_macros'] = define_macros
+        else:
+            merged_params['define_macros'] += define_macros
+            
+        merged_params['extra_compile_args'] = extra_compile_args
+        # CppExtension
+        return CUDAExtension(
             name=f"torchpipe.{name}",
             sources=sources,
             **merged_params
@@ -215,10 +220,23 @@ def build_core_extension():
     )
     
 
-def build_image_extension():
+def build_nvjpeg_extension():
     DependencyManager.handle_opencv()
     
     sources = config.csrc_dir.glob("nvjpeg_torch/*.cpp")
+    
+            
+    return BuildHelper.create_extension(
+        name="image",
+        sources=sources,
+        libraries=["nvjpeg"],
+        define_macros=[("NVJPEG_FOUND", 1)],
+    )
+
+def build_opencv_extension():
+    DependencyManager.handle_opencv()
+    
+    sources = config.csrc_dir.glob("mat_torch/*.cpp")
     
     opencv_libs = ["opencv_core", "opencv_imgproc", "opencv_imgcodecs"]
     for lib in opencv_libs:
@@ -226,12 +244,12 @@ def build_image_extension():
             f"OpenCV library {lib} not found in {config.opencv_lib}"
             
     return BuildHelper.create_extension(
-        name="image",
+        name="mat",
         sources=sources,
-        libraries=["nvjpeg"] + opencv_libs,
-        define_macros=[("NVJPEG_FOUND", 1)],
+        libraries=opencv_libs,
+        define_macros=[("OPENCV_FOUND", 1)],
     )
-
+    
 def build_trt_extension():
     DependencyManager.handle_tensorrt()
     sources = config.csrc_dir.glob("tensorrt_torch/*.cpp")
@@ -255,7 +273,8 @@ if __name__ == "__main__":
     # Build extensions
     extensions = [
         build_core_extension(),
-        build_image_extension(),
+        build_opencv_extension(),
+        build_nvjpeg_extension(),
         build_trt_extension(),
     ]
 

@@ -24,7 +24,7 @@ class TensorrtInferTensor : public hami::Backend {
 
    private:
     std::unique_ptr<nvinfer1::IRuntime> runtime_;
-    std::shared_ptr<nvinfer1::ICudaEngine> engine_;
+    nvinfer1::ICudaEngine* engine_{nullptr};
     int instance_index_{0};
     int instance_num_{1};
 
@@ -42,17 +42,4 @@ class TensorrtInferTensor : public hami::Backend {
     cudaEvent_t input_finish_event_{};
 };
 
-// class x : public hami::Backend {
-//    public:
-//     void impl_init(const std::unordered_map<std::string, std::string>&
-//     config,
-//               const hami::dict& dict_config) override;
-//     void impl_forward(const std::vector<hami::dict>& input) override;
-
-//    private:
-//     std::unique_ptr<nvinfer1::IRuntime> runtime_;
-//     std::shared_ptr<nvinfer1::ICudaEngine> engine_;
-//     int instance_index_{0};
-//     int instance_num_{1};
-// };
 }  // namespace torchpipe

@@ -137,7 +137,7 @@ void LoadTensorrtEngine::impl_init(
     HAMI_ASSERT(dict_config);
     if (dict_config->find(TASK_ENGINE_KEY) != dict_config->end()) {
         HAMI_ASSERT(dict_config->at(TASK_ENGINE_KEY).type() ==
-                    typeid(std::shared_ptr<nvinfer1::ICudaEngine>));
+                    typeid(nvinfer1::ICudaEngine*));
         SPDLOG_INFO(
             "LoadTensorrtEngine: aready loaded engine in dict_config, skip "
             "loading.");
@@ -161,11 +161,11 @@ void LoadTensorrtEngine::impl_init(
     auto data = reader.read();  // core dump if directly use reader...
     auto* engine_ptr =
         runtime_->deserializeCudaEngine(data.data(), data.size());
-    engine_ = std::shared_ptr<nvinfer1::ICudaEngine>(engine_ptr);
+    engine_ = std::unique_ptr<nvinfer1::ICudaEngine>(engine_ptr);
     HAMI_ASSERT(engine_->getNbOptimizationProfiles() == instance_num);
 
-    (*dict_config)[TASK_ENGINE_KEY] = engine_;
-    engine_ = nullptr;
+    (*dict_config)[TASK_ENGINE_KEY] = engine_ptr;
+    // engine_ = nullptr;
 }
 
 void Onnx2Tensorrt::impl_init(
@@ -174,17 +174,17 @@ void Onnx2Tensorrt::impl_init(
     HAMI_ASSERT(dict_config);
     if (dict_config->find(TASK_ENGINE_KEY) != dict_config->end()) {
         HAMI_ASSERT(dict_config->at(TASK_ENGINE_KEY).type() ==
-                    typeid(std::shared_ptr<nvinfer1::ICudaEngine>));
+                    typeid(nvinfer1::ICudaEngine*));
         SPDLOG_INFO(
             "Onnx2Tensorrt: aready loaded engine in dict_config, skip "
             "loading.");
         return;
     }
     // handle instance index
-    int instance_num{1};
-    hami::str::try_update(config, "instance_num", instance_num);
-    // HAMI_ASSERT(instance_num >= 1 && instance_index_ == 0);
-    HAMI_ASSERT(instance_num >= 1);
+    // int instance_num{1};
+    // hami::str::try_update(config, "instance_num", instance_num);
+    // // HAMI_ASSERT(instance_num >= 1 && instance_index_ == 0);
+    // HAMI_ASSERT(instance_num >= 1);
 
     // set runtime && allocator
     runtime_ = std::unique_ptr<nvinfer1::IRuntime>(
@@ -203,7 +203,9 @@ void Onnx2Tensorrt::impl_init(
     // auto mem = !model_cache_exist ? onnx2trt(params) : nullptr;
 
     if (!model_cache_exist) {
-        HAMI_ASSERT(hami::filesystem::exists(params.model));
+        HAMI_ASSERT(
+            hami::filesystem::exists(params.model),
+            "file of `model(and model::cache)` not found: " + params.model);
         auto mem = onnx2trt(params);
         HAMI_ASSERT(mem);
         if (!params.model_cache.empty()) {
@@ -217,8 +219,9 @@ void Onnx2Tensorrt::impl_init(
 
         auto* engine_ptr =
             runtime_->deserializeCudaEngine(mem->data(), mem->size());
-        engine_ = std::shared_ptr<nvinfer1::ICudaEngine>(engine_ptr);
-        HAMI_ASSERT(engine_);
+        engine_ = std::unique_ptr<nvinfer1::ICudaEngine>(engine_ptr);
+        HAMI_ASSERT(engine_ && engine_->getNbOptimizationProfiles() ==
+                                   params.instance_num);
 
     } else {
         SPDLOG_INFO(
@@ -229,13 +232,12 @@ void Onnx2Tensorrt::impl_init(
         auto data = reader.read();  // core dump without this...
         auto* engine_ptr =
             runtime_->deserializeCudaEngine(data.data(), data.size());
-        engine_ = std::shared_ptr<nvinfer1::ICudaEngine>(engine_ptr);
-        HAMI_ASSERT(engine_ &&
-                    engine_->getNbOptimizationProfiles() == instance_num);
+        engine_ = std::unique_ptr<nvinfer1::ICudaEngine>(engine_ptr);
+        HAMI_ASSERT(engine_ && engine_->getNbOptimizationProfiles() ==
+                                   params.instance_num);
     }
 
-    (*dict_config)[TASK_ENGINE_KEY] = engine_;
-    engine_ = nullptr;
+    (*dict_config)[TASK_ENGINE_KEY] = engine_.get();
 }
 
 void ModelLoadder::post_init(
@@ -274,15 +276,6 @@ void ModelLoadder::post_init(
 
     iter = dict_config->find(TASK_ENGINE_KEY);
     HAMI_ASSERT(iter != dict_config->end());
-    // HAMI_ASSERT(iter != dict_config->end() &&
-    //             iter.type() ==
-    //             typeid(std::shared_ptr<nvinfer1::ICudaEngine>));
-
-    // engine_ = any_cast<std::shared_ptr<nvinfer1::ICudaEngine>>(iter);
-    // handle instance index
-    // int instance_num{1};
-    // hami::str::try_update(config, "instance_num", instance_num);
-    // HAMI_ASSERT(engine_->getNbOptimizationProfiles() == instance_num);
 }
 
 HAMI_REGISTER(hami::Backend, ModelLoadder);

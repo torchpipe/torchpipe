@@ -44,6 +44,7 @@ struct OnnxParams {
     std::vector<std::vector<std::vector<int>>>
         mins;  // min: multiple profiles - multiple inputs - multiDims
     std::vector<std::vector<std::vector<int>>> maxs;  // max
+    size_t instance_num = 1;
 };
 
 std::unique_ptr<nvinfer1::IHostMemory> onnx2trt(OnnxParams& params);

@@ -74,7 +74,7 @@ void init_numpy(py::module_& m) {}
 
 HAMI_ADD_HASH(Bytes);
 
-class Str2Bytes : public SingleBackend {
+class Str2Bytes : public BackendOne {
    public:
     void forward(const dict& data) : override final {
         data->insert_or_assign(

@@ -6,7 +6,7 @@ using namespace hami;
 
 namespace torchpipe {
 
-class ResizeTensor : public SingleBackend {
+class ResizeTensor : public BackendOne {
    private:
     void impl_init(const std::unordered_map<std::string, std::string>& config,
                    const dict& dict_config) override {

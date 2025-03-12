@@ -2,6 +2,10 @@ from typing import Dict, Any
 # import tomllib
 from pathlib import Path
 from typing import Dict, Any, Union
+import logging
+import json
+logger = logging.getLogger("hami-core")
+
 
 try:
     import tomllib
@@ -42,7 +46,7 @@ def to_dual_str(config: Dict[str, Dict[str, Any]]) -> Dict[str, Dict[str, str]]:
 
 
 
-def parse_from_file(file_path: Union[str, Path]) -> Dict[str, Dict[str, str]]:
+def parse(file_path: Union[str, Path]) -> Dict[str, Dict[str, str]]:
     """
     Parse and convert TOML file content to string-based nested configuration.
     
@@ -73,12 +77,51 @@ def parse_from_file(file_path: Union[str, Path]) -> Dict[str, Dict[str, str]]:
     
     return to_dual_str(raw_config)
 
-# Dependencies needed:
-# Python 3.11+ (tomllib included in standard library)
-# For older versions: pip install tomli
-# Add to requirements.txt:
-# tomli>=2.0.1 ; python_version < "3.11"
 
-# Usage example:
-# config = parse_from_file("config.toml")
-# db_host = config['database']['host']
+
+ 
+
+def log_structured_config(config: Dict[str, Any], title: str = "Configuration") -> None:
+    """
+    Log a structured configuration dictionary in a clean, formatted way.
+    
+    Args:
+        config: Dictionary containing configuration data
+        title: Optional title to display in the log header
+        
+    Returns:
+        None
+    """
+    # Format the config as a pretty JSON string with indentation
+    formatted_config = json.dumps(config, indent=2, ensure_ascii=False)
+    
+    # Add separators to make the log more readable
+    logger.info("=" * 50)
+    logger.info(f"{title}:")
+    # Log each line separately to avoid excessively wide log entries
+    for line in formatted_config.splitlines():
+        logger.info(line)
+    logger.info("=" * 50)
+
+def init_from_file(file_path: Union[str, Path]):
+    """
+    Initialize backend components from a TOML configuration file.
+    
+    Args:
+        file_path: Path to the TOML configuration file
+        
+    Returns:
+        Initialized Backend instance
+    """
+    logger.info(f"Loading configuration from: {file_path}")
+    
+    data = parse(file_path)
+    
+    # Log the configuration in a structured format
+    log_structured_config(data, title="Configuration loaded")
+    
+    logger.info(f"Initializing interpreter with {len(data)} components")
+    
+    from hami._C import init, Dict
+    
+    return init("Interpreter", {}, Dict({"config": data}))

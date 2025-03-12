@@ -67,7 +67,7 @@ void CatTensor::impl_forward(const std::vector<dict>& input_dict) {
 
 HAMI_REGISTER(Backend, CatTensor);
 
-class ContiguousTensor : public hami::SingleBackend {
+class ContiguousTensor : public hami::BackendOne {
    public:
     void forward(const dict& input_output) override {
         auto data = dict_gets<torch::Tensor>(input_output, TASK_DATA_KEY);
@@ -84,7 +84,7 @@ class ContiguousTensor : public hami::SingleBackend {
 };
 HAMI_REGISTER(Backend, ContiguousTensor);
 
-class GpuTensor : public hami::SingleBackend {
+class GpuTensor : public hami::BackendOne {
    public:
     void forward(const dict& input_output) override {
         auto data = dict_gets<torch::Tensor>(input_output, TASK_DATA_KEY);

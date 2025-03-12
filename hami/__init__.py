@@ -18,8 +18,8 @@ from hami._C import (Queue, default_queue)
 
 from hami._C import TASK_DATA_KEY, TASK_RESULT_KEY
 # from hami import pybackend
-from .parser import parse_from_file
+from .parser import parse, init_from_file
 
-__all__ = ["Any", "Dict", 'Backend', 'Event', 'create', 'create', 'register', 'parse_from_file', 'init']
+__all__ = ["Any", "Dict", 'Backend', 'Event', 'create', 'create', 'register', 'parse', 'init']
 
 __all__.extend(['Queue', 'default_queue'])
