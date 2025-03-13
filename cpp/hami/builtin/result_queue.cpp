@@ -82,29 +82,28 @@ void Send::impl_init(const std::unordered_map<std::string, std::string>& config,
     if (target_name)
         queue_ = HAMI_INSTANCE_GET(Queue, *target_name);
     else {
-        queue_  = &(default_queue());
+        queue_ = &(default_queue());
     }
     HAMI_ASSERT(queue_);
 }
 
-void Send::impl_forward(const std::vector<dict>& input)  {
-        for (auto& item : input) {
-            queue_->put(item);
-        }
+void Send::impl_forward(const std::vector<dict>& input) {
+    queue_->put(input);
+    // for (auto& item : input) {
+    //     queue_->put(item);
+    // }
+}
+
+void Observer::impl_forward(const std::vector<dict>& input) {
+    for (auto& item : input) {
+        (*item)[TASK_RESULT_KEY] = item->at(TASK_DATA_KEY);
+        auto new_dict = deep_copy(item);
+        queue_->put(new_dict);
     }
+}
 
- void Observer::impl_forward(const std::vector<dict>& input)  {
-        for (auto& item : input) {
-            (*item)[TASK_RESULT_KEY] = item->at(TASK_DATA_KEY);
-            auto new_dict = deep_copy(item);
-            queue_->put(new_dict);
-        }
-    }
-    
-
-    HAMI_REGISTER_BACKEND(Send);
-     HAMI_REGISTER_BACKEND(Observer);
-
+HAMI_REGISTER_BACKEND(Send);
+HAMI_REGISTER_BACKEND(Observer);
 
 // init = List[Recv[register_name_for_src_que, target_backend_name]]
 void Recv::pre_init(const std::unordered_map<std::string, std::string>& config,

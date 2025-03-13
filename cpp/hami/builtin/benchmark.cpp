@@ -1,4 +1,4 @@
-#include <random>
+#include <numeric>
 #include "hami/builtin/benchmark.hpp"
 #include "hami/helper/string.hpp"
 #include "hami/helper/base_logging.hpp"
@@ -9,7 +9,7 @@
 #include "hami/builtin/result_queue.hpp"
 #include "hami/core/task_keys.hpp"
 #include "hami/core/helper.hpp"
-
+#include "hami/builtin/source.hpp"
 namespace hami {
 
 void Benchmark::impl_init(
@@ -19,8 +19,10 @@ void Benchmark::impl_init(
     if (dep) {
         target_queue_ = HAMI_INSTANCE_GET(Queue, *dep);
     } else {
-        target_queue_ = &default_queue();
+        target_queue_ = &default_output_queue();
     }
+
+    src_queue_ = &default_src_queue();
     HAMI_ASSERT(target_queue_);
 
     str::try_update(config, "num_clients", num_clients_);
@@ -57,15 +59,12 @@ void Benchmark::impl_forward_with_dep(const std::vector<dict>& input,
         std::unique_lock<std::mutex> lock(warm_up_mtx_);
 
         warm_up_task_ = [this, input, dependency]() {
-            std::random_device seeder;
-            std::mt19937 engine(seeder());
-            std::uniform_int_distribution<int> dist(0, input.size() - 1);
             int num_warm_up = num_warm_up_;
 
             while (num_warm_up-- > 0) {
                 std::vector<dict> warm_data;
                 for (size_t i = 0; i < request_batch_; ++i) {
-                    warm_data.push_back(deep_copy(input[dist(engine)]));
+                    warm_data.push_back(uniform_sample(input));
                 }
                 try {
                     dependency->forward(warm_data);
@@ -107,10 +106,6 @@ void Benchmark::impl_forward_with_dep(const std::vector<dict>& input,
 
     task_cv_.notify_all();
 
-    std::random_device seeder;
-    std::mt19937 engine(seeder());
-    std::uniform_int_distribution<int> dist(0, input.size() - 1);
-
     // generate test data
     size_t req_times = total_number_ / request_batch_;
     // size_t req_times = num_warm_up_ * request_batch_;
@@ -119,7 +114,7 @@ void Benchmark::impl_forward_with_dep(const std::vector<dict>& input,
         data->arrive_time = std::chrono::steady_clock::now();
 
         for (size_t i = 0; i < request_batch_; ++i) {
-            data->data.push_back(deep_copy(input[dist(engine)]));
+            data->data.push_back(uniform_sample(input));
         }
         while (!inputs_->try_put(data, num_clients_ + 100,
                                  std::chrono::milliseconds(SHUTDOWN_TIMEOUT))) {

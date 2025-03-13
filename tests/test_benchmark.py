@@ -50,9 +50,10 @@ def test_tensorrt_inference():
     bench = hami.init("Benchmark", {"num_clients": "4", "total_num": "10000"})
     bench.forward([data]*100, model)
     
-    q = hami.default_queue()
+    q = hami._C.default_output_queue()
     print(q.size())
     print(q)
+    assert not q.empty()
     a=q.get()
     print(a)
     # import pdb;

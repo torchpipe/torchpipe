@@ -182,7 +182,8 @@ inline int get_request_size<dict>(const dict& in) {
 
 // make sure  the backend can handle  both sync && async
 // situation even the user only implement the sync version
-bool event_guard(Backend* dependency, const std::vector<dict>& inputs);
+void event_guard_forward(std::function<void(const std::vector<dict>&)>,
+                         const std::vector<dict>& inputs);
 
 template <typename T>
 std::string debug_node_info(const T& config) {

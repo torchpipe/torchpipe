@@ -1,7 +1,7 @@
 #pragma once
 #include "hami/core/queue.hpp"
 #include "hami/core/backend.hpp"
-
+#include "hami/core/helper.hpp"
 namespace hami {
 // class Queue;
 
@@ -14,12 +14,18 @@ class QueueBackend : public Backend {
     void impl_inject_dependency(Backend* dep) override;
 
     void impl_forward(const std::vector<dict>& input) override final {
-        for (auto& item : input) {
-            queue_->put(item);
-        }
+        event_guard_forward(
+            [this](const std::vector<dict>& data) {
+                queue_->put(data);
+                // for (auto& item : data) {
+                //     queue_->put(item);
+                // }
+            },
+            input);
     }
 
     void run();
+
    public:
     ~QueueBackend();
 
@@ -52,7 +58,7 @@ class Send : public Backend {
     Queue* queue_{nullptr};
 };
 
-class Observer: public Send {
+class Observer : public Send {
    private:
     void impl_forward(const std::vector<dict>& input) override final;
 };

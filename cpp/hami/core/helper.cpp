@@ -55,14 +55,16 @@ HasEventHelper::~HasEventHelper() {
     }
 }
 
-bool event_guard(Backend* dependency, const std::vector<dict>& inputs) {
+void event_guard_forward(std::function<void(const std::vector<dict>&)> func,
+                         const std::vector<dict>& inputs) {
     const bool all_have_event =
         std::all_of(inputs.begin(), inputs.end(), [](const auto& item) {
             return item->find(TASK_EVENT_KEY) != item->end();
         });
 
     if (all_have_event) {
-        return false;
+        func(inputs);
+        // return false;
     }
     const bool none_have_event =
         std::none_of(inputs.begin(), inputs.end(), [](const auto& item) {
@@ -74,7 +76,7 @@ bool event_guard(Backend* dependency, const std::vector<dict>& inputs) {
         for (auto& item : inputs) {
             (*item)[TASK_EVENT_KEY] = ev;
         }
-        dependency->forward(inputs);
+        func(inputs);
 
         auto exc = ev->wait_and_get_except();
 
@@ -91,7 +93,7 @@ bool event_guard(Backend* dependency, const std::vector<dict>& inputs) {
             "should be either async or "
             "sync.");
     }
-    return true;
+    // return true;
 }
 
 std::string get_dependency_name_force(

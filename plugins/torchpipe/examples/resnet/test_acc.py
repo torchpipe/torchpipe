@@ -101,9 +101,34 @@ def test_v2():
     print(f'testing on {onnx_path}')
     tester = helper.ClassifyModelTester('resnet50', onnx_path)
     
-    hami_model  = Torch2Trt(onnx_path, 'config.toml')
+    ms_val_dataset = helper.get_mini_imagenet()
+    # next(iter(ms_val_dataset))
+    
+    true_labels = []
+    pred_labels = []
+    # print(ms_val_dataset.class_to_index)
+    # import pdb; pdb.set_trace()
+    helper.import_or_install_package('tqdm')
+    from tqdm import tqdm
 
-    tester.test(hami_model, fix_shape=True)
+    tester.model.cuda()
+    for item in tqdm(ms_val_dataset, desc="Processing", position=0, leave=True):
+        image_file = item['image:FILE']
+        category = item['category']
+        infer_cls, infer_score = tester(image_file)
+
+        true_labels.append(category)
+        pred_labels.append(infer_cls)
+    # import pdb; pdb.set_trace()
+    map_label = helper.align_labels(true_labels, pred_labels, 100)
+
+    helper.evaluate_classification(true_labels, [map_label[x] for x in pred_labels])
+    # hami_model  = Torch2Trt(onnx_path, 'config.toml')
+
+    # - Accuracy:  0.8713
+    # - Precision: 0.9386
+    # - Recall:    0.8627
+    # - F1 Score:  0.8975
     
     
 if __name__ == "__main__":

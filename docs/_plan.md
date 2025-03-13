@@ -140,3 +140,19 @@ NVI private: _init _forward _forward_with_dep
 
 
 类型共识 https://blog.csdn.net/intel1985/article/details/122692791
+
+
+Generator?
+
+RandomSampleQueue -> default_src_queue  (上界)
+RandomSampleQueue -> default_src_queue
+
+
+conditional loop
+
+Optional[Source] -> Loop[Process, Condition] -> Output
+
+FileSource  -> max to queue(default_src_queue)
+uniformSample -> max to queue(default_src_queue)
+
+FileSource[create_name] 

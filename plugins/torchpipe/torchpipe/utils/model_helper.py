@@ -5,14 +5,19 @@ import subprocess
 import urllib.request
 from io import BytesIO
 from typing import Callable, Tuple, Optional
-
+import numpy as np
+from typing import List, Union, Callable, Tuple, Any
+try:
+    import cv2
+except ImportError:
+    print("OpenCV not found. Please install it to use this feature.")
+    
 import torch
 import torch.nn as nn
 from torchvision import transforms
 from PIL import Image
 import tempfile
 import logging
-logging.basicConfig(level=logging.INFO)
 import importlib
 import subprocess
 
@@ -37,6 +42,7 @@ import subprocess
 #         ("cat", "http://images.cocodataset.org/val2017/000000039769.jpg")
 #     ]
 IMAGENET_IMAGES = [
+    ('bird', 'https://modelscope.oss-cn-beijing.aliyuncs.com/test/images/bird.JPEG', 0),
     ('African Elephant', 'https://obs-9be7.obs.cn-east-2.myhuaweicloud.com/models/aclsample/dog1_1024_683.jpg', 101),
     ("Golden Retriever", "https://obs-9be7.obs.cn-east-2.myhuaweicloud.com/models/aclsample/dog2_1024_683.jpg", 207),
             ("cat", "http://images.cocodataset.org/val2017/000000039769.jpg", 0),
@@ -104,6 +110,21 @@ def export_x3hw(model: nn.Module, onnx_path: str, input_h: int, input_w: int) ->
     print(f"Optimized ONNX model saved to: {onnx_path}")
     return onnx_path
 
+def preprocess_with_cv2(image_bytes, input_h = 224, input_w = 224):
+    nparr = np.frombuffer(image_bytes, np.uint8) # 转换为numpy数组
+    image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+    image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)  # 转换为 OpenCV 的 BGR 格式
+
+    image = cv2.resize(image, (input_w, input_h))
+
+    image = image.transpose((2, 0, 1))  # HWC to CHW
+    image = image.astype(np.float32) / 255.0  # 归一化到 [0, 1]
+
+    mean = np.array([0.485, 0.456, 0.406], dtype = np.float32).reshape(3, 1, 1)
+    std = np.array([0.229, 0.224, 0.225], dtype = np.float32).reshape(3, 1, 1)
+    image = (image - mean) / std
+
+    return torch.from_numpy(image)
 
 def get_classification_model(name: str, input_h: int, input_w: int) -> Tuple[nn.Module, Callable]:
     """Get TIMM classification model with preprocessing function.
@@ -197,7 +218,7 @@ class OnnxModel:
         return result[0]
 
 
-def get_mini_inmagenet():
+def get_mini_imagenet():
     from modelscope.msdatasets import MsDataset
     from modelscope.utils.constant import DownloadMode
 
@@ -210,6 +231,125 @@ def get_mini_inmagenet():
                 download_mode=DownloadMode.REUSE_DATASET_IF_EXISTS) # 加载验证集
     # print(next(iter(ms_val_dataset)))
     return ms_val_dataset
+
+
+
+def align_labels(y_true, y_pred, num_class):
+    from statistics import median
+    y_len = len(y_true)
+    assert len(y_pred) == y_len
+    total = {}
+    for i in range(y_len):
+        if y_true[i] not in total:
+            total[y_true[i]] = []
+        total[y_true[i]].append(y_pred[i])
+    assert (num_class == len(total))
+    map_y = {}
+    for k, v in total.items():
+        assert len(v) > 0
+        mid = int(median(v))
+        assert mid not in map_y.keys()
+        map_y[mid] = k
+
+    for y in y_pred:
+        if y not in map_y:
+            map_y[y] = num_class
+    return map_y
+
+
+def evaluate_classification(
+    y_true, 
+    y_pred, 
+    class_names=None,
+    verbose: bool = True
+) -> dict:
+    """
+    Comprehensive classification evaluation.
+
+    Args:
+        y_true: Array-like of ground truth labels
+        y_pred: Array-like of predicted labels
+        class_names: Optional list of class names for reporting
+        verbose: Enable progress visualization (default: True)
+
+    Returns:
+        Dictionary containing:
+        - Metrics (accuracy/precision/recall/f1)
+        - Classification report (if class_names provided)
+    """
+    import numpy as np
+    from sklearn.metrics import (
+        accuracy_score, precision_score,
+        recall_score, f1_score,
+        confusion_matrix, classification_report
+    )
+    from scipy.optimize import linear_sum_assignment
+    from tqdm import tqdm
+    import warnings
+
+    # Input validation
+    y_true = np.array(y_true).flatten()
+    y_pred = np.array(y_pred).flatten()
+    
+    if len(y_true) != len(y_pred):
+        raise ValueError("Input lengths must match")
+
+    # Label alignment system
+    mapping = None
+    
+    # Metric calculation with safe type handling
+    metrics = {}
+    steps = [
+        ('accuracy', lambda t, p: accuracy_score(t, p)),
+        ('precision', lambda t, p: precision_score(t, p, average='macro', zero_division=0)),
+        ('recall', lambda t, p: recall_score(t, p, average='macro', zero_division=0)),
+        ('f1', lambda t, p: f1_score(t, p, average='macro', zero_division=0)),
+        ('confusion_matrix', lambda t, p: confusion_matrix(t, p))
+    ]
+
+    if verbose:
+        steps = tqdm(steps, desc="Computing metrics", disable=not verbose)
+
+    for name, func in steps:
+        try:
+            result = func(y_true.astype(int), y_pred.astype(int))
+            metrics[name] = result
+        except Exception as e:
+            if verbose:
+                print(f"Error calculating {name}: {str(e)}")
+            metrics[name] = None
+
+    # Classification report handling
+    if class_names is not None:
+        try:
+            metrics['classification_report'] = classification_report(
+                y_true, y_pred,
+                target_names=class_names,
+                output_dict=True
+            )
+        except Exception as e:
+            if verbose:
+                print(f"Error generating report: {str(e)}")
+
+
+    # Verbose output formatting
+    if verbose:
+        print("\n\033[1mEvaluation Summary:\033[0m")
+        print(f"- Accuracy:  {metrics.get('accuracy', 'N/A'):.4f}")
+        print(f"- Precision: {metrics.get('precision', 'N/A'):.4f}")
+        print(f"- Recall:    {metrics.get('recall', 'N/A'):.4f}")
+        print(f"- F1 Score:  {metrics.get('f1', 'N/A'):.4f}")
+        
+        if 'classification_report' in metrics:
+            print("\n\033[1mClassification Report:\033[0m")
+            print(classification_report(
+                y_true, y_pred,
+                target_names=class_names,
+                output_dict=False
+            ))
+
+    return metrics
+    
 def report_classification(all_result):
     """
     Report comparison statistics between PyTorch and ONNX model results for classification models.
@@ -295,7 +435,7 @@ def report_classification(all_result):
         if current_max_diff > 1e-6:
             print(f"Data ID: {data_id}")
             print(f"PyTorch Result: {result.shape} max = {result.max().item()}")
-            print(f"ONNX Result: {onnx_result.shape} max = {onnx_result.max().item()}")
+            print(f"user's Result: {onnx_result.shape} max = {onnx_result.max().item()}")
             print(f"Max Difference: {current_max_diff:.6f}")
             print("Value similarity: " + ("Similar" if is_similar else "Different"))
             print("Class prediction: " + ("Same" if is_same_class else "Different") + f" ({pytorch_class} vs {onnx_class})")
@@ -328,6 +468,8 @@ def report_classification(all_result):
             print(f"  Max difference in tensor: {mismatch['abs_diff']:.6f}")
     
     print("==============================")
+    assert similar_count == total_count, "All samples should have similar values"
+    assert same_class_count == total_count, "All samples should have the same class prediction"
     
 class TestImageDataset:
     """
@@ -468,13 +610,24 @@ def to_shape(img_bytes, h = 224, w=224):
     return buffer.getvalue()
 
 class ClassifyModelTester:
-    def __init__(self, model_name, onnx_path, h = 224, w = 224):
+    def __init__(self, model_name, onnx_path = None, h = 224, w = 224):
 
         self.model_name = model_name
         self.model, self.preprocessor = get_classification_model(self.model_name, h, w)
         self.h = h
         self.w = w
-        export_x3hw(self.model, onnx_path, h, w)
+        if onnx_path:
+            export_x3hw(self.model, onnx_path, h, w)
+    
+    def __call__(self, img_path):
+        # image = Image.open(img_path).convert('RGB')
+        with open(img_path, 'rb') as f:
+            data = f.read()
+        preprocessed = self.preprocessor(data).unsqueeze(0).to(next(self.model.parameters()).device)
+        with torch.no_grad():
+            result = torch.nn.functional.softmax(self.model(preprocessed).cuda(), dim=-1)
+            index = torch.argmax(result).item()
+            return index, result[0, index].item()
         
     def test(self, callable_func, fix_shape = False):
         all_result = {}
@@ -483,12 +636,17 @@ class ClassifyModelTester:
             if data is not None:
                 if fix_shape:
                     data =  to_shape(data,self.h, self.h)
-                preprocessed = self.preprocessor(data).unsqueeze(0)
+                # preprocessed = self.preprocessor(data).unsqueeze(0)
+                preprocessed = preprocess_with_cv2(data).unsqueeze(0)
+                # import pdb;pdb.set_trace()
                 
                 with torch.no_grad():
                     result = torch.nn.functional.softmax(self.model(preprocessed).cuda(), dim=-1)
-                    extra_result = torch.nn.functional.softmax(callable_func(data), dim=-1)
-                all_result[data_id] = (result, extra_result)
+                    if callable_func:
+                        extra_result = torch.nn.functional.softmax(callable_func(data), dim=-1)
+                        all_result[data_id] = (result, extra_result)
+                    else:
+                        all_result[data_id] = (result, None)
 
                 # import hami, numpy
                 # data, req_size = hami.default_queue().get()
@@ -500,12 +658,28 @@ class ClassifyModelTester:
                 # if len(data.shape) == 3:
                 #     data = data.permute(2, 0, 1).unsqueeze(0)
                 # data = (data - mean[None, :, None, None]) / std[None, :, None, None]
+                # a=torch.allclose(data.cuda(), preprocessed.cuda(), rtol=1e-2, atol=1e-2)
                 # import pdb; pdb.set_trace()
             
-
-        report_classification(all_result)
+        if callable_func:
+            report_classification(all_result)
         return all_result
         
+        
+   
+def test_from_raw_file(
+    forward_function:  Callable[[List[tuple[str, bytes]]], Any],
+    file_dir: str,
+    num_clients=10,
+    request_batch=1,
+    total_number=10000,
+    num_preload=1000,
+    recursive=True,
+    ext=[".jpg", ".JPG", ".jpeg", ".JPEG"],
+):
+    pass
+
+
 if __name__ == "__main__":
     test_onnx()
     

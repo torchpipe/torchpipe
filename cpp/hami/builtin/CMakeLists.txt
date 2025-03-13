@@ -28,6 +28,7 @@ cc_library(
     result_queue.cpp
     benchmark.cpp
     key_operator.cpp
+    source.cpp
   DEPS
     :spdlog
     :core

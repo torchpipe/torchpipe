@@ -52,7 +52,8 @@ class Benchmark : public Backend {
     size_t request_batch_ = 1;
     size_t total_number_ = 10000;
     size_t num_warm_up_ = 20;
-    Queue* target_queue_;
+    Queue* target_queue_{nullptr};
+    Queue* src_queue_{nullptr};
 
    private:
     std::unique_ptr<queue::ThreadSafeQueue<std::shared_ptr<ProfileState>>>
@@ -72,4 +73,5 @@ class Benchmark : public Backend {
 
     std::atomic_bool bInited_{false};
 };
+
 }  // namespace hami

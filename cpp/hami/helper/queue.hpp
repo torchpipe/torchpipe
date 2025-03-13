@@ -251,10 +251,13 @@ class ThreadSafeSizedQueue {
     mutable std::mutex mutex_;
     std::condition_variable popped_cond_;
     std::condition_variable pushed_cond_;
+    // std::stomic_bool shutdown_{false};
 
    public:
     explicit ThreadSafeSizedQueue() = default;
 
+    // void shutdown() { shutdown_.store(true); }
+    // bool is_shutdown() { return shutdown_.load(); }
     // Push an element with a specified size
     template <typename U,
               typename = std::enable_if_t<std::is_convertible_v<U, T>>>
@@ -344,6 +347,20 @@ class ThreadSafeSizedQueue {
         }
     }
 
+    template <typename U, template <typename, typename...> class Container,
+              typename... Args>
+    void put(const Container<U, Args...>& values, size_t size_per_item = 1) {
+        {
+            std::unique_lock<std::mutex> lock(mutex_);
+            for (const auto& value : values) {
+                queue_.push(SizedElement(value, size_per_item));
+                totalSize_ += size_per_item;
+            }
+        }
+
+        pushed_cond_.notify_all();
+    }
+
     void notify_one() { pushed_cond_.notify_one(); }
     void notify_all() { pushed_cond_.notify_all(); }
 
@@ -372,6 +389,28 @@ class ThreadSafeSizedQueue {
             return item;
         }
     }
+
+    template <typename Rep, typename Period, typename U,
+              typename = std::enable_if_t<std::is_convertible_v<U, T>>>
+    bool try_put(U&& value, size_t size, size_t maxSize,
+                 std::chrono::duration<Rep, Period> timeout) {
+        {
+            std::unique_lock<std::mutex> lock(mutex_);
+            if (!popped_cond_.wait_for(lock, timeout, [this, size, maxSize] {
+                    return totalSize_ + size <= maxSize;
+                })) {
+                // throw QueueFullException("Queue is full after timeout");
+                return false;
+            }
+            queue_.push(SizedElement(std::forward<U>(value), size));
+            totalSize_ += size;
+        }
+        pushed_cond_.notify_all();
+        return true;
+    }
+
+   public:
+    // ~ThreadSafeSizedQueue() { shutdown(); }
 };
 
 }  // namespace hami::queue

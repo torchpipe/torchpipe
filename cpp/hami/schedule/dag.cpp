@@ -185,8 +185,9 @@ void DagDispatcher::on_finish_node(dict tmp_data,
         }
         return;
     }
-    SPDLOG_INFO("Processed : {} {} {} {}", node_name, (bool)pstack->exception,
-                pstack->dag.waiting_nodes.size(), pstack->dag.total);
+    // SPDLOG_INFO("Processed : {} {} {} {}", node_name,
+    // (bool)pstack->exception,
+    //             pstack->dag.waiting_nodes.size(), pstack->dag.total);
     // finished
     if (pstack->dag.processed.size() == pstack->dag.total) {
         assert(pstack->dag.waiting_nodes.empty());

@@ -167,7 +167,11 @@ void init_dict(py::module_& m) {
         py::register_exception<hami::queue::QueueFullException>(m, "Full");
     }
 
-    m.def("default_queue", &default_queue,
+    m.def("default_queue", &default_queue, py::arg("tag") = std::string(""),
+          pybind11::return_value_policy::reference);
+    m.def("default_src_queue", &default_src_queue,
+          pybind11::return_value_policy::reference);
+    m.def("default_output_queue", &default_output_queue,
           pybind11::return_value_policy::reference);
 
     py::class_<Queue>(m, "Queue")
