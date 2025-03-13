@@ -54,7 +54,7 @@ def get_model(toml_path):
 def test_resnet50_classification():
     """Test ResNet50 image classification"""
     # Prepare test model path
-    onnx_path = os.path.join(tempfile.gettempdir(), "resnet50.onnx")
+    onnx_path = os.path.join(tempfile.gettempdir(), "pytest_resnet50.onnx")
     logger.info(f'Testing with model: {onnx_path}')
     
     # Initialize test utilities and model

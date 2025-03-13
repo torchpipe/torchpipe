@@ -47,7 +47,7 @@ def test_tensorrt_inference():
     # Run inference
     # model(data)
     
-    bench = hami.init("Benchmark", {"num_clients": "4", "total_num": "10000"})
+    bench = hami.init("Benchmark", {"num_clients": "4", "total_number": "10000"})
     bench.forward([data]*100, model)
     
     q = hami._C.default_output_queue()

@@ -21,6 +21,7 @@ cc_library(
     toml_parser.cpp
     unique_index.cpp
     filesystem.cpp
+    timer.cpp
   DEPS
     :spdlog
     :toml
