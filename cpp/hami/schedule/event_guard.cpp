@@ -3,7 +3,8 @@
 #include "hami/helper/macro.h"
 #include "hami/core/string.hpp"
 #include "hami/core/reflect.h"
-
+#include "hami/core/queue.hpp"
+#include "BS_thread_pool.hpp"
 namespace hami {
 
 void EventGuard::custom_forward_with_dep(const std::vector<dict>& input_output,
@@ -53,5 +54,29 @@ void EventGuard::custom_forward_with_dep(const std::vector<dict>& input_output,
 }
 
 HAMI_REGISTER(Backend, EventGuard, "EventGuard,EventGuard");
+
+class ThreadPoolExecutor : public Backend {
+   private:
+    void impl_init(const std::unordered_map<std::string, std::string>& config,
+                   const dict&) override final {
+        str::try_update<size_t>(config, "max_workers", max_workers_);
+        // pool_ = std::make_unique<BS::thread_pool>(max_workers_);
+    }
+
+    void impl_forward_with_dep(const std::vector<dict>& input,
+                               Backend* dep) override {
+        // while(true){
+        //     auto data = queue_->get();
+        //     dep->forward({data});
+        // }
+    }
+
+   protected:
+    // std::string target_name_;
+    Queue* queue_{nullptr};
+    // size_t queue_max_ = 0;
+    std::unique_ptr<BS::thread_pool<>> pool_;
+    size_t max_workers_{0};
+};
 
 }  // namespace hami

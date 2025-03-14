@@ -15,6 +15,7 @@ cc_library(
   DEPS
     :core
     :helper
+    :thread_pool
 )
 
 # cc_test(

@@ -22,10 +22,12 @@ cc_library(
     unique_index.cpp
     filesystem.cpp
     timer.cpp
+    thread_pool.cpp
   DEPS
     :spdlog
     :toml
     stdc++fs
+    :thread_pool
 )
 
 # cc_test(

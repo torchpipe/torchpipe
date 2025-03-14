@@ -114,7 +114,7 @@ void Observer::impl_forward(const std::vector<dict> &input) {
     }
 }
 
-HAMI_REGISTER_BACKEND(Send);
+HAMI_REGISTER_BACKEND(Send, "Send2Queue, Send");
 HAMI_REGISTER_BACKEND(Observer);
 
 // init = List[Recv[register_name_for_src_que, target_backend_name]]

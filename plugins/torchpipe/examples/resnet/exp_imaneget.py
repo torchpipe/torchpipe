@@ -68,5 +68,8 @@ def dataset():
         
         
 if __name__ == "__main__":
-    hami.init("IoC[ReadFile, Send[src_queue, max=20],SharedRequestState, ThreadPoolExecutor[src_queue,max_workers=10];ReadFile]")
+    data = hami.init("IoC[ReadFile, Send2Queue[src_queue, max=20];ReadFile]")
+    
+    run = hami.init("IoC[SharedRequestState,ThreadPoolExecutor[src_queue,max_workers=10], XX; DI[ThreadPoolExecutor, XX]]")
+    # ： DI[ThreadPoolExecutor, XX]] =》 DI::args DI(ThreadPoolExecutor, XX)
     fire.Fire(dataset)

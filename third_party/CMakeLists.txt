@@ -17,6 +17,13 @@ cc_library(
     tinytoml/
 )
 
+cc_library(
+  NAME 
+    thread_pool
+  INCLUDES
+    bs_thread_pool/
+)
+
 # cc_test(
 #   NAME 
 #     common_test
