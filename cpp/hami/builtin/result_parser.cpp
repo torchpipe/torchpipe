@@ -8,9 +8,9 @@ namespace hami {
 
 void ResultParser::pre_init(
     const std::unordered_map<std::string, std::string>& config,
-    const dict& dict_config) {
+    const dict& kwargs) {
     parser_ = parser_impl();
-    init_dep_impl(config, dict_config);
+    init_dep_impl(config, kwargs);
 }
 
 class ThrowIfNoResult : public ResultParser {

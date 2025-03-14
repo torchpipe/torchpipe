@@ -32,9 +32,9 @@ class Torch2Trt:
                 v['model'] = onnx_path
             v['model::cache'] = onnx_path.replace(".onnx", '.trt')
 
-        dict_config = hami.Dict()
-        dict_config['config'] = config
-        pipe = hami.create('Interpreter').init({}, dict_config)
+        kwargs = hami.Dict()
+        kwargs['config'] = config
+        pipe = hami.create('Interpreter').init({}, kwargs)
         logger.info(f"config = {config}")
         self.model = pipe
         

@@ -9,7 +9,7 @@ namespace torchpipe {
 class ResizeTensor : public BackendOne {
    private:
     void impl_init(const std::unordered_map<std::string, std::string>& config,
-                   const dict& dict_config) override {
+                   const dict& kwargs) override {
         resize_h_ = hami::str::str2int<size_t>(config, "resize_h");
         resize_w_ = hami::str::str2int<size_t>(config, "resize_w");
 

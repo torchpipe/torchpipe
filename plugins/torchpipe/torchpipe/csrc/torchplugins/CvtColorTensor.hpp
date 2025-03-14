@@ -11,7 +11,7 @@ class CvtColorTensor : public hami::BackendOne {
    private:
     void impl_init(
         const std::unordered_map<std::string, std::string>& config_param,
-        const dict& dict_config) override;
+        const dict& kwargs) override;
     void forward(const dict& input_output) override;
 
    private:

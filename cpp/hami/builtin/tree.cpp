@@ -10,7 +10,7 @@
 // namespace hami {
 // void Tree::post_init(const std::unordered_map<std::string, std::string>&
 // config,
-//                      const dict& dict_config) {}
+//                      const dict& kwargs) {}
 // void Tree::impl_forward(const std::vector<dict>&) {}
 
 // }  // namespace hami

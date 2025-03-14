@@ -22,7 +22,7 @@ static const auto DEFAULT_INIT_CONFIG =
 class Interpreter : public Proxy {
    private:
     void impl_init(const std::unordered_map<std::string, std::string>& config,
-                   const dict& dict_config) override final;
+                   const dict& kwargs) override final;
 
    private:
     std::vector<std::unique_ptr<Backend>> inited_dependencies_;

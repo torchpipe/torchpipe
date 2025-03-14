@@ -8,7 +8,7 @@ namespace torchpipe {
 
 void CvtColorTensor::impl_init(
     const std::unordered_map<std::string, std::string>& config_param,
-    const dict& dict_config) {
+    const dict& kwargs) {
     auto iter = config_param.find(TASK_COLOR_KEY);
     HAMI_ASSERT(iter != config_param.end(), "CvtColorTensor: color is not set");
 

@@ -56,6 +56,7 @@ class Send : public Backend {
    protected:
     // std::string target_name_;
     Queue* queue_{nullptr};
+    size_t queue_max_{std::numeric_limits<size_t>::max()};
 };
 
 class Observer : public Send {

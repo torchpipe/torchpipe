@@ -1,20 +1,19 @@
 #include "hami/builtin/interpreter.hpp"
 #include "hami/core/task_keys.hpp"
-#include "hami/builtin/parser.hpp"
+#include "hami/core/parser.hpp"
 #include "hami/helper/macro.h"
 #include "hami/helper/base_logging.hpp"
 
 namespace hami {
 void Interpreter::impl_init(
     const std::unordered_map<std::string, std::string>& config,
-    const dict& dict_config) {
-    // get the dual config from parameter or dict_config
-    auto new_dict_config = dict_config ? dict_config : make_dict();
-    auto iter = new_dict_config->find(TASK_CONFIG_KEY);
-    if (iter == new_dict_config->end()) {
-        (*new_dict_config)[TASK_CONFIG_KEY] =
-            str::mapmap{{TASK_GLOBAL_KEY, config}};
-        init(config, new_dict_config);
+    const dict& kwargs) {
+    // get the dual config from parameter or kwargs
+    auto new_kwargs = kwargs ? kwargs : make_dict();
+    auto iter = new_kwargs->find(TASK_CONFIG_KEY);
+    if (iter == new_kwargs->end()) {
+        (*new_kwargs)[TASK_CONFIG_KEY] = str::mapmap{{TASK_GLOBAL_KEY, config}};
+        init(config, new_kwargs);
         return;
     }
     str::mapmap dual_config = any_cast<str::mapmap>(iter->second);
@@ -39,8 +38,8 @@ void Interpreter::impl_init(
                 DEFAULT_INIT_CONFIG);
             init_config = DEFAULT_INIT_CONFIG;
         }
-        (*new_dict_config)[TASK_CONFIG_KEY] = dual_config;
-        auto tmp = init_backend(init_config, item.second, new_dict_config);
+        (*new_kwargs)[TASK_CONFIG_KEY] = dual_config;
+        auto tmp = init_backend(init_config, item.second, new_kwargs);
         SPDLOG_INFO("Interpreter: node({})[{} {}]", item.first, tmp->min(),
                     tmp->max());
         inited_dependencies_.emplace_back(std::move(tmp));
@@ -62,7 +61,7 @@ void Interpreter::impl_init(
             entry_name);
     }
 
-    owned_backend_ = init_backend(entry_name, global_config, new_dict_config);
+    owned_backend_ = init_backend(entry_name, global_config, new_kwargs);
     SPDLOG_INFO("Interpreter: entrypoint({})[{} {}]", entry_name,
                 owned_backend_->min(), owned_backend_->max());
     proxy_backend_ = owned_backend_.get();

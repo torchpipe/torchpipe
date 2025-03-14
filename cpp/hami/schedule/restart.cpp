@@ -9,7 +9,7 @@
 namespace hami {
 
 void RestartEvent::pre_init(const std::unordered_map<string, string>& config,
-                            const dict& dict_config) {
+                            const dict& kwargs) {
     constexpr auto N = 1;  // M:N         set to one if 需要严格保持先来的先处理
 
     // TODO unique  EventBus
@@ -155,7 +155,7 @@ HAMI_PROXY_WITH_DEPENDENCY(Restart, "Aspect[EventGuard,RestartEvent]");
 
 //  public:
 //   void pre_init(const std::unordered_map<string, string>& config,
-//                 const dict& dict_config) override final {
+//                 const dict& kwargs) override final {
 //     auto new_conf = config;
 //     auto backend_config =
 //     str::flatten_brackets("Aspect[EventGuard,RestartEvent]"); if
@@ -169,7 +169,7 @@ HAMI_PROXY_WITH_DEPENDENCY(Restart, "Aspect[EventGuard,RestartEvent]");
 //     valid backend name."); if (backend_config.size() > 1) {
 //       new_conf[principal + "::dependency"] = backend_config.at(1);
 //     }
-//     owned_backend_->init(new_conf, dict_config);
+//     owned_backend_->init(new_conf, kwargs);
 //     inject_dependency(owned_backend_.get());
 //   }
 // };

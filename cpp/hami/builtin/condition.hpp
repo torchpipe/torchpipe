@@ -12,10 +12,10 @@ class Condition : public Dependency {
 
    public:
     void pre_init(const std::unordered_map<std::string, std::string>& config,
-                  const dict& dict_config) override final;
+                  const dict& kwargs) override final;
     virtual void init_dep_impl(
         const std::unordered_map<std::string, std::string>& config,
-        const dict& dict_config) {}
+        const dict& kwargs) {}
     void custom_forward_with_dep(const std::vector<dict>& inputs,
                                  Backend* dependency) override final {
         std::vector<dict> valid_inputs;

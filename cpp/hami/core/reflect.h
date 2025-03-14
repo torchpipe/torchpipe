@@ -311,13 +311,13 @@ if (names.size() >= 3) {
     class derived_aspect_cls : public aspect_class_type {                  \
        public:                                                             \
         void impl_init(const std::unordered_map<string, string>& config,   \
-                       const dict& dict_config) override {                 \
+                       const dict& kwargs) override {                      \
             auto new_config = config;                                      \
             auto config_addin = multi_str_split(config_setting, '=', '/'); \
             for (const auto& item : config_addin) {                        \
                 new_config.emplace(item[0], item[1]);                      \
             }                                                              \
-            this->aspect_class_type::init(new_config, dict_config);        \
+            this->aspect_class_type::init(new_config, kwargs);             \
         }                                                                  \
     };                                                                     \
     HAMI_REGISTER(Backend, derived_aspect_cls);

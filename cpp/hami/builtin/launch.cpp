@@ -7,7 +7,7 @@ namespace hami {
 
 void LaunchBase::impl_init(
     const std::unordered_map<std::string, std::string>& config,
-    const dict& dict_config) {
+    const dict& kwargs) {
     auto name = backend::get_dependency_name(this, config, "LaunchBase");
 
     {
@@ -16,7 +16,7 @@ void LaunchBase::impl_init(
 
         inject_dependency(remote_dependency);
     }
-    post_init(config, dict_config);
+    post_init(config, kwargs);
 }
 
 void Forward::impl_inject_dependency(Backend* dependency) {

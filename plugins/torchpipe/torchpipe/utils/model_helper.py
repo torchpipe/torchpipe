@@ -609,6 +609,11 @@ def to_shape(img_bytes, h = 224, w=224):
     image.save(buffer, format='JPEG')
     return buffer.getvalue()
 
+def get_timm_and_export_onnx(model_name, onnx_path = None, h = 224, w = 224):
+    model, preprocessor = get_classification_model(model_name, h, w)
+    export_x3hw(model, onnx_path, h, w)
+    return model, preprocessor
+    
 class ClassifyModelTester:
     def __init__(self, model_name, onnx_path = None, h = 224, w = 224):
 

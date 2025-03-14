@@ -8,7 +8,7 @@ constexpr auto EXPECTED_DEPENDENCIES = 3;
 namespace hami {
 void CatSplit::post_init(
     const std::unordered_map<std::string, std::string>& config,
-    const dict& dict_config) {
+    const dict& kwargs) {
     HAMI_ASSERT(base_dependencies_.size() == EXPECTED_DEPENDENCIES,
                 "CatSplit requires exactly " +
                     std::to_string(EXPECTED_DEPENDENCIES) +

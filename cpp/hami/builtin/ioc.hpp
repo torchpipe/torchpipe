@@ -18,12 +18,12 @@ namespace hami {
  * - Execution phase (after semicolon): Configurations for runtime operations.
  * Reuses initialized backends from registry when referenced.
  * - Supports compound syntax: (pre=1)BackendName(post=param)[NestedBackend]
- * - All initialized backends share the same dict_config if provided
+ * - All initialized backends share the same kwargs if provided
  */
 class IoC : public Backend {
    private:
     void impl_init(const std::unordered_map<std::string, std::string>& config,
-                   const dict& dict_config);
+                   const dict& kwargs);
     void impl_forward(const std::vector<dict>& input_output) override {
         forward_backend_->forward(input_output);
     }
@@ -36,7 +36,7 @@ class IoC : public Backend {
 
     virtual void post_init(
         const std::unordered_map<std::string, std::string>& config,
-        const dict& dict_config) {}
+        const dict& kwargs) {}
 
     ~IoC() {
         // order is important here
@@ -49,7 +49,7 @@ class IoC : public Backend {
    private:
     void init_phase(const std::string& phase_config,
                     const std::unordered_map<std::string, std::string>& config,
-                    const dict& dict_config);
+                    const dict& kwargs);
 
    protected:
     // std::unordered_map<std::string, std::unique_ptr<Backend>>

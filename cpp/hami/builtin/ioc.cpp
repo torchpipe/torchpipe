@@ -11,7 +11,7 @@ namespace hami {
 
 void IoC::impl_init(
     const std::unordered_map<std::string, std::string>& in_config,
-    const dict& in_dict_config) {
+    const dict& in_kwargs) {
     constexpr auto default_name = "IoC";
     auto name = HAMI_OBJECT_NAME(Backend, this);
     if (!name) {
@@ -34,8 +34,8 @@ void IoC::impl_init(
     std::vector<std::string> phases = str::items_split(backend_setting, ';');
     HAMI_ASSERT(phases.size() == 2, "IoC requires two phases separated by ';'");
 
-    auto dict_config = in_dict_config ? in_dict_config : make_dict();
-    init_phase(phases[0], config, dict_config);  // Initialization phase
+    auto kwargs = in_kwargs ? in_kwargs : make_dict();
+    init_phase(phases[0], config, kwargs);  // Initialization phase
 
     // std::unordered_map<std::string, Backend*> backend_map;
     std::unordered_set<std::string> keys;
@@ -73,21 +73,21 @@ void IoC::impl_init(
                 str::replace_once(phases[1], main_backend, register_name);
         }
     }
-    forward_backend_ = init_backend(phases[1], config, dict_config);
+    forward_backend_ = init_backend(phases[1], config, kwargs);
     HAMI_ASSERT(forward_backend_, "IoC init failed");
     // for (const auto& item : backend_map) {
     //     Backend* backend = HAMI_INSTANCE_GET(Backend, item.first);
     //     HAMI_ASSERT(backend);
     //     backend->inject_dependency(item.second);
     // }
-    post_init(config, dict_config);
+    post_init(config, kwargs);
     SPDLOG_INFO("IoC, forward phase: {}, [{}, {}]", phases[1],
                 forward_backend_->min(), forward_backend_->max());
 }
 
 void IoC::init_phase(const std::string& phase_config,
                      const std::unordered_map<std::string, std::string>& config,
-                     const dict& dict_config) {
+                     const dict& kwargs) {
     SPDLOG_INFO("Ioc init phase: {}", phase_config);
     auto backend_names = str::items_split(phase_config, ',', '[', ']');
     HAMI_ASSERT(backend_names.size() >= 1,
@@ -122,7 +122,7 @@ void IoC::init_phase(const std::string& phase_config,
         auto backend_ptr =
             std::unique_ptr<Backend>(HAMI_CREATE(Backend, main_backend));
         HAMI_ASSERT(backend_ptr, "create " + main_backend + " failed");
-        backend_ptr->init(new_config, dict_config);
+        backend_ptr->init(new_config, kwargs);
         backends.push_back(backend_ptr.get());
         base_dependencies_.emplace_back(std::move(backend_ptr));
     }

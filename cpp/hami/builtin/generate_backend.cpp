@@ -42,7 +42,7 @@ void GenerateBackend::replace_dependency_config(
 
 void GenerateBackend::impl_init(
     const std::unordered_map<std::string, std::string>& const_config,
-    const dict& dict_config) {
+    const dict& kwargs) {
     auto orders = order();
     std::unordered_map<std::string, std::string> order_config =
         parse_order_config(orders.second);
@@ -53,7 +53,7 @@ void GenerateBackend::impl_init(
     for (const auto& pair : config) {
         order_config.insert_or_assign(pair.first, pair.second);
     }
-    proxy_backend_ = init_backend(orders.first, order_config, dict_config);
+    proxy_backend_ = init_backend(orders.first, order_config, kwargs);
     HAMI_ASSERT(proxy_backend_, "GenerateBackend init failed");
 }
 

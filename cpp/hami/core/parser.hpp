@@ -69,6 +69,12 @@ class DagParser {
     std::unordered_set<std::string> roots_;
 };
 
+void update(const std::unordered_map<std::string, std::string>& config,
+            std::unordered_map<std::string, std::string>& str_kwargs);
+
+std::pair<std::vector<std::string>,
+          std::unordered_map<std::string, std::string>>
+parse_args_kwargs(std::string config);
 }  // namespace hami::parser
 
 #endif

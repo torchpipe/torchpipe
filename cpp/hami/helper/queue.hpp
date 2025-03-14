@@ -391,25 +391,55 @@ class ThreadSafeSizedQueue {
     }
 
     template <typename Rep, typename Period, typename U,
+              template <typename, typename...> class Container,
+              typename... Args,
               typename = std::enable_if_t<std::is_convertible_v<U, T>>>
-    bool try_put(U&& value, size_t size, size_t maxSize,
-                 std::chrono::duration<Rep, Period> timeout) {
+    bool try_put(const Container<U, Args...>& values, size_t size_per_item,
+                 size_t maxSize, std::chrono::duration<Rep, Period> timeout) {
         {
+            const size_t size = values.size() * size_per_item;
             std::unique_lock<std::mutex> lock(mutex_);
+
             if (!popped_cond_.wait_for(lock, timeout, [this, size, maxSize] {
                     return totalSize_ + size <= maxSize;
                 })) {
-                // throw QueueFullException("Queue is full after timeout");
                 return false;
             }
-            queue_.push(SizedElement(std::forward<U>(value), size));
+            for (const auto& value : values) {
+                queue_.push(SizedElement(value, size_per_item));
+            }
             totalSize_ += size;
         }
         pushed_cond_.notify_all();
         return true;
     }
 
-   public:
+    template <typename Rep, typename Period>
+    bool try_put(const T& value, size_t size, size_t maxSize,
+                 std::chrono::duration<Rep, Period> timeout) {
+        {
+            std::unique_lock<std::mutex> lock(mutex_);
+
+            if (!popped_cond_.wait_for(lock, timeout, [this, size, maxSize] {
+                    return totalSize_ + size <= maxSize;
+                })) {
+                return false;
+            }
+            queue_.push(SizedElement(value, size));
+            totalSize_ += size;
+        }
+        pushed_cond_.notify_all();
+        return true;
+    }
+
+    //    public:
+    //     void set_on_query(std::function<void(ThreadSafeSizedQueue*)>
+    //     on_query) {
+    //         on_query_ = on_query;
+    //     }
+
+    //    private:
+    //     std::function<void(ThreadSafeSizedQueue*)> on_query_;
     // ~ThreadSafeSizedQueue() { shutdown(); }
 };
 

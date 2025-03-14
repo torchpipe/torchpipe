@@ -7,7 +7,7 @@ namespace torchpipe {
 
 void ResizeMat::impl_init(
     const std::unordered_map<std::string, std::string>& config,
-    const hami::dict& dict_config) {
+    const hami::dict& kwargs) {
     resize_h_ = hami::str::str2int<size_t>(config, "resize_h");
     resize_w_ = hami::str::str2int<size_t>(config, "resize_w");
 }

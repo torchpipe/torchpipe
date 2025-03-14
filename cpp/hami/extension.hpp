@@ -12,7 +12,7 @@
 #include "hami/core/string.hpp"
 #include "hami/core/event.hpp"
 
-#include "hami/builtin/parser.hpp"
+#include "hami/core/parser.hpp"
 #include "hami/builtin/basic_backends.hpp"
 #include "hami/builtin/proxy.hpp"
 #include "hami/builtin/generate_backend.hpp"

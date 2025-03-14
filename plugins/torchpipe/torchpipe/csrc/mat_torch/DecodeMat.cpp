@@ -24,7 +24,7 @@ cv::Mat cpu_decode(std::string data) {
 }  // namespace
 void DecodeMat::impl_init(
     const std::unordered_map<std::string, std::string>& config,
-    const hami::dict& dict_config) {
+    const hami::dict& kwargs) {
     //   str::try_update(config, "color", color_);
     //   str::try_update(config, "data_format", data_format_);
 

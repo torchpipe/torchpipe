@@ -38,12 +38,12 @@ class LaunchBase : public Backend {
      * The dependency instance is registered as {node_name}.{A}.{B}.
      */
     void impl_init(const std::unordered_map<std::string, std::string>& config,
-                   const dict& dict_config) override final;
+                   const dict& kwargs) override final;
 
-    public:
+   public:
     virtual void post_init(
         const std::unordered_map<std::string, std::string>& config,
-        const dict& dict_config) {}
+        const dict& kwargs) {}
 
    private:
     virtual void custom_forward_with_dep(const std::vector<dict>& input_output,
@@ -56,8 +56,8 @@ class LaunchBase : public Backend {
 class Init : public LaunchBase {
    public:
     void post_init(const std::unordered_map<std::string, std::string>& config,
-                   const dict& dict_config) override final {
-        injected_dependency_->init(config, dict_config);
+                   const dict& kwargs) override final {
+        injected_dependency_->init(config, kwargs);
     }
     void custom_forward_with_dep(const std::vector<dict>& input_output,
                                  Backend* dependency) override final {
@@ -87,8 +87,8 @@ class Forward : public LaunchBase {
 class Launch : public LaunchBase {
    public:
     void post_init(const std::unordered_map<std::string, std::string>& config,
-                   const dict& dict_config) override final {
-        injected_dependency_->init(config, dict_config);
+                   const dict& kwargs) override final {
+        injected_dependency_->init(config, kwargs);
     }
     void custom_forward_with_dep(const std::vector<dict>& input_output,
                                  Backend* dependency) override final {

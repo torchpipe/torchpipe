@@ -18,19 +18,18 @@ class FixTensor : public hami::BackendMax {
    private:
     void impl_init(
         const std::unordered_map<std::string, std::string>& config_param,
-        const dict& dict_config) override;
+        const dict& kwargs) override;
     void impl_forward(const std::vector<dict>& input_output) override;
 
    private:
     std::shared_ptr<NetIOInfos> net_shapes_;
 };
 
-
 class SplitTensor : public hami::Backend {
    private:
     void impl_init(
         const std::unordered_map<std::string, std::string>& config_param,
-        const dict& dict_config) override;
+        const dict& kwargs) override;
     void impl_forward(const std::vector<dict>& input_output) override;
 
    private:

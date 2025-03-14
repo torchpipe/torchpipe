@@ -2,14 +2,14 @@
 
 #include <set>
 #include "hami/core/backend.hpp"
-#include "hami/builtin/parser.hpp"
+#include "hami/core/parser.hpp"
 #include "hami/core/event.hpp"
 #include "hami/helper/threadsafe_queue.hpp"
 namespace hami {
 class DagDispatcher : public HasEventForwardGuard {
    private:
     void impl_init(const std::unordered_map<std::string, std::string>& config,
-                   const dict& dict_config) override final;
+                   const dict& kwargs) override final;
 
    public:
     void evented_forward(const std::vector<dict>& input_output) override final;

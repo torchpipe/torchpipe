@@ -1,6 +1,7 @@
 
 #include <memory>
 #include <numeric>
+#include <fstream>
 #include "hami/core/reflect.h"
 #include "hami/helper/base_logging.hpp"
 #include "hami/helper/string.hpp"
@@ -11,9 +12,9 @@
 namespace hami {
 void Dependency::impl_init(
     const std::unordered_map<std::string, std::string>& config,
-    const dict& dict_config) {
+    const dict& kwargs) {
     HAMI_ASSERT(!shared_owned_dependency_, "Duplicate initialization");
-    pre_init(config, dict_config);
+    pre_init(config, kwargs);
 
     if (dependency_name_.empty()) {
         auto dep = get_dependency_name(this, config);
@@ -26,7 +27,7 @@ void Dependency::impl_init(
             std::shared_ptr<Backend>(HAMI_CREATE(Backend, dependency_name_));
         HAMI_ASSERT(backend,
                     "`" + dependency_name_ + "` is not a valid backend");
-        backend->init(config, dict_config);
+        backend->init(config, kwargs);
         {
             if (!registered_name_.empty()) {
                 HAMI_INSTANCE_REGISTER(Backend, registered_name_, backend);
@@ -40,7 +41,7 @@ void Dependency::impl_init(
             "dependency injection process");
     }
     SPDLOG_INFO("Dependency dependency_name_ = {}", dependency_name_);
-    post_init(config, dict_config);
+    post_init(config, kwargs);
 }
 
 void Dependency::set_dependency_name(
@@ -99,7 +100,7 @@ size_t DynamicDependency::impl_min() const {
 
 void Container::impl_init(
     const std::unordered_map<std::string, std::string>& config,
-    const dict& dict_config) {
+    const dict& kwargs) {
     constexpr auto default_name = "Container";
     auto name = HAMI_OBJECT_NAME(Backend, this);
     if (name == std::nullopt) {
@@ -172,11 +173,11 @@ void Container::impl_init(
             if (lazy_init) {
                 auto* pbackend_ptr = backend_ptr.get();
                 lazy_init_func_.emplace_back(
-                    [new_config, dict_config, pbackend_ptr]() {
-                        pbackend_ptr->init(new_config, dict_config);
+                    [new_config, kwargs, pbackend_ptr]() {
+                        pbackend_ptr->init(new_config, kwargs);
                     });
             } else {
-                backend_ptr->init(new_config, dict_config);
+                backend_ptr->init(new_config, kwargs);
             }
 
             backends[i] = (backend_ptr.get());
@@ -194,7 +195,7 @@ void Container::impl_init(
     } else {
         HAMI_THROW("Wired. Empty config.");
     }
-    post_init(config, dict_config);
+    post_init(config, kwargs);
 }
 
 std::vector<size_t> Container::set_init_order(size_t max_range) const {
@@ -227,7 +228,7 @@ std::pair<size_t, size_t> Container::update_min_max(
 }
 
 void List::impl_init(const std::unordered_map<std::string, std::string>& config,
-                     const dict& dict_config) {
+                     const dict& kwargs) {
     constexpr auto default_name = "List";
     auto name = HAMI_OBJECT_NAME(Backend, this);
     if (name == std::nullopt) {
@@ -285,7 +286,7 @@ void List::impl_init(const std::unordered_map<std::string, std::string>& config,
             auto backend_ptr =
                 std::unique_ptr<Backend>(HAMI_CREATE(Backend, main_backend));
             HAMI_ASSERT(backend_ptr, "create " + main_backend + " failed");
-            backend_ptr->init(new_config, dict_config);
+            backend_ptr->init(new_config, kwargs);
             backends_.push_back(std::move(backend_ptr));
             // base_dependencies_.emplace_back(std::move(backend_ptr));
         }
@@ -308,4 +309,20 @@ void BackendOne::impl_forward(const std::vector<dict>& input_output) {
     HAMI_ASSERT(input_output[0]->find(TASK_DATA_KEY) != input_output[0]->end());
     forward(input_output[0]);
 }
+
+class ReadFile : public BackendOne {
+    void forward(const dict& input_output) override {
+        std::string file_path =
+            dict_get<std::string>(input_output, TASK_DATA_KEY);
+        SPDLOG_INFO("ReadFile: file_path = {}", file_path);
+        std::ifstream file(file_path);
+        HAMI_ASSERT(!file.is_open(), "ReadFile: file not found");
+        std::string content((std::istreambuf_iterator<char>(file)),
+                            std::istreambuf_iterator<char>());
+        file.close();
+        input_output->insert_or_assign(TASK_RESULT_KEY, content);
+    }
+};
+
+HAMI_REGISTER_BACKEND(ReadFile);
 }  // namespace hami

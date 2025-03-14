@@ -7,7 +7,7 @@ namespace hami {
 class Tree final : public Container {
    public:
     void post_init(const std::unordered_map<std::string, std::string>& config,
-                   const dict& dict_config) override final;
+                   const dict& kwargs) override final;
     void impl_forward(const std::vector<dict>&) override;
 };
 

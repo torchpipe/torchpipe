@@ -21,7 +21,7 @@ using namespace hami::python;
 class PyInstance : public Backend {
    private:
     void impl_init(const std::unordered_map<string, string>& config,
-                   const dict& dict_config) override final {
+                   const dict& kwargs) override final {
         py::gil_scoped_acquire gil;
         if (py::hasattr(*obj_, "init")) {
             init_num_params_ =
@@ -31,7 +31,7 @@ class PyInstance : public Backend {
                 "No `init` method found in the python backend. You may need to "
                 "use Forward[yourpython].");
         }
-        if (!dict_config) {
+        if (!kwargs) {
             if (init_num_params_ - init_default_params_ == 2)
                 obj_->attr("init")(config);
             else if (init_num_params_ == 3 && init_default_params_ == 0) {
@@ -42,7 +42,7 @@ class PyInstance : public Backend {
         } else {
             if (init_num_params_ != 3)
                 throw std::invalid_argument("init must have 2 arguments");
-            obj_->attr("init")(config, PyDict(dict_config));
+            obj_->attr("init")(config, PyDict(kwargs));
         }
         HAMI_ASSERT(!py::hasattr(*obj_, "min") && !py::hasattr(*obj_, "max"));
     }
@@ -88,8 +88,8 @@ using namespace pybind11::literals;
 //   using Backend::Backend;
 //   virtual void impl_init(const std::unordered_map<std::string, std::string>&
 //   config,
-//                     const dict& dict_config) override {
-//     PYBIND11_OVERRIDE(void, Backend, init, config, dict_config);
+//                     const dict& kwargs) override {
+//     PYBIND11_OVERRIDE(void, Backend, init, config, kwargs);
 //   }
 //   virtual void impl_forward(const std::vector<dict>& input_output) override {
 //     PYBIND11_OVERRIDE(void, Backend, forward, input_output);
@@ -97,8 +97,8 @@ using namespace pybind11::literals;
 
 //   virtual void impl_init(const std::unordered_map<std::string, std::string>&
 //   config,
-//                     const PyDict& dict_config) override {
-//     PYBIND11_OVERRIDE(void, Backend, init, config, dict_config);
+//                     const PyDict& kwargs) override {
+//     PYBIND11_OVERRIDE(void, Backend, init, config, kwargs);
 //   }
 //   virtual void forward(const std::vector<PyDict>& input_output) override {
 //     PYBIND11_OVERRIDE(void, Backend, forward, input_output);
@@ -148,15 +148,15 @@ std::unordered_map<std::string, std::string> convert_config(
 static std::shared_ptr<Backend> init_backend_from_py(
     const std::string& backend_config,
     std::optional<ConfigVariant> variant_config,
-    std::optional<PyDict> dict_config_op, py::object aspect_name = py::none()) {
+    std::optional<PyDict> kwargs_op, py::object aspect_name = py::none()) {
     auto config = convert_config(variant_config);
     const std::string aspect_name_str =
         aspect_name.is_none() ? "" : py::cast<std::string>(aspect_name);
-    dict cpp_dict_config =
-        dict_config_op ? (*dict_config_op).to_dict() : nullptr;
+    dict cpp_kwargs =
+        kwargs_op ? (*kwargs_op).to_dict() : nullptr;
     py::gil_scoped_release guard;
     auto backend = std::shared_ptr<Backend>(
-        init_backend(backend_config, config, cpp_dict_config).release());
+        init_backend(backend_config, config, cpp_kwargs).release());
     if (!aspect_name_str.empty()) {
         // HAMI_INSTANCE_REGISTER(Backend, aspect_name_str, backend);
         register_backend(aspect_name_str, backend);
@@ -302,7 +302,7 @@ void py_init_backend(py::module_& m) {
     )pbdoc")
         .def("init", &init_backend_from_py, py::arg("backend"),
              py::arg("config") = py::none(),
-             py::arg("dict_config") = py::none(),
+             py::arg("kwargs") = py::none(),
              py::arg("register_name") = py::none(),
              R"pbdoc(
         Create and initialize a Backend object.
@@ -365,34 +365,34 @@ void py_init_backend(py::module_& m) {
     hami_backend.def(
         "init",
         [](const std::shared_ptr<Backend>& self, str::str_map config,
-           py::object dict_config = py::none()) {
-            dict dict_config_dict = nullptr;
+           py::object kwargs = py::none()) {
+            dict kwargs_dict = nullptr;
 
             // SPDLOG_INFO("init ptr = {}", (long long)&self);
 
-            if (!dict_config.is_none()) {
-                if (py::isinstance<py::dict>(dict_config)) {
+            if (!kwargs.is_none()) {
+                if (py::isinstance<py::dict>(kwargs)) {
                     throw std::invalid_argument(
-                        "Unsupported type(<class 'dict'>) for dict_config. "
+                        "Unsupported type(<class 'dict'>) for kwargs. "
                         "Please use hami.Dict instead");
                 }
-                dict_config_dict =
-                    py::cast<const PyDict&>(dict_config).to_dict();
+                kwargs_dict =
+                    py::cast<const PyDict&>(kwargs).to_dict();
             }
 
             py::gil_scoped_release guard;
 
             // 调用 init 函数
-            self->init(config, dict_config_dict);
+            self->init(config, kwargs_dict);
             return self;
         },
-        py::arg("config"), py::arg("dict_config") = py::none(),
+        py::arg("config"), py::arg("kwargs") = py::none(),
         R"pbdoc(
             Initialize a Backend object.
 
             Parameters:
                 config (dict): Configuration for the backend.
-                dict_config (dict, optional): Shared configuration. Defaults to None.
+                kwargs (dict, optional): Shared configuration. Defaults to None.
         )pbdoc");
     hami_backend
         .def("__call__", &forward_backend, py::arg("input_output"),

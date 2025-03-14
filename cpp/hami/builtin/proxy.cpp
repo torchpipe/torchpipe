@@ -6,7 +6,7 @@
 namespace hami {
 
 void BackendProxy::impl_init(const std::unordered_map<string, string>& config,
-                             const dict& dict_config) {
+                             const dict& kwargs) {
     auto iter = config.find("backend");
     HAMI_ASSERT(iter != config.end(),
                 "BackendProxy configuration error: 'backend' parameter is "
@@ -19,12 +19,12 @@ void BackendProxy::impl_init(const std::unordered_map<string, string>& config,
     owned_backend_ =
         std::unique_ptr<Backend>(HAMI_CREATE(Backend, main_backend));
     HAMI_ASSERT(owned_backend_, "`" + backend + "` is not a valid backend");
-    owned_backend_->init(new_config, dict_config);
+    owned_backend_->init(new_config, kwargs);
     proxy_backend_ = owned_backend_.get();
 }
 
 void Placeholder::impl_init(const std::unordered_map<string, string>& config,
-                            const dict& dict_config) {
+                            const dict& kwargs) {
     auto name = HAMI_OBJECT_NAME(Backend, this);
     HAMI_ASSERT(name != std::nullopt);
 
@@ -38,24 +38,24 @@ HAMI_REGISTER(Backend, BackendProxy);
 HAMI_REGISTER(Backend, Placeholder);
 
 void Reflect::impl_init(const std::unordered_map<string, string>& in_config,
-                        const dict& dict_config) {
+                        const dict& kwargs) {
     auto config = in_config;
     std::string default_dep;
 
     default_dep =
         parse_dependency_from_param(this, config, "backend", "Identity");
 
-    owned_backend_ = init_backend(default_dep, config, dict_config);
+    owned_backend_ = init_backend(default_dep, config, kwargs);
 
     // HAMI_ASSERT(owned_backend_);
-    // owned_backend_->init(config, dict_config);
+    // owned_backend_->init(config, kwargs);
     proxy_backend_ = owned_backend_.get();
 }
 
 HAMI_REGISTER(Backend, Reflect, "Reflect,ProxyFromParam");
 
 void Proxy::impl_init(const std::unordered_map<string, string>& config,
-                      const dict& dict_config) {
+                      const dict& kwargs) {
     auto name = backend::get_dependency_name(this, config, "Proxy");
 
     proxy_backend_ = HAMI_INSTANCE_GET(Backend, name);
@@ -65,7 +65,7 @@ void Proxy::impl_init(const std::unordered_map<string, string>& config,
 HAMI_REGISTER(Backend, Proxy, "Proxy");
 
 void DI::impl_init(const std::unordered_map<string, string>& config,
-                   const dict& dict_config) {
+                   const dict& kwargs) {
     auto name = backend::get_dependency_name(this, config);
     auto re = str::str_split(name, ',');
     HAMI_ASSERT(re.size() == 2,

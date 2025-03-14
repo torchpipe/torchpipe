@@ -12,7 +12,7 @@ namespace hami {
 
 void Aspect::post_init(
     const std::unordered_map<std::string, std::string>& config,
-    const dict& dict_config) {
+    const dict& kwargs) {
     // set aspect name prefix
     std::string prefix;
     bool has_prefix = false;

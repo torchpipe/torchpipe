@@ -25,16 +25,16 @@ class AspectTest : public ::testing::Test {
 
 TEST_F(AspectTest, InitializationTest) {
   std::unordered_map<std::string, std::string> config = {{"aspect", "AsyncGuard,AsyncRestart"}};
-  dict dict_config;
+  dict kwargs;
 
   // 测试初始化
-  EXPECT_NO_THROW(aspect->init(config, dict_config));
+  EXPECT_NO_THROW(aspect->init(config, kwargs));
 }
 
 TEST_F(AspectTest, ForwardTest) {
   std::unordered_map<std::string, std::string> config = {{"aspect", "AsyncGuard,AsyncRestart"}};
-  dict dict_config;
-  aspect->init(config, dict_config);
+  dict kwargs;
+  aspect->init(config, kwargs);
 
   std::vector<dict> inputs = {{{"key1", "value1"}}, {{"key2", "value2"}}};
 
@@ -44,8 +44,8 @@ TEST_F(AspectTest, ForwardTest) {
 
 TEST_F(AspectTest, MinMaxTest) {
   std::unordered_map<std::string, std::string> config = {{"aspect", "AsyncGuard,AsyncRestart"}};
-  dict dict_config;
-  aspect->init(config, dict_config);
+  dict kwargs;
+  aspect->init(config, kwargs);
 
   // 测试min和max方法
   EXPECT_GT(aspect->min(), 0);

@@ -21,7 +21,7 @@ class LoadTensorrtEngine : public hami::Backend {
 
    private:
     void impl_init(const std::unordered_map<std::string, std::string>& config,
-                   const hami::dict& dict_config) override;
+                   const hami::dict& kwargs) override;
     // void impl_forward(const std::vector<hami::dict>& input) override;
 
    private:
@@ -40,7 +40,7 @@ class Onnx2Tensorrt : public hami::Backend {
 
    private:
     void impl_init(const std::unordered_map<std::string, std::string>& config,
-                   const hami::dict& dict_config) override;
+                   const hami::dict& kwargs) override;
     // void impl_forward(const std::vector<hami::dict>& input) override;
 
    private:
@@ -52,7 +52,7 @@ class Onnx2Tensorrt : public hami::Backend {
 class ModelLoadder : public hami::Container {
    public:
     void post_init(const std::unordered_map<std::string, std::string>& config,
-                   const hami::dict& dict_config) override;
+                   const hami::dict& kwargs) override;
 
    private:
     std::vector<size_t> set_init_order(size_t max_range) const override {

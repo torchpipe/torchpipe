@@ -6,7 +6,7 @@
 namespace hami {
 void Source::impl_init(
     const std::unordered_map<std::string, std::string>& config,
-    const dict& dict_config) {
+    const dict& kwargs) {
     str::try_update<size_t>(config, "max_number", total_number_);
     // HAMI_ASSERT(total_number_ > 0);
 }

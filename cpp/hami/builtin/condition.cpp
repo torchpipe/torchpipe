@@ -5,16 +5,16 @@ namespace hami {
 
 void Condition::pre_init(
     const std::unordered_map<std::string, std::string>& config,
-    const dict& dict_config) {
+    const dict& kwargs) {
     condition_ = condition_impl();
-    init_dep_impl(config, dict_config);
+    init_dep_impl(config, kwargs);
 }
 
 class HasKey : public Condition {
    public:
     void init_dep_impl(
         const std::unordered_map<std::string, std::string>& config,
-        const dict& dict_config) override {
+        const dict& kwargs) override {
         if (config.find("key") != config.end()) {
             key_ = config.at("key");
         }

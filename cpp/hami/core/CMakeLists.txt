@@ -18,6 +18,7 @@ cc_library(
     backend.cpp
     helper.cpp
     queue.cpp
+    parser.cpp
   DEPS
     :helper
 )

@@ -10,13 +10,13 @@ def test_ioc_initialization():
     config = {
         "IoC::dependency": "Identity;Forward[Identity]"
     }
-    dict_config = {}
+    kwargs = {}
     ioc.init(config)
 
     # Test initialization with missing dependency configuration
     with pytest.raises(Exception):
         invalid_config = {"param1": "value1"}
-        ioc.init(invalid_config, dict_config)
+        ioc.init(invalid_config, kwargs)
 
 def test_ioc_forward():
     # Test IoC container forward method
@@ -25,7 +25,7 @@ def test_ioc_forward():
         "IoC::dependency": "Identity;Forward[Identity]",
         "Identity::param1": "value1"
     }
-    dict_config = {}
+    kwargs = {}
     ioc.init(config)
 
     # Test forward with different input types
@@ -52,7 +52,7 @@ def test_ioc_phase_initialization():
         "BackendB::param2": "value2",
         "BackendC::param3": "value3"
     }
-    dict_config = {}
+    kwargs = {}
     # ioc.init(config, hami.Dict())
     with pytest.raises(ValueError):
         ioc.init(config, hami.Dict())

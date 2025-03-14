@@ -7,7 +7,7 @@
 namespace hami {
 void Register::pre_init(
     const std::unordered_map<std::string, std::string>& config,
-    const dict& dict_config) {
+    const dict& kwargs) {
     auto iter = config.find("node_name");
     HAMI_ASSERT(iter != config.end(), "node_name not found");
     for (const auto& item : config) {
@@ -22,7 +22,7 @@ class InstancesRegister : public Backend {
    public:
     std::shared_ptr<Backend> owned_backend_;
     void impl_init(const std::unordered_map<std::string, std::string>& config,
-                   const dict& dict_config) override final {
+                   const dict& kwargs) override final {
         std::string dependency_name;
         constexpr auto default_name = "InstancesRegister";
         auto name = HAMI_OBJECT_NAME(Backend, this);
@@ -60,7 +60,7 @@ class InstancesRegister : public Backend {
                         "invalid instance_num: " + iter->second);
         }
 
-        auto sub_dict_config = dict_config ? dict_config : make_dict();
+        auto sub_kwargs = kwargs ? kwargs : make_dict();
         auto sub_config = config;
         for (size_t i = 0; i < instance_num; ++i) {
             owned_backend_ =
@@ -68,7 +68,7 @@ class InstancesRegister : public Backend {
             HAMI_ASSERT(owned_backend_,
                         "`" + iter->second + "` is not a valid backend");
             sub_config[TASK_INDEX_KEY] = std::to_string(i);
-            owned_backend_->init(sub_config, sub_dict_config);
+            owned_backend_->init(sub_config, sub_kwargs);
 
             HAMI_INSTANCE_REGISTER(Backend, node_name + "." + std::to_string(i),
                                    owned_backend_);

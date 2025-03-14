@@ -28,7 +28,7 @@ struct ProfileState {
  */
 class Benchmark : public Backend {
     void impl_init(const std::unordered_map<std::string, std::string>& config,
-                   const dict& dict_config) override;
+                   const dict& kwargs) override;
     void impl_forward_with_dep(const std::vector<dict>& input,
                                Backend* dependency) override;
     ~Benchmark() {
@@ -53,7 +53,7 @@ class Benchmark : public Backend {
     size_t total_number_ = 10000;
     size_t num_warm_up_ = 20;
     Queue* target_queue_{nullptr};
-    Queue* src_queue_{nullptr};
+    // Queue* src_queue_{nullptr};
 
    private:
     std::unique_ptr<queue::ThreadSafeQueue<std::shared_ptr<ProfileState>>>

@@ -11,7 +11,7 @@ namespace hami {
 
 void Select::post_init(
     const std::unordered_map<std::string, std::string>& config,
-    const dict& dict_config) {
+    const dict& kwargs) {
     select_ = select_impl();
     HAMI_ASSERT(base_dependencies_.size() >= 2);
 }

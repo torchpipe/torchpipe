@@ -1,7 +1,9 @@
 #include <queue>
 #include <stdexcept>
+// #include <algorithm>
+#include <stack>
 
-#include "hami/builtin/parser.hpp"
+#include "hami/core/parser.hpp"
 #include "hami/core/task_keys.hpp"
 #include "hami/helper/string.hpp"
 #include "hami/helper/macro.h"
@@ -299,5 +301,174 @@ dict DagParser::prepare_data_from_previous(
         re->find(TASK_DATA_KEY) != re->end(),
         std::string("DagParser: ") + TASK_DATA_KEY + " not found in target");
     return re;
+}
+
+void update(const std::unordered_map<std::string, std::string>& config,
+            std::unordered_map<std::string, std::string>& str_kwargs) {
+    for (const auto& [key, value] : config) {
+        if (str_kwargs.find(key) == str_kwargs.end()) {
+            str_kwargs[key] = value;
+        }
+    }
+}
+
+// Split the string by the delimiter, ignoring delimiters inside nested brackets
+// (including [], {}, ())
+std::vector<std::string> split_args(const std::string& s, char delimiter) {
+    std::vector<std::string> args;
+    std::stack<char> brackets;
+    size_t start = 0;
+
+    for (size_t i = 0; i < s.size(); ++i) {
+        char c = s[i];
+        // Handle bracket matching
+        if (c == '[' || c == '{' || c == '(') {
+            brackets.push(c);
+        } else if (c == ']') {
+            if (brackets.empty() || brackets.top() != '[')
+                throw std::runtime_error("Mismatched ']'");
+            brackets.pop();
+        } else if (c == '}') {
+            if (brackets.empty() || brackets.top() != '{')
+                throw std::runtime_error("Mismatched '}'");
+            brackets.pop();
+        } else if (c == ')') {
+            if (brackets.empty() || brackets.top() != '(')
+                throw std::runtime_error("Mismatched ')'");
+            brackets.pop();
+        }
+
+        // Split only when not inside brackets
+        if (c == delimiter && brackets.empty()) {
+            // Add non-empty segments only
+            if (i > start) {
+                args.push_back(s.substr(start, i - start));
+            }
+            start = i + 1;
+        }
+    }
+
+    // Add last segment if non-empty
+    if (start < s.size()) {
+        args.push_back(s.substr(start));
+    }
+
+    // Validate bracket balance
+    if (!brackets.empty()) throw std::runtime_error("Mismatched brackets");
+
+    return args;
+}
+
+// Parse individual argument into key-value pair if valid
+std::pair<bool, std::pair<std::string, std::string>> parse_kwarg(
+    const std::string& arg, char delimiter) {
+    std::stack<char> brackets;
+    size_t eq_pos = std::string::npos;
+    std::string delim_str(1, delimiter);
+
+    for (size_t i = 0; i < arg.size(); ++i) {
+        char c = arg[i];
+        // Track bracket nesting
+        if (c == '[' || c == '{' || c == '(') {
+            brackets.push(c);
+        } else if (c == ']' || c == '}' || c == ')') {
+            if (brackets.empty()) {
+                std::stringstream ss;
+                ss << "Mismatched closing bracket '" << c << "'";
+                throw std::runtime_error(ss.str());
+            }
+            char top = brackets.top();
+            if ((c == ']' && top != '[') || (c == '}' && top != '{') ||
+                (c == ')' && top != '(')) {
+                std::stringstream ss;
+                ss << "Mismatched closing bracket '" << c << "' for opening '"
+                   << top << "'";
+                throw std::runtime_error(ss.str());
+            }
+            brackets.pop();
+        }
+
+        // Find delimiter outside brackets
+        if (brackets.empty() && c == delimiter) {
+            if (eq_pos != std::string::npos) {
+                std::stringstream ss;
+                ss << "Multiple '" << delimiter << "' in keyword arg";
+                throw std::runtime_error(ss.str());
+            }
+            eq_pos = i;
+        }
+    }
+
+    // Validate delimiter position
+    if (eq_pos == std::string::npos) return {false, {}};
+
+    if (eq_pos == 0) {
+        std::stringstream ss;
+        ss << "Empty key before '" << delimiter << "'";
+        throw std::runtime_error(ss.str());
+    }
+
+    if (eq_pos == arg.size() - 1) {
+        std::stringstream ss;
+        ss << "Empty value after '" << delimiter << "'";
+        throw std::runtime_error(ss.str());
+    }
+
+    return {true, {arg.substr(0, eq_pos), arg.substr(eq_pos + 1)}};
+}
+
+// Main parsing function with Python-style argument rules
+// Parse a configuration string into positional arguments and keyword arguments
+std::pair<std::vector<std::string>,
+          std::unordered_map<std::string, std::string>>
+parse_args_kwargs(std::string config) {
+    // Remove whitespace and control characters
+    config.erase(std::remove_if(
+                     config.begin(), config.end(),
+                     [](char c) { return std::isspace(c) || std::iscntrl(c); }),
+                 config.end());
+
+    // Handle empty input
+    if (config.empty()) {
+        return {};
+    }
+
+    auto args = split_args(config, ',');
+    std::pair<std::vector<std::string>,
+              std::unordered_map<std::string, std::string>>
+        result;
+    bool kwarg_started = false;
+
+    for (const auto& arg : args) {
+        if (arg.empty()) continue;
+
+        try {
+            auto [is_kwarg, kv] = parse_kwarg(arg, '=');
+            if (is_kwarg) {
+                kwarg_started = true;
+                // Check for duplicate keys
+                if (result.second.count(kv.first)) {
+                    std::stringstream ss;
+                    ss << "Duplicate keyword argument: " << kv.first;
+                    throw std::runtime_error(ss.str());
+                }
+                result.second.insert(kv);
+            } else {
+                // Validate argument order
+                if (kwarg_started) {
+                    throw std::runtime_error(
+                        "Positional argument after keyword argument");
+                }
+                result.first.push_back(arg);
+            }
+        } catch (const std::runtime_error& e) {
+            // Enhance error context
+            std::stringstream ss;
+            ss << "Invalid argument '" << arg << "': " << e.what();
+            throw std::runtime_error(ss.str());
+        }
+    }
+
+    return result;
 }
 }  // namespace hami::parser

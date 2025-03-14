@@ -187,19 +187,14 @@ void init_dict(py::module_& m) {
         .def(
             "get",
             [](Queue& self, bool block, std::optional<double> timeout) {
-                if (block) {
-                    std::pair<dict, size_t> result;
-                    {
-                        py::gil_scoped_release release;
-                        result = self.get(block, timeout);
-                    }
-                    return std::pair<PyDict, size_t>(PyDict(result.first),
-                                                     result.second);
-                } else {
-                    auto re = self.get(block, timeout);
-                    return std::pair<PyDict, size_t>(PyDict(re.first),
-                                                     re.second);
+                std::pair<dict, size_t> result;
+
+                {
+                    py::gil_scoped_release release;
+                    result = self.get(block, timeout);
                 }
+                return std::pair<PyDict, size_t>(PyDict(result.first),
+                                                 result.second);
             },
             py::arg("block") = true, py::arg("timeout") = std::nullopt)
         .def("size", &Queue::size)

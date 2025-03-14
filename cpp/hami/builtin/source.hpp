@@ -10,7 +10,7 @@
 namespace hami {
 class Source : public Backend {
     void impl_init(const std::unordered_map<std::string, std::string>& config,
-                   const dict& dict_config) override;
+                   const dict& kwargs) override;
     void impl_forward(const std::vector<dict>& input) override;
 
    public:

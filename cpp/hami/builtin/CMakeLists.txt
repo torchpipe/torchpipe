@@ -21,7 +21,6 @@ cc_library(
     register_node.cpp
     interpreter.cpp
     proxy.cpp
-    parser.cpp
     cat_split.cpp
     ioc.cpp
     generate_backend.cpp

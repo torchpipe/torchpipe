@@ -41,12 +41,12 @@ LoopCondition[time?instance?]
 StateFul[Batching, InstanceDispatcher]
 max 4 curr 3 timeout
 
-[ ] Batching =》 init event (in dict_config)
+[ ] Batching =》 init event (in kwargs)
 
 <!-- 
 Interpreter (forword parse)=> entrypoint  : DagDispatcher or 对应的节点
 
-Interpreter (init parse)=> per-node initialization => 独立的dict_config
+Interpreter (init parse)=> per-node initialization => 独立的kwargs
  List[InstancesRegister[BackgroundThread[BackendProxy]], "
     "Register[Aspect[Batching, "
     "InstanceDispatcher]]] -->
