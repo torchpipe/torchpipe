@@ -28,6 +28,7 @@ cc_library(
     benchmark.cpp
     key_operator.cpp
     source.cpp
+    control_plane.cpp
   DEPS
     :spdlog
     :core

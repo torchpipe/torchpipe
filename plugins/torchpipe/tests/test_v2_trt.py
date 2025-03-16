@@ -8,7 +8,7 @@ import hami
 
 # Pipeline configuration strings
 INIT_STR = "ModelLoadder[(.onnx)Onnx2Tensorrt,(.trt)LoadTensorrtEngine], TensorrtInferTensor"
-FORWARD_STR = "CatSplit[S[GpuTensor,CatTensor],S[ContiguousTensor,TensorrtInferTensor,ProxyFromParam[post_processor]],SplitTensor]"
+FORWARD_STR = "CatSplit[S_v0[GpuTensor,CatTensor],S_v0[ContiguousTensor,TensorrtInferTensor,ProxyFromParam[post_processor]],SplitTensor]"
 BACKEND_STR = f"StreamGuard[TensorrtTensor]"
 
 class Conv(torch.nn.Module):

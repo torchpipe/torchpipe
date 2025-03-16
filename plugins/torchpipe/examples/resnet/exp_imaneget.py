@@ -46,7 +46,22 @@ def test(model='resnet50'):
     check_accuracy(hami_backend)
 
  
+
+def onnx2trt(onnx_path, toml_path, register_name):
+    """Convert ONNX model to TensorRT using HAMI configurations."""
+    config = hami.parser.parse(toml_path)
     
+    trt_path = Path(onnx_path).with_suffix('.trt')
+    for _, settings in config.items():
+        if 'model' in settings:
+            settings['model'] = onnx_path
+            settings['model::cache'] = str(trt_path)
+            break
+    
+    kwargs = hami.Dict()
+    kwargs['config'] = config
+    return hami.create('Interpreter', register_name).init({}, kwargs)
+
 import torchpipe.utils.model_helper as helper
 def dataset():
     
@@ -68,8 +83,9 @@ def dataset():
         
         
 if __name__ == "__main__":
-    data = hami.init("IoC[ReadFile, Send2Queue[src_queue, max=20];ReadFile]")
+    inited = hami.init("CreateQueue(src_queue)")
+    data = hami.init("S_v0[ReadFile, Send2Queue(src_queue, max=20)]")
     
-    run = hami.init("IoC[SharedRequestState,ThreadPoolExecutor[src_queue,max_workers=10], XX; DI[ThreadPoolExecutor, XX]]")
-    # ： DI[ThreadPoolExecutor, XX]] =》 DI::args DI(ThreadPoolExecutor, XX)
+    resnet50 = onnx2trt(str(onnx_path), f'{model}.toml', 'trt_model')
+    run = hami.init("IoC[SharedRequestState,ThreadPoolExecutor(src_queue,max_workers=10); DI[ThreadPoolExecutor, trt_model]]")  # target_queu(default)
     fire.Fire(dataset)

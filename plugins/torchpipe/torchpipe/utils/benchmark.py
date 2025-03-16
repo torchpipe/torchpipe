@@ -63,7 +63,7 @@
 
 # from typing import List, Union, Callable, Tuple
 
-# # from .Sampler import Sampler, RandomSampler, preload, SequentialSampler, FileSampler
+# # from .Sampler import Sampler, RandomSampler, preload, SequentialV0Sampler, FileSampler
 
 # from typing import List, Tuple
 # import random, os
@@ -103,7 +103,7 @@
 #         return self.batch_size
 
 
-# class SequentialSampler(Sampler):
+# class SequentialV0Sampler(Sampler):
 #     def __init__(self, data: List, batch_size=1):
 #         super().__init__()
 #         self.data = data

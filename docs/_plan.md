@@ -3,7 +3,7 @@
 
 ```toml
 IoC[ModelLoadder[(.onnx)Onnx2Tensorrt,(.trt)LoadTensorrtEngine], TensorrtInferTensor; 
- CatSplit[S[FixTensor,CatTensor],S[ContiguousTensor,TensorrtInferTensor,ProxyFromParam[post_processor]],SplitTensor]]
+ CatSplit[S_v0[FixTensor,CatTensor],S_v0[ContiguousTensor,TensorrtInferTensor,ProxyFromParam[post_processor]],SplitTensor]]
 
 
 fix
@@ -90,7 +90,7 @@ Repost[Z, dddsa]
  builtin types: Any, Dict, Backend
    (异步), Event, Queue(default queue), 
    （more schedule）TypedDict, KVStorage(req_id, resp_id, data) 
-builtin container: IoC Proxy/DI Sequential/S  Reflect[key_to_cls_name, default=backend] Register/InstancesRegister InstanceFromParam Forward[instance_name]
+builtin container: IoC Proxy/DI SequentialV0/S  Reflect[key_to_cls_name, default=backend] Register/InstancesRegister InstanceFromParam Forward[instance_name]
 
 CatSplit, DagDispatcher, InstanceDispatcher
 

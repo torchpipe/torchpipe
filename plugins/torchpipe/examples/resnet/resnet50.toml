@@ -2,8 +2,8 @@
 batching_timeout = 4 #默认的凑batch的超时时间
 instance_num = 2 
 [jpg_decoder]
-backend = "Sequential[DecodeMat,ResizeMat,CvtColorMat,Mat2Tensor,StreamGuard]" # 
-# backend = "Sequential[DecodeTensor,ResizeTensor,CvtColorTensor,StreamGuard]" #
+backend = "SequentialV0[DecodeMat,ResizeMat,CvtColorMat,Mat2Tensor,StreamGuard]" # 
+# backend = "SequentialV0[DecodeTensor,ResizeTensor,CvtColorTensor,StreamGuard]" #
 
 resize_h = 224
 resize_w = 224

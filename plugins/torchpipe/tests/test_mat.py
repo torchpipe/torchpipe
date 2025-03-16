@@ -9,7 +9,7 @@ import numpy as np
 
 def test_DecodeTensor():
     # Initialize the DecodeTensor model
-    model = hami._C.init("S[DecodeMat,CvtColorMat,ResizeMat,Mat2Tensor]", {"color": "bgr", "resize_h":"221","resize_w":'110'})
+    model = hami._C.init("S_v0[DecodeMat,CvtColorMat,ResizeMat,Mat2Tensor]", {"color": "bgr", "resize_h":"221","resize_w":'110'})
 
     img = np.ones((1, 1, 3), dtype=np.uint8)*5
     img[0,0,0] = 0

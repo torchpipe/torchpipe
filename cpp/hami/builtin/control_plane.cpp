@@ -1,0 +1,41 @@
+
+#include <string>
+#include <vector>
+#include "hami/builtin/control_plane.hpp"
+#include "hami/core/parser.hpp"
+
+namespace hami
+{
+    void ControlPlane::impl_init(const std::unordered_map<std::string, std::string> &params,
+                                 const dict &options)
+    {
+        std::string cls_name = default_cls_name();
+        meta::get_backend_name(this, cls_name);
+
+        parser_v2::Parser parser;
+
+        auto iter = params.find(cls_name + "::dependency");
+        HAMI_ASSERT(iter != params.end(),
+                    "Dependency configuration " + cls_name +
+                        "::dependency not found. "
+                        "This control backend do not allow runtime dynamic modification of "
+                        "dependencies, "
+                        "please specify dependencies in the initializtion phase");
+
+        auto sub_config = parser.split_by_delimiter(iter->second, ',');
+        HAMI_ASSERT(sub_config.size() >= 1, "backend_names.size() should >= 1");
+
+        for (auto sub_iter = sub_config.begin(); sub_iter != sub_config.end(); ++sub_iter)
+        {
+            std::pair<std::string, std::string> sub_cfg = parser.prifix_split(*sub_iter, '(', ')');
+
+            auto [args, str_kwargs] = parser.parse_args_kwargs(sub_cfg.first);
+            std::unordered_map<std::string, std::string> update_params;
+            parser::update(params, str_kwargs);
+            backend_cfgs_.emplace_back(sub_cfg.second);
+            prefix_args_kwargs_.push_back({args, str_kwargs});
+        }
+        HAMI_ASSERT(!backend_cfgs_.empty());
+        impl_custom_init(params, options);
+    }
+} // namespace hami

@@ -35,15 +35,15 @@ backend="Py::YourJudge[Forward[pipeline.node_name], Identity]"
 
 ```
 
-Sequential 支持or and
-Sequential[A,(or)S[B,C]]  => S[Or[A,S[B,C]]]
-S[A,(or)B] => S[or[A,B]]
-S[A,(has_key)B] <==> HasKey[B, Identity] 
+SequentialV0 支持or and
+SequentialV0[A,(or)S_v0[B,C]]  => S_v0[Or[A,S_v0[B,C]]]
+S_v0[A,(or)B] => S_v0[or[A,B]]
+S_v0[A,(has_key)B] <==> HasKey[B, Identity] 
 
-S[A,B] == S[A,(swap)B] == Swap[A,B]
+S_v0[A,B] == S_v0[A,(swap)B] == Swap[A,B]
 
-S[P1,(swap)P2,(swap)B] == Swap[Swap[P1,P2], B]
-Sequential[And[A,B]]
+S_v0[AP1,(swap)P2,(swap)B] == Swap[Swap[P1,P2], B]
+SequentialV0[And[A,B]]
 
 SerialSkip[P] == BinaryConditional[Identity, Forward[pipeline.node_name]]
  BinarySelect[Identity, Forward[ring]]
@@ -55,15 +55,15 @@ SerialSkip[P] == BinaryConditional[Identity, Forward[pipeline.node_name]]
  
  
  register_no_result_parser() -->
- S[DecodeTensor, (or)S[DecodeMat,Mat2Tensor]]
+ S_v0[DecodeTensor, (or)S_v0[DecodeMat,Mat2Tensor]]
 
- Or[DecodeTensor, S[DecodeMat,Mat2Tensor]]
+ Or[DecodeTensor, S_v0[DecodeMat,Mat2Tensor]]
 
  Or
  Swap
 
 
-S[A, (or)S[B, C], D]
+S_v0[A, (or)S_v0[B, C], D]
 
 
 
@@ -77,16 +77,16 @@ https://gstreamer.freedesktop.org/documentation/tutorials/basic/dynamic-pipeline
 
 
 [a]
-backend="S[Forward[pipeline.decode_gpu], (or)Forward[pipeline.decode_cpu]]"
+backend="S_v0[Forward[pipeline.decode_gpu], (or)Forward[pipeline.decode_cpu]]"
 backend="Or[Forward[pipeline.decode_gpu], Forward[pipeline.decode_cpu]]"
 
 [decode_gpu]
 <!-- backend="StreamGuard[DecodeTensor]" -->
-backend="S[DecodeTensor,StreamGuard]"
+backend="S_v0[DecodeTensor,StreamGuard]"
 next="decode_cpu"
 [decode_cpu]
 or=1
-backend="S[DecodeMat,Mat2Tensor,StreamGuard]"
+backend="S_v0[DecodeMat,Mat2Tensor,StreamGuard]"
 
 
 最终方案
@@ -245,9 +245,9 @@ threadsafe queue / 进程间通信 (like ZeroMQ) / RPC framework (like thrift) �
 conner case in deep learning/thread local
 
 
-典型的依赖类型 Sequential[A,B,C]    Select[A,B,C] Or[A,B]
+典型的依赖类型 SequentialV0[A,B,C]    Select[A,B,C] Or[A,B]
 以及他们的复合 A[B[C]]
-复合形式的依赖类型 S[A[B,C[D]],E,S[F,G[H]]]
+复合形式的依赖类型 S_v0[A[B,C[D]],E,S_v0[F,G[H]]]
 
 // A依赖于B
 ```c++
