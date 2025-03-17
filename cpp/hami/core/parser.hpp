@@ -186,6 +186,8 @@ namespace hami::parser_v2
 
         std::string parse(const std::string &input, std::unordered_map<std::string, std::string> &config_output);
         static std::vector<std::string> split_by_delimiter(const std::string &input, char delimiter = ',');
+        std::pair<std::vector<char>, std::vector<std::string>> split_by_delimiters(const std::string &input,
+                                                                                   char delimiter, char delimiter_outter);
         static std::pair<std::string, std::string> prifix_split(const std::string &input, char left_bracket = '(', char right_bracket = ')');
 
         static std::pair<std::vector<std::string>,

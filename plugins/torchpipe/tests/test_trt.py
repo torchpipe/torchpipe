@@ -9,7 +9,7 @@ import hami
 # Pipeline configuration strings
 INIT_STR = "ModelLoadder[(.onnx)Onnx2Tensorrt,(.trt)LoadTensorrtEngine], TensorrtInferTensor"
 FORWARD_STR = "CatSplit[S_v0[GpuTensor,CatTensor],S_v0[ContiguousTensor,Forward[TensorrtInferTensor],ProxyFromParam[post_processor]],SplitTensor]"
-BACKEND_STR = f"IoC[{INIT_STR}; {FORWARD_STR}]"
+BACKEND_STR = f"IoCV0[{INIT_STR}; {FORWARD_STR}]"
 
 class Identity(torch.nn.Module):
     """Simple identity model that multiplies input by 2"""

@@ -2,18 +2,18 @@
 - current
 
 ```toml
-IoC[ModelLoadder[(.onnx)Onnx2Tensorrt,(.trt)LoadTensorrtEngine], TensorrtInferTensor; 
+IoCV0[ModelLoadder[(.onnx)Onnx2Tensorrt,(.trt)LoadTensorrtEngine], TensorrtInferTensor; 
  CatSplit[S_v0[FixTensor,CatTensor],S_v0[ContiguousTensor,TensorrtInferTensor,ProxyFromParam[post_processor]],SplitTensor]]
 
 
 fix
 constexpr auto DEFAULT_INIT_CONFIG =
-  dag_entrypoint  "IoC[InstancesRegister[BackgroundThread[Reflect[backend]]], Register[Block[Batching, "
+  dag_entrypoint  "IoCV0[InstancesRegister[BackgroundThread[Reflect[backend]]], Register[Block[Batching, "
     "InstanceDispatcher]];Forward[node.{node_name}]]";
 to
-IoC[InstanceDispatcher,Aspect[Batching, "
+IoCV0[InstanceDispatcher,Aspect[Batching, "
     "InstanceDispatcher];Aspect],
-node_entrypoint = IoC[InstancesRegister[BackgroundThread[BackendProxy]], Register[DI_v0[Batching, InstanceDispatcher]]; Forward[node.{node_name}]]
+node_entrypoint = IoCV0[InstancesRegister[BackgroundThread[BackendProxy]], Register[DI_v0[Batching, InstanceDispatcher]]; Forward[node.{node_name}]]
 
 
 InstanceDispatcher[*PreCat*, *CatedHandle*]
@@ -90,7 +90,7 @@ Repost[Z, dddsa]
  builtin types: Any, Dict, Backend
    (异步), Event, Queue(default queue), 
    （more schedule）TypedDict, KVStorage(req_id, resp_id, data) 
-builtin container: IoC Proxy/DI_v0 [SequentialV0/S  Reflect[key_to_cls_name, default=backend] Register/InstancesRegister InstanceFromParam Forward[instance_name]
+builtin container: IoCV0 Proxy/DI_v0 [SequentialV0/S  Reflect[key_to_cls_name, default=backend] Register/InstancesRegister InstanceFromParam Forward[instance_name]
 
 CatSplit, DagDispatcher, InstanceDispatcher
 

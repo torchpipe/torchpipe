@@ -4,24 +4,30 @@
 #include <vector>
 #include "hami/core/backend.hpp"
 
-namespace hami {
-class ControlPlane : public Backend {
-   private:
-    void impl_init(const std::unordered_map<std::string, std::string> &params,
-                   const dict &options) override final;
+namespace hami
+{
+    class ControlPlane : public Backend
+    {
+    private:
+        void impl_init(const std::unordered_map<std::string, std::string> &params,
+                       const dict &options) override final;
 
-    virtual void impl_custom_init(
-        const std::unordered_map<std::string, std::string> &params,
-        const dict &options) = 0;
+        virtual void impl_custom_init(
+            const std::unordered_map<std::string, std::string> &params,
+            const dict &options) = 0;
 
-    // Default class name if the instance is not create via reflection.
-    virtual std::string default_cls_name() const { return "ControlPlane"; }
+        // Default class name if the instance is not create via reflection.
+        virtual std::string default_cls_name() const { return "ControlPlane"; }
 
-   protected:
-    std::vector<std::pair<std::vector<std::string>,
-                          std::unordered_map<std::string, std::string>>>
-        prefix_args_kwargs_;
-    std::vector<std::string> backend_cfgs_;
-};
+    protected:
+        // for T[(a1, a2,b=2)A(x)[B],  X; C]
+        std::vector<std::pair<std::vector<std::string>,
+                              std::unordered_map<std::string, std::string>>>
+            prefix_args_kwargs_;                // *[<'a1','a2',{b:2}>, <>, <>]
+        std::vector<std::string> backend_cfgs_; // *[`A(x)[B]`, `X`, 'C']
 
-}  // namespace hami
+        std::vector<char> delimiters_;           //[',',';'] delimiters_.size() +1 == backend_cfgs_.size()
+        std::vector<std::string> main_backends_; // [A, X, C]
+    };
+
+} // namespace hami

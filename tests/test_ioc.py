@@ -2,13 +2,13 @@ import pytest
 import hami._C as _C
 import hami
 def test_ioc_initialization():
-    # Test IoC container initialization
-    ioc = _C.create("IoC")
+    # Test IoCV0 container initialization
+    ioc = _C.create("IoCV0")
     assert ioc is not None
 
     # Test initialization with valid configuration
     config = {
-        "IoC::dependency": "Identity;Forward[Identity]"
+        "IoCV0::dependency": "Identity;Forward[Identity]"
     }
     kwargs = {}
     ioc.init(config)
@@ -19,10 +19,10 @@ def test_ioc_initialization():
         ioc.init(invalid_config, kwargs)
 
 def test_ioc_forward():
-    # Test IoC container forward method
-    ioc = _C.create("IoC")
+    # Test IoCV0 container forward method
+    ioc = _C.create("IoCV0")
     config = {
-        "IoC::dependency": "Identity;Forward[Identity]",
+        "IoCV0::dependency": "Identity;Forward[Identity]",
         "Identity::param1": "value1"
     }
     kwargs = {}
@@ -44,10 +44,10 @@ def test_ioc_forward():
 
 
 def test_ioc_phase_initialization():
-    # Test IoC container phase initialization
-    ioc = _C.create("IoC")
+    # Test IoCV0 container phase initialization
+    ioc = _C.create("IoCV0")
     config = {
-        "IoC::dependency": "Identity,Identity;Forward[Identity]",
+        "IoCV0::dependency": "Identity,Identity;Forward[Identity]",
         "BackendA::param1": "value1",
         "BackendB::param2": "value2",
         "BackendC::param3": "value3"

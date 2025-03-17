@@ -8,7 +8,7 @@ class BackendManager:
         "backend": "Identity"
     }
     
-    BACKEND_TEMPLATE = "List[InstancesRegister[BackgroundThread[Reflect]],Register[IoC[SharedInstancesState,InstanceDispatcher,Batching;DI_v0[Batching, InstanceDispatcher]]]]"
+    BACKEND_TEMPLATE = "List[InstancesRegister[BackgroundThread[Reflect]],Register[IoCV0[SharedInstancesState,InstanceDispatcher,Batching;DI_v0[Batching, InstanceDispatcher]]]]"
 
     def __init__(self):
         self.backends = {}

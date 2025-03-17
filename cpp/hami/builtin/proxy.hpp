@@ -19,147 +19,191 @@
 #include "hami/helper/macro.h"
 #include "hami/core/reflect.h"
 
-namespace hami {
-class Proxy : public Backend {
-   private:
-    void impl_init(const std::unordered_map<string, string>& config,
-                   const dict& kwargs) override;
+namespace hami
+{
+    class Proxy : public Backend
+    {
+    private:
+        void impl_init(const std::unordered_map<string, string> &config,
+                       const dict &kwargs) override;
 
-    void impl_inject_dependency(Backend* dependency) override {
-        if (!proxy_backend_) {
-            proxy_backend_ = dependency;
-        } else
-            proxy_backend_->inject_dependency(dependency);
-    }
-
-    void impl_forward_with_dep(const std::vector<dict>& inputs,
-                               Backend* dependency) override {
-        proxy_backend_->forward_with_dep(inputs, dependency);
-    }
-
-    void impl_forward(const std::vector<dict>& inputs) override {
-        proxy_backend_->forward(inputs);
-    }
-    [[nodiscard]] virtual size_t impl_max() const override {
-        return proxy_backend_->max();
-    }
-
-    [[nodiscard]] virtual size_t impl_min() const override {
-        return proxy_backend_->min();
-    }
-
-   protected:
-    // Backend* dependency_{nullptr};
-    Backend* proxy_backend_{nullptr};
-    std::unique_ptr<Backend> owned_backend_;
-};
-
-// class InstanceProxy : public Proxy {
-//    public:
-//     void impl_init(const std::unordered_map<string, string>& config,
-//               const dict& kwargs) override;
-// };
-
-class DI_v0 : public Proxy {
-   private:
-    void impl_init(const std::unordered_map<string, string>& config,
-                   const dict& kwargs) override;
-    void impl_inject_dependency(Backend* dependency) override {
-        throw std::runtime_error("DI: inject_dependency Unillegal");
-    }
-};
-class Placeholder : public Proxy {
-   private:
-    void impl_init(const std::unordered_map<string, string>& config,
-                   const dict& kwargs) override;
-    void impl_inject_dependency(Backend* dependency) override {
-        if (!proxy_backend_) {
-            proxy_backend_ = dependency;
-        } else {
-            throw std::runtime_error(
-                "Placeholder: inject_dependency called twice");
+        void impl_inject_dependency(Backend *dependency) override
+        {
+            if (!proxy_backend_)
+            {
+                proxy_backend_ = dependency;
+            }
+            else
+                proxy_backend_->inject_dependency(dependency);
         }
-        HAMI_ASSERT(!owned_backend_);
-    }
-};
 
-class ProxyV2 : public Backend {
-   public:
-    std::pair<std::string, str::str_map> make_order(
-        const std::string& setting,
-        const str::str_map& dict_setting = {}) const {
-        return {setting, dict_setting};
-    }
+        void impl_forward_with_dep(const std::vector<dict> &inputs,
+                                   Backend *dependency) override
+        {
+            proxy_backend_->forward_with_dep(inputs, dependency);
+        }
 
-    void impl_init(const std::unordered_map<string, string>& config,
-                   const dict& kwargs) override final {
-        auto execorder = get_order();
-        proxy_backend_ = init_backend(execorder.first, execorder.second);
-    }
-    virtual std::pair<std::string, str::str_map> get_order() const = 0;
-    void impl_inject_dependency(Backend* dependency) override final {
-        if (!proxy_backend_) {
-            throw std::runtime_error("ProxyV2 was not initialized yet");
-        } else
-            proxy_backend_->inject_dependency(dependency);
-    }
+        void impl_forward(const std::vector<dict> &inputs) override
+        {
+            proxy_backend_->forward(inputs);
+        }
+        [[nodiscard]] virtual size_t impl_max() const override
+        {
+            return proxy_backend_->max();
+        }
 
-    void impl_forward_with_dep(const std::vector<dict>& inputs,
-                               Backend* dependency) override {
-        proxy_backend_->forward_with_dep(inputs, dependency);
-    }
+        [[nodiscard]] virtual size_t impl_min() const override
+        {
+            return proxy_backend_->min();
+        }
 
-    void impl_forward(const std::vector<dict>& inputs) override {
-        proxy_backend_->forward(inputs);
-    }
-    [[nodiscard]] virtual size_t impl_max() const override {
-        return proxy_backend_->max();
-    }
+    protected:
+        // Backend* dependency_{nullptr};
+        Backend *proxy_backend_{nullptr};
+        std::unique_ptr<Backend> owned_backend_;
+    };
 
-    [[nodiscard]] virtual size_t impl_min() const override {
-        return proxy_backend_->min();
-    }
+    // class InstanceProxy : public Proxy {
+    //    public:
+    //     void impl_init(const std::unordered_map<string, string>& config,
+    //               const dict& kwargs) override;
+    // };
 
-   protected:
-    // Backend* dependency_{nullptr};
-    // Backend* proxy_backend_{nullptr};
-    std::unique_ptr<Backend> proxy_backend_;
-};
+    class DI_v0 : public Proxy
+    {
+    private:
+        void impl_init(const std::unordered_map<string, string> &config,
+                       const dict &kwargs) override;
+        void impl_inject_dependency(Backend *dependency) override
+        {
+            throw std::runtime_error("DI: inject_dependency Unillegal");
+        }
+    };
 
-class BackendProxy : public Proxy {
-   private:
-    void impl_init(const std::unordered_map<std::string, std::string>& config,
-                   const dict& kwargs) override;
+    class DI : public Proxy
+    {
+    private:
+        void impl_init(const std::unordered_map<string, string> &config,
+                       const dict &kwargs) override;
+        void impl_inject_dependency(Backend *dependency) override
+        {
+            throw std::runtime_error("DI: inject_dependency Unillegal");
+        }
+    };
+    class Placeholder : public Proxy
+    {
+    private:
+        void impl_init(const std::unordered_map<string, string> &config,
+                       const dict &kwargs) override;
+        void impl_inject_dependency(Backend *dependency) override
+        {
+            if (!proxy_backend_)
+            {
+                proxy_backend_ = dependency;
+            }
+            else
+            {
+                throw std::runtime_error(
+                    "Placeholder: inject_dependency called twice");
+            }
+            HAMI_ASSERT(!owned_backend_);
+        }
+    };
 
-   private:
-    // std::unique_ptr<Backend> owned_backend_;
-};
+    class ProxyV2 : public Backend
+    {
+    public:
+        std::pair<std::string, str::str_map> make_order(
+            const std::string &setting,
+            const str::str_map &dict_setting = {}) const
+        {
+            return {setting, dict_setting};
+        }
 
-class Reflect : public Proxy {
-    void impl_init(const std::unordered_map<std::string, std::string>& config,
-                   const dict& kwargs) override;
-};
+        void impl_init(const std::unordered_map<string, string> &config,
+                       const dict &kwargs) override final
+        {
+            auto execorder = get_order();
+            proxy_backend_ = init_backend(execorder.first, execorder.second);
+        }
+        virtual std::pair<std::string, str::str_map> get_order() const = 0;
+        void impl_inject_dependency(Backend *dependency) override final
+        {
+            if (!proxy_backend_)
+            {
+                throw std::runtime_error("ProxyV2 was not initialized yet");
+            }
+            else
+                proxy_backend_->inject_dependency(dependency);
+        }
 
-#define HAMI_PROXY(derived_aspect_cls, setting, ...)                      \
-    class derived_aspect_cls : public ProxyV2 {                           \
-       public:                                                            \
-        std::pair<std::string, str::str_map> get_order() const override { \
-            return make_order(setting, ##__VA_ARGS__);                    \
-        }                                                                 \
-    };                                                                    \
+        void impl_forward_with_dep(const std::vector<dict> &inputs,
+                                   Backend *dependency) override
+        {
+            proxy_backend_->forward_with_dep(inputs, dependency);
+        }
+
+        void impl_forward(const std::vector<dict> &inputs) override
+        {
+            proxy_backend_->forward(inputs);
+        }
+        [[nodiscard]] virtual size_t impl_max() const override
+        {
+            return proxy_backend_->max();
+        }
+
+        [[nodiscard]] virtual size_t impl_min() const override
+        {
+            return proxy_backend_->min();
+        }
+
+    protected:
+        // Backend* dependency_{nullptr};
+        // Backend* proxy_backend_{nullptr};
+        std::unique_ptr<Backend> proxy_backend_;
+    };
+
+    class BackendProxy : public Proxy
+    {
+    private:
+        void impl_init(const std::unordered_map<std::string, std::string> &config,
+                       const dict &kwargs) override;
+
+    private:
+        // std::unique_ptr<Backend> owned_backend_;
+    };
+
+    class Reflect : public Proxy
+    {
+        void impl_init(const std::unordered_map<std::string, std::string> &config,
+                       const dict &kwargs) override;
+    };
+
+#define HAMI_PROXY(derived_aspect_cls, setting, ...)                    \
+    class derived_aspect_cls : public ProxyV2                           \
+    {                                                                   \
+    public:                                                             \
+        std::pair<std::string, str::str_map> get_order() const override \
+        {                                                               \
+            return make_order(setting, ##__VA_ARGS__);                  \
+        }                                                               \
+    };                                                                  \
     HAMI_REGISTER(Backend, derived_aspect_cls);
 
 #define HAMI_PROXY_WITH_DEPENDENCY(derived_aspect_cls, dependency_setting)   \
-    class derived_aspect_cls : public Proxy {                                \
-       private:                                                              \
-        void impl_init(const std::unordered_map<string, string>& config,     \
-                       const dict& kwargs) override final {                  \
+    class derived_aspect_cls : public Proxy                                  \
+    {                                                                        \
+    private:                                                                 \
+        void impl_init(const std::unordered_map<string, string> &config,     \
+                       const dict &kwargs) override final                    \
+        {                                                                    \
             auto new_conf = config;                                          \
             auto backend_config = str::flatten_brackets(dependency_setting); \
             HAMI_ASSERT(backend_config.size() == 2);                         \
             std::string old =                                                \
                 std::string(#derived_aspect_cls) + "::dependency";           \
-            if (new_conf.find(old) != new_conf.end()) {                      \
+            if (new_conf.find(old) != new_conf.end())                        \
+            {                                                                \
                 auto backend_names =                                         \
                     str::items_split(backend_config.at(1), ',', '[', ']');   \
                 HAMI_ASSERT(backend_names.size() >= 1,                       \
@@ -181,4 +225,4 @@ class Reflect : public Proxy {
     };                                                                       \
     HAMI_REGISTER(Backend, derived_aspect_cls);
 
-}  // namespace hami
+} // namespace hami

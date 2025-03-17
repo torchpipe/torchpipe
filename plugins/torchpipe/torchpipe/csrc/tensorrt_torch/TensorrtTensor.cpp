@@ -12,7 +12,7 @@ namespace torchpipe
         "Forward[TensorrtInferTensor],Reflect[post_processor,Identity]],"
         "SplitTensor]";
     const auto BACKEND_STR =
-        std::string() + "IoC[" + INIT_STR + "; " + FORWARD_STR + "]";
+        std::string() + "IoCV0[" + INIT_STR + "; " + FORWARD_STR + "]";
 
     HAMI_GENERATE_BACKEND(TensorrtTensor, BACKEND_STR, "");
 

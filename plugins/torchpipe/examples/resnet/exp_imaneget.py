@@ -73,7 +73,7 @@ def dataset():
     for item in tqdm(ms_val_dataset, desc="Processing", position=0, leave=True):
         import pdb; pdb.set_trace()
         request_id = item['image:FILE']
-        # IoC[ReadFile, Send[src_queue, max=20],SharedRequestState, ThreadPoolExecutor[src_queue,max_workers=10];ReadFile]
+        # IoCV0[ReadFile, Send[src_queue, max=20],SharedRequestState, ThreadPoolExecutor[src_queue,max_workers=10];ReadFile]
         # 
         category = item['category']
         infer_cls, infer_score = tester(image_file)
@@ -93,12 +93,14 @@ if __name__ == "__main__":
     
     # 
     
-    data_pipeline = hami.init("IoC[CreateQueue(src_queue),Send2Queue(src_queue, max=20),ReadFile];DI[ReadFile, Send2Queue]]")
+    data_pipeline = hami.init("IoC[CreateQueue(src_queue);S[ReadFile, Send2Queue(src_queue, max=20)]]")
     
     model='resnet50'
     onnx_path = Path(tempfile.gettempdir()) / f"{model}.onnx"
+    if not onnx_path.exists():
+        helper.get_timm_and_export_onnx(model, str(onnx_path))
     resnet50 = onnx2trt(str(onnx_path), f'{model}.toml', 'trt_model')
-    pool = hami.init("IoC[Profile,ThreadPoolExecutor(max_workers=10); DI[ThreadPoolExecutor,Profile,trt_model]]", {}, 'pool')  # target_queu(default)
+    pool = hami.init("IoC[Profile,ThreadPoolExecutor(max_workers=10); DI[ThreadPoolExecutor,Profile,trt_model]]", register_name='pool')  # target_queu(default)
 
     # ForwardQueue[src_queue, pool]
     q = hami.get(hami.Queue, 'src_queue')
