@@ -12,9 +12,11 @@
 // InstanceDispatcher, Batching (动态dependency)
 // forward instance="node_name.0"
 namespace hami {
-// IoC[SharedInstancesState,InstanceDispatcher,Batching;DI[Batching,
+// IoC[SharedInstancesState,InstanceDispatcher,Batching;DI_v0[Batching,
 // InstanceDispatcher]]
-constexpr auto TASK_RESOURCE_STATE_KEY = "resource_state";
+constexpr auto TASK_RESOURCE_STATE_KEY = "_resource_state";
+constexpr auto TASK_REQUEST_STATE_KEY = "_request_state";
+
 // class ResourceState {
 //    public:
 //     // @return handle
@@ -84,4 +86,45 @@ class InstancesState {
     std::unordered_map<size_t, std::pair<size_t, size_t>> instances_;
 };
 
+#if 0
+class Status {
+   public:
+    // enum class StatusType { RUNNING, STOPPED, PAUSED, ERROR };
+    const std::unordered_set<std::string> ALL_STATUS = {
+        "RUNNING", "STOPPED", "PAUSED", "ERROR", "WAITING"};
+    explicit Status(const std::unordered_set<std::string>& status)
+        : all_status_(status) {}
+    void set_status(const std::string& in_status) {
+        HAMI_ASSERT(all_status_.count(in_status),
+                    "Invalid status: " + in_status);
+        {
+            std::lock_guard<std::mutex> lock(mtx_);
+            status_ = in_status;
+        }
+        cv_.notify_all();
+    }
+
+    bool is_status(const std::string& in_status) const {
+        HAMI_ASSERT(all_status_.count(in_status),
+                    "Invalid status: " + in_status);
+        std::lock_guard<std::mutex> lock(mtx_);
+        return status_ == in_status;
+    }
+    // std::string get_status() const {
+    //     std::lock_guard<std::mutex> lock(mtx_);
+    //     return status_;
+    // }
+    // const std::unordered_map<StatusType, std::string> status_map = {
+    //     {StatusType::RUNNING, "RUNNING"},
+    //     {StatusType::STOPPED, "STOPPED"},
+    //     {StatusType::PAUSED, "PAUSED"},
+    //     {StatusType::ERROR, "ERROR"}};
+   private:
+    std::string status_;
+    const std::unordered_set<std::string>& all_status_;
+    mutable std::mutex mtx_;
+
+    std::condition_variable cv_;
+};
+#endif
 }  // namespace hami

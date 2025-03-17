@@ -42,15 +42,16 @@ void Batching::impl_inject_dependency(Backend *dependency) {
     }
 }
 
-void Batching::impl_forward(const std::vector<dict> &inputs) {
+void Batching::impl_forward_with_dep(const std::vector<dict> &inputs,
+                                     Backend *dep) {
     HasEventHelper helper(
         inputs);  // add `event` (and wait for possible exception) if not exist
-    HAMI_FATAL_ASSERT(injected_dependency_);
+    HAMI_FATAL_ASSERT(dep);
 
     if (bInited_.load())
         input_queue_.push(inputs, get_request_size<dict>);
     else {
-        injected_dependency_->forward(inputs);
+        dep->forward(inputs);
     }
     helper.wait();
 }

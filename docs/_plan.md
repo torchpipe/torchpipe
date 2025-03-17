@@ -13,7 +13,7 @@ constexpr auto DEFAULT_INIT_CONFIG =
 to
 IoC[InstanceDispatcher,Aspect[Batching, "
     "InstanceDispatcher];Aspect],
-node_entrypoint = IoC[InstancesRegister[BackgroundThread[BackendProxy]], Register[DI[Batching, InstanceDispatcher]]; Forward[node.{node_name}]]
+node_entrypoint = IoC[InstancesRegister[BackgroundThread[BackendProxy]], Register[DI_v0[Batching, InstanceDispatcher]]; Forward[node.{node_name}]]
 
 
 InstanceDispatcher[*PreCat*, *CatedHandle*]
@@ -90,7 +90,7 @@ Repost[Z, dddsa]
  builtin types: Any, Dict, Backend
    (异步), Event, Queue(default queue), 
    （more schedule）TypedDict, KVStorage(req_id, resp_id, data) 
-builtin container: IoC Proxy/DI SequentialV0/S  Reflect[key_to_cls_name, default=backend] Register/InstancesRegister InstanceFromParam Forward[instance_name]
+builtin container: IoC Proxy/DI_v0 [SequentialV0/S  Reflect[key_to_cls_name, default=backend] Register/InstancesRegister InstanceFromParam Forward[instance_name]
 
 CatSplit, DagDispatcher, InstanceDispatcher
 
@@ -156,3 +156,8 @@ FileSource  -> max to queue(default_src_queue)
 uniformSample -> max to queue(default_src_queue)
 
 FileSource[create_name] 
+
+
+[pathway](https://arxiv.org/pdf/2203.12533)
+
+leixing gongshi: duogongshi

@@ -178,12 +178,12 @@ void init_dict(py::module_& m) {
         .def(py::init<>())
         .def(
             "put",
-            [](Queue& self, PyDict item, size_t size) {
+            [](Queue& self, PyDict item) {
                 auto data = item.to_dict();
                 py::gil_scoped_release release;
-                self.put(data, size);
+                self.put(data);
             },
-            py::arg("item"), py::arg("size") = 1)
+            py::arg("item"))
         .def(
             "get",
             [](Queue& self, bool block, std::optional<double> timeout) {

@@ -10,7 +10,7 @@ namespace hami {
 //     "Register[Aspect[Batching, "
 //     "InstanceDispatcher]]]";
 constexpr auto DEFAULT_NODE_CONFIG =
-    u8"IoC[SharedInstancesState,InstanceDispatcher,Batching;DI[Batching,"
+    u8"IoC[SharedInstancesState,InstanceDispatcher,Batching;DI_v0[Batching,"
     "InstanceDispatcher]]";
 // constexpr auto DEFAULT_NODE_CONFIG = "IoC[Pass;Identity]";
 constexpr auto DEFAULT_INSTANCES_CONFIG =

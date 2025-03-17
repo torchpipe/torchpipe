@@ -241,9 +241,5 @@ std::unordered_map<std::string, std::string> Benchmark::get_output(
 }
 
 HAMI_REGISTER_BACKEND(Benchmark);
-// HAMI_GENERATE_BACKEND(
-//     ExecuteFromFiles,
-//     " IoC[ReadFile, Send[src_queue, max=20],SharedRequestState, "
-//     "ThreadPoolExecutor[src_queue,max_workers=10];ReadFile]",
-//     {});
+
 }  // namespace hami

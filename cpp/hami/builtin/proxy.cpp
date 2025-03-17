@@ -64,16 +64,16 @@ void Proxy::impl_init(const std::unordered_map<string, string>& config,
 
 HAMI_REGISTER(Backend, Proxy, "Proxy");
 
-void DI::impl_init(const std::unordered_map<string, string>& config,
-                   const dict& kwargs) {
+void DI_v0::impl_init(const std::unordered_map<string, string>& config,
+                      const dict& kwargs) {
     auto name = backend::get_dependency_name(this, config);
     auto re = str::str_split(name, ',');
     HAMI_ASSERT(re.size() == 2,
-                "Usage: DI[src_instance_name,target_instance_name]");
+                "Usage: DI_v0[src_instance_name,target_instance_name]");
     proxy_backend_ = HAMI_INSTANCE_GET(Backend, re[0]);
     auto* dep = HAMI_INSTANCE_GET(Backend, re[1]);
     HAMI_ASSERT(proxy_backend_ && dep,
-                "DI: instance name not found. Usage: DI[ins1, ins2], here "
+                "DI: instance name not found. Usage: DI_v0[ins1, ins2], here "
                 "ins1 is a name of instance, not a name of class; name = " +
                     re[0] + "/" + re[1]);
     proxy_backend_->inject_dependency(dep);
@@ -81,6 +81,6 @@ void DI::impl_init(const std::unordered_map<string, string>& config,
                 proxy_backend_->max());
 }
 
-HAMI_REGISTER_BACKEND(DI);
+HAMI_REGISTER_BACKEND(DI_v0);
 
 }  // namespace hami

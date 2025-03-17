@@ -33,7 +33,7 @@ void Source::impl_forward(const std::vector<dict>& input) {
             }
         }
     } else {
-        src_queue->put(input);
+        src_queue->puts(input);
     }
 }
 

@@ -149,7 +149,7 @@ HAMI_REGISTER(Backend, RestartEvent);
 
 HAMI_PROXY_WITH_DEPENDENCY(Restart, "Aspect[EventGuard,RestartEvent]");
 
-// class Restart : public Dependency {
+// class Restart : public DependencyV0 {
 //  private:
 //   std::unique_ptr<Backend> owned_backend_;
 

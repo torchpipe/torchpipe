@@ -5,7 +5,7 @@
 
 namespace hami {
 
-class RestartEvent : public Dependency {
+class RestartEvent : public DependencyV0 {
     void pre_init(const std::unordered_map<string, string>& config,
                   const dict&) override final;
     void custom_forward_with_dep(const std::vector<dict>& inputs,

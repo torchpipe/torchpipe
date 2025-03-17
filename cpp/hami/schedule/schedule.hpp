@@ -14,7 +14,8 @@ class Batching : public DynamicDependency {
    private:
     void impl_init(const std::unordered_map<string, string> &config,
                    const dict &) override final;
-    void impl_forward(const std::vector<dict> &inputs) override final;
+    void impl_forward_with_dep(const std::vector<dict> &input,
+                               Backend *dep) override final;
     virtual void run();
     void impl_inject_dependency(Backend *dependency) override;
 

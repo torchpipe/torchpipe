@@ -10,37 +10,23 @@ namespace torchpipe {
 /**
  * @brief cpu->gpu
  */
-class GpuTensor : public BackendOne {
+
+class GpuTensor : public hami::BackendOne {
    public:
-    /**
-     * @brief cpu->gpu
-     * @param TASK_RESULT_KEY input[TASK_RESULT_KEY] =
-     * input[TASK_DATA_KEY].cuda()
-     */
-    virtual void forward(const dict& input_dict) override {
-        auto& input = *input_dict;
-        if (input[TASK_DATA_KEY].type() != typeid(torch::Tensor)) {
-            SPDLOG_ERROR("GpuTensor: torch::Tensor needed; error input type: " +
-                         std::string(input[TASK_DATA_KEY].type().name()));
-            throw std::runtime_error(
-                "GpuTensor: torch::Tensor needed; error input type: " +
-                std::string(input[TASK_DATA_KEY].type().name()));
+    void forward(const dict& input_output) override {
+        auto data = dict_gets<torch::Tensor>(input_output, TASK_DATA_KEY);
+        for (auto& item : data) {
+            if (item.is_cpu()) {
+                item = item.cuda();
+            }
         }
-        auto input_tensor = any_cast<torch::Tensor>(input[TASK_DATA_KEY]);
-
-        if (input_tensor.is_cpu()) {
-            // SPDLOG_ERROR("input_tensor should be cpu tensor");
-            // throw std::runtime_error("input_tensor should be cpu tensor");
-            input[TASK_RESULT_KEY] = input_tensor;
-        }
-
-        input[TASK_RESULT_KEY] = input_tensor.cuda();
+        if (data.size() == 1)
+            (*input_output)[TASK_RESULT_KEY] = data[0];
+        else
+            (*input_output)[TASK_RESULT_KEY] = data;
     }
-
-   private:
 };
-
-HAMI_REGISTER(hami::Backend, GpuTensor, "GpuTensor");
+HAMI_REGISTER(Backend, GpuTensor);
 
 /**
  * @brief gpu->cpu

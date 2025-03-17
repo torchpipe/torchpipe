@@ -83,9 +83,33 @@ def dataset():
         
         
 if __name__ == "__main__":
-    inited = hami.init("CreateQueue(src_queue)")
-    data = hami.init("S_v0[ReadFile, Send2Queue(src_queue, max=20)]")
+    import time
+    time.sleep(10)
     
+    # queue_backend = hami.init("")
+    # data = {}
+    # queue_backend(data)
+    # queue = data['result']
+    
+    # 
+    
+    data_pipeline = hami.init("IoC[CreateQueue(src_queue),Send2Queue(src_queue, max=20),ReadFile];DI[ReadFile, Send2Queue]]")
+    
+    model='resnet50'
+    onnx_path = Path(tempfile.gettempdir()) / f"{model}.onnx"
     resnet50 = onnx2trt(str(onnx_path), f'{model}.toml', 'trt_model')
-    run = hami.init("IoC[SharedRequestState,ThreadPoolExecutor(src_queue,max_workers=10); DI[ThreadPoolExecutor, trt_model]]")  # target_queu(default)
+    pool = hami.init("IoC[Profile,ThreadPoolExecutor(max_workers=10); DI[ThreadPoolExecutor,Profile,trt_model]]", {}, 'pool')  # target_queu(default)
+
+    # ForwardQueue[src_queue, pool]
+    q = hami.get(hami.Queue, 'src_queue')
+    pool({'data':q}) # async
+    
+    q = hami.get(hami.Queue, 'src_queue')
+    while (q.status() == hami.Queue.RUNNING):
+        data_pipeline({})
+    q.join()
+    
     fire.Fire(dataset)
+    
+    
+    

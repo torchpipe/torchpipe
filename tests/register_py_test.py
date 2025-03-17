@@ -31,13 +31,13 @@ class TestPyComponent:
             backend_config
         )
         self.backend_a = hami._C.init(
-            "Register[IoC[SharedInstancesState,InstanceDispatcher,Batching;DI[Batching, InstanceDispatcher]]]",
+            "Register[IoC[SharedInstancesState,InstanceDispatcher,Batching;DI_v0[Batching, InstanceDispatcher]]]",
             {
                 "node_name": backend_config["node_name"],
                 "instance_num": backend_config["instance_num"]
             }
         )
-        self.list = hami._C.init("List[InstancesRegister[BackgroundThread[BackendProxy]], Register[IoC[SharedInstancesState,InstanceDispatcher,Batching;DI[Batching, InstanceDispatcher]]]]",
+        self.list = hami._C.init("List[InstancesRegister[BackgroundThread[BackendProxy]], Register[IoC[SharedInstancesState,InstanceDispatcher,Batching;DI_v0[Batching, InstanceDispatcher]]]]",
                                  {
                                     "node_name": "tmpss",
                                     "instance_num": backend_config["instance_num"],

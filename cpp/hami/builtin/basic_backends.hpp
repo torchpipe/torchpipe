@@ -10,7 +10,7 @@ namespace hami {
  * This backend allows injecting a dependency, which can be used for chaining or
  * delegation.
  */
-class HAMI_EXPORT Dependency : public Backend {
+class HAMI_EXPORT DependencyV0 : public Backend {
    private:
     /**
      * @brief Injects a dependency into the backend or the backend's dependency
@@ -59,7 +59,7 @@ class HAMI_EXPORT Dependency : public Backend {
         const dict &kwargs) {}
 
    public:
-    ~Dependency() override;
+    ~DependencyV0() override;
 
    protected:
     void set_registered_name(const std::string &name) {
@@ -103,16 +103,17 @@ class HAMI_EXPORT DynamicDependency : public Backend {
     void impl_inject_dependency(Backend *dependency) override;
 
    private:
-    virtual void impl_forward(const std::vector<dict> &input_output) override {
-        Backend::forward_with_dep(input_output, injected_dependency_);
+    virtual void impl_forward(
+        const std::vector<dict> &input_output) override final {
+        // Backend::forward_with_dep(input_output, injected_dependency_);
+        if (!injected_dependency_)
+            throw std::runtime_error("Dependency is not injected");
+        // injected_dependency_->forward(input_output);
+        forward_with_dep(input_output, injected_dependency_);
     }
-    // virtual void impl_forward(const std::vector<dict>& input_output,
-    //                      Backend* dependency) override final {
-    //     if (dependency == nullptr) {
-    //         throw std::invalid_argument("null dependency is not allowed");
-    //     }
-    //     custom_forward_with_dep(input_output, dependency);
-    // }
+
+    virtual void impl_forward_with_dep(const std::vector<dict> &input_output,
+                                       Backend *dep) = 0;
 
     [[nodiscard]] size_t impl_max() const override;
     [[nodiscard]] size_t impl_min() const override;

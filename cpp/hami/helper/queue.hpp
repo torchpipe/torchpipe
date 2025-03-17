@@ -7,6 +7,7 @@
 #include <stdexcept>
 #include <chrono>
 #include <functional>
+// #include "hami/core/request_size.hpp"
 
 namespace hami::queue {
 
@@ -238,6 +239,20 @@ class ThreadSafeQueue {
 
 template <typename T>
 class ThreadSafeSizedQueue {
+    // queue status
+   public:
+    enum Status { RUNNING, ERROR, PAUSED, CANCELED, EOS };
+    bool is_status(Status status) {
+        std::lock_guard<std::mutex> lock(status_mutex_);
+        return status_ == status;
+    }
+
+   private:
+    mutable std::mutex status_mutex_;
+    std::condition_variable status_cond_;
+    Status status_{Status::RUNNING};
+
+    // queue data
    private:
     struct SizedElement {
         T value;
@@ -256,17 +271,21 @@ class ThreadSafeSizedQueue {
    public:
     explicit ThreadSafeSizedQueue() = default;
 
+    // bool is_statue(Status status) {
+    //     std::lock_guard<std::mutex> lock(mutex_);
+    //     return status_ == status;
+    // }
     // void shutdown() { shutdown_.store(true); }
     // bool is_shutdown() { return shutdown_.load(); }
     // Push an element with a specified size
     template <typename U,
               typename = std::enable_if_t<std::is_convertible_v<U, T>>>
-    void put(U&& value, size_t size = 1) {
+    void put(U&& value) {
         {
             std::unique_lock<std::mutex> lock(mutex_);
 
-            queue_.push(SizedElement(std::forward<U>(value), size));
-            totalSize_ += size;
+            queue_.push(SizedElement(std::forward<U>(value), 1));
+            totalSize_ += 1;
         }
         pushed_cond_.notify_all();
     }
@@ -349,10 +368,11 @@ class ThreadSafeSizedQueue {
 
     template <typename U, template <typename, typename...> class Container,
               typename... Args>
-    void put(const Container<U, Args...>& values, size_t size_per_item = 1) {
+    void puts(const Container<U, Args...>& values) {
         {
             std::unique_lock<std::mutex> lock(mutex_);
             for (const auto& value : values) {
+                size_t size_per_item = 1;
                 queue_.push(SizedElement(value, size_per_item));
                 totalSize_ += size_per_item;
             }

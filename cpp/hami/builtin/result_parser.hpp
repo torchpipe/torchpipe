@@ -6,7 +6,7 @@
 #include "hami/helper/macro.h"
 namespace hami {
 
-class ResultParser : public Dependency {
+class ResultParser : public DependencyV0 {
    private:
     std::function<void(const dict&)> parser_;
 

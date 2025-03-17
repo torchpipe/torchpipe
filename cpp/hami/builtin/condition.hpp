@@ -6,7 +6,7 @@
 #include "hami/helper/macro.h"
 namespace hami {
 
-class Condition : public Dependency {
+class Condition : public DependencyV0 {
    private:
     std::function<bool(const dict&)> condition_;
 

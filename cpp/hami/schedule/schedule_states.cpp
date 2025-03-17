@@ -13,14 +13,14 @@
 // InstanceDispatcher, Batching (动态dependency)
 // forward instance="node_name.0"
 namespace hami {
-// IoC[SharedInstancesState,InstanceDispatcher,Batching;DI[Batching,
+// IoC[SharedInstancesState,InstanceDispatcher,Batching;DI_v0[Batching,
 // InstanceDispatcher]]
 
- 
-void InstancesState::add_and_set_range(size_t handle, size_t min_value, size_t max_value) {
+void InstancesState::add_and_set_range(size_t handle, size_t min_value,
+                                       size_t max_value) {
     std::unique_lock<std::mutex> lock(mtx_);
     instances_[handle] = {min_value, max_value};
     avaliable_instances_.insert(handle);
 }
- 
+
 }  // namespace hami

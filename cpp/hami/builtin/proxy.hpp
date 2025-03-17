@@ -60,7 +60,7 @@ class Proxy : public Backend {
 //               const dict& kwargs) override;
 // };
 
-class DI : public Proxy {
+class DI_v0 : public Proxy {
    private:
     void impl_init(const std::unordered_map<string, string>& config,
                    const dict& kwargs) override;

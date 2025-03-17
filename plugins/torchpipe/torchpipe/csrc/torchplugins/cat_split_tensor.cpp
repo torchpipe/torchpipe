@@ -96,23 +96,6 @@ class ContiguousTensor : public hami::BackendOne {
 };
 HAMI_REGISTER(Backend, ContiguousTensor);
 
-class GpuTensor : public hami::BackendOne {
-   public:
-    void forward(const dict &input_output) override {
-        auto data = dict_gets<torch::Tensor>(input_output, TASK_DATA_KEY);
-        for (auto &item : data) {
-            if (item.is_cpu()) {
-                item = item.cuda();
-            }
-        }
-        if (data.size() == 1)
-            (*input_output)[TASK_RESULT_KEY] = data[0];
-        else
-            (*input_output)[TASK_RESULT_KEY] = data;
-    }
-};
-HAMI_REGISTER(Backend, GpuTensor);
-
 void SplitTensor::impl_init(
     const std::unordered_map<std::string, std::string> &config_param,
     const dict &kwargs) {}

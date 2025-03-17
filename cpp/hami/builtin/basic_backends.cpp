@@ -10,7 +10,7 @@
 #include "hami/core/helper.hpp"
 
 namespace hami {
-void Dependency::impl_init(
+void DependencyV0::impl_init(
     const std::unordered_map<std::string, std::string>& config,
     const dict& kwargs) {
     HAMI_ASSERT(!shared_owned_dependency_, "Duplicate initialization");
@@ -44,21 +44,21 @@ void Dependency::impl_init(
     post_init(config, kwargs);
 }
 
-void Dependency::set_dependency_name(
+void DependencyV0::set_dependency_name(
     const std::unordered_map<std::string, std::string>& config,
     const std::string& default_cls_name, const std::string& default_dep_name) {
     dependency_name_ =
         get_dependency_name(this, config, default_cls_name, default_dep_name);
 }
 
-void Dependency::impl_inject_dependency(Backend* dependency) {
+void DependencyV0::impl_inject_dependency(Backend* dependency) {
     if (dependency == nullptr) {
         throw std::invalid_argument("null dependency is not allowed");
     }
     if (injected_dependency_) {
         [[maybe_unused]] thread_local const auto log_tmp = []() {
             SPDLOG_WARN(
-                "Dependency::impl_inject_dependency: dependency already "
+                "DependencyV0::impl_inject_dependency: dependency already "
                 "exists(may "
                 "happened in the "
                 "pre_init stage). Chain dependency injection "
@@ -70,12 +70,12 @@ void Dependency::impl_inject_dependency(Backend* dependency) {
         injected_dependency_ = dependency;
     }
 }
-void Dependency::custom_forward_with_dep(const std::vector<dict>& input_output,
-                                         Backend* dependency) {
+void DependencyV0::custom_forward_with_dep(
+    const std::vector<dict>& input_output, Backend* dependency) {
     dependency->safe_forward(input_output);
 }
 
-Dependency::~Dependency() {
+DependencyV0::~DependencyV0() {
     if (!registered_name_.empty()) {
         HAMI_INSTANCE_UNREGISTER(Backend, registered_name_);
     }
