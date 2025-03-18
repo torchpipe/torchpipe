@@ -173,8 +173,9 @@ static inline void clear_dicts(dicts& data, const string& key) {
 
 struct TypedDict {
     using BaseType = std::variant<
-        bool, int, std::shared_ptr<TypedDict>, string, double,
-        std::vector<int>>;  // pls keep order for variant
+        bool, int, std::shared_ptr<TypedDict>, string, double, std::vector<int>,
+        std::vector<
+            std::string>>;  // pls keep order for variant
                             // :https://github.com/pybind/pybind11/issues/1625
 
     std::unordered_map<string, BaseType> data;

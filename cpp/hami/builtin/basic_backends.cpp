@@ -314,13 +314,23 @@ class ReadFile : public BackendOne {
     void forward(const dict& input_output) override {
         std::string file_path =
             dict_get<std::string>(input_output, TASK_DATA_KEY);
-        SPDLOG_INFO("ReadFile: file_path = {}", file_path);
-        std::ifstream file(file_path);
-        HAMI_ASSERT(!file.is_open(), "ReadFile: file not found");
-        std::string content((std::istreambuf_iterator<char>(file)),
-                            std::istreambuf_iterator<char>());
+        // SPDLOG_INFO("ReadFile: file_path = `{}`", file_path);
+        std::ifstream file(file_path, std::ios::binary | std::ios::ate);
+        HAMI_ASSERT(file.is_open(), "ReadFile: file not found");
+
+        std::streamsize size = file.tellg();
+        HAMI_ASSERT(size > 2);
+        file.seekg(0, std::ios::beg);
+
+        std::string content(size, '\0');
+        // SPDLOG_INFO("file size = {} content.size() = {}", size,
+        // content.size());
+        HAMI_ASSERT(file.read(content.data(), size),
+                    "ReadFile: failed to read file content");
+
         file.close();
-        input_output->insert_or_assign(TASK_RESULT_KEY, content);
+
+        input_output->insert_or_assign(TASK_RESULT_KEY, std::move(content));
     }
 };
 

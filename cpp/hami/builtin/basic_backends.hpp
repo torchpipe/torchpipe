@@ -186,6 +186,13 @@ class HAMI_EXPORT List : public Backend {
 
    private:
     std::vector<std::unique_ptr<Backend>> backends_;
+
+   public:
+    ~List() {
+        for (size_t i = 0; i < backends_.size(); ++i) {
+            backends_[backends_.size() - i - 1].release();
+        }
+    }
 };
 
 }  // namespace hami

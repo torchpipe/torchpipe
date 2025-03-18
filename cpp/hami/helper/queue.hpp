@@ -241,16 +241,54 @@ template <typename T>
 class ThreadSafeSizedQueue {
     // queue status
    public:
-    enum Status { RUNNING, ERROR, PAUSED, CANCELED, EOS };
+    enum Status { RUNNING, PAUSED, ERROR, CANCELED, EOS };
     bool is_status(Status status) {
         std::lock_guard<std::mutex> lock(status_mutex_);
         return status_ == status;
+    }
+
+    Status status() {
+        std::lock_guard<std::mutex> lock(status_mutex_);
+        return status_;
+    }
+    void cancel() {
+        std::lock_guard<std::mutex> lock(status_mutex_);
+        if (Status::RUNNING == status_ || Status::PAUSED == status_) {
+            status_ = Status::CANCELED;
+            status_cond_.notify_all();
+        }
+    }
+    void set_status(Status status) {
+        {
+            std::lock_guard<std::mutex> lock(status_mutex_);
+            status_ = status;
+        }
+        status_cond_.notify_all();
+    }
+    void set_error(std::exception_ptr excep) {
+        {
+            std::lock_guard<std::mutex> lock(status_mutex_);
+            status_ = Status::ERROR;
+            excep_ = excep;
+        }
+
+        status_cond_.notify_all();
+    }
+    void join() {
+        std::unique_lock<std::mutex> lock(status_mutex_);
+        status_cond_.wait_for(lock, [this]() {
+            return Status::RUNNING != status_ && Status::PAUSED != status_;
+        });
+        if (excep_) {
+            std::rethrow_exception(excep_);
+        }
     }
 
    private:
     mutable std::mutex status_mutex_;
     std::condition_variable status_cond_;
     Status status_{Status::RUNNING};
+    std::exception_ptr excep_{nullptr};
 
     // queue data
    private:
@@ -364,6 +402,13 @@ class ThreadSafeSizedQueue {
             queue_.push(SizedElement(value, size_per_item));
             totalSize_ += size_per_item;
         }
+    }
+
+    void put_without_notify(const T& value) {
+        std::unique_lock<std::mutex> lock(mutex_);
+
+        queue_.push(SizedElement(value, 1));
+        totalSize_ += 1;
     }
 
     template <typename U, template <typename, typename...> class Container,

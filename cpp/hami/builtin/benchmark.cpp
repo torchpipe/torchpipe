@@ -10,6 +10,8 @@
 #include "hami/core/task_keys.hpp"
 #include "hami/core/helper.hpp"
 #include "hami/builtin/source.hpp"
+#include "hami/builtin/proxy.hpp"
+
 #include "hami/builtin/generate_backend.hpp"
 namespace hami {
 
@@ -241,5 +243,69 @@ std::unordered_map<std::string, std::string> Benchmark::get_output(
 }
 
 HAMI_REGISTER_BACKEND(Benchmark);
+
+class Profile : public DynamicDependency {
+   public:
+    struct Status {
+        // size_t client_index;
+        size_t thread_id;
+        std::chrono::steady_clock::time_point start_time;
+        std::chrono::steady_clock::time_point end_time;
+    };
+
+   private:
+    void impl_init(const std::unordered_map<std::string, std::string> &params,
+                   const dict &options) override {
+        // str::try_update(params, "num_clients", num_clients_);
+        // str::try_update(params, "request_batch", request_batch_);
+        // total_number_ = str::update<size_t>(config, "total_number");
+        // str::try_update(params, "num_warm_up", num_warm_up_);
+
+        target_queue_ = &default_queue();
+    }
+
+    void impl_forward_with_dep(const std::vector<dict> &io,
+                               Backend *dep) override {
+        thread_local const std::string thread_id = std::to_string(
+            std::hash<std::thread::id>()(std::this_thread::get_id()));
+
+        std::vector<std::string> req_ids;
+        for (const auto &item : io) {
+            std::string req_id =
+                dict_get<std::string>(item, TASK_REQUEST_ID_KEY);
+            req_ids.push_back(req_id);
+        }
+
+        // size_t req_size = io.size();
+        static const auto first_time = std::chrono::steady_clock::now();
+        TypedDict status;
+        status.data[TASK_REQUEST_ID_KEY] = req_ids;
+        status.data["thread_id"] = thread_id;
+        status.data["start_time"] =
+            std::chrono::duration_cast<std::chrono::duration<double>>(
+                std::chrono::steady_clock::now() - first_time)
+                .count();
+        try {
+            dep->forward(io);
+        } catch (const std::exception &e) {
+            status.data["exception"] = std::string(e.what());
+        }
+
+        status.data["end_time"] =
+            std::chrono::duration_cast<std::chrono::duration<double>>(
+                std::chrono::steady_clock::now() - first_time)
+                .count();
+        auto data = make_dict();
+        data->insert({TASK_DATA_KEY, status});
+        target_queue_->put_without_notify(data);
+    }
+
+   private:
+    // size_t request_batch_ = 1;
+    // size_t total_number_ = 10000;
+    // size_t num_warm_up_ = 20;
+    Queue *target_queue_{nullptr};
+};
+HAMI_REGISTER_BACKEND(Profile);
 
 }  // namespace hami

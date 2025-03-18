@@ -11,7 +11,7 @@
 #include "hami/helper/macro.h"
 #include "hami/core/queue.hpp"
 #include "hami/helper/base_logging.hpp"
-
+#include "hami/csrc/py_register.hpp"
 namespace hami {
 
 namespace py = pybind11;
@@ -21,7 +21,8 @@ PyDict::PyDict(const py::dict& data) {
     data_ = make_dict();
     for (const auto& item : data) {
         const std::string key = py::cast<std::string>(item.first);
-        auto second = object2any(item.second);
+        auto second =
+            object2any(py::reinterpret_borrow<py::object>(item.second));
         if (second == std::nullopt) {
             throw py::type_error("hami.Any: The input type is unknown.");
         }
@@ -173,9 +174,23 @@ void init_dict(py::module_& m) {
           pybind11::return_value_policy::reference);
     m.def("default_output_queue", &default_output_queue,
           pybind11::return_value_policy::reference);
-
-    py::class_<Queue>(m, "Queue")
-        .def(py::init<>())
+    // m.def(  // todo: support other types
+    //     "get",
+    //     [](py::object /* cls */, const std::string& name) -> Queue& {
+    //         return HAMI_INSTANCE_GET(Queue, name)
+    //         // return default_queue(name);
+    //     },
+    //     py::arg("cls"), py::arg("name") = std::string(""),
+    //     pybind11::return_value_policy::reference);
+    py::class_<Queue, std::shared_ptr<Queue>> queue_class(m, "Queue");
+    py::enum_<typename Queue::Status>(queue_class, "Status")
+        .value("RUNNING", Queue::Status::RUNNING)
+        .value("ERROR", Queue::Status::ERROR)
+        .value("PAUSED", Queue::Status::PAUSED)
+        .value("CANCELED", Queue::Status::CANCELED)
+        .value("EOS", Queue::Status::EOS)
+        .export_values();
+    queue_class.def(py::init<>())
         .def(
             "put",
             [](Queue& self, PyDict item) {
@@ -198,7 +213,14 @@ void init_dict(py::module_& m) {
             },
             py::arg("block") = true, py::arg("timeout") = std::nullopt)
         .def("size", &Queue::size)
-        .def("empty", &Queue::empty);
+        .def("empty", &Queue::empty)
+        .def("status", &Queue::status)
+        .def_static("type_hash", []() {
+            // SPDLOG_INFO("type_hash : {}", typeid(Queue*).name());
+            return typeid(Queue).hash_code();
+        });
+
+    reg::register_any_ptr_object_hash_converter<Queue>();
 }
 
 }  // namespace hami

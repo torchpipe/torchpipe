@@ -93,23 +93,33 @@ if __name__ == "__main__":
     
     # 
     
-    data_pipeline = hami.init("IoC[CreateQueue(src_queue);S[ReadFile, Send2Queue(src_queue, max=20)]]")
+    data_pipeline = hami.init("S[ReadFile, Send2Queue(src_queue, max=20)]")
     
     model='resnet50'
     onnx_path = Path(tempfile.gettempdir()) / f"{model}.onnx"
     if not onnx_path.exists():
         helper.get_timm_and_export_onnx(model, str(onnx_path))
     resnet50 = onnx2trt(str(onnx_path), f'{model}.toml', 'trt_model')
-    pool = hami.init("IoC[Profile,ThreadPoolExecutor(max_workers=10); DI[ThreadPoolExecutor,Profile,trt_model]]", register_name='pool')  # target_queu(default)
+    pool = hami.init("IoC[Profile,ThreadPoolExecutor(out=thrd_pool,max_workers=10); DI[ThreadPoolExecutor,Profile,trt_model]]", register_name='pool')  # target_queu(default)
 
-    # ForwardQueue[src_queue, pool]
-    q = hami.get(hami.Queue, 'src_queue')
+    q = hami.default_queue(tag = 'src_queue')
     pool({'data':q}) # async
     
-    q = hami.get(hami.Queue, 'src_queue')
-    while (q.status() == hami.Queue.RUNNING):
-        data_pipeline({})
+    
+    from importlib.resources import files
+    # 获取 retina.jpg 的路径
+    retina_path = str(files("skimage.data").joinpath("retina.jpg"))
+    # 打印路径
+    print(retina_path)
+
+    index = 0
+    while (q.status() == hami.Queue.RUNNING and index< 1000):
+        data_pipeline({'data':str(retina_path), 'request_id':str(retina_path)})
+        index += 1
     q.join()
+    
+    result = hami.default_queue('thrd_pool').get()['result']
+    profile_result = hami.default_queue().get()['data']
     
     fire.Fire(dataset)
     

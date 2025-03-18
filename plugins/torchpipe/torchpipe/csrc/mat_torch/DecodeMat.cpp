@@ -13,11 +13,11 @@ cv::Mat cpu_decode(std::string data) {
     std::vector<char> vectordata(data.begin(), data.end());
 
     // Check if the data is a JPEG file
-    if (vectordata.size() < 2 || vectordata[0] != char(0xFF) ||
-        vectordata[1] != char(0xD8)) {
-        SPDLOG_ERROR("The data is not a valid JPEG file.");
-        return cv::Mat();
-    }
+    // if (vectordata.size() < 2 || vectordata[0] != char(0xFF) ||
+    //     vectordata[1] != char(0xD8)) {
+    //     SPDLOG_ERROR("The data is not a valid JPEG file.");
+    //     return cv::Mat();
+    // }
 
     return cv::imdecode(cv::Mat(vectordata), cv::IMREAD_COLOR);
 }
@@ -43,10 +43,11 @@ void DecodeMat::forward(const hami::dict& input_dict) {
     const std::string* data =
         hami::any_cast<std::string>(&input[TASK_DATA_KEY]);
     HAMI_ASSERT(data && !data->empty());
+    // SPDLOG_INFO("mat input {}", data->size());
     auto tensor = cpu_decode(*data);  // tensor type is Mat
     if (tensor.channels() != 3) {
-        SPDLOG_ERROR("only support tensor.channels() == 3. get {}",
-                     tensor.channels());
+        SPDLOG_ERROR("only support tensor.channels() == 3. get {}; hxw= {}x{}",
+                     tensor.channels(), tensor.rows, tensor.cols);
         return;
     }
     if (tensor.empty()) {
