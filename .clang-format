@@ -1,0 +1,14 @@
+Language: Cpp
+BasedOnStyle: Google
+
+BinPackParameters: false
+BinPackArguments: false
+Standard:        c++17
+ExperimentalAutoDetectBinPacking: false
+AllowAllParametersOfDeclarationOnNextLine: false
+DerivePointerAlignment: false
+AlwaysBreakTemplateDeclarations: Yes
+PointerAlignment: Left
+ColumnLimit: 80
+PenaltyBreakScopeResolution: 1000
+...

@@ -1,16 +1,15 @@
 #pragma once
 
-#include <string>
-#include <vector>
+#include <algorithm>
 #include <array>
-#include <unordered_map>
 #include <charconv>
+#include <iomanip>
+#include <sstream>
 #include <stdexcept>
 #include <string>
-#include <sstream>
-#include <iomanip>
+#include <unordered_map>
 #include <unordered_set>
-#include <algorithm>
+#include <vector>
 
 namespace hami::str {
 const auto ITEM_DELIMITERS = std::unordered_set<char>{
@@ -24,88 +23,87 @@ using str_map = std::unordered_map<string, string>;
 using mapmap = std::unordered_map<string, str_map>;
 
 std::vector<std::string> str_split(std::string strtem, char a);
-void remove_space_and_ctrl(std::string &strtem);
+void remove_space_and_ctrl(std::string& strtem);
 
 template <typename T>
-std::vector<T> str_split(const std::string &input, char delimiter = ',') {
-    static_assert(std::is_arithmetic_v<T>,
-                  "T must be an arithmetic type (integer or floating-point)");
+std::vector<T> str_split(const std::string& input, char delimiter = ',') {
+  static_assert(std::is_arithmetic_v<T>,
+                "T must be an arithmetic type (integer or floating-point)");
 
-    std::vector<T> result;
-    std::string trimmed_input = input;
+  std::vector<T> result;
+  std::string trimmed_input = input;
 
-    remove_space_and_ctrl(trimmed_input);
+  remove_space_and_ctrl(trimmed_input);
 
-    if (trimmed_input.empty()) {
-        return result;
-    }
-
-    std::istringstream iss(trimmed_input);
-    std::string token;
-    int token_index = 0;
-
-    while (std::getline(iss, token, delimiter)) {
-        if (!token.empty()) {
-            T value;
-
-            if constexpr (std::is_integral_v<T>) {
-                auto [ptr, ec] = std::from_chars(
-                    token.data(), token.data() + token.size(), value);
-                if (ec == std::errc()) {
-                    if (ptr == token.data() + token.size()) {
-                        result.push_back(value);
-                    } else {
-                        throw std::invalid_argument(
-                            "Invalid integer at index " +
-                            std::to_string(token_index) + ": '" + token +
-                            "'. Non-numeric characters found.");
-                    }
-                } else if (ec == std::errc::result_out_of_range) {
-                    throw std::out_of_range("Integer out of range at index " +
-                                            std::to_string(token_index) +
-                                            ": '" + token + "'");
-                } else {
-                    throw std::invalid_argument("Invalid integer at index " +
-                                                std::to_string(token_index) +
-                                                ": '" + token + "'");
-                }
-            } else if constexpr (std::is_floating_point_v<T>) {
-                char *end;
-                value = std::strtod(token.c_str(), &end);
-                if (end != token.c_str() + token.size()) {
-                    throw std::invalid_argument(
-                        "Invalid floating-point value at index " +
-                        std::to_string(token_index) + ": '" + token +
-                        "'. Non-numeric characters found.");
-                }
-                if (errno == ERANGE) {
-                    throw std::out_of_range(
-                        "Floating-point value out of range at index " +
-                        std::to_string(token_index) + ": '" + token + "'");
-                }
-                result.push_back(value);
-            }
-        }
-        token_index++;
-    }
-
+  if (trimmed_input.empty()) {
     return result;
+  }
+
+  std::istringstream iss(trimmed_input);
+  std::string token;
+  int token_index = 0;
+
+  while (std::getline(iss, token, delimiter)) {
+    if (!token.empty()) {
+      T value;
+
+      if constexpr (std::is_integral_v<T>) {
+        auto [ptr, ec] =
+            std::from_chars(token.data(), token.data() + token.size(), value);
+        if (ec == std::errc()) {
+          if (ptr == token.data() + token.size()) {
+            result.push_back(value);
+          } else {
+            throw std::invalid_argument(
+                "Invalid integer at index " + std::to_string(token_index) +
+                ": '" + token + "'. Non-numeric characters found.");
+          }
+        } else if (ec == std::errc::result_out_of_range) {
+          throw std::out_of_range("Integer out of range at index " +
+                                  std::to_string(token_index) + ": '" + token +
+                                  "'");
+        } else {
+          throw std::invalid_argument("Invalid integer at index " +
+                                      std::to_string(token_index) + ": '" +
+                                      token + "'");
+        }
+      } else if constexpr (std::is_floating_point_v<T>) {
+        char* end;
+        value = std::strtod(token.c_str(), &end);
+        if (end != token.c_str() + token.size()) {
+          throw std::invalid_argument("Invalid floating-point value at index " +
+                                      std::to_string(token_index) + ": '" +
+                                      token +
+                                      "'. Non-numeric characters found.");
+        }
+        if (errno == ERANGE) {
+          throw std::out_of_range(
+              "Floating-point value out of range at index " +
+              std::to_string(token_index) + ": '" + token + "'");
+        }
+        result.push_back(value);
+      }
+    }
+    token_index++;
+  }
+
+  return result;
 }
 
 template <typename T>
-std::vector<std::vector<T>> str_split(const std::string &in_input,
+std::vector<std::vector<T>> str_split(const std::string& in_input,
                                       char inner_delimiter,
                                       char outer_delimiter) {
-    auto input = in_input;
-    remove_space_and_ctrl(input);
-    std::vector<std::vector<T>> result;
-    std::vector<std::string> outer_split = str_split(input, outer_delimiter);
-    result.reserve(outer_split.size());
+  auto input = in_input;
+  remove_space_and_ctrl(input);
+  std::vector<std::vector<T>> result;
+  std::vector<std::string> outer_split = str_split(input, outer_delimiter);
+  result.reserve(outer_split.size());
 
-    for (const auto &item : outer_split) {
-        result.push_back(str_split<T>(item, inner_delimiter));
-    }
-    return result;
+  for (const auto& item : outer_split) {
+    result.push_back(str_split<T>(item, inner_delimiter));
+  }
+  return result;
 }
 
 template <typename T>
@@ -113,25 +111,25 @@ std::vector<std::vector<std::vector<T>>> str_split(std::string input,
                                                    char inner_delimiter,
                                                    char middle_delimiter,
                                                    char outer_delimiter) {
-    std::vector<std::vector<std::vector<T>>> result;
+  std::vector<std::vector<std::vector<T>>> result;
 
-    remove_space_and_ctrl(input);
+  remove_space_and_ctrl(input);
 
-    if (input.empty()) {
-        return result;
-    }
-
-    std::vector<std::string> outer_split = str_split(input, outer_delimiter);
-    result.reserve(outer_split.size());
-
-    for (const auto &outer_item : outer_split) {
-        std::vector<std::vector<T>> middle_result =
-            str_split<T>(outer_item, inner_delimiter, middle_delimiter);
-
-        result.push_back(std::move(middle_result));
-    }
-
+  if (input.empty()) {
     return result;
+  }
+
+  std::vector<std::string> outer_split = str_split(input, outer_delimiter);
+  result.reserve(outer_split.size());
+
+  for (const auto& outer_item : outer_split) {
+    std::vector<std::vector<T>> middle_result =
+        str_split<T>(outer_item, inner_delimiter, middle_delimiter);
+
+    result.push_back(std::move(middle_result));
+  }
+
+  return result;
 }
 
 /**
@@ -147,8 +145,10 @@ std::vector<std::vector<std::vector<T>>> str_split(std::string input,
  * @param skipRight The character that marks the end of a section to skip.
  * @return A vector of strings after splitting.
  */
-std::vector<std::string> items_split(std::string input, char delimiter,
-                                     char skipLeft = '[', char skipRight = ']');
+std::vector<std::string> items_split(std::string input,
+                                     char delimiter,
+                                     char skipLeft = '[',
+                                     char skipRight = ']');
 /**
  * @brief Expands nested brackets in strings.
  *
@@ -167,8 +167,9 @@ std::vector<std::string> items_split(std::string input, char delimiter,
  * @param right The right bracket character, default is ']'.
  * @return A vector of strings after expanding the brackets.
  */
-std::vector<std::string> flatten_brackets(const std::string &strtem,
-                                          char left = '[', char right = ']');
+std::vector<std::string> flatten_brackets(const std::string& strtem,
+                                          char left = '[',
+                                          char right = ']');
 
 /**
  * @brief Converts square bracket expressions into key-value pair parameters.
@@ -202,19 +203,22 @@ std::vector<std::string> flatten_brackets(const std::string &strtem,
  * @param left The left bracket character, default is '['.
  * @param right The right bracket character, default is ']'.
  */
-void brackets_split(const std::string &src,
-                    std::unordered_map<std::string, std::string> &dst_config,
-                    std::string key, char left = '[', char right = ']');
+void brackets_split(const std::string& src,
+                    std::unordered_map<std::string, std::string>& dst_config,
+                    std::string key,
+                    char left = '[',
+                    char right = ']');
 
 std::string brackets_split(
-    const std::string &src,
-    std::unordered_map<std::string, std::string> &dst_config, char left = '[',
+    const std::string& src,
+    std::unordered_map<std::string, std::string>& dst_config,
+    char left = '[',
     char right = ']');
 
-std::string prefix_parentheses_split(const std::string &strtem,
-                                     std::string &pre_str);
-std::string post_parentheses_split(const std::string &strtem,
-                                   std::string &post_str);
+std::string prefix_parentheses_split(const std::string& strtem,
+                                     std::string& pre_str);
+std::string post_parentheses_split(const std::string& strtem,
+                                   std::string& post_str);
 
 /**
  * @brief Checks if the left and right brackets in the string are matched and if
@@ -230,7 +234,8 @@ std::string post_parentheses_split(const std::string &strtem,
  * @exception Throws invalid_argument exception if brackets are unmatched or if
  * a comma appears at the first or last position of the string.
  */
-bool is_comma_semicolon_separable(const std::string &strtem, char left,
+bool is_comma_semicolon_separable(const std::string& strtem,
+                                  char left,
                                   char right);
 
 /** @brief
@@ -253,136 +258,140 @@ bool is_comma_semicolon_separable(const std::string &strtem, char left,
  * ',', "1")
  */
 std::unordered_map<std::string, std::string> auto_config_split(
-    const std::string &strtem, const std::string &default_key = "");
+    const std::string& strtem,
+    const std::string& default_key = "");
 
-size_t edit_distance(const std::string &s, const std::string &t);
+size_t edit_distance(const std::string& s, const std::string& t);
+
+// template <typename T>
+// void str2int(const str::str_map &config, const std::string &key,
+//              T &default_value) {
+//     static_assert(std::is_integral_v<T>, "T must be an integral type");
+//     auto iter = config.find(key);
+//     if (iter == config.end()) {
+//         SPDLOG_DEBUG("parameter {} not found, default to {}", key,
+//                      default_value);
+//         return;
+//     }
+
+//     const std::string &value = iter->second;
+//     auto [ptr, ec] = std::from_chars(value.data(), value.data() +
+//     value.size(),
+//                                      default_value);
+//     bool success = ec == std::errc() && ptr == value.data() + value.size();
+//     if (!success) {
+//         throw std::invalid_argument("invalid " + key + ": " + value);
+//     }
+// }
 
 template <typename T>
-void str2int(const str::str_map &config, const std::string &key,
-             T &default_value) {
-    static_assert(std::is_integral_v<T>, "T must be an integral type");
-    auto iter = config.find(key);
-    if (iter == config.end()) {
-        SPDLOG_DEBUG("parameter {} not found, default to {}", key,
-                     default_value);
-        return;
-    }
+T str2int(const str::str_map& config, const std::string& key) {
+  static_assert(std::is_integral_v<T>, "T must be an integral type");
+  auto iter = config.find(key);
+  if (iter == config.end()) {
+    throw std::invalid_argument("parameter " + key + " not found");
+  }
 
-    const std::string &value = iter->second;
-    auto [ptr, ec] = std::from_chars(value.data(), value.data() + value.size(),
-                                     default_value);
-    bool success = ec == std::errc() && ptr == value.data() + value.size();
-    if (!success) {
-        throw std::invalid_argument("invalid " + key + ": " + value);
-    }
-}
-
-template <typename T>
-T str2int(const str::str_map &config, const std::string &key) {
-    static_assert(std::is_integral_v<T>, "T must be an integral type");
-    auto iter = config.find(key);
-    if (iter == config.end()) {
-        throw std::invalid_argument("parameter " + key + " not found");
-    }
-
-    T result_value;
-    const std::string &value = iter->second;
-    auto [ptr, ec] = std::from_chars(value.data(), value.data() + value.size(),
-                                     result_value);
-    bool success = ec == std::errc() && ptr == value.data() + value.size();
-    if (!success) {
-        throw std::invalid_argument("invalid " + key + ": " + value);
-    }
-    return result_value;
+  T result_value;
+  const std::string& value = iter->second;
+  auto [ptr, ec] =
+      std::from_chars(value.data(), value.data() + value.size(), result_value);
+  bool success = ec == std::errc() && ptr == value.data() + value.size();
+  if (!success) {
+    throw std::invalid_argument("invalid " + key + ": " + value);
+  }
+  return result_value;
 }
 
 template <typename T = std::string>
-T update(const str::str_map &config, const std::string &key) {
-    static_assert(std::is_integral_v<T>, "T must be an integral type");
-    auto iter = config.find(key);
-    if (iter == config.end()) {
-        throw std::invalid_argument("parameter " + key + " not found");
-    }
+T update(const str::str_map& config, const std::string& key) {
+  static_assert(std::is_integral_v<T>, "T must be an integral type");
+  auto iter = config.find(key);
+  if (iter == config.end()) {
+    throw std::invalid_argument("parameter " + key + " not found");
+  }
 
-    T result_value;
-    const std::string &value = iter->second;
-    auto [ptr, ec] = std::from_chars(value.data(), value.data() + value.size(),
-                                     result_value);
-    bool success = ec == std::errc() && ptr == value.data() + value.size();
-    if (!success) {
-        throw std::invalid_argument("invalid " + key + ": " + value);
-    }
-    return result_value;
+  T result_value;
+  const std::string& value = iter->second;
+  auto [ptr, ec] =
+      std::from_chars(value.data(), value.data() + value.size(), result_value);
+  bool success = ec == std::errc() && ptr == value.data() + value.size();
+  if (!success) {
+    throw std::invalid_argument("invalid " + key + ": " + value);
+  }
+  return result_value;
 }
 
-static inline std::string get_str(const str::str_map &config,
-                                  const std::string &key) {
-    auto iter = config.find(key);
-    if (iter == config.end()) {
-        throw std::invalid_argument("parameter " + key + " not found");
-    }
+static inline std::string get_str(const str::str_map& config,
+                                  const std::string& key) {
+  auto iter = config.find(key);
+  if (iter == config.end()) {
+    throw std::invalid_argument("parameter " + key + " not found");
+  }
 
-    return iter->second;
+  return iter->second;
 }
 
-static inline std::string join(const std::unordered_set<std::string> &vec,
+static inline std::string join(const std::unordered_set<std::string>& vec,
                                char sep) {
-    std::ostringstream oss;
-    bool first = true;
-    for (const auto &s : vec) {
-        if (!first) {
-            oss << sep;
-        }
-        oss << s;
-        first = false;
+  std::ostringstream oss;
+  bool first = true;
+  for (const auto& s : vec) {
+    if (!first) {
+      oss << sep;
     }
-    return oss.str();
+    oss << s;
+    first = false;
+  }
+  return oss.str();
 }
 
 static inline std::string tolower(std::string s) {
-    constexpr auto DIFF_UPPER_LOWER = 'a' - 'A';
-    for (char &ch : s) {
-        if (ch >= 'A' && ch <= 'Z') {
-            ch += DIFF_UPPER_LOWER;
-        }
+  constexpr auto DIFF_UPPER_LOWER = 'a' - 'A';
+  for (char& ch : s) {
+    if (ch >= 'A' && ch <= 'Z') {
+      ch += DIFF_UPPER_LOWER;
     }
-    return s;
+  }
+  return s;
 }
 
 inline void try_update(
-    const str::str_map &config, const std::string &key,
-    std::string &default_value,
-    const std::unordered_set<std::string> &valid_inputs = {}) {
-    auto iter = config.find(key);
-    if (iter == config.end()) {
-        return;
-    }
+    const str::str_map& config,
+    const std::string& key,
+    std::string& default_value,
+    const std::unordered_set<std::string>& valid_inputs = {}) {
+  auto iter = config.find(key);
+  if (iter == config.end()) {
+    return;
+  }
 
-    if (!valid_inputs.empty() && valid_inputs.count(iter->second) == 0) {
-        throw std::invalid_argument(
-            "parameter " + key + " is out of range: " + iter->second +
-            ", valid inputs are `" + str::join(valid_inputs, ',') + "`.");
-    }
+  if (!valid_inputs.empty() && valid_inputs.count(iter->second) == 0) {
+    throw std::invalid_argument(
+        "parameter " + key + " is out of range: " + iter->second +
+        ", valid inputs are `" + str::join(valid_inputs, ',') + "`.");
+  }
 
-    default_value = iter->second;
+  default_value = iter->second;
 }
 
 template <typename T>
-void try_update(const str::str_map &config, const std::string &key,
-                T &default_value) {
-    static_assert(std::is_arithmetic_v<T>, "T must be a number");
-    auto iter = config.find(key);
-    if (iter == config.end()) {
-        return;
-    }
+void try_update(const str::str_map& config,
+                const std::string& key,
+                T& default_value) {
+  static_assert(std::is_arithmetic_v<T>, "T must be a number");
+  auto iter = config.find(key);
+  if (iter == config.end()) {
+    return;
+  }
 
-    const std::string &value = iter->second;
-    auto [ptr, ec] = std::from_chars(value.data(), value.data() + value.size(),
-                                     default_value);
-    bool success = ec == std::errc() && ptr == value.data() + value.size();
-    if (!success) {
-        throw std::invalid_argument("invalid " + key + ": " + value);
-    }
+  const std::string& value = iter->second;
+  auto [ptr, ec] =
+      std::from_chars(value.data(), value.data() + value.size(), default_value);
+  bool success = ec == std::errc() && ptr == value.data() + value.size();
+  if (!success) {
+    throw std::invalid_argument("invalid " + key + ": " + value);
+  }
 }
 
 }  // namespace hami::str
@@ -391,74 +400,74 @@ namespace hami {
 namespace str {
 
 template <typename... Args>
-std::string format(const std::string &fmt, Args &&...args) {
-    std::ostringstream oss;
-    std::string remaining_fmt = fmt;  // 引入一个非 const 的局部变量
-    size_t index = 0;
-    size_t pos = 0;
+std::string format(const std::string& fmt, Args&&... args) {
+  std::ostringstream oss;
+  std::string remaining_fmt = fmt;  // 引入一个非 const 的局部变量
+  size_t index = 0;
+  size_t pos = 0;
 
-    // 使用 lambda 捕获参数包
-    auto format_arg = [&](const auto &arg) {
-        // 如果索引超过参数的数量，直接返回
-        if (index >= sizeof...(Args)) {
-            return;
-        }
+  // 使用 lambda 捕获参数包
+  auto format_arg = [&](const auto& arg) {
+    // 如果索引超过参数的数量，直接返回
+    if (index >= sizeof...(Args)) {
+      return;
+    }
 
-        std::string placeholder = "{" + std::to_string(index) + "}";
-        size_t current_pos = remaining_fmt.find(placeholder, pos);
-        if (current_pos != std::string::npos) {
-            // 将当前占位符之前的部分添加到 ostringstream
-            oss << remaining_fmt.substr(0, current_pos);
-            // 添加参数
-            oss << arg;
-            // 更新剩余格式字符串
-            remaining_fmt =
-                remaining_fmt.substr(current_pos + placeholder.length());
-            pos = 0;  // 重置位置，以确保后续搜索从头开始
-        } else {
-            // 如果没有找到占位符，直接添加剩余部分
-            oss << remaining_fmt;
-            remaining_fmt.clear();
-        }
-        index++;
-    };
+    std::string placeholder = "{" + std::to_string(index) + "}";
+    size_t current_pos = remaining_fmt.find(placeholder, pos);
+    if (current_pos != std::string::npos) {
+      // 将当前占位符之前的部分添加到 ostringstream
+      oss << remaining_fmt.substr(0, current_pos);
+      // 添加参数
+      oss << arg;
+      // 更新剩余格式字符串
+      remaining_fmt = remaining_fmt.substr(current_pos + placeholder.length());
+      pos = 0;  // 重置位置，以确保后续搜索从头开始
+    } else {
+      // 如果没有找到占位符，直接添加剩余部分
+      oss << remaining_fmt;
+      remaining_fmt.clear();
+    }
+    index++;
+  };
 
-    // 依次处理每个参数
-    (format_arg(std::forward<Args>(args)), ...);
+  // 依次处理每个参数
+  (format_arg(std::forward<Args>(args)), ...);
 
-    // 添加剩余部分
-    oss << remaining_fmt;
-    return oss.str();
+  // 添加剩余部分
+  oss << remaining_fmt;
+  return oss.str();
 }
 
-size_t replace_once(std::string &str, const std::string &from,
-                    const std::string &to);
+size_t replace_once(std::string& str,
+                    const std::string& from,
+                    const std::string& to);
 
 template <typename T>
-std::string vec2str(const std::vector<T> &vec) {
-    static_assert(std::is_arithmetic_v<T>, "T must be an arithmetic type");
-    std::ostringstream oss;
-    oss << "[";
-    for (size_t i = 0; i < vec.size(); ++i) {
-        oss << vec[i];
-        if (i < vec.size() - 1) {
-            oss << ", ";
-        }
+std::string vec2str(const std::vector<T>& vec) {
+  static_assert(std::is_arithmetic_v<T>, "T must be an arithmetic type");
+  std::ostringstream oss;
+  oss << "[";
+  for (size_t i = 0; i < vec.size(); ++i) {
+    oss << vec[i];
+    if (i < vec.size() - 1) {
+      oss << ", ";
     }
-    oss << "]";
-    return oss.str();
+  }
+  oss << "]";
+  return oss.str();
 }
 
-static inline bool endswith(const std::string &str, const std::string &suffix) {
-    if (suffix.size() > str.size()) {
-        return false;
-    }
-    return std::equal(str.end() - suffix.size(), str.end(), suffix.cbegin());
+static inline bool endswith(const std::string& str, const std::string& suffix) {
+  if (suffix.size() > str.size()) {
+    return false;
+  }
+  return std::equal(str.end() - suffix.size(), str.end(), suffix.cbegin());
 }
 // namespace config_parser {
 
 // Find all valid  separators (those not inside any brackets)
-std::vector<size_t> findValidSeparators(const std::string &str, char sep);
+std::vector<size_t> findValidSeparators(const std::string& str, char sep);
 
 /**
  * @brief Split a string into key-value pairs
@@ -482,8 +491,10 @@ std::vector<size_t> findValidSeparators(const std::string &str, char sep);
  * default_key is empty
  */
 std::unordered_map<std::string, std::string> map_split(
-    std::string strtem, char inner_sp, char outer_sp,
-    const std::string &default_key = "");
+    std::string strtem,
+    char inner_sp,
+    char outer_sp,
+    const std::string& default_key = "");
 // }  // namespace config_parser
 }  // namespace str
 

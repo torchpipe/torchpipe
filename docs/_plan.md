@@ -123,17 +123,6 @@ pip3 install hami-core --platform manylinux2014_x86_64 --only-binary=:all: --tar
 
 
 
-帮我实现一个类帮我实现一个KVStorage，c++17, 英语注释,类名自行修改。不要对外暴露InnerMap，也可以不要InnerMap。 如果insert时找不到req_id 抛异常，其他也类似，如get
-要求：
-
-- 双重unordered_map： KVStorage(req_id : str, key : str, value: std::any)
-- 线程安全：内锁和外锁两把锁
-- remove(req_id)
-- optional<std::any> get
-- insert(req_id, key, value) insert_or_assign
-- ... 提供更多函数
-
-
 
 NVI private: _init _forward _forward_with_dep
 

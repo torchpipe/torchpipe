@@ -4,7 +4,8 @@ instance_num = 2
 [jpg_decoder]
 # backend = "S[DecodeMat,ResizeMat,CvtColorMat,Mat2Tensor,StreamGuard]" # 
 # backend = "SequentialV0[DecodeTensor,ResizeTensor,CvtColorTensor,StreamGuard]" #
-backend = "Sequential[DecodeTensor,(or)S[DecodeMat,Mat2Tensor],ResizeTensor,CvtColorTensor,StreamGuard]" #
+# backend = "S[DecodeTensor,(or)S[DecodeMat,Mat2Tensor],ResizeTensor,CvtColorTensor,StreamGuard]" #
+backend = "S[S[DecodeTensor,ResizeTensor,CvtColorTensor],(or)S[DecodeMat,ResizeMat,CvtColorMat,Mat2Tensor],StreamGuard]"
 
 resize_h = 224
 resize_w = 224
@@ -26,5 +27,5 @@ std = "58.395, 57.120, 57.375" # 255*"0.229, 0.224, 0.225"
 "model::cache" = "./ResNet.trt"
 precision = "fp16"
 
-[dummy]
-backend = "Identity"
+# [dummy]
+# backend = "Identity"

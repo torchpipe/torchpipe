@@ -32,7 +32,8 @@ def test_throughput(hami_backend):
     _, image_bytes = next(iter(dataset))
     
     bench.forward([{'data': image_bytes}]*100, hami_backend)
-    result = hami.default_queue().get(block=False)
+    result = hami.default_queue().get(block=True)
+    print(type(result))
     print("Benchmark result:", result)
 
 def test(model='resnet50'):

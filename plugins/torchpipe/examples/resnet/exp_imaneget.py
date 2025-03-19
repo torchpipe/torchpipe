@@ -102,7 +102,7 @@ if __name__ == "__main__":
     while not thread.empty():
         item = thread.get()
         req_id = item['request_id']
-        print(list(item.keys()))
+        # print(list(item.keys()))
         if 'exception' in item.keys():
             print(req_id, item['exception'])
             item['exception'].rethrow()

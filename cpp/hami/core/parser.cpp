@@ -977,6 +977,8 @@ namespace hami::parser_v2
         std::vector<std::pair<std::string, char>> result = flatten_brackets(input);
         HAMI_ASSERT(!result.empty());
         std::unordered_set<size_t> args_index;
+
+        std::unordered_set<std::string> keys;
         for (size_t i = 1; i < result.size(); i++)
         {
             if (result[i].second == '(')
@@ -987,11 +989,17 @@ namespace hami::parser_v2
                 // {
                 //     dep = remove_bracket(dep, ')');
                 // }
-                auto insert_re =
-                    config_output.insert({dep + "::args", result[i].first});
-                HAMI_ASSERT(insert_re.second,
-                            "Duplicate args key: " + dep +
-                                "::args"); // result[i - 1].second == 0 &&
+
+                const std::string &key_name = dep + "::args";
+                HAMI_ASSERT(keys.count(key_name) == 0,
+                            "Duplicate key: " + key_name);
+                keys.insert(key_name);
+
+                // auto insert_re =
+                config_output.insert_or_assign(key_name, result[i].first);
+                // HAMI_ASSERT(insert_re.second,
+                //             "Duplicate args key: " + dep +
+                //                 "::args"); // result[i - 1].second == 0 &&
                 args_index.insert(i);
             }
         }
@@ -1007,12 +1015,18 @@ namespace hami::parser_v2
 
         for (size_t i = 1; i < new_brackets.size(); i++)
         {
-            auto insert_re =
-                config_output.insert({new_brackets[i - 1].first + "::dependency",
-                                      new_brackets[i].first});
-            HAMI_ASSERT(insert_re.second,
-                        "Duplicate dependency key: " + new_brackets[i - 1].first +
-                            "::dependency");
+            const std::string &key_name = new_brackets[i - 1].first + "::dependency";
+            HAMI_ASSERT(keys.count(key_name) == 0,
+                        "Duplicate key: " + key_name);
+            keys.insert(key_name);
+            config_output.insert_or_assign(key_name,
+                                           new_brackets[i].first);
+            // auto insert_re =
+            //     config_output.insert({new_brackets[i - 1].first + "::dependency",
+            //                           new_brackets[i].first});
+            // HAMI_ASSERT(insert_re.second,
+            //             "Duplicate dependency key: " + new_brackets[i - 1].first +
+            //                 "::dependency");
         }
 
         return result[0].first;

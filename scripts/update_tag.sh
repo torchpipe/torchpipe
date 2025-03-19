@@ -16,8 +16,8 @@ git tag -d $TAG
 # Delete the remote tag
 git push origin --delete $TAG
 
-# Create the tag again
-git tag $TAG
+# # Create the tag again
+# git tag $TAG
 
-# Push the tag to the remote repository
-git push origin $TAG
+# # Push the tag to the remote repository
+# git push origin $TAG

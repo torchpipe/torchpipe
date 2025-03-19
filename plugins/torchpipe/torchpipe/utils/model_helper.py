@@ -49,18 +49,20 @@ IMAGENET_IMAGES = [
             ("imagenet_dog", "https://raw.githubusercontent.com/pytorch/hub/master/images/dog.jpg", 0),
 ]
 
-def import_or_install_package(package_name: str) -> None:
+def import_or_install_package(package_name: str, import_name = None) -> None:
     """Dynamically import or install missing packages.
     
     Args:
         package_name: Name of the package to install/import
     """
+    if import_name is None:
+        import_name = package_name
     try:
-        module = importlib.import_module(package_name)
+        module = importlib.import_module(import_name)
     except ImportError:
         print(f"Installing required package: {package_name}")
         subprocess.run(["pip", "install", package_name], check=True)
-        module = importlib.import_module(package_name)
+        module = importlib.import_module(import_name)
     return module
 
 
@@ -278,6 +280,7 @@ def evaluate_classification(
         - Classification report (if class_names provided)
     """
     import numpy as np
+    import_or_install_package('scikit-learn', 'sklearn')
     from sklearn.metrics import (
         accuracy_score, precision_score,
         recall_score, f1_score,
@@ -352,6 +355,7 @@ def evaluate_classification(
 
 from collections import defaultdict
 import torch
+import_or_install_package('tabulate')
 from tabulate import tabulate
 
 def report_classification(all_results, top_k=5):
