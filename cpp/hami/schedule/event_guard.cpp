@@ -10,199 +10,149 @@
 #include "hami/schedule/schedule_states.hpp"
 #include "hami/core/task_keys.hpp"
 #include "hami/helper/base_logging.hpp"
-namespace hami
-{
+namespace hami {
 
-    void EventGuard::custom_forward_with_dep(const std::vector<dict> &input_output,
-                                             Backend *dependency)
-    {
-        std::vector<dict> evented_data;
-        std::vector<dict> data;
+void EventGuard::custom_forward_with_dep(const std::vector<dict> &input_output,
+                                         Backend *dependency) {
+    std::vector<dict> evented_data;
+    std::vector<dict> data;
 
-        for (auto item : input_output)
-        {
-            if (item->find(TASK_EVENT_KEY) == item->end())
-            {
-                data.push_back(item);
-            }
-            else
-            {
-                evented_data.push_back(item);
-            }
+    for (auto item : input_output) {
+        if (item->find(TASK_EVENT_KEY) == item->end()) {
+            data.push_back(item);
+        } else {
+            evented_data.push_back(item);
         }
-        if (data.empty())
-        {
-            dependency->forward(evented_data);
+    }
+    if (data.empty()) {
+        dependency->forward(evented_data);
+    } else {
+        std::vector<std::shared_ptr<Event>> events(data.size());
+        std::generate_n(events.begin(), data.size(),
+                        []() { return std::make_shared<Event>(); });
+        for (size_t i = 0; i < data.size(); i++) {
+            (*data[i])[TASK_EVENT_KEY] = events[i];
         }
-        else
-        {
-            std::vector<std::shared_ptr<Event>> events(data.size());
-            std::generate_n(events.begin(), data.size(),
-                            []()
-                            { return std::make_shared<Event>(); });
-            for (size_t i = 0; i < data.size(); i++)
-            {
-                (*data[i])[TASK_EVENT_KEY] = events[i];
-            }
 
-            dependency->forward(input_output);
-            // parse exception
-            std::vector<std::exception_ptr> exceps;
-            for (size_t i = 0; i < events.size(); i++)
-            {
-                auto expcep = events[i]->wait_and_get_except();
-                if (expcep)
-                    exceps.push_back(expcep);
-                data[i]->erase(TASK_EVENT_KEY);
-            }
-            if (exceps.size() == 1)
-            {
-                std::rethrow_exception(exceps[0]);
-            }
-            else if (exceps.size() > 1)
-            {
-                std::string msg;
-                for (auto &e : exceps)
-                {
-                    try
-                    {
-                        std::rethrow_exception(e);
-                    }
-                    catch (const std::exception &e)
-                    {
-                        msg += std::string("; ") + e.what();
-                    }
+        dependency->forward(input_output);
+        // parse exception
+        std::vector<std::exception_ptr> exceps;
+        for (size_t i = 0; i < events.size(); i++) {
+            auto expcep = events[i]->wait_and_get_except();
+            if (expcep) exceps.push_back(expcep);
+            data[i]->erase(TASK_EVENT_KEY);
+        }
+        if (exceps.size() == 1) {
+            std::rethrow_exception(exceps[0]);
+        } else if (exceps.size() > 1) {
+            std::string msg;
+            for (auto &e : exceps) {
+                try {
+                    std::rethrow_exception(e);
+                } catch (const std::exception &e) {
+                    msg += std::string("; ") + e.what();
                 }
-                throw std::runtime_error(msg);
             }
+            throw std::runtime_error(msg);
+        }
+    }
+}
+
+HAMI_REGISTER(Backend, EventGuard, "EventGuard");
+
+class ThreadPoolExecutor : public Dependency {
+   private:
+    void impl_init(const std::unordered_map<std::string, std::string> &params,
+                   const dict &options) override final {
+        auto args_kwargs =
+            meta::get_args_kwargs(this, "ThreadPoolExecutor", params);
+
+        str::try_update<size_t>(args_kwargs.second, "max_workers",
+                                max_workers_);
+
+        if (max_workers_ == 0) {
+            max_workers_ = std::thread::hardware_concurrency();
+        } else {
+            max_workers_ += 1;
+        }
+        pool_ = std::make_unique<BS::thread_pool<>>(max_workers_);
+        SPDLOG_INFO("max_workers = {} ", max_workers_);
+
+        // get the src queue
+        // HAMI_ASSERT(!args_kwargs.first.empty(),
+        //             "ThreadPoolExecutor: args_kwargs is empty");
+        // queue_ = HAMI_INSTANCE_GET(Queue, args_kwargs.first[0]);
+        // HAMI_ASSERT(queue_ != nullptr);
+        std::string queue_tag;
+        str::try_update(args_kwargs.second, "out", queue_tag);
+
+        target_queue_ = &default_queue(queue_tag);
+
+        if (max_workers_ == 0) {
+            max_workers_ = pool_->get_thread_count();
         }
     }
 
-    HAMI_REGISTER(Backend, EventGuard, "EventGuard");
+    // [[nodiscard]] size_t impl_max() const { return max_workers_; }
+    void impl_forward_with_dep(const std::vector<dict> &input,
+                               Backend *dep) override {
+        (void)pool_->submit_task(
+            [this, input, dep]() { impl_forward_with_dep_async(input, dep); });
+    }
+    void impl_forward_with_dep_async(const std::vector<dict> &input,
+                                     Backend *dep) {
+        HAMI_ASSERT(input.size() == 1);
+        Queue *queue = dict_get<Queue *>(input[0], TASK_DATA_KEY);
+        HAMI_ASSERT(queue && pool_);
 
-    class ThreadPoolExecutor : public DynamicDependency
-    {
-    private:
-        void impl_init(const std::unordered_map<std::string, std::string> &params,
-                       const dict &options) override final
-        {
-            auto args_kwargs =
-                meta::get_args_kwargs(this, "ThreadPoolExecutor", params);
+        do {
+            // SPDLOG_INFO(" pool queue input : {}", queue->size());
+            auto [data, len] = queue->try_get(std::chrono::milliseconds(500));
+            // SPDLOG_INFO("queue get {}", len);
+            if (!data) continue;
+            // SPDLOG_INFO("queue :  {}, {} {}", queue->size(),
+            // pool_->get_tasks_total(), pool_->get_tasks_queued());
+            pool_->detach_task([this, dep, data, queue]() {
+                try {
+                    dep->forward({*data});
+                } catch (...) {
+                    // queue->set_error();
+                    (*(*data))["exception"] = std::current_exception();
+                }
+                target_queue_->put(*data);
+            });
 
-            str::try_update<size_t>(args_kwargs.second, "max_workers",
-                                    max_workers_);
+            while (!pool_->wait_atmost_queued_tasks_for(
+                max_workers_ / 3 + 1, std::chrono::milliseconds(500)));
 
-            if (max_workers_ == 0)
-            {
-                max_workers_ = std::thread::hardware_concurrency();
-            }
-            else
-            {
-                max_workers_ += 1;
-            }
-            pool_ = std::make_unique<BS::thread_pool<>>(max_workers_);
-            SPDLOG_INFO("max_workers = {} ", max_workers_);
+        } while (queue->status() == Queue::Status::RUNNING && alive_.load());
 
-            // get the src queue
-            // HAMI_ASSERT(!args_kwargs.first.empty(),
-            //             "ThreadPoolExecutor: args_kwargs is empty");
-            // queue_ = HAMI_INSTANCE_GET(Queue, args_kwargs.first[0]);
-            // HAMI_ASSERT(queue_ != nullptr);
-            std::string queue_tag;
-            str::try_update(args_kwargs.second, "out", queue_tag);
+        while (alive_.load() && !pool_->wait_atmost_total_tasks_for(
+                                    1, std::chrono::milliseconds(500)));
+    }
 
-            target_queue_ = &default_queue(queue_tag);
+   protected:
+    // std::string target_name_;
+    // Queue* queue_{nullptr};
+    // size_t queue_max_ = 0;
+    std::unique_ptr<BS::thread_pool<>> pool_;
+    size_t max_workers_{0};
+    // Status* state_;
+    Queue *target_queue_{nullptr};
+    std::atomic_bool alive_{true};
+    std::atomic<size_t> index_{0};
 
-            if (max_workers_ == 0)
-            {
-                max_workers_ = pool_->get_thread_count();
-            }
-        }
+    // private:
+    //     std::condition_variable need_new_cv_;
+    //     std::mutex need_new_mutex_;
 
-        // [[nodiscard]] size_t impl_max() const { return max_workers_; }
-        void impl_forward_with_dep(const std::vector<dict> &input,
-                                   Backend *dep) override
-        {
-            (void)pool_->submit_task(
-                [this, input, dep]()
-                { impl_forward_with_dep_async(input, dep); });
-        }
-        void impl_forward_with_dep_async(const std::vector<dict> &input,
-                                         Backend *dep)
-        {
-            HAMI_ASSERT(input.size() == 1);
-            Queue *queue = dict_get<Queue *>(input[0], TASK_DATA_KEY);
-            HAMI_ASSERT(queue && pool_);
-            // std::vector<std::future<void>> futures;
-            // std::size_t index = 0;
+   public:
+    ~ThreadPoolExecutor() {
+        alive_.store(false);
+        pool_.release();
+    }
+};
 
-            // size_t zz = 0;
-            do
-            {
-                // SPDLOG_INFO(" pool queue input : {}", queue->size());
-                auto [data, len] = queue->try_get(std::chrono::milliseconds(500));
-                // SPDLOG_INFO("queue get {}", len);
-                if (!data)
-                    continue;
-                // std::future<void> future =
-                // SPDLOG_INFO("queue :  {}, {} {}", queue->size(), pool_->get_tasks_total(), pool_->get_tasks_queued());
-                pool_->detach_task([this, dep, data, queue]()
-                                   {
-                                       try
-                                       {
-                                           dep->forward({*data});
-                                       }
-                                       catch (...)
-                                       {
-                                           // queue->set_error();
-                                           (*(*data))["exception"] = std::current_exception();
-                                       }
-                                       if (index_++ % (1000) == 0)
-                                       {
-                                           SPDLOG_INFO("processing {}/{} pool {} {}", (size_t)index_, queue->size(), pool_->get_tasks_total(), pool_->get_tasks_queued());
-                                       }
+HAMI_REGISTER_BACKEND(ThreadPoolExecutor);
 
-                                       target_queue_->put(*data); });
-
-                pool_->wait_atmost_queued_tasks_for(max_workers_ / 3 + 1, std::chrono::milliseconds(500));
-                // {
-                //     std::unique_lock<std::mutex> lock(need_new_mutex_);
-                //     need_new_cv_.wait_for(lock, std::chrono::milliseconds(500), [this]() {})
-                // }
-                // futures.push_back(std::move(future));
-
-            } while (queue->status() == Queue::Status::RUNNING && alive_.load());
-
-            // for (auto &future : futures)
-            // {
-            //     // future.get();
-            //     SPDLOG_INFO("queue :  {}, {}, {}", queue->size(), pool_->get_tasks_total(), pool_->get_tasks_running());
-            // }
-        }
-
-    protected:
-        // std::string target_name_;
-        // Queue* queue_{nullptr};
-        // size_t queue_max_ = 0;
-        std::unique_ptr<BS::thread_pool<>> pool_;
-        size_t max_workers_{0};
-        // Status* state_;
-        Queue *target_queue_{nullptr};
-        std::atomic_bool alive_{true};
-        std::atomic<size_t> index_{0};
-
-        // private:
-        //     std::condition_variable need_new_cv_;
-        //     std::mutex need_new_mutex_;
-
-    public:
-        ~ThreadPoolExecutor()
-        {
-            alive_.store(false);
-            pool_.release();
-        }
-    };
-
-    HAMI_REGISTER_BACKEND(ThreadPoolExecutor);
-
-} // namespace hami
+}  // namespace hami

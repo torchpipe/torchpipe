@@ -188,12 +188,17 @@ class IoC : public ControlPlane {
     void impl_forward(const std::vector<dict> &io) {
         return backends_.back()->forward(io);
     }
-    [[nodiscard]] virtual size_t impl_min() const override {
-        return backends_.back()->min();
+    // [[nodiscard]] virtual size_t impl_min() const override {
+    //     return backends_.back()->min();
+    // }
+    // [[nodiscard]] virtual size_t impl_max() const override {
+    //     return backends_.back()->max();
+    // };
+
+    void update_min_max() override {
+        min_ = backends_.back()->min();
+        max_ = backends_.back()->max();
     }
-    [[nodiscard]] virtual size_t impl_max() const override {
-        return backends_.back()->max();
-    };
 
    private:
     // Default class name if the instance is not create via reflection.

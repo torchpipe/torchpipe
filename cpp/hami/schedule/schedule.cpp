@@ -30,7 +30,7 @@ void Batching::impl_init(const std::unordered_map<string, string> &config,
 }
 
 void Batching::impl_inject_dependency(Backend *dependency) {
-    DynamicDependency::impl_inject_dependency(dependency);
+    Dependency::impl_inject_dependency(dependency);
     const size_t max_bs = dependency->max();
     if (batching_timeout_ > 0 && max_bs > 1) {
         bInited_.store(true);

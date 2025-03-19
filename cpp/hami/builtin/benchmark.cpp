@@ -244,7 +244,7 @@ std::unordered_map<std::string, std::string> Benchmark::get_output(
 
 HAMI_REGISTER_BACKEND(Benchmark);
 
-class Profile : public DynamicDependency {
+class Profile : public Dependency {
    public:
     struct Status {
         // size_t client_index;
@@ -285,10 +285,21 @@ class Profile : public DynamicDependency {
             std::chrono::duration_cast<std::chrono::duration<double>>(
                 std::chrono::steady_clock::now() - first_time)
                 .count();
+
         try {
             dep->forward(io);
         } catch (const std::exception &e) {
+            SPDLOG_WARN("Exception during forward: {}", e.what());
             status.data["exception"] = std::string(e.what());
+
+            status.data["end_time"] =
+                std::chrono::duration_cast<std::chrono::duration<double>>(
+                    std::chrono::steady_clock::now() - first_time)
+                    .count();
+            auto data = make_dict();
+            data->insert({TASK_DATA_KEY, status});
+            target_queue_->put_without_notify(data);
+            throw;
         }
 
         status.data["end_time"] =

@@ -12,241 +12,250 @@
 #include "hami/core/queue.hpp"
 #include "hami/helper/base_logging.hpp"
 #include "hami/csrc/py_register.hpp"
-namespace hami
-{
+namespace hami {
 
-    namespace py = pybind11;
-    using namespace pybind11::literals;
+namespace py = pybind11;
+using namespace pybind11::literals;
 
-    PyDict::PyDict(const py::dict &data)
-    {
-        data_ = make_dict();
-        for (const auto &item : data)
-        {
-            const std::string key = py::cast<std::string>(item.first);
-            auto second =
-                object2any(py::reinterpret_borrow<py::object>(item.second));
-            if (second == std::nullopt)
-            {
-                throw py::type_error("hami.Any: The input type is unknown.");
-            }
-            data_->insert_or_assign(key, *second);
+PyDict::PyDict(const py::dict &data) {
+    data_ = make_dict();
+    for (const auto &item : data) {
+        const std::string key = py::cast<std::string>(item.first);
+        auto second =
+            object2any(py::reinterpret_borrow<py::object>(item.second));
+        if (second == std::nullopt) {
+            throw py::type_error("hami.Any: The input type is unknown.");
         }
+        data_->insert_or_assign(key, *second);
     }
+}
 
-    PyDict::PyDict(dict data) : data_(data)
-    {
-        HAMI_ASSERT(data_ != nullptr, "The input data is nullptr.");
+PyDict::PyDict(dict data) : data_(data) {
+    HAMI_ASSERT(data_ != nullptr, "The input data is nullptr.");
+}
+
+py::object PyDict::pop(const std::string &key,
+                       std::optional<std::string> default_value) {
+    auto it = data_->find(key);
+    if (it != data_->end()) {
+        auto re = any2object(it->second);
+        data_->erase(it);
+        return re;
+    } else if (default_value.has_value()) {
+        return py::cast(default_value.value());
     }
+    throw py::key_error("Key not found: " + key);
+}
 
-    py::object PyDict::pop(const std::string &key,
-                           std::optional<std::string> default_value)
-    {
-        auto it = data_->find(key);
-        if (it != data_->end())
-        {
-            auto re = any2object(it->second);
-            data_->erase(it);
-            return re;
+dict PyDict::py2dict(py::dict data) {
+    dict result = make_dict();
+    for (const auto &item : data) {
+        const std::string key = py::cast<std::string>(item.first);
+        auto second = object2any(item.second);
+        if (second == std::nullopt) {
+            throw py::type_error("hami.Any: The input type is unknown.");
         }
-        else if (default_value.has_value())
-        {
-            return py::cast(default_value.value());
-        }
-        throw py::key_error("Key not found: " + key);
+        result->insert_or_assign(key, *second);
     }
+    return result;
+}
+void PyDict::dict2py(dict data, py::dict result,
+                     const std::unordered_set<std::string> &ignore_keys) {
+    for (auto iter = data->begin(); iter != data->end(); ++iter) {
+        if (ignore_keys.count(iter->first) != 0) continue;
+        result[py::str(iter->first)] = any2object(iter->second);
+    }
+}
 
-    dict PyDict::py2dict(py::dict data)
-    {
-        dict result = make_dict();
-        for (const auto &item : data)
-        {
-            const std::string key = py::cast<std::string>(item.first);
-            auto second = object2any(item.second);
-            if (second == std::nullopt)
-            {
-                throw py::type_error("hami.Any: The input type is unknown.");
-            }
-            result->insert_or_assign(key, *second);
-        }
-        return result;
-    }
-    void PyDict::dict2py(dict data, py::dict result,
-                         const std::unordered_set<std::string> &ignore_keys)
-    {
-        for (auto iter = data->begin(); iter != data->end(); ++iter)
-        {
-            if (ignore_keys.count(iter->first) != 0)
-                continue;
-            result[py::str(iter->first)] = any2object(iter->second);
-        }
-    }
+void PyDict::set(const std::string &key, const py::object &value) {
+    auto data = object2any(value);
+    if (data == std::nullopt)
+        throw py::type_error("The input type is unknown by hami.Any.");
+    data_->insert_or_assign(key, *data);
+    // (*data)[key] = data;
+}
+void PyDict::set(const std::string &key, const str::str_map &value) {
+    data_->insert_or_assign(key, value);
+}
 
-    void PyDict::set(const std::string &key, const py::object &value)
-    {
-        auto data = object2any(value);
-        if (data == std::nullopt)
-            throw py::type_error("The input type is unknown by hami.Any.");
-        data_->insert_or_assign(key, *data);
-        // (*data)[key] = data;
+py::object PyDict::get(const std::string &key) const {
+    auto it = data_->find(key);
+    if (it != data_->end()) {
+        return any2object(it->second);
     }
-    void PyDict::set(const std::string &key, const str::str_map &value)
-    {
-        data_->insert_or_assign(key, value);
-    }
+    throw py::key_error("Key not found: " + key);
+}
 
-    py::object PyDict::get(const std::string &key) const
-    {
-        auto it = data_->find(key);
-        if (it != data_->end())
-        {
-            return any2object(it->second);
-        }
-        throw py::key_error("Key not found: " + key);
-    }
+void init_dict(py::module_ &m) {
+    py::class_<PyDict> hami_dict(m, "Dict");
 
-    void init_dict(py::module_ &m)
-    {
-        py::class_<PyDict> hami_dict(m, "Dict");
-
-        hami_dict.doc() =
-            "hami.Dict provides an object wrapper for the "
-            "hami::dict class, which is essentially a wrapper around "
-            "std::shared_ptr<std::unordered_map<std::string, std::any>>.";
-        hami_dict.def(py::init<>())
-            .def(py::init<const py::dict &>(),
-                 "Construct a dictionary from a Python dict")
-            // .def("set", &PyDict::set, "Set a value in the dictionary", "key"_a,
-            // "value"_a)
-            .def("get", &PyDict::get, "Get a value from the dictionary", "key"_a)
-            .def("contains", &PyDict::contains,
-                 "Check if the dictionary contains a key", "key"_a)
-            .def("remove", &PyDict::remove, "Remove a key from the dictionary",
-                 "key"_a)
-            .def("clear", &PyDict::clear, "Clear the dictionary")
-            .def("pop", &PyDict::pop, py::arg("key"),
-                 py::arg("default") = py::none(),
-                 "Remove specified key and return the corresponding value.\n"
-                 "If key is not found, default is returned if given, otherwise "
-                 "KeyError is raised.")
-            .def("__setitem__",
-                 py::overload_cast<const std::string &, const py::object &>(
-                     &PyDict::set),
-                 "Set a value in the dictionary", "key"_a, "value"_a)
-            .def("__setitem__",
-                 py::overload_cast<
-                     const std::string &,
-                     const std::unordered_map<std::string, std::string> &>(
-                     &PyDict::set),
-                 "Set a nested dictionary value in the dictionary", "key"_a,
-                 "value"_a)
-            .def("__getitem__", &PyDict::get, "Get a value from the dictionary",
-                 "key"_a)
-            .def("update", py::overload_cast<const PyDict &>(&PyDict::update),
-                 "Update the dictionary with another PyDict", "other"_a)
-            .def("update", py::overload_cast<const str::str_map &>(&PyDict::update),
-                 "Update the dictionary with a str_map", "other"_a)
-            .def("__contains__", &PyDict::contains,
-                 "Check if the dictionary contains a key", "key"_a)
-            .def("__delitem__", &PyDict::remove, "Remove a key from the dictionary",
-                 "key"_a)
-            .def("__len__", &PyDict::size,
-                 "Get the number of items in the dictionary")
-            .def("__repr__", [](const PyDict &d)
-                 {
+    hami_dict.doc() =
+        "hami.Dict provides an object wrapper for the "
+        "hami::dict class, which is essentially a wrapper around "
+        "std::shared_ptr<std::unordered_map<std::string, std::any>>.";
+    hami_dict.def(py::init<>())
+        .def(py::init<const py::dict &>(),
+             "Construct a dictionary from a Python dict")
+        // .def("set", &PyDict::set, "Set a value in the dictionary", "key"_a,
+        // "value"_a)
+        .def("get", &PyDict::get, "Get a value from the dictionary", "key"_a)
+        .def("contains", &PyDict::contains,
+             "Check if the dictionary contains a key", "key"_a)
+        .def("remove", &PyDict::remove, "Remove a key from the dictionary",
+             "key"_a)
+        .def("clear", &PyDict::clear, "Clear the dictionary")
+        .def("pop", &PyDict::pop, py::arg("key"),
+             py::arg("default") = py::none(),
+             "Remove specified key and return the corresponding value.\n"
+             "If key is not found, default is returned if given, otherwise "
+             "KeyError is raised.")
+        .def("__setitem__",
+             py::overload_cast<const std::string &, const py::object &>(
+                 &PyDict::set),
+             "Set a value in the dictionary", "key"_a, "value"_a)
+        .def("__setitem__",
+             py::overload_cast<
+                 const std::string &,
+                 const std::unordered_map<std::string, std::string> &>(
+                 &PyDict::set),
+             "Set a nested dictionary value in the dictionary", "key"_a,
+             "value"_a)
+        .def("__getitem__", &PyDict::get,
+             py::return_value_policy::reference_internal,
+             "Get a value from the dictionary", py::arg("key"))
+        .def("update", py::overload_cast<const PyDict &>(&PyDict::update),
+             "Update the dictionary with another PyDict", "other"_a)
+        .def("update", py::overload_cast<const str::str_map &>(&PyDict::update),
+             "Update the dictionary with a str_map", "other"_a)
+        .def("__contains__", &PyDict::contains,
+             "Check if the dictionary contains a key", "key"_a)
+        .def("__delitem__", &PyDict::remove, "Remove a key from the dictionary",
+             "key"_a)
+        .def(
+            "keys",
+            [](const PyDict &d) {
+                return py::make_key_iterator(d.data().begin(), d.data().end());
+            },
+            py::return_value_policy::reference_internal)
+        .def(
+            "__iter__",
+            [](const PyDict &d) {
+                return py::make_iterator(d.data().begin(), d.data().end());
+            },
+            py::keep_alive<0, 1>())
+        .def("__len__", &PyDict::size,
+             "Get the number of items in the dictionary")
+        .def("__repr__", [](const PyDict &d) {
             std::ostringstream repr_stm;
             repr_stm << "{";
-            for (const auto& [key, value] : d.data()) {
-                auto re = any2object(value);
-                repr_stm << key << ": " << re.attr("__repr__")() << ", ";
+            for (const auto &[key, value] : d.data()) {
+                // auto re = any2object(value);
+
+                repr_stm << key << ": <no_repr>, ";
             }
             std::string repr = repr_stm.str();
-            if (repr.size() > 1) repr.pop_back(), repr.pop_back();
+            if (repr.size() > 2) repr.pop_back(), repr.pop_back();
             repr += "}";
-            return repr; });
-        // Register base exception
-        py::register_exception<hami::queue::QueueException>(m, "QueueError");
+            return repr;
+        });
 
-        // Try to map our exceptions to Python's queue module exceptions
-        try
-        {
-            // Import Python's queue module to get standard exception types
-            py::module queue_module = py::module::import("queue");
-            py::object py_empty = queue_module.attr("Empty");
-            py::object py_full = queue_module.attr("Full");
+    py::class_<TypedDict, std::shared_ptr<TypedDict>>(m, "TypedDict")
+        .def(py::init<>())
+        .def_readwrite("data", &TypedDict::data);
 
-            // Register exceptions with correct inheritance relationship
-            py::exception<hami::queue::QueueEmptyException>(m, "Empty",
-                                                            py_empty.ptr());
-            py::exception<hami::queue::QueueFullException>(m, "Full",
-                                                           py_full.ptr());
-        }
-        catch (...)
-        {
-            // If import fails, register with standard exceptions
-            SPDLOG_ERROR(
-                "Failed to import Python's queue module. register with standard "
-                "exceptions.");
-            py::register_exception<hami::queue::QueueEmptyException>(m, "Empty");
-            py::register_exception<hami::queue::QueueFullException>(m, "Full");
-        }
+    // Register base exception
+    py::register_exception<hami::queue::QueueException>(m, "QueueError");
 
-        m.def("default_queue", &default_queue, py::arg("tag") = std::string(""),
-              pybind11::return_value_policy::reference);
-        m.def("default_src_queue", &default_src_queue,
-              pybind11::return_value_policy::reference);
-        m.def("default_output_queue", &default_output_queue,
-              pybind11::return_value_policy::reference);
-        // m.def(  // todo: support other types
-        //     "get",
-        //     [](py::object /* cls */, const std::string& name) -> Queue& {
-        //         return HAMI_INSTANCE_GET(Queue, name)
-        //         // return default_queue(name);
-        //     },
-        //     py::arg("cls"), py::arg("name") = std::string(""),
-        //     pybind11::return_value_policy::reference);
-        py::class_<Queue, std::shared_ptr<Queue>> queue_class(m, "Queue");
-        py::enum_<typename Queue::Status>(queue_class, "Status")
-            .value("RUNNING", Queue::Status::RUNNING)
-            .value("ERROR", Queue::Status::ERROR)
-            .value("PAUSED", Queue::Status::PAUSED)
-            .value("CANCELED", Queue::Status::CANCELED)
-            .value("EOS", Queue::Status::EOS)
-            .export_values();
-        queue_class.def(py::init<>())
-            .def(
-                "put",
-                [](Queue &self, PyDict item)
-                {
-                    auto data = item.to_dict();
-                    py::gil_scoped_release release;
-                    self.put(data);
-                },
-                py::arg("item"))
-            .def(
-                "get",
-                [](Queue &self, bool block, std::optional<double> timeout)
-                {
-                    std::pair<dict, size_t> result;
+    // Try to map our exceptions to Python's queue module exceptions
+    try {
+        // Import Python's queue module to get standard exception types
+        py::module queue_module = py::module::import("queue");
+        py::object py_empty = queue_module.attr("Empty");
+        py::object py_full = queue_module.attr("Full");
 
-                    {
-                        py::gil_scoped_release release;
-                        result = self.get(block, timeout);
-                    }
-                    return std::pair<PyDict, size_t>(PyDict(result.first),
-                                                     result.second);
-                },
-                py::arg("block") = true, py::arg("timeout") = std::nullopt)
-            .def("size", &Queue::size)
-            .def("empty", &Queue::empty)
-            .def("status", &Queue::status)
-            .def("join", &Queue::join)
-            .def_static("type_hash", []()
-                        {
-            // SPDLOG_INFO("type_hash : {}", typeid(Queue*).name());
-            return typeid(Queue).hash_code(); });
-
-        reg::register_any_ptr_object_hash_converter<Queue>();
+        // Register exceptions with correct inheritance relationship
+        py::exception<hami::queue::QueueEmptyException>(m, "Empty",
+                                                        py_empty.ptr());
+        py::exception<hami::queue::QueueFullException>(m, "Full",
+                                                       py_full.ptr());
+    } catch (...) {
+        // If import fails, register with standard exceptions
+        SPDLOG_ERROR(
+            "Failed to import Python's queue module. register with standard "
+            "exceptions.");
+        py::register_exception<hami::queue::QueueEmptyException>(m, "Empty");
+        py::register_exception<hami::queue::QueueFullException>(m, "Full");
     }
 
-} // namespace hami
+    m.def("default_queue", &default_queue, py::arg("tag") = std::string(""),
+          pybind11::return_value_policy::reference);
+    m.def("default_src_queue", &default_src_queue,
+          pybind11::return_value_policy::reference);
+    m.def("default_output_queue", &default_output_queue,
+          pybind11::return_value_policy::reference);
+    // m.def(  // todo: support other types
+    //     "get",
+    //     [](py::object /* cls */, const std::string& name) -> Queue& {
+    //         return HAMI_INSTANCE_GET(Queue, name)
+    //         // return default_queue(name);
+    //     },
+    //     py::arg("cls"), py::arg("name") = std::string(""),
+    //     pybind11::return_value_policy::reference);
+    py::class_<Queue, std::shared_ptr<Queue>> queue_class(m, "Queue");
+    py::enum_<typename Queue::Status>(queue_class, "Status")
+        .value("RUNNING", Queue::Status::RUNNING)
+        .value("ERROR", Queue::Status::ERROR)
+        .value("PAUSED", Queue::Status::PAUSED)
+        .value("CANCELED", Queue::Status::CANCELED)
+        .value("EOS", Queue::Status::EOS)
+        .export_values();
+    queue_class.def(py::init<>())
+        .def(
+            "put",
+            [](Queue &self, PyDict item) {
+                auto data = item.to_dict();
+                py::gil_scoped_release release;
+                self.put(data);
+            },
+            py::arg("item"))
+        .def(
+            "get",
+            [](Queue &self, bool block, std::optional<double> timeout) {
+                dict result;
+
+                {
+                    py::gil_scoped_release release;
+                    result = self.get(block, timeout);
+                }
+                return PyDict(result);
+            },
+            py::arg("block") = true, py::arg("timeout") = std::nullopt)
+        .def(
+            "wait_until_at_most",
+            [](Queue &self, size_t max_size, double timeout_sec) {
+                return self.wait_until_at_most(
+                    max_size, std::chrono::duration<double>(timeout_sec));
+            },
+            py::arg("max_size"), py::arg("timeout_sec"),
+            py::call_guard<py::gil_scoped_release>())
+        .def(
+            "wait_until_at_least",
+            [](Queue &self, size_t min_size, double timeout_sec) {
+                return self.wait_until_at_least(
+                    min_size, std::chrono::duration<double>(timeout_sec));
+            },
+            py::arg("min_size"), py::arg("timeout_sec"),
+            py::call_guard<py::gil_scoped_release>())
+        .def("size", &Queue::size)
+        .def("empty", &Queue::empty)
+        .def("status", &Queue::status)
+        .def("join", &Queue::join)
+        .def_static("type_hash", []() {
+            // SPDLOG_INFO("type_hash : {}", typeid(Queue*).name());
+            return typeid(Queue).hash_code();
+        });
+
+    reg::register_any_ptr_object_hash_converter<Queue>();
+}
+
+}  // namespace hami

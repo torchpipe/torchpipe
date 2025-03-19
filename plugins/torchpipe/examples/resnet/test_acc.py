@@ -138,30 +138,5 @@ if __name__ == "__main__":
     # time.sleep(10)
     test_v2()
     
-    raise 1
-    import time
     
-    # onnx_save_path = "./resnet50.onnx"
-    # if not os.path.exists(onnx_save_path):
-    #     export_onnx(onnx_save_path)
-
-
-
-    toml_path = args.config 
-    
-    from hami import TASK_DATA_KEY, TASK_RESULT_KEY
-    nodes = get_model(toml_path)
-
-    print(type(image))
-    
-    input = {TASK_DATA_KEY: image}
-    nodes(input)
-
-    if TASK_RESULT_KEY not in input.keys():
-        print("error : no result")
-        
-    print(len(input[TASK_RESULT_KEY]))
-    print(input[TASK_RESULT_KEY].shape)
-
-
  

@@ -90,7 +90,7 @@ class HAMI_EXPORT DependencyV0 : public Backend {
  * This backend allows injecting a dependency, which can be used for chaining or
  * delegation.
  */
-class HAMI_EXPORT DynamicDependency : public Backend {
+class HAMI_EXPORT Dependency : public Backend {
    protected:
     /**
      * @brief Injects a dependency into the backend or the backend's dependency

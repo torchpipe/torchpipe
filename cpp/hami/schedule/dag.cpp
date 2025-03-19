@@ -90,6 +90,7 @@ void DagDispatcher::on_start_node(dict tmp_data, std::size_t task_queue_index) {
     const auto &roots = dag_parser_->get_roots();
     std::string node_name;
     if (iter_node_name == tmp_data->end()) {
+        SPDLOG_INFO("roots =  {}", roots.size());
         if (roots.size() != 1) {
             pstack->input_event->set_exception_and_notify_all(
                 std::make_exception_ptr(std::runtime_error(
@@ -98,6 +99,11 @@ void DagDispatcher::on_start_node(dict tmp_data, std::size_t task_queue_index) {
             return;
         } else {
             node_name = (*roots.begin());
+            SPDLOG_WARN(
+                "The parameter node_name is not set, but there are {} root "
+                "nodes in the graph, making it impossible to determine which "
+                "one to use. Using the first one: {}",
+                roots.size(), node_name);
         }
     } else
         node_name = any_cast<std::string>(iter_node_name->second);

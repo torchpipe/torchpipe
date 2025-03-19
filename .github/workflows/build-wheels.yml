@@ -70,6 +70,7 @@ jobs:
     - name: Combine wheel files
       run: |
         mkdir -p wheelhouse
+        rm -f wheelhouse/*
         latest_version=$(ls artifacts/*/*.whl | grep -oP '(?<=-)[0-9]+\.[0-9]+\.[0-9]+' | sort -V | tail -n 1)
         echo "Latest version: $latest_version"
         find artifacts -name "*${latest_version}*.whl" -exec cp {} wheelhouse/ \;

@@ -81,18 +81,18 @@ DependencyV0::~DependencyV0() {
     }
 }
 
-void DynamicDependency::impl_inject_dependency(Backend* dependency) {
+void Dependency::impl_inject_dependency(Backend* dependency) {
     HAMI_ASSERT(dependency && !injected_dependency_);
 
     injected_dependency_ = dependency;
 }
-size_t DynamicDependency::impl_max() const {
+size_t Dependency::impl_max() const {
     HAMI_ASSERT(injected_dependency_,
                 "Dependency not initialized. Call inject_dependency first.");
     return injected_dependency_->max();
 }
 
-size_t DynamicDependency::impl_min() const {
+size_t Dependency::impl_min() const {
     HAMI_ASSERT(injected_dependency_,
                 "Dependency not initialized. Call inject_dependency first.");
     return injected_dependency_->min();

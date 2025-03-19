@@ -349,8 +349,195 @@ def evaluate_classification(
             ))
 
     return metrics
+
+from collections import defaultdict
+import torch
+from tabulate import tabulate
+
+def report_classification(all_results, top_k=5):
+    """
+    Analyze classification model performance with formatted reporting.
     
-def report_classification(all_result):
+    Args:
+        all_results (dict): Mapping of data_id to (label, prediction_tensor)
+                            prediction_tensor shape: (1, 1000)
+        top_k (int): Number of top predictions to consider for top-k accuracy
+    
+    Statistics reported:
+        - Overall accuracy
+        - Top-k accuracy
+        - Per-class accuracy
+        - Class distribution
+        - Most confused class pairs
+        - Samples with largest prediction confidence gaps
+    """
+    # Initialize metrics
+    total = 0
+    correct = 0
+    top_k_correct = 0
+    class_stats = defaultdict(lambda: {'count': 0, 'correct': 0})
+    confusion_matrix = defaultdict(lambda: defaultdict(int))
+    error_samples = []
+    all_confidences = []
+
+    for data_id, (label, pred_tensor) in all_results.items():
+        # Ensure tensor is on CPU and flattened
+        pred = pred_tensor.cpu().squeeze()
+        label = int(label)
+        
+        # Get predicted class and top-k classes
+        _, topk_preds = torch.topk(pred, k=top_k)
+        pred_class = topk_preds[0].item()
+        
+        # Update counts
+        total += 1
+        class_stats[label]['count'] += 1
+        correct += int(pred_class == label)
+        top_k_correct += int(label in topk_preds)
+        
+        # Track confidence for correct predictions
+        if pred_class == label:
+            class_stats[label]['correct'] += 1
+            all_confidences.append(pred[label].item())
+        
+        # Record errors
+        if pred_class != label:
+            error_samples.append({
+                'data_id': data_id,
+                'true_class': label,
+                'pred_class': pred_class,
+                'confidence': pred[pred_class].item(),
+                'true_confidence': pred[label].item()
+            })
+            confusion_matrix[label][pred_class] += 1
+
+    # Calculate basic metrics
+    accuracy = correct / total if total > 0 else 0
+    top_k_accuracy = top_k_correct / total if total > 0 else 0
+
+    # Calculate per-class accuracy
+    class_accuracies = []
+    for cls in sorted(class_stats.keys()):
+        stats = class_stats[cls]
+        acc = stats['correct'] / stats['count'] if stats['count'] > 0 else 0
+        class_accuracies.append((cls, stats['count'], acc))
+
+    # Find most confused class pairs
+    confused_pairs = []
+    for true_cls in confusion_matrix:
+        for pred_cls, count in confusion_matrix[true_cls].items():
+            confused_pairs.append((true_cls, pred_cls, count))
+    confused_pairs.sort(key=lambda x: x[2], reverse=True)
+
+    # Generate report tables
+    print("\n===== Classification Report =====")
+    
+    # Main statistics table
+    main_table = [
+        ["Total Samples", total],
+        ["Accuracy", f"{accuracy:.2%}"],
+        [f"Top-{top_k} Accuracy", f"{top_k_accuracy:.2%}"],
+        ["Mean Confidence (Correct)", f"{np.mean(all_confidences):.2%}" if all_confidences else "N/A"],
+    ]
+    print(tabulate(main_table, headers=["Metric", "Value"], tablefmt="grid"))
+
+    # Class accuracy table (top 10)
+    class_table = []
+    for cls, count, acc in sorted(class_accuracies, key=lambda x: x[2])[:10]:
+        class_table.append([f"Class {cls}", count, f"{acc:.2%}"])
+    print("\n===== Worst Performing Classes =====")
+    print(tabulate(class_table, headers=["Class", "Samples", "Accuracy"], tablefmt="grid"))
+
+    # Confusion matrix summary
+    if confused_pairs:
+        confusion_table = []
+        for true_cls, pred_cls, count in confused_pairs[:5]:
+            confusion_table.append([
+                f"{true_cls} → {pred_cls}",
+                count,
+                f"{count/total:.1%} of total",
+                f"{count/class_stats[true_cls]['count']:.1%} of class"
+            ])
+        print("\n===== Most Common Misclassifications =====")
+        print(tabulate(confusion_table, 
+                     headers=["Confusion", "Count", "Total%", "Class%"], 
+                     tablefmt="grid"))
+
+    # Error samples table
+    if error_samples:
+        error_samples.sort(key=lambda x: x['confidence'] - x['true_confidence'], reverse=True)
+        error_table = []
+        for err in error_samples[:3]:
+            error_table.append([
+                err['data_id'],
+                f"{err['true_class']} → {err['pred_class']}",
+                f"{err['true_confidence']:.1%}",
+                f"{err['confidence']:.1%}",
+                f"{err['confidence'] - err['true_confidence']:.1%}"
+            ])
+        print("\n===== High Confidence Errors =====")
+        print(tabulate(error_table,
+                     headers=["ID", "Misclassification", "True Conf", 
+                            "Pred Conf", "Δ Conf"],
+                     tablefmt="grid"))
+
+    # Return metrics dictionary
+    return {
+        'total_samples': total,
+        'accuracy': accuracy,
+        'top_k_accuracy': top_k_accuracy,
+        'class_accuracies': dict((cls, acc) for cls, _, acc in class_accuracies),
+        'confusion_matrix': dict(confusion_matrix),
+        'error_samples': error_samples
+    }
+    
+def build_label_mapping(all_results):
+    """建立原始标签（0-99）到预测类别（0-999）的映射表
+    
+    Args:
+        all_results: 字典格式 {id: (原始标签, 预测张量)}
+        
+    Returns:
+        label_map: 字典 {原始标签: 预测类别}
+        confidence_map: 字典 {原始标签: 中位数置信度}
+    """
+    # 收集每个原始标签的所有预测结果
+    label_predictions = defaultdict(list)
+    for _, (label, pred) in all_results.items():
+        # 确保处理 (1, 1000) 形状张量
+        if isinstance(pred, torch.Tensor):
+            if pred.dim() == 2 and pred.shape[0] == 1:
+                pred = torch.argmax(pred, dim=-1).item()
+        
+        # 记录预测类别和置信度
+        label_predictions[label].append(pred)
+
+    # 计算每个标签的中位数预测类别
+    label_map = {}
+    confidence_map = {}
+    all_preds = set()
+    for label, preds in label_predictions.items():
+        # 合并所有样本的预测结果
+        preds.sort()
+        
+        # 计算中位数预测类别
+        median_class = int(preds[len(preds)//2])
+        # 计算preds含有median_class的个数
+        count = 0
+        for i in range(len(preds)):
+            if preds[i] == median_class:
+                count += 1
+        if count < len(preds) // 2:
+            median_class = -1
+        else:
+            all_preds.add(median_class)
+        # 记录映射关系
+        label_map[label] = (median_class)
+    print(f"len(label_map): {len(label_map)}, label: {len(label_predictions)}")
+    assert (len(label_map) == len(label_predictions))
+    return label_map
+
+def compare_classification(all_result):
     """
     Report comparison statistics between PyTorch and ONNX model results for classification models.
     
@@ -595,7 +782,7 @@ def test_onnx():
                 result = torch.nn.functional.softmax(model(preprocessed), dim=-1)
             onnx_result = torch.nn.functional.softmax(torch.from_numpy(onnx_model(data)[0]), dim=-1)
             all_result[data_id] = (result, onnx_result)
-    report_classification(all_result)
+    compare_classification(all_result)
 
 def to_shape(img_bytes, h = 224, w=224):
     assert isinstance(img_bytes, bytes), "Input must be raw image bytes"
@@ -613,6 +800,101 @@ def get_timm_and_export_onnx(model_name, onnx_path = None, h = 224, w = 224):
     model, preprocessor = get_classification_model(model_name, h, w)
     export_x3hw(model, onnx_path, h, w)
     return model, preprocessor
+
+
+def analyze_profile(profile_results):
+    """
+    Analyze the profile results from multiple clients to compute performance metrics.
+
+    Args:
+        profile_results (list of dict): List of profiling results, each containing
+            'thread_id', 'start_time', 'end_time', and 'request_id'.
+
+    Returns:
+        dict: A dictionary containing performance metrics including total requests,
+            number of clients, QPS, average latency, TP50, TP99, and per-client stats.
+    """
+    from tabulate import tabulate
+    
+    # Group results by thread_id
+    clients = {}
+    for result in profile_results:
+        tid = result['thread_id']
+        if tid not in clients:
+            clients[tid] = []
+        clients[tid].append(result)
+
+    total_requests = len(profile_results)
+    num_clients = len(clients)
+
+    # Calculate total time span (ensure no division by zero)
+    start_times = [r['start_time'] for r in profile_results] if profile_results else []
+    end_times = [r['end_time'] for r in profile_results] if profile_results else []
+    min_start = min(start_times) if start_times else 0
+    max_end = max(end_times) if end_times else 0
+    total_time = max_end - min_start if start_times and end_times else 0
+
+    # Compute QPS (requests per second)
+    qps = total_requests / total_time if total_time > 0 else 0
+
+    # Calculate latencies and percentiles
+    latencies = [r['end_time'] - r['start_time'] for r in profile_results] if profile_results else []
+    sorted_latencies = sorted(latencies)
+    avg_latency = sum(latencies) / len(latencies) if latencies else 0
+
+    def compute_percentile(sorted_data, percentile):
+        """
+        Compute the percentile value from a sorted list of data using linear interpolation.
+        """
+        if not sorted_data:
+            return 0
+        index = (len(sorted_data) - 1) * percentile / 100
+        integer_part = int(index)
+        fractional_part = index - integer_part
+        if fractional_part == 0:
+            return sorted_data[integer_part]
+        else:
+            lower = sorted_data[integer_part]
+            upper = sorted_data[integer_part + 1]
+            return lower + (upper - lower) * fractional_part
+
+    tp50 = compute_percentile(sorted_latencies, 50)
+    tp99 = compute_percentile(sorted_latencies, 99)
+
+    # Build result dictionary
+    result = {
+        'total_requests': total_requests,
+        'number_clients': num_clients,
+        'total_time_sec': total_time,
+        'qps': qps,
+        'average_latency_sec': avg_latency,
+        'tp50_latency_sec': tp50,
+        'tp99_latency_sec': tp99,
+        'client_stats': {tid: len(res) for tid, res in clients.items()}
+    }
+
+    # Print per-client request counts
+    client_table = []
+    for tid, res in clients.items():
+        client_table.append([f"Client {tid}", len(res)])
+    print("\n")
+    # print(tabulate(client_table, headers=["Client ID", "Requests"], tablefmt="grid"))
+
+
+    # Print summary metrics in a formatted table
+    summary_table = [
+        ["Total Requests", result['total_requests']],
+        ["Number of Clients", result['number_clients']],
+        ["Total Time (s)", f"{result['total_time_sec']:.2f}"],
+        ["QPS (requests/sec)", f"{result['qps']:.2f}"],
+        ["Average Latency (s)", f"{result['average_latency_sec']:.4f}"],
+        ["TP50 Latency (s)", f"{result['tp50_latency_sec']:.4f}"],
+        ["TP99 Latency (s)", f"{result['tp99_latency_sec']:.4f}"]
+    ]
+    print(tabulate(summary_table, headers=["Metric", "Value"], tablefmt="grid"))
+
+    
+    return result
     
 class ClassifyModelTester:
     def __init__(self, model_name, onnx_path = None, h = 224, w = 224):
@@ -667,7 +949,7 @@ class ClassifyModelTester:
                 # import pdb; pdb.set_trace()
             
         if callable_func:
-            report_classification(all_result)
+            compare_classification(all_result)
         return all_result
         
         

@@ -75,8 +75,9 @@ void Sequential::impl_custom_init(
 
         // prefix
         const auto &prefix = prefix_args_kwargs_[ri];
-        if (prefix.first.size() >= 1) {
-            filter_or_[ri] = prefix.first[0] == "or";
+        if (prefix.first.size() >= 1 && prefix.first[0] == "or") {
+            SPDLOG_INFO("Sequential: or filter in {}", backend_cfgs_[ri]);
+            filter_or_[ri] = true;
         }
     }
 }
@@ -99,9 +100,13 @@ void Sequential::impl_forward(const std::vector<dict> &io) {
                 const auto input_dict = io[j];
                 auto iter = input_dict->find(TASK_RESULT_KEY);
                 if (iter != input_dict->end()) {
-                    (*input_dict)[TASK_DATA_KEY] = iter->second;
-                    input_dict->erase(iter);
-                    valid_inputs.push_back(input_dict);
+                    if (!filter_or_[i]) {
+                        (*input_dict)[TASK_DATA_KEY] = iter->second;
+                        input_dict->erase(iter);
+                        valid_inputs.push_back(input_dict);
+                    } else {
+                        continue;
+                    }
                 } else if (filter_or_[i]) {
                     valid_inputs.push_back(input_dict);
                 } else {
@@ -115,10 +120,11 @@ void Sequential::impl_forward(const std::vector<dict> &io) {
         }
 
         if (valid_inputs.empty()) {
-            SPDLOG_INFO("Sequential: valid_inputs.empty()");
-            return;
+            // SPDLOG_INFO("Sequential: valid_inputs.empty()");
+            continue;
         }
 
+        // todo: add a check for the backend
         backends_[i]->safe_forward(valid_inputs);
     }
 }

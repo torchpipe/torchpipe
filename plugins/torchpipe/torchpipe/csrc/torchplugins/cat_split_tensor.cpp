@@ -106,10 +106,11 @@ void SplitTensor::impl_forward(const std::vector<dict> &input_dict) {
     size_t curr_index = cated_inputs[0].size(0);
 
     std::vector<std::vector<torch::Tensor>> results(input_dict.size());
-    for (auto index = input_dict.size() - 1; index > 1; --index) {
+    for (auto index = input_dict.size() - 1; index >= 1; --index) {
         // const size_t req_size =
         //     dict_get<int>(input_dict[index], TASK_REQUEST_SIZE_KEY);
         const size_t req_size = get_request_size(input_dict[index]);
+        // SPDLOG_INFO("req_size = {}/{}", req_size, input_dict.size());
         curr_index -= req_size;
         for (const auto &item : cated_inputs) {
             results[index].push_back(item.index(
