@@ -34,17 +34,17 @@ std::string colored(const std::string& message);
 namespace {
 
 class LoggerGuard {
-   public:
-    LoggerGuard() {
-        std::lock_guard<std::mutex> lock(lock_);
-        auto in_default = default_logger();
-        auto now_logger = spdlog::default_logger();
-        if (in_default != now_logger && in_default)
-            spdlog::set_default_logger(in_default);
-    };
+ public:
+  LoggerGuard() {
+    std::lock_guard<std::mutex> lock(lock_);
+    auto in_default = default_logger();
+    auto now_logger = spdlog::default_logger();
+    if (in_default != now_logger && in_default)
+      spdlog::set_default_logger(in_default);
+  };
 
-   private:
-    static std::mutex lock_;
+ private:
+  static std::mutex lock_;
 };
 std::mutex LoggerGuard::lock_;
 static LoggerGuard g_tmp_lock_guard;

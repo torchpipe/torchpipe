@@ -27,226 +27,229 @@ namespace hami {
 
 template <typename T>
 class ThreadSafeSizedQueue {
-   public:
-    ThreadSafeSizedQueue() = default;
-    ThreadSafeSizedQueue(const ThreadSafeSizedQueue& other) = delete;
-    ThreadSafeSizedQueue& operator=(const ThreadSafeSizedQueue& other) = delete;
+ public:
+  ThreadSafeSizedQueue() = default;
+  ThreadSafeSizedQueue(const ThreadSafeSizedQueue& other) = delete;
+  ThreadSafeSizedQueue& operator=(const ThreadSafeSizedQueue& other) = delete;
 
-    void push(const T& new_value, size_t size) {
-        {
-            std::lock_guard<std::mutex> lk(mut_);
-            data_queue_.push(new_value, size);
-        }
-
-        data_cond_.notify_all();
+  void push(const T& new_value, size_t size) {
+    {
+      std::lock_guard<std::mutex> lk(mut_);
+      data_queue_.push(new_value, size);
     }
 
-    void notify_all() {
-        data_cond_.notify_all();
-        // https://wanghenshui.github.io/2019/08/23/notify-one-pred
+    data_cond_.notify_all();
+  }
+
+  void notify_all() {
+    data_cond_.notify_all();
+    // https://wanghenshui.github.io/2019/08/23/notify-one-pred
+  }
+
+  // bool wait(int time_out) {
+  //     std::unique_lock<std::mutex> lk(mut_);
+  //     return std::cv_status::timeout !=
+  //            data_cond_.wait_for(lk, std::chrono::milliseconds(time_out));
+  // }
+
+  // void PushIfEmpty(const T& new_value, size_t size) {
+  //   {
+  //     std::unique_lock<std::mutex> lk(mut_);
+  //     poped_cond_.wait(lk, [this] { return data_queue_.empty(); });
+  //     data_queue_.push(new_value, size);
+  //   }
+
+  //   data_cond_.notify_all();
+  // }
+
+  void push(const std::vector<T>& new_value, const std::vector<size_t>& sizes) {
+    std::lock_guard<std::mutex> lk(mut_);
+    for (size_t i = 0; i < new_value.size(); ++i)
+      data_queue_.push(new_value[i], sizes[i]);
+
+    data_cond_.notify_all();
+  }
+
+  void push(const std::vector<T>& new_value,
+            const std::function<int(const T&)>& req_size_func) {
+    std::lock_guard<std::mutex> lk(mut_);
+    for (size_t i = 0; i < new_value.size(); ++i)
+      data_queue_.push(new_value[i], req_size_func(new_value[i]));
+
+    data_cond_.notify_all();
+  }
+
+  void notify_one() {
+    data_cond_.notify_one();
+    // https://wanghenshui.github.io/2019/08/23/notify-one-pred
+  }
+
+  void wait_pop(T& value) {
+    {
+      std::unique_lock<std::mutex> lk(mut_);
+      data_cond_.wait(lk, [this] { return !data_queue_.empty(); });
+      value = data_queue_.front();
+      data_queue_.pop();
     }
+  }
 
-    // bool wait(int time_out) {
-    //     std::unique_lock<std::mutex> lk(mut_);
-    //     return std::cv_status::timeout !=
-    //            data_cond_.wait_for(lk, std::chrono::milliseconds(time_out));
-    // }
-
-    // void PushIfEmpty(const T& new_value, size_t size) {
-    //   {
-    //     std::unique_lock<std::mutex> lk(mut_);
-    //     poped_cond_.wait(lk, [this] { return data_queue_.empty(); });
-    //     data_queue_.push(new_value, size);
-    //   }
-
-    //   data_cond_.notify_all();
-    // }
-
-    void push(const std::vector<T>& new_value,
-              const std::vector<size_t>& sizes) {
-        std::lock_guard<std::mutex> lk(mut_);
-        for (size_t i = 0; i < new_value.size(); ++i)
-            data_queue_.push(new_value[i], sizes[i]);
-
-        data_cond_.notify_all();
+  T pop() {
+    {
+      std::unique_lock<std::mutex> lk(mut_);
+      data_cond_.wait(lk, [this] { return !data_queue_.empty(); });
+      auto value = data_queue_.front();
+      data_queue_.pop();
+      return value;
     }
+  }
 
-    void push(const std::vector<T>& new_value,
-              const std::function<int(const T&)>& req_size_func) {
-        std::lock_guard<std::mutex> lk(mut_);
-        for (size_t i = 0; i < new_value.size(); ++i)
-            data_queue_.push(new_value[i], req_size_func(new_value[i]));
+  T& front() {
+    std::unique_lock<std::mutex> lk(mut_);
+    assert(!data_queue_.empty());
+    return data_queue_.front();
+  }
 
-        data_cond_.notify_all();
-    }
+  T WaitPop(std::function<bool(const T&)> check = [](const T&) {
+    return true;
+  }) {
+    std::unique_lock<std::mutex> lk(mut_);
+    data_cond_.wait(lk, [this, check] {
+      return !data_queue_.empty() && check(data_queue_.front());
+    });
+    T res = data_queue_.front();
+    data_queue_.pop();
 
-    void notify_one() {
-        data_cond_.notify_one();
-        // https://wanghenshui.github.io/2019/08/23/notify-one-pred
-    }
+    poped_cond_.notify_all();
+    return res;
+  }
 
-    void wait_pop(T& value) {
-        {
-            std::unique_lock<std::mutex> lk(mut_);
-            data_cond_.wait(lk, [this] { return !data_queue_.empty(); });
-            value = data_queue_.front();
-            data_queue_.pop();
-        }
-    }
+  bool wait_pop(T& value, int time_out) {
+    std::unique_lock<std::mutex> lk(mut_);
+    auto re = data_cond_.wait_for(lk,
+                                  std::chrono::milliseconds(time_out),
+                                  [this] { return !data_queue_.empty(); });
+    if (!re) return false;
+    value = data_queue_.front();
+    data_queue_.pop();
 
-    T pop() {
-        {
-            std::unique_lock<std::mutex> lk(mut_);
-            data_cond_.wait(lk, [this] { return !data_queue_.empty(); });
-            auto value = data_queue_.front();
-            data_queue_.pop();
-            return value;
-        }
-    }
+    poped_cond_.notify_all();
+    return true;
+  }
 
-    T& front() {
-        std::unique_lock<std::mutex> lk(mut_);
-        assert(!data_queue_.empty());
-        return data_queue_.front();
-    }
-
-    T WaitPop(std::function<bool(const T&)> check = [](const T&) {
-        return true;
-    }) {
-        std::unique_lock<std::mutex> lk(mut_);
-        data_cond_.wait(lk, [this, check] {
-            return !data_queue_.empty() && check(data_queue_.front());
+  bool WaitForPop(T& value, int time_out, std::function<bool(const T&)> check) {
+    std::unique_lock<std::mutex> lk(mut_);
+    auto re = data_cond_.wait_for(
+        lk, std::chrono::milliseconds(time_out), [this, check] {
+          return !data_queue_.empty() && check(data_queue_.front());
         });
-        T res = data_queue_.front();
-        data_queue_.pop();
+    if (!re) return false;
+    value = data_queue_.front();
+    data_queue_.pop();
 
-        poped_cond_.notify_all();
-        return res;
+    poped_cond_.notify_all();
+    return true;
+  }
+
+  bool WaitForPopWithSize(T& value,
+                          int time_out,
+                          std::function<bool(std::size_t)> check) {
+    std::unique_lock<std::mutex> lk(mut_);
+    auto re = data_cond_.wait_for(
+        lk, std::chrono::milliseconds(time_out), [this, check] {
+          return !data_queue_.empty() && check(data_queue_.front_size());
+        });
+    if (!re) return false;
+    value = data_queue_.front();
+    data_queue_.pop();
+
+    poped_cond_.notify_all();
+    return true;
+  }
+
+  bool WaitForPopWithConditionAndStatus(
+      T& value,
+      int time_out,
+      std::function<bool(std::size_t)> check) {
+    std::unique_lock<std::mutex> lk(mut_);
+
+    if (data_queue_.empty() || !check(data_queue_.front_size())) {
+      num_waiting_++;
+      // SPDLOG_INFO("WaitForPopWithConditionAndStatus: num_waiting_ =
+      // {}", num_waiting_); lk.unlock();
+      waiting_cond_.notify_all();
+      // lk.lock();
+      auto re = data_cond_.wait_for(
+          lk, std::chrono::milliseconds(time_out), [this, check] {
+            return !data_queue_.empty() && check(data_queue_.front_size());
+          });
+      num_waiting_--;
+      // SPDLOG_INFO("WaitForPopWithConditionAndStatus finish:
+      // num_waiting_ = {}", num_waiting_);
+      if (!re) return false;
     }
 
-    bool wait_pop(T& value, int time_out) {
-        std::unique_lock<std::mutex> lk(mut_);
-        auto re = data_cond_.wait_for(lk, std::chrono::milliseconds(time_out),
-                                      [this] { return !data_queue_.empty(); });
-        if (!re) return false;
-        value = data_queue_.front();
-        data_queue_.pop();
+    value = data_queue_.front();
+    data_queue_.pop();
 
-        poped_cond_.notify_all();
-        return true;
-    }
+    lk.unlock();
+    poped_cond_.notify_all();
+    return true;
+  }
 
-    bool WaitForPop(T& value, int time_out,
-                    std::function<bool(const T&)> check) {
-        std::unique_lock<std::mutex> lk(mut_);
-        auto re = data_cond_.wait_for(
-            lk, std::chrono::milliseconds(time_out), [this, check] {
-                return !data_queue_.empty() && check(data_queue_.front());
-            });
-        if (!re) return false;
-        value = data_queue_.front();
-        data_queue_.pop();
+  bool WaitForWaiting(int time_out) {
+    std::unique_lock<std::mutex> lk(mut_);
 
-        poped_cond_.notify_all();
-        return true;
-    }
+    auto re = waiting_cond_.wait_for(lk,
+                                     std::chrono::milliseconds(time_out),
+                                     [this] { return num_waiting_ > 0; });
+    if (!re) return false;
+    // SPDLOG_INFO("WaitForWaiting: num_waiting_ = {}", num_waiting_);
+    return true;
+  }
 
-    bool WaitForPopWithSize(T& value, int time_out,
-                            std::function<bool(std::size_t)> check) {
-        std::unique_lock<std::mutex> lk(mut_);
-        auto re = data_cond_.wait_for(
-            lk, std::chrono::milliseconds(time_out), [this, check] {
-                return !data_queue_.empty() && check(data_queue_.front_size());
-            });
-        if (!re) return false;
-        value = data_queue_.front();
-        data_queue_.pop();
+  // bool wait_for(int time_out) {
+  //     std::unique_lock<std::mutex> lk(mut_);
+  //     return data_cond_.wait_for(lk,
+  //     std::chrono::milliseconds(int(time_out)),
+  //                                [this] { return !data_queue_.empty(); });
+  // }
 
-        poped_cond_.notify_all();
-        return true;
-    }
+  bool wait_for(int time_out) {
+    std::unique_lock<std::mutex> lk(mut_);
+    return data_cond_.wait_for(lk,
+                               std::chrono::milliseconds((time_out)),
+                               [this] { return !data_queue_.empty(); });
+  }
 
-    bool WaitForPopWithConditionAndStatus(
-        T& value, int time_out, std::function<bool(std::size_t)> check) {
-        std::unique_lock<std::mutex> lk(mut_);
+  void WaitLessThan(int num, int time_out) {
+    std::unique_lock<std::mutex> lk(mut_);
+    data_cond_.wait_for(lk,
+                        std::chrono::milliseconds(int(time_out)),
+                        [this, num] { return data_queue_.size() < num; });
+  }
 
-        if (data_queue_.empty() || !check(data_queue_.front_size())) {
-            num_waiting_++;
-            // SPDLOG_INFO("WaitForPopWithConditionAndStatus: num_waiting_ =
-            // {}", num_waiting_); lk.unlock();
-            waiting_cond_.notify_all();
-            // lk.lock();
-            auto re = data_cond_.wait_for(
-                lk, std::chrono::milliseconds(time_out), [this, check] {
-                    return !data_queue_.empty() &&
-                           check(data_queue_.front_size());
-                });
-            num_waiting_--;
-            // SPDLOG_INFO("WaitForPopWithConditionAndStatus finish:
-            // num_waiting_ = {}", num_waiting_);
-            if (!re) return false;
-        }
+  bool empty() const {
+    std::lock_guard<std::mutex> lk(mut_);
+    return data_queue_.empty();
+  }
 
-        value = data_queue_.front();
-        data_queue_.pop();
+  std::size_t size() const {
+    std::lock_guard<std::mutex> lk(mut_);
+    return data_queue_.size();
+  }
 
-        lk.unlock();
-        poped_cond_.notify_all();
-        return true;
-    }
+  std::size_t front_size() const {
+    std::lock_guard<std::mutex> lk(mut_);
+    return data_queue_.front_size();
+  }
 
-    bool WaitForWaiting(int time_out) {
-        std::unique_lock<std::mutex> lk(mut_);
-
-        auto re =
-            waiting_cond_.wait_for(lk, std::chrono::milliseconds(time_out),
-                                   [this] { return num_waiting_ > 0; });
-        if (!re) return false;
-        // SPDLOG_INFO("WaitForWaiting: num_waiting_ = {}", num_waiting_);
-        return true;
-    }
-
-    // bool wait_for(int time_out) {
-    //     std::unique_lock<std::mutex> lk(mut_);
-    //     return data_cond_.wait_for(lk,
-    //     std::chrono::milliseconds(int(time_out)),
-    //                                [this] { return !data_queue_.empty(); });
-    // }
-
-    bool wait_for(int time_out) {
-        std::unique_lock<std::mutex> lk(mut_);
-        return data_cond_.wait_for(lk, std::chrono::milliseconds((time_out)),
-                                   [this] { return !data_queue_.empty(); });
-    }
-
-    void WaitLessThan(int num, int time_out) {
-        std::unique_lock<std::mutex> lk(mut_);
-        data_cond_.wait_for(lk, std::chrono::milliseconds(int(time_out)),
-                            [this, num] { return data_queue_.size() < num; });
-    }
-
-    bool empty() const {
-        std::lock_guard<std::mutex> lk(mut_);
-        return data_queue_.empty();
-    }
-
-    std::size_t size() const {
-        std::lock_guard<std::mutex> lk(mut_);
-        return data_queue_.size();
-    }
-
-    std::size_t front_size() const {
-        std::lock_guard<std::mutex> lk(mut_);
-        return data_queue_.front_size();
-    }
-
-   private:
-    mutable std::mutex mut_;
-    SizedQueue<T> data_queue_;
-    std::condition_variable data_cond_;
-    std::condition_variable poped_cond_;
-    uint32_t num_waiting_{0};
-    std::condition_variable waiting_cond_;
+ private:
+  mutable std::mutex mut_;
+  SizedQueue<T> data_queue_;
+  std::condition_variable data_cond_;
+  std::condition_variable poped_cond_;
+  uint32_t num_waiting_{0};
+  std::condition_variable waiting_cond_;
 };
 
 }  // namespace hami

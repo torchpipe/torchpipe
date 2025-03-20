@@ -23,18 +23,18 @@
 
 namespace hami {
 std::shared_ptr<spdlog::logger> default_logger() {
-    return spdlog::default_logger();
+  return spdlog::default_logger();
 }
 spdlog::logger* default_logger_raw() { return spdlog::default_logger_raw(); }
 
 // Function to colorize text using spdlog and fmt
 std::string colored(const std::string& message) {
-    return fmt::format(
-        fmt::bg(fmt::terminal_color::cyan) |  // Set background color to cyan
-            fmt::fg(
-                fmt::terminal_color::black) |  // Set foreground color to black
-            fmt::emphasis::bold,               // Set text to bold
-        message                                // The message to format
-    );
+  return fmt::format(
+      fmt::bg(fmt::terminal_color::cyan) |  // Set background color to cyan
+          fmt::fg(
+              fmt::terminal_color::black) |  // Set foreground color to black
+          fmt::emphasis::bold,               // Set text to bold
+      message                                // The message to format
+  );
 }
 }  // namespace hami

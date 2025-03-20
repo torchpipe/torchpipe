@@ -14,7 +14,8 @@ class InitializationRegistry {
   static InitializationRegistry& instance();
 
   // Register an initialization function with a name
-  void register_initialization(const std::string& name, std::function<void()> init_func);
+  void register_initialization(const std::string& name,
+                               std::function<void()> init_func);
 
   // Try to execute all pending initializations
   void try_initialization();
@@ -39,7 +40,8 @@ class InitializationRegistry {
 };
 
 // Helper function to register initialization
-void register_initialization(const std::string& name, std::function<void()> init_func);
+void register_initialization(const std::string& name,
+                             std::function<void()> init_func);
 
 // Helper function to try initialization
 void try_initialization();
