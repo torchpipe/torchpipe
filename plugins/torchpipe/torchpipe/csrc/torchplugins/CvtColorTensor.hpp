@@ -1,8 +1,8 @@
 #pragma once
 
-#include <unordered_set>
-#include <string>
 #include <hami/extension.hpp>
+#include <string>
+#include <unordered_set>
 
 using hami::dict;
 
@@ -18,4 +18,4 @@ class CvtColorTensor : public hami::BackendOne {
   std::string color_;
 };
 
-}  // namespace torchpipe
+} // namespace torchpipe

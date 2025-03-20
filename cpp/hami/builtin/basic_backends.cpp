@@ -1,13 +1,15 @@
 
+#include "hami/builtin/basic_backends.hpp"
+
+#include <fstream>
 #include <memory>
 #include <numeric>
-#include <fstream>
+
+#include "hami/core/helper.hpp"
 #include "hami/core/reflect.h"
 #include "hami/helper/base_logging.hpp"
-#include "hami/helper/string.hpp"
-#include "hami/builtin/basic_backends.hpp"
 #include "hami/helper/macro.h"
-#include "hami/core/helper.hpp"
+#include "hami/helper/string.hpp"
 
 namespace hami {
 void DependencyV0::impl_init(
@@ -88,14 +90,16 @@ void Dependency::impl_inject_dependency(Backend* dependency) {
   injected_dependency_ = dependency;
 }
 size_t Dependency::impl_max() const {
-  HAMI_ASSERT(injected_dependency_,
-              "Dependency not initialized. Call inject_dependency first.");
+  HAMI_ASSERT(
+      injected_dependency_,
+      "Dependency not initialized. Call inject_dependency first.");
   return injected_dependency_->max();
 }
 
 size_t Dependency::impl_min() const {
-  HAMI_ASSERT(injected_dependency_,
-              "Dependency not initialized. Call inject_dependency first.");
+  HAMI_ASSERT(
+      injected_dependency_,
+      "Dependency not initialized. Call inject_dependency first.");
   return injected_dependency_->min();
 }
 
@@ -115,20 +119,22 @@ void Container::impl_init(
         *name);
   }
   auto iter = config.find(*name + "::dependency");
-  HAMI_ASSERT(iter != config.end(),
-              "Dependency configuration " + *name +
-                  "::dependency not found. "
-                  "Containers do not allow runtime dynamic modification of "
-                  "dependencies, "
-                  "please specify dependencies in the configuration");
+  HAMI_ASSERT(
+      iter != config.end(),
+      "Dependency configuration " + *name +
+          "::dependency not found. "
+          "Containers do not allow runtime dynamic modification of "
+          "dependencies, "
+          "please specify dependencies in the configuration");
 
   const auto& backend_setting = iter->second;
   // SPDLOG_DEBUG("Expand container to {}[{}].", name, backend_setting);
 
   if (!backend_setting.empty()) {
     auto backend_names = str::items_split(backend_setting, ',', '[', ']');
-    HAMI_ASSERT(backend_names.size() >= 1,
-                "Container: backend_names.size() should >= 1");
+    HAMI_ASSERT(
+        backend_names.size() >= 1,
+        "Container: backend_names.size() should >= 1");
 
     auto order = set_init_order(backend_names.size());
     base_config_.resize(backend_names.size());
@@ -143,8 +149,9 @@ void Container::impl_init(
       const auto& engine_name = backend_names[i];
 
       std::string prefix_str, post_str;
-      auto backend = str::prefix_parentheses_split(engine_name,
-                                                   prefix_str);  // (params1=a)A
+      auto backend = str::prefix_parentheses_split(
+          engine_name,
+          prefix_str); // (params1=a)A
 
       auto pre_config = str::auto_config_split(prefix_str, "filter");
       auto new_config = config;
@@ -157,10 +164,11 @@ void Container::impl_init(
         for (auto& [key, value] : post_config) {
           new_config[key] = value;
         }
-        SPDLOG_INFO("backend : {} pre: `{}` post: `size={}`",
-                    engine_name,
-                    prefix_str,
-                    new_config.size());
+        SPDLOG_INFO(
+            "backend : {} pre: `{}` post: `size={}`",
+            engine_name,
+            prefix_str,
+            new_config.size());
       }
       auto main_backend = str::brackets_split(backend, new_config);
       // HAMI_ASSERT(new_config.find("backend") != new_config.end());
@@ -170,10 +178,11 @@ void Container::impl_init(
       base_config_[i] = (pre_config);
       auto backend_ptr =
           std::unique_ptr<Backend>(HAMI_CREATE(Backend, main_backend));
-      HAMI_ASSERT(backend_ptr,
-                  "create " + main_backend +
-                      " failed. This is not a Backend name. May be this is an "
-                      "instance name and you forgot to use it with Forward[*]");
+      HAMI_ASSERT(
+          backend_ptr,
+          "create " + main_backend +
+              " failed. This is not a Backend name. May be this is an "
+              "instance name and you forgot to use it with Forward[*]");
       if (lazy_init) {
         auto* pbackend_ptr = backend_ptr.get();
         lazy_init_func_.emplace_back([new_config, kwargs, pbackend_ptr]() {
@@ -230,8 +239,9 @@ std::pair<size_t, size_t> Container::update_min_max(
   return {min_value, max_value};
 }
 
-void List::impl_init(const std::unordered_map<std::string, std::string>& config,
-                     const dict& kwargs) {
+void List::impl_init(
+    const std::unordered_map<std::string, std::string>& config,
+    const dict& kwargs) {
   constexpr auto default_name = "List";
   auto name = HAMI_OBJECT_NAME(Backend, this);
   if (name == std::nullopt) {
@@ -245,20 +255,22 @@ void List::impl_init(const std::unordered_map<std::string, std::string>& config,
         *name);
   }
   auto iter = config.find(*name + "::dependency");
-  HAMI_ASSERT(iter != config.end(),
-              "Dependency configuration " + *name +
-                  "::dependency not found. "
-                  "Containers do not allow runtime dynamic modification of "
-                  "dependencies, "
-                  "please specify dependencies in the configuration");
+  HAMI_ASSERT(
+      iter != config.end(),
+      "Dependency configuration " + *name +
+          "::dependency not found. "
+          "Containers do not allow runtime dynamic modification of "
+          "dependencies, "
+          "please specify dependencies in the configuration");
 
   const auto& backend_setting = iter->second;
   // SPDLOG_DEBUG("Expand container to {}[{}].", name, backend_setting);
 
   if (!backend_setting.empty()) {
     auto backend_names = str::items_split(backend_setting, ',', '[', ']');
-    HAMI_ASSERT(backend_names.size() >= 1,
-                "Container: backend_names.size() should >= 1");
+    HAMI_ASSERT(
+        backend_names.size() >= 1,
+        "Container: backend_names.size() should >= 1");
 
     // std::reverse(backend_names.begin(), backend_names.end());
 
@@ -266,8 +278,9 @@ void List::impl_init(const std::unordered_map<std::string, std::string>& config,
       const auto& engine_name = backend_names[i];
 
       std::string prefix_str, post_str;
-      auto backend = str::prefix_parentheses_split(engine_name,
-                                                   prefix_str);  // (params1=a)A
+      auto backend = str::prefix_parentheses_split(
+          engine_name,
+          prefix_str); // (params1=a)A
 
       auto pre_config = str::auto_config_split(prefix_str, "filter");
       auto new_config = config;
@@ -280,10 +293,11 @@ void List::impl_init(const std::unordered_map<std::string, std::string>& config,
         for (auto& [key, value] : post_config) {
           new_config[key] = value;
         }
-        SPDLOG_INFO("backend : {} pre: `{}` post: `size={}`",
-                    engine_name,
-                    prefix_str,
-                    new_config.size());
+        SPDLOG_INFO(
+            "backend : {} pre: `{}` post: `size={}`",
+            engine_name,
+            prefix_str,
+            new_config.size());
       }
       auto main_backend = str::brackets_split(backend, new_config);
       // HAMI_ASSERT(new_config.find("backend") != new_config.end());
@@ -310,8 +324,8 @@ void List::impl_forward(const std::vector<dict>& input_output) {
 HAMI_REGISTER(Backend, List, "List,Tuple");
 
 void BackendOne::impl_forward(const std::vector<dict>& input_output) {
-  HAMI_ASSERT(input_output.size() == 1,
-              "BackendOne only supports single input");
+  HAMI_ASSERT(
+      input_output.size() == 1, "BackendOne only supports single input");
 
   HAMI_ASSERT(input_output[0]->find(TASK_DATA_KEY) != input_output[0]->end());
   forward(input_output[0]);
@@ -331,8 +345,9 @@ class ReadFile : public BackendOne {
     std::string content(size, '\0');
     // SPDLOG_INFO("file size = {} content.size() = {}", size,
     // content.size());
-    HAMI_ASSERT(file.read(content.data(), size),
-                "ReadFile: failed to read file content");
+    HAMI_ASSERT(
+        file.read(content.data(), size),
+        "ReadFile: failed to read file content");
 
     file.close();
 
@@ -341,4 +356,4 @@ class ReadFile : public BackendOne {
 };
 
 HAMI_REGISTER_BACKEND(ReadFile);
-}  // namespace hami
+} // namespace hami

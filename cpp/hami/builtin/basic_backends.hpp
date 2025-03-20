@@ -26,8 +26,9 @@ class HAMI_EXPORT DependencyV0 : public Backend {
       const std::vector<dict>& input_output) override final {
     forward_with_dep(input_output, injected_dependency_);
   }
-  virtual void impl_forward_with_dep(const std::vector<dict>& input_output,
-                                     Backend* dependency) override final {
+  virtual void impl_forward_with_dep(
+      const std::vector<dict>& input_output,
+      Backend* dependency) override final {
     if (dependency == nullptr) {
       throw std::invalid_argument("null dependency is not allowed");
     }
@@ -48,8 +49,9 @@ class HAMI_EXPORT DependencyV0 : public Backend {
    *
    * The dependency instance is registered as {node_name}.{A}.{B}.
    */
-  void impl_init(const std::unordered_map<std::string, std::string>& config,
-                 const dict& kwargs) override final;
+  void impl_init(
+      const std::unordered_map<std::string, std::string>& config,
+      const dict& kwargs) override final;
 
   virtual void pre_init(
       const std::unordered_map<std::string, std::string>& config,
@@ -62,20 +64,25 @@ class HAMI_EXPORT DependencyV0 : public Backend {
   ~DependencyV0() override;
 
  protected:
-  void set_registered_name(const std::string& name) { registered_name_ = name; }
-  void set_dependency_name(const std::string& name) { dependency_name_ = name; }
+  void set_registered_name(const std::string& name) {
+    registered_name_ = name;
+  }
+  void set_dependency_name(const std::string& name) {
+    dependency_name_ = name;
+  }
 
   void set_dependency_name(
       const std::unordered_map<std::string, std::string>& config,
       const std::string& default_cls_name,
       const std::string& default_dep_name);
 
-  Backend* injected_dependency_{nullptr};  ///< The injected dependency.
+  Backend* injected_dependency_{nullptr}; ///< The injected dependency.
 
  private:
-  virtual void custom_forward_with_dep(const std::vector<dict>& input_output,
-                                       Backend* dependency);
-  std::string registered_name_{};  ///< The registered name of the backend.
+  virtual void custom_forward_with_dep(
+      const std::vector<dict>& input_output,
+      Backend* dependency);
+  std::string registered_name_{}; ///< The registered name of the backend.
   std::string dependency_name_{};
   std::shared_ptr<Backend> shared_owned_dependency_;
 };
@@ -108,14 +115,15 @@ class HAMI_EXPORT Dependency : public Backend {
     forward_with_dep(input_output, injected_dependency_);
   }
 
-  virtual void impl_forward_with_dep(const std::vector<dict>& input_output,
-                                     Backend* dep) = 0;
+  virtual void impl_forward_with_dep(
+      const std::vector<dict>& input_output,
+      Backend* dep) = 0;
 
   [[nodiscard]] size_t impl_max() const override;
   [[nodiscard]] size_t impl_min() const override;
 
  protected:
-  Backend* injected_dependency_{nullptr};  ///< The injected dependency.
+  Backend* injected_dependency_{nullptr}; ///< The injected dependency.
 
   //    private:
   //     virtual void custom_forward_with_dep(const std::vector<dict>&
@@ -148,13 +156,18 @@ class Container : public Backend {
    * member variable base_config_, and the suffix configuration is passed to
    * A.init.
    */
-  void impl_init(const std::unordered_map<std::string, std::string>& config,
-                 const dict& kwargs) override final;
+  void impl_init(
+      const std::unordered_map<std::string, std::string>& config,
+      const dict& kwargs) override final;
   virtual void post_init(
       const std::unordered_map<std::string, std::string>& config,
       const dict& kwargs) {};
-  [[nodiscard]] size_t impl_max() const override final { return max_; }
-  [[nodiscard]] size_t impl_min() const override final { return min_; }
+  [[nodiscard]] size_t impl_max() const override final {
+    return max_;
+  }
+  [[nodiscard]] size_t impl_min() const override final {
+    return min_;
+  }
 
  private:
   virtual std::pair<size_t, size_t> update_min_max(
@@ -172,10 +185,13 @@ class Container : public Backend {
 
 class HAMI_EXPORT List : public Backend {
  private:
-  void impl_init(const std::unordered_map<std::string, std::string>& config,
-                 const dict& kwargs) override final;
+  void impl_init(
+      const std::unordered_map<std::string, std::string>& config,
+      const dict& kwargs) override final;
   void impl_forward(const std::vector<dict>& input_output) override final;
-  [[nodiscard]] size_t impl_max() const override final { return 1; }
+  [[nodiscard]] size_t impl_max() const override final {
+    return 1;
+  }
   [[nodiscard]] size_t impl_min() const override final {
     return std::numeric_limits<size_t>::max();
   }
@@ -191,4 +207,4 @@ class HAMI_EXPORT List : public Backend {
   }
 };
 
-}  // namespace hami
+} // namespace hami

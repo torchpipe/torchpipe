@@ -1,18 +1,20 @@
 
-#include "hami/builtin/basic_backends.hpp"
-#include "hami/core/reflect.h"
-#include "hami/helper/macro.h"
-#include "hami/helper/base_logging.hpp"
-#include "hami/helper/string.hpp"
 #include "hami/builtin/or.hpp"
-#include "hami/schedule/aspect.hpp"
+
+#include "hami/builtin/basic_backends.hpp"
 #include "hami/core/helper.hpp"
+#include "hami/core/reflect.h"
 #include "hami/core/task_keys.hpp"
+#include "hami/helper/base_logging.hpp"
+#include "hami/helper/macro.h"
+#include "hami/helper/string.hpp"
+#include "hami/schedule/aspect.hpp"
 
 namespace hami {
 
-void Or::post_init(const std::unordered_map<std::string, std::string>&,
-                   const dict&) {
+void Or::post_init(
+    const std::unordered_map<std::string, std::string>&,
+    const dict&) {
   HAMI_ASSERT(base_dependencies_.size() >= 2);
 }
 void Or::impl_forward(const std::vector<dict>& input_output) {
@@ -47,7 +49,8 @@ void Or::impl_forward(const std::vector<dict>& input_output) {
           valid_inputs.push_back(input_dict);
         } else {
           break_index.insert(j);
-          if (break_index.size() == input_output.size()) return;
+          if (break_index.size() == input_output.size())
+            return;
         }
       }
     if (valid_inputs.empty()) {
@@ -60,4 +63,4 @@ void Or::impl_forward(const std::vector<dict>& input_output) {
 }
 HAMI_REGISTER(Backend, Or, "Or, S");
 
-}  // namespace hami
+} // namespace hami

@@ -1,9 +1,10 @@
 #pragma once
 
 #include <memory>
+
 #include "hami/builtin/basic_backends.hpp"
-#include "hami/helper/params.hpp"
 #include "hami/helper/macro.h"
+#include "hami/helper/params.hpp"
 namespace hami {
 
 class Condition : public DependencyV0 {
