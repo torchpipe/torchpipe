@@ -67,7 +67,7 @@ class ThreadPoolExecutor : public Dependency {
   void impl_init(const std::unordered_map<std::string, std::string>& params,
                  const dict& options) override final {
     auto args_kwargs =
-        meta::get_args_kwargs(this, "ThreadPoolExecutor", params);
+        parser_v2::get_args_kwargs(this, "ThreadPoolExecutor", params);
 
     str::try_update<size_t>(args_kwargs.second, "max_workers", max_workers_);
 

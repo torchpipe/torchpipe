@@ -118,7 +118,8 @@ class Send2Queue : public BackendOne {
  private:
   void impl_init(const std::unordered_map<std::string, std::string>& config,
                  const dict&) override final {
-    auto [args, kwargs] = meta::get_args_kwargs(this, "Send2Queue", config);
+    auto [args, kwargs] =
+        parser_v2::get_args_kwargs(this, "Send2Queue", config);
 
     str::try_update(kwargs, "max", queue_max_);
     if (args.size() == 1) {
@@ -151,7 +152,7 @@ class SrcQueue : public BackendOne {
  private:
   void impl_init(const std::unordered_map<std::string, std::string>& config,
                  const dict&) override final {
-    auto [args, kwargs] = meta::get_args_kwargs(this, "SrcQueue", config);
+    auto [args, kwargs] = parser_v2::get_args_kwargs(this, "SrcQueue", config);
 
     str::try_update(kwargs, "max", queue_max_);
     if (args.size() == 1) {
@@ -185,7 +186,8 @@ class CreateQueue : public Backend {
  private:
   void impl_init(const std::unordered_map<std::string, std::string>& config,
                  const dict&) override final {
-    auto [args, kwargs] = meta::get_args_kwargs(this, "CreateQueue", config);
+    auto [args, kwargs] =
+        parser_v2::get_args_kwargs(this, "CreateQueue", config);
 
     HAMI_ASSERT(args.size() == 1, "Usage: CreateQueue(register_name)");
     // HAMI_INSTANCE_REGISTER(Queue, args[0], owned_queue_.get());

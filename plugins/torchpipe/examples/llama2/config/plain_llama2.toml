@@ -1,0 +1,5 @@
+
+
+[embed_token]
+
+backend = "S[EmbeddingTensor(exported_params/embed_tokens.pt)]"

@@ -9,7 +9,7 @@ void ControlPlane::impl_init(
     const std::unordered_map<std::string, std::string>& params,
     const dict& options) {
   std::string cls_name = default_cls_name();
-  meta::get_backend_name(this, cls_name);
+  parser_v2::get_backend_name(this, cls_name);
 
   parser_v2::Parser parser;
 
