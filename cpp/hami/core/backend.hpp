@@ -46,8 +46,9 @@ class HAMI_EXPORT Backend {
    * @throws any Exception thrown during initialization.
    * @note Non-Virtual Interface. Use can implement @impl_init
    */
-  void init(const std::unordered_map<string, string>& params,
-            const dict& options) {
+  void init(
+      const std::unordered_map<string, string>& params,
+      const dict& options) {
     impl_init(params, options);
   }
 
@@ -58,7 +59,9 @@ class HAMI_EXPORT Backend {
    *
    * @param io Input/output data to be processed.
    */
-  void forward(const std::vector<dict>& io) { impl_forward(io); }
+  void forward(const std::vector<dict>& io) {
+    impl_forward(io);
+  }
 
   /**
    * @brief Returns the maximum number of inputs supported.
@@ -69,7 +72,9 @@ class HAMI_EXPORT Backend {
    * @return Maximum number of inputs supported. Default to
    * std::numeric_limits<size_t>::max()
    */
-  [[nodiscard]] size_t max() const { return impl_max(); }
+  [[nodiscard]] size_t max() const {
+    return impl_max();
+  }
 
   /**
    * @brief Returns the minimum number of inputs supported.
@@ -79,7 +84,9 @@ class HAMI_EXPORT Backend {
    *
    * @return Minimum number of inputs supported.
    */
-  [[nodiscard]] size_t min() const { return impl_min(); }
+  [[nodiscard]] size_t min() const {
+    return impl_min();
+  }
 
   /**
    * @brief Sets the dependency for the backend.
@@ -141,20 +148,39 @@ class HAMI_EXPORT Backend {
   void safe_forward(const std::vector<dict>& io);
 
  private:
+  /**
+   * @brief Optional helper function for reflection.
+   *
+   * This function is useful for obtaining the class name of backend objects
+   * that are not generated through reflection and has multiple class names(like
+   * Sequential && S). Backends created using HAMI_CREATE do not require this
+   * function.
+   *
+   * @return The default class name of the backend.
+   */
+  virtual std::string default_cls_name() const {
+    return "UnReflectClassIDontKnowTheClassName";
+  }
+
+ private:
   // User API
-  virtual void impl_init(const std::unordered_map<string, string>& params,
-                         const dict& options) {}
+  virtual void impl_init(
+      const std::unordered_map<string, string>& params,
+      const dict& options) {}
   virtual void impl_forward(const std::vector<dict>& io) {
     throw std::runtime_error("forward(io) not supported by default");
   }
 
-  virtual void impl_forward_with_dep(const std::vector<dict>& io,
-                                     Backend* dependency) {
+  virtual void impl_forward_with_dep(
+      const std::vector<dict>& io,
+      Backend* dependency) {
     throw std::runtime_error(
         "forward(io, dependency) not supported by default");
   }
 
-  [[nodiscard]] virtual size_t impl_min() const { return 1; }
+  [[nodiscard]] virtual size_t impl_min() const {
+    return 1;
+  }
   [[nodiscard]] virtual size_t impl_max() const {
     return std::numeric_limits<size_t>::max();
   };
@@ -175,7 +201,9 @@ class HAMI_EXPORT BackendOne : public Backend {
    *
    * @return Maximum number of inputs supported.
    */
-  [[nodiscard]] size_t impl_max() const override final { return 1; }
+  [[nodiscard]] size_t impl_max() const override final {
+    return 1;
+  }
 
   /**
    * @brief Processes a single input/output.
@@ -194,8 +222,8 @@ class HAMI_EXPORT BackendOne : public Backend {
    */
   void impl_forward(const std::vector<dict>& io) override final;
 
-  void impl_forward_with_dep(const std::vector<dict>& io,
-                             Backend* dep) override {
+  void impl_forward_with_dep(const std::vector<dict>& io, Backend* dep)
+      override {
     Backend::forward_with_dep(io, dep);
   }
 
@@ -250,10 +278,12 @@ HAMI_EXPORT std::unique_ptr<Backend> create_backend(
     const std::string& class_name,
     const std::string& registered_name = "");
 
-HAMI_EXPORT void register_backend(const std::string& aspect_name_str,
-                                  std::unique_ptr<Backend>&& backend);
-HAMI_EXPORT void register_backend(const std::string& aspect_name_str,
-                                  std::shared_ptr<Backend> backend);
+HAMI_EXPORT void register_backend(
+    const std::string& aspect_name_str,
+    std::unique_ptr<Backend>&& backend);
+HAMI_EXPORT void register_backend(
+    const std::string& aspect_name_str,
+    std::shared_ptr<Backend> backend);
 HAMI_EXPORT Backend* get_backend(const std::string& aspect_name_str);
 HAMI_EXPORT void unregister_backend(const std::string& aspect_name_str);
 HAMI_EXPORT void clearup_backend();
@@ -263,12 +293,13 @@ HAMI_EXPORT std::unique_ptr<Backend> init_backend(
     const dict& kwargs = nullptr,
     const std::string& registered_name = "");
 
-#define BACKEND_CLASS(ClassName)                                               \
-  class ClassName : public hami::Backend {                                     \
-   public:                                                                     \
-    void impl_init(const std::unordered_map<std::string, std::string>& config, \
-                   const hami::dict& kwargs) override;                         \
-    void impl_forward(const std::vector<hami::dict>& input) override;          \
+#define BACKEND_CLASS(ClassName)                                      \
+  class ClassName : public hami::Backend {                            \
+   public:                                                            \
+    void impl_init(                                                   \
+        const std::unordered_map<std::string, std::string>& config,   \
+        const hami::dict& kwargs) override;                           \
+    void impl_forward(const std::vector<hami::dict>& input) override; \
   };
 
 namespace backend {
@@ -280,17 +311,18 @@ std::string get_dependency_name(
     const std::unordered_map<std::string, std::string>& config,
     const std::optional<std::string>& defualt_cls_name = std::nullopt);
 
-}  // namespace backend
-}  // namespace hami
+} // namespace backend
+} // namespace hami
 
 namespace hami::parser_v2 {
 
 bool get_backend_name(const Backend* obj_ptr, std::string& cls_name);
 
-using ArgsKwargs = std::pair<std::vector<std::string>,
-                             std::unordered_map<std::string, std::string>>;
+using ArgsKwargs = std::pair<
+    std::vector<std::string>,
+    std::unordered_map<std::string, std::string>>;
 ArgsKwargs get_args_kwargs(
     const Backend* obj_ptr,
     std::string cls_name,
     const std::unordered_map<std::string, std::string>& config);
-}  // namespace hami::parser_v2
+} // namespace hami::parser_v2

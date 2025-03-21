@@ -62,7 +62,7 @@ def test_identity_backend():
     input_str = _C.Dict({"data": "test_string"})
     backend(input_str)
     assert input_str['result'] == "test_string"
-    assert backend.max() == 1
+    assert backend.max() == 18446744073709551615
     
     # Integer input
     input_int = {"data": 42}

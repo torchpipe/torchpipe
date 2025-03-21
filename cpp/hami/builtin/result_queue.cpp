@@ -24,9 +24,10 @@ void QueueBackend::pre_init(
     register_name_ = dep.substr(0, iter);
     target_name_ = dep.substr(iter + 1);
   }
-  HAMI_ASSERT(!register_name_.empty(),
-              "QueueBackend should have register name: "
-              "Queue[register_name, optional[target_name]");
+  HAMI_ASSERT(
+      !register_name_.empty(),
+      "QueueBackend should have register name: "
+      "Queue[register_name, optional[target_name]");
   HAMI_INSTANCE_REGISTER(Backend, register_name_, this);
   HAMI_ASSERT(owned_queue_);
   queue_ = owned_queue_.get();
@@ -60,7 +61,8 @@ void QueueBackend::impl_inject_dependency(Backend* dep) {
 void QueueBackend::run() {
   while (bInited_.load()) {
     auto data = queue_->try_get(SHUTDOWN_TIMEOUT_MS);
-    if (!data.first) continue;
+    if (!data.first)
+      continue;
     auto io_data = *(data.first);
     assert(io_data);
     (*io_data)[TASK_REQUEST_SIZE_KEY] = int(data.second);
@@ -82,8 +84,9 @@ HAMI_REGISTER_BACKEND(QueueBackend, "QueueBackend,AsyncQueue, Queue");
 // QueueBackend[register_name, target_name]
 
 // init = List[Send[target_name]]
-void Send::impl_init(const std::unordered_map<std::string, std::string>& config,
-                     const dict&) {
+void Send::impl_init(
+    const std::unordered_map<std::string, std::string>& config,
+    const dict&) {
   auto target_name = get_dependency_name(this, config);
   HAMI_ASSERT(target_name);
 
@@ -91,8 +94,8 @@ void Send::impl_init(const std::unordered_map<std::string, std::string>& config,
   parser::update(config, str_kwargs);
   str::try_update(str_kwargs, "max", queue_max_);
 
-  HAMI_ASSERT(args.size() <= 1,
-              "Send must have at most one queue instance name");
+  HAMI_ASSERT(
+      args.size() <= 1, "Send must have at most one queue instance name");
 
   if (!args.empty())
     queue_ = HAMI_INSTANCE_GET(Queue, args[0]);
@@ -103,8 +106,8 @@ void Send::impl_init(const std::unordered_map<std::string, std::string>& config,
 }
 
 void Send::impl_forward(const std::vector<dict>& input) {
-  while (!queue_->try_put(
-      input, 1, queue_max_, std::chrono::milliseconds(SHUTDOWN_TIMEOUT))) {
+  while (!queue_->try_puts(
+      input, queue_max_, std::chrono::milliseconds(SHUTDOWN_TIMEOUT))) {
   };
   // for (auto& item : input) {
   //     queue_->put(item);
@@ -113,23 +116,27 @@ void Send::impl_forward(const std::vector<dict>& input) {
 
 class Send2Queue : public BackendOne {
  public:
-  ~Send2Queue() { queue_->cancel(); }
+  ~Send2Queue() {
+    queue_->cancel();
+  }
 
  private:
-  void impl_init(const std::unordered_map<std::string, std::string>& config,
-                 const dict&) override final {
+  void impl_init(
+      const std::unordered_map<std::string, std::string>& config,
+      const dict&) override final {
     auto [args, kwargs] =
         parser_v2::get_args_kwargs(this, "Send2Queue", config);
 
     str::try_update(kwargs, "max", queue_max_);
+    str::try_update(kwargs, "keep_result", keep_result_);
     if (args.size() == 1) {
       queue_ = &(default_queue(args[0]));
       SPDLOG_INFO("Using default queue: {}", args[0]);
     } else if (args.empty()) {
       queue_ = &(default_queue());
     } else {
-      HAMI_ASSERT(false,
-                  "Send2Queue must have at most one queue instance name");
+      HAMI_ASSERT(
+          false, "Send2Queue must have at most one queue instance name");
     }
 
     HAMI_ASSERT(queue_);
@@ -138,20 +145,25 @@ class Send2Queue : public BackendOne {
   void forward(const dict& input) override {
     auto data = deep_copy(input);
     while (!queue_->try_put(
-        data, 1, queue_max_, std::chrono::milliseconds(SHUTDOWN_TIMEOUT))) {
+        data, queue_max_, std::chrono::milliseconds(SHUTDOWN_TIMEOUT))) {
     };
     // SPDLOG_INFO("Send2Queue {} ", queue_->size());
+    if (keep_result_) {
+      (*input)[TASK_RESULT_KEY] = input->at(TASK_DATA_KEY);
+    }
   }
 
  protected:
   Queue* queue_{nullptr};
   size_t queue_max_{std::numeric_limits<size_t>::max()};
+  int keep_result_{0};
 };
 
 class SrcQueue : public BackendOne {
  private:
-  void impl_init(const std::unordered_map<std::string, std::string>& config,
-                 const dict&) override final {
+  void impl_init(
+      const std::unordered_map<std::string, std::string>& config,
+      const dict&) override final {
     auto [args, kwargs] = parser_v2::get_args_kwargs(this, "SrcQueue", config);
 
     str::try_update(kwargs, "max", queue_max_);
@@ -184,8 +196,9 @@ HAMI_REGISTER_BACKEND(SrcQueue);
 
 class CreateQueue : public Backend {
  private:
-  void impl_init(const std::unordered_map<std::string, std::string>& config,
-                 const dict&) override final {
+  void impl_init(
+      const std::unordered_map<std::string, std::string>& config,
+      const dict&) override final {
     auto [args, kwargs] =
         parser_v2::get_args_kwargs(this, "CreateQueue", config);
 
@@ -197,8 +210,8 @@ class CreateQueue : public Backend {
   }
 
   void impl_forward(const std::vector<dict>& input) override {
-    while (!queue_->try_put(
-        input, 1, queue_max_, std::chrono::milliseconds(SHUTDOWN_TIMEOUT))) {
+    while (!queue_->try_puts(
+        input, queue_max_, std::chrono::milliseconds(SHUTDOWN_TIMEOUT))) {
     };
   }
 
@@ -223,23 +236,26 @@ HAMI_REGISTER_BACKEND(Send, "Send");
 HAMI_REGISTER_BACKEND(Observer);
 
 // init = List[Recv[register_name_for_src_que, target_backend_name]]
-void Recv::pre_init(const std::unordered_map<std::string, std::string>& config,
-                    const dict&) {
+void Recv::pre_init(
+    const std::unordered_map<std::string, std::string>& config,
+    const dict&) {
   auto dep = get_dependency_name_force(this, config);
   auto iter = dep.find(',');
 
-  HAMI_ASSERT(iter != std::string::npos,
-              "Usage: Recv[src_queue_name, target_backend_name]");
+  HAMI_ASSERT(
+      iter != std::string::npos,
+      "Usage: Recv[src_queue_name, target_backend_name]");
 
   auto register_name = dep.substr(0, iter);
   auto target_name = dep.substr(iter + 1);
 
-  HAMI_ASSERT(!register_name.empty() && !target_name.empty(),
-              "Recv must have register name and target name");
+  HAMI_ASSERT(
+      !register_name.empty() && !target_name.empty(),
+      "Recv must have register name and target name");
   queue_ = HAMI_INSTANCE_GET(Queue, register_name);
 
   target_backend_ = HAMI_INSTANCE_GET(Backend, target_name);
   HAMI_ASSERT(target_backend_);
 }
 
-}  // namespace hami
+} // namespace hami

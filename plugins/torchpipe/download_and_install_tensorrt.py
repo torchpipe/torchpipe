@@ -11,8 +11,12 @@ import logging
 
 TrtAddr = {
     "cuda11.8": "https://developer.nvidia.com/downloads/compute/machine-learning/tensorrt/10.8.0/tars/TensorRT-10.8.0.43.Linux.x86_64-gnu.cuda-11.8.tar.gz",
-    "cuda12.8": "https://developer.nvidia.com/downloads/compute/machine-learning/tensorrt/10.8.0/tars/TensorRT-10.8.0.43.Linux.x86_64-gnu.cuda-12.8.tar.gz"
+    "cuda12.8": "https://developer.nvidia.com/downloads/compute/machine-learning/tensorrt/10.8.0/tars/TensorRT-10.8.0.43.Linux.x86_64-gnu.cuda-12.8.tar.gz",
+    "cuda11.8/trt109": "https://developer.nvidia.com/downloads/compute/machine-learning/tensorrt/10.9.0/tars/TensorRT-10.9.0.34.Linux.x86_64-gnu.cuda-11.8.tar.gz",
+    "cuda12.8/trt109": "https://developer.nvidia.com/downloads/compute/machine-learning/tensorrt/10.9.0/tars/TensorRT-10.9.0.34.Linux.x86_64-gnu.cuda-12.8.tar.gz"
 }
+
+
 
 def get_trt_path():
     """Get TensorRT download URL based on CUDA version."""
@@ -140,6 +144,8 @@ def download_and_install_trt(
     
     # Copy lib files
     lib_dst = os.path.join(install_dir, "lib")
+    assert os.path.exists(os.path.join(lib_dst, 'libnvinfer_plugin.so'))
+        
     os.makedirs(lib_dst, exist_ok=True)
     shutil.copytree(os.path.join(trt_source_dir, "lib"), lib_dst, dirs_exist_ok=True)
     

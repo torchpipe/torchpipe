@@ -15,23 +15,25 @@ void DagDispatcher::impl_init(
     const dict& kwargs) {
   HAMI_ASSERT(kwargs, "DagDispatcher: kwargs is required");
   auto iter = kwargs->find(TASK_CONFIG_KEY);
-  HAMI_ASSERT(iter != kwargs->end(),
-              "DagDispatcher: config not found in kwargs");
+  HAMI_ASSERT(
+      iter != kwargs->end(), "DagDispatcher: config not found in kwargs");
   str::mapmap dual_config = any_cast<str::mapmap>(iter->second);
 
   // per-node settings
   for (const auto& item : dual_config) {
-    if (item.first == TASK_GLOBAL_KEY) continue;
+    if (item.first == TASK_GLOBAL_KEY)
+      continue;
     Backend* back = HAMI_INSTANCE_GET(Backend, "node." + item.first);
     HAMI_ASSERT(
         back,
         "DagDispatcher: instance(" + ("node." + item.first) + ") not found");
     base_dependencies_["node." + item.first] = back;
 
-    auto dag_backend = init_backend("DagProxy",
-                                    {{"DagProxy::dependency", item.first}},
-                                    {},
-                                    "dag." + item.first);
+    auto dag_backend = init_backend(
+        "DagProxy",
+        {{"DagProxy::dependency", item.first}},
+        {},
+        "dag." + item.first);
     dag_backend->inject_dependency(this);
 
     owned_backends_.emplace_back(std::move(dag_backend));
@@ -40,7 +42,7 @@ void DagDispatcher::impl_init(
   dag_parser_ = std::make_unique<parser::DagParser>(dual_config);
 
   // event loop
-  constexpr auto N = 1;  // M:N         set to one if 需要严格保持先来的先处理
+  constexpr auto N = 1; // M:N         set to one if 需要严格保持先来的先处理
 
   for (std::size_t i = 0; i < N; ++i) {
     task_queues_.push_back(std::make_unique<ThreadSafeQueue<dict>>());
@@ -61,8 +63,9 @@ void DagDispatcher::evented_forward(const std::vector<dict>& inputs) {
   }
 }
 
-void DagDispatcher::task_loop(std::size_t thread_index,
-                              ThreadSafeQueue<dict>* pqueue) {
+void DagDispatcher::task_loop(
+    std::size_t thread_index,
+    ThreadSafeQueue<dict>* pqueue) {
   while (bInited_.load()) {
     dict tmp_data = nullptr;
     if (pqueue->wait_pop(tmp_data, SHUTDOWN_TIMEOUT)) {
@@ -75,7 +78,7 @@ void DagDispatcher::task_loop(std::size_t thread_index,
     }
   }
 
-  SPDLOG_INFO("RestartEvent task_loop exit.");
+  SPDLOG_INFO("DagDispatcher task_loop exit.");
   return;
 };
 
@@ -130,8 +133,9 @@ void DagDispatcher::on_start_node(dict tmp_data, std::size_t task_queue_index) {
   base_dependencies_.at("node." + node_name)->forward({tmp_data});
 }
 
-void DagDispatcher::on_finish_node(dict tmp_data,
-                                   std::shared_ptr<Stack> pstack) {
+void DagDispatcher::on_finish_node(
+    dict tmp_data,
+    std::shared_ptr<Stack> pstack) {
   assert(pstack);
 
   std::string node_name =
@@ -178,7 +182,7 @@ void DagDispatcher::on_finish_node(dict tmp_data,
 
   pstack->dag.processed[node_name] = tmp_data;
 
-  if (pstack->exception) {  // todo check
+  if (pstack->exception) { // todo check
     if (pstack->dag.waiting_nodes.size() + pstack->dag.processed.size() ==
         pstack->dag.total) {
       // no task is running.
@@ -215,28 +219,31 @@ void DagDispatcher::on_finish_node(dict tmp_data,
 
     const auto copy_waiting_nodes = pstack->dag.waiting_nodes;
     for (const auto& waiting_node :
-         copy_waiting_nodes) {  // 同一线程调度，不会出现问题。
-      if (pstack->dag.waiting_nodes.count(waiting_node) == 0) continue;
+         copy_waiting_nodes) { // 同一线程调度，不会出现问题。
+      if (pstack->dag.waiting_nodes.count(waiting_node) == 0)
+        continue;
 
       if (dag_parser_->is_ready(waiting_node, pstack->dag.processed)) {
         pstack->dag.waiting_nodes.erase(waiting_node);
 
         map_or_filter_data(waiting_node, pstack);
 
-        if (pstack->exception) break;
+        if (pstack->exception)
+          break;
       }
     }
   }
   return;
 }
 
-void DagDispatcher::map_or_filter_data(std::string node_name,
-                                       std::shared_ptr<Stack> pstack) {
+void DagDispatcher::map_or_filter_data(
+    std::string node_name,
+    std::shared_ptr<Stack> pstack) {
   dict curr_data;
 
   try {
-    curr_data = dag_parser_->prepare_data_from_previous(node_name,
-                                                        pstack->dag.processed);
+    curr_data = dag_parser_->prepare_data_from_previous(
+        node_name, pstack->dag.processed);
     assert(curr_data);
     (*curr_data)[TASK_NODE_NAME_KEY] = node_name;
     // or filter occur
@@ -249,7 +256,8 @@ void DagDispatcher::map_or_filter_data(std::string node_name,
 
     execute(node_name, pstack, curr_data);
   } catch (...) {
-    if (!curr_data) curr_data = make_dict(node_name);
+    if (!curr_data)
+      curr_data = make_dict(node_name);
     (*curr_data)[TASK_STACK_KEY] = pstack;
     pstack->exception = std::current_exception();
     task_queues_[pstack->task_queue_index]->push(curr_data);
@@ -258,9 +266,10 @@ void DagDispatcher::map_or_filter_data(std::string node_name,
   return;
 }
 
-void DagDispatcher::execute(std::string node_name,
-                            std::shared_ptr<Stack> pstack,
-                            dict curr_data) {
+void DagDispatcher::execute(
+    std::string node_name,
+    std::shared_ptr<Stack> pstack,
+    dict curr_data) {
   auto curr_event = make_event();
   ThreadSafeQueue<dict>* local_queue =
       task_queues_[pstack->task_queue_index].get();
@@ -280,19 +289,20 @@ void DagDispatcher::execute(std::string node_name,
 
 class DagProxy : public Backend {
  private:
-  void impl_init(const std::unordered_map<std::string, std::string>& config,
-                 const dict& kwargs) override {
+  void impl_init(
+      const std::unordered_map<std::string, std::string>& config,
+      const dict& kwargs) override {
     auto iter = config.find("DagProxy::dependency");
-    HAMI_ASSERT(iter != config.end(),
-                "DagProxy: `node_name` not found in config");
+    HAMI_ASSERT(
+        iter != config.end(), "DagProxy: `node_name` not found in config");
     node_name_ = iter->second;
   }
   void impl_forward(const std::vector<dict>& input_output) override {
     for (auto& item : input_output) {
       item->insert_or_assign(TASK_NODE_NAME_KEY, node_name_);
     }
-    HAMI_ASSERT(injected_dependency_,
-                "DagProxy: injected_dependency_ is nullptr");
+    HAMI_ASSERT(
+        injected_dependency_, "DagProxy: injected_dependency_ is nullptr");
     injected_dependency_->forward(input_output);
   }
 
@@ -310,4 +320,4 @@ class DagProxy : public Backend {
 };
 HAMI_REGISTER(Backend, DagProxy);
 HAMI_REGISTER(Backend, DagDispatcher);
-}  // namespace hami
+} // namespace hami

@@ -150,3 +150,30 @@ FileSource[create_name]
 [pathway](https://arxiv.org/pdf/2203.12533)
 
 leixing gongshi: duogongshi
+
+https://docs.nvidia.com/deeplearning/tensorrt/api/python_api/pluginGuide.html
+
+https://docs.nvidia.com/deeplearning/triton-inference-server/user-guide/docs/client_guide/in_process.html
+
+https://docs.google.com/presentation/d/1jzC_PZVXrVNSFVCW-V4cFXb6pn7zZ2CyP_Flwo05aqg/edit?pli=1#slide=id.g33a37e65d13_0_0
+easy-to-hack 
+
+
+
+vllm:
+Next step 1: Support various scheduling policies
+Priority-based scheduling
+Fair scheduling
+Predictive scheduling
+
+Next step 2: Pluggable scheduler
+E.g., workload-specific scheduler
+E.g., different schedulers for different hardware backends
+
+
+
+img_name=nvcr.io/nvidia/pytorch:25.02-py3
+docker run --rm --gpus=all --ipc=host  --network=host -v `pwd`:/workspace  --shm-size 1G  --ulimit memlock=-1 --ulimit stack=67108864  --privileged=true  -w/workspace -it $img_name /bin/bash
+
+
+https://torchpipe.github.io/docs/faq/remote-gdb

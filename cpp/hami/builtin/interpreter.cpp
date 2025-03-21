@@ -22,12 +22,13 @@ void Interpreter::impl_init(
   // parser configuration
   parser::broadcast_global(dual_config);
   auto node_names = parser::set_node_name(dual_config);
-  HAMI_FATAL_ASSERT(node_names.size() > 0,
-                    "Interpreter: no node found in config");
+  HAMI_FATAL_ASSERT(
+      node_names.size() > 0, "Interpreter: no node found in config");
 
   // per-node setup fron `init`
   for (const auto& item : dual_config) {
-    if (item.first == TASK_GLOBAL_KEY) continue;
+    if (item.first == TASK_GLOBAL_KEY)
+      continue;
     std::string init_config;
     auto iter_init = item.second.find("init");
     if (iter_init != item.second.end()) {
@@ -54,8 +55,8 @@ void Interpreter::impl_init(
     entry_name = iter_entry->second;
   } else {
     entry_name = parser::count(dual_config) == 1
-                     ? "Forward[node." + *node_names.begin() + "]"
-                     : "DagDispatcher";
+        ? "Forward[node." + *node_names.begin() + "]"
+        : "DagDispatcher";
     SPDLOG_INFO(
         "Interpreter: `entrypoint` not found in global config, using "
         "default: {}",
@@ -63,12 +64,13 @@ void Interpreter::impl_init(
   }
 
   owned_backend_ = init_backend(entry_name, global_config, new_kwargs);
-  SPDLOG_INFO("Interpreter: entrypoint({})[{} {}]",
-              entry_name,
-              owned_backend_->min(),
-              owned_backend_->max());
+  SPDLOG_INFO(
+      "Interpreter: entrypoint({})[{} {}]",
+      entry_name,
+      owned_backend_->min(),
+      owned_backend_->max());
   proxy_backend_ = owned_backend_.get();
 }
 
 HAMI_REGISTER(Backend, Interpreter);
-}  // namespace hami
+} // namespace hami

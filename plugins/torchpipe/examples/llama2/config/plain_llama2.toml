@@ -1,5 +1,14 @@
 
 
 [embed_token]
+backend = "S[EmbeddingTensor(exported_params/embed_tokens.pt),AppendIndexSelectTensor(-1),StreamGuard,SetRequestSizeTensor,Send2Queue(batchless_prefill,keep_result=1)]"
+# Add(jump:batchless_prefill)
 
-backend = "S[EmbeddingTensor(exported_params/embed_tokens.pt)]"
+next = "batchable"
+
+[batchable]
+backend = 'S[TensorrtTensor,StreamGuard]'
+model = 'exported_params/batchable.onnx'
+'model::cache' = 'export_params/batchable.trt'
+# the tensorrt plugin 
+#

@@ -19,6 +19,7 @@ cc_library(
     helper.cpp
     queue.cpp
     parser.cpp
+    task_keys.cpp
   DEPS
     :helper
 )

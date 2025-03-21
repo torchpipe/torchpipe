@@ -63,46 +63,39 @@ static inline const std::unordered_map<string, string> TASK_KEY_MAP(
      {"TASK_STACK_KEY", TASK_STACK_KEY},
      {"TASK_DEFAULT_NAME_KEY", TASK_DEFAULT_NAME_KEY}});
 
-static inline bool try_replace_inner_key(string& key) {
-    static const string prefix = "TASK_";
-    static const string suffix = "_KEY";
-    static const size_t prefix_suffix_len = prefix.size() + suffix.size();
+// template <typename T>
+// bool try_replace_inner_key(T& key) {
+//   return false;
+// }
 
-    if (key.size() >= prefix_suffix_len &&
-        key.compare(0, prefix.size(), prefix) == 0 &&
-        key.compare(key.size() - suffix.size(), suffix.size(), suffix) == 0) {
-        const auto iter = TASK_KEY_MAP.find(key);
-        if (iter == TASK_KEY_MAP.end()) {
-            throw std::runtime_error("Inner key not supported: " + key);
-        }
-        key = iter->second;
-        return true;
+bool try_replace_inner_key(std::string& key);
+
+template <typename T>
+inline void try_replace_inner_key(std::unordered_map<string, T>& kv) {
+  std::unordered_map<string, T> re;
+  for (const auto& [key, value] : kv) {
+    string new_key = key;
+    T new_value = value;
+
+    try_replace_inner_key(new_key);
+    if constexpr (std::is_same_v<T, std::string>) {
+      try_replace_inner_key(new_value);
     }
-    return false;
-}
-
-static inline void try_replace_inner_key(
-    std::unordered_map<string, string>& kv) {
-    std::unordered_map<string, string> re;
-    for (const auto& [key, value] : kv) {
-        string new_key = key;
-        string new_value = value;
-
-        try_replace_inner_key(new_key);
-        try_replace_inner_key(new_key);
-        re[new_key] = new_value;
-    }
-    std::swap(kv, re);
+    re[new_key] = new_value;
+  }
+  std::swap(kv, re);
 }
 
 static inline bool is_reserved(const string& key) {
-    static const std::unordered_set<string> reserved_words{"global", "default",
-                                                           "node_name", ""};
-    if (0 != reserved_words.count(key)) return true;
-    for (const auto& item : TASK_KEY_MAP) {
-        if (item.second == key) return true;
-    }
-    return false;
+  static const std::unordered_set<string> reserved_words{
+      "global", "default", "node_name", ""};
+  if (0 != reserved_words.count(key))
+    return true;
+  for (const auto& item : TASK_KEY_MAP) {
+    if (item.second == key)
+      return true;
+  }
+  return false;
 }
 
-}  // namespace hami
+} // namespace hami

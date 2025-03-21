@@ -1,6 +1,6 @@
 #pragma once
 
-#include "hami/helper/queue.hpp"
+#include "hami/core/general_queue.hpp"
 #include "hami/core/dict.hpp"
 
 namespace hami {
@@ -14,4 +14,4 @@ Queue& default_output_queue();
 Queue& default_queue(const std::string& tag = "");
 
 // SizedQueue& default_sized_queue();
-}  // namespace hami
+} // namespace hami

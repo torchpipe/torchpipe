@@ -5,7 +5,7 @@ def test_backend_creation():
     # Test Identity backend
     backend = _C.create("Identity")
     assert backend is not None
-    assert backend.max() == 1
+    assert backend.max() == 18446744073709551615
 
 def test_backend_initialization():
     backend = _C.create("Identity")

@@ -11,15 +11,21 @@
 #include "hami/helper/string.hpp"
 
 namespace hami {
-class Identity : public BackendOne {
+class Identity : public Backend {
  public:
-  void forward(const dict& input) override {
-    auto iter = input->find(TASK_DATA_KEY);
+  void impl_forward(const std::vector<dict>& io) override {
+    for (const auto& input : io) {
+      auto iter = input->find(TASK_DATA_KEY);
 
-    HAMI_ASSERT(iter != input->end(),
-                "[`" + std::string(TASK_DATA_KEY) + "`] not found.");
-    input->insert_or_assign(TASK_RESULT_KEY, iter->second);
+      HAMI_ASSERT(
+          iter != input->end(),
+          "[`" + std::string(TASK_DATA_KEY) + "`] not found.");
+      input->insert_or_assign(TASK_RESULT_KEY, iter->second);
+    }
   }
+  [[nodiscard]] size_t impl_max() const override {
+    return std::numeric_limits<size_t>::max();
+  };
 };
 HAMI_REGISTER(Backend, Identity);
 
@@ -27,8 +33,9 @@ class Pow : public BackendOne {
  public:
   enum class DataType { INT = 0, SIZE_T, FLOAT, DOUBLE, STRING };
   DataType data_type_{DataType::INT};
-  void impl_init(const std::unordered_map<std::string, std::string>& config,
-                 const dict& kwargs) override {
+  void impl_init(
+      const std::unordered_map<std::string, std::string>& config,
+      const dict& kwargs) override {
     auto iter = config.find("data_type");
     if (iter != config.end()) {
       const auto& data_type_str = iter->second;
@@ -51,8 +58,9 @@ class Pow : public BackendOne {
   void forward(const dict& input) override {
     auto iter = input->find(TASK_DATA_KEY);
 
-    HAMI_ASSERT(iter != input->end(),
-                "[`" + std::string(TASK_DATA_KEY) + "`] not found.");
+    HAMI_ASSERT(
+        iter != input->end(),
+        "[`" + std::string(TASK_DATA_KEY) + "`] not found.");
     switch (data_type_) {
       case DataType::INT: {
         int data = any_cast<int>(iter->second);
@@ -106,8 +114,9 @@ HAMI_REGISTER(Backend, PrintKeys);
 
 class HAMI_EXPORT Identities : public Backend {
  private:
-  void impl_init(const std::unordered_map<std::string, std::string>& config,
-                 const dict& kwargs) override final {
+  void impl_init(
+      const std::unordered_map<std::string, std::string>& config,
+      const dict& kwargs) override final {
     max_ = str::update<size_t>(config, "max");
   }
   void impl_forward(const std::vector<dict>& input_output) override final {
@@ -115,11 +124,13 @@ class HAMI_EXPORT Identities : public Backend {
       (*item)[TASK_RESULT_KEY] = item->at(TASK_DATA_KEY);
     }
   }
-  [[nodiscard]] size_t impl_max() const override final { return max_; }
+  [[nodiscard]] size_t impl_max() const override final {
+    return max_;
+  }
 
  private:
   size_t max_{0};
 };
 HAMI_REGISTER_BACKEND(Identities);
 
-}  // namespace hami
+} // namespace hami

@@ -7,7 +7,8 @@
 #include <optional>
 #include <queue>
 #include <stdexcept>
-// #include "hami/core/request_size.hpp"
+#include <numeric>
+#include "hami/core/request_size.hpp"
 
 namespace hami::queue {
 
@@ -64,15 +65,19 @@ class SizedQueue {
     if (queue_.empty()) {
       throw QueueEmptyException();
     }
-    return std::pair<const T&, size_t>(queue_.front().value,
-                                       queue_.front().size);
+    return std::pair<const T&, size_t>(
+        queue_.front().value, queue_.front().size);
   }
 
   // Get the total size of the queue
-  size_t size() const { return totalSize_; }
+  size_t size() const {
+    return totalSize_;
+  }
 
   // Check if the queue is empty
-  bool empty() const { return queue_.empty(); }
+  bool empty() const {
+    return queue_.empty();
+  }
 };
 
 template <typename T>
@@ -87,8 +92,9 @@ class ThreadSafeQueue {
   explicit ThreadSafeQueue() = default;
 
   // Push an element with a specified size
-  template <typename U,
-            typename = std::enable_if_t<std::is_convertible_v<U, T>>>
+  template <
+      typename U,
+      typename = std::enable_if_t<std::is_convertible_v<U, T>>>
   void put(U&& value) {
     {
       std::unique_lock<std::mutex> lock(mutex_);
@@ -98,13 +104,15 @@ class ThreadSafeQueue {
     pushed_cond_.notify_all();
   }
 
-  template <typename Rep,
-            typename Period,
-            typename U,
-            typename = std::enable_if_t<std::is_convertible_v<U, T>>>
-  bool try_put(U&& value,
-               size_t maxSize,
-               std::chrono::duration<Rep, Period> timeout) {
+  template <
+      typename Rep,
+      typename Period,
+      typename U,
+      typename = std::enable_if_t<std::is_convertible_v<U, T>>>
+  bool try_put(
+      U&& value,
+      size_t maxSize,
+      std::chrono::duration<Rep, Period> timeout) {
     {
       std::unique_lock<std::mutex> lock(mutex_);
       if (!popped_cond_.wait_for(lock, timeout, [this, maxSize] {
@@ -120,9 +128,10 @@ class ThreadSafeQueue {
   }
 
   template <typename Rep, typename Period, template <typename> class Container>
-  bool try_put(const Container<T>& values,
-               size_t maxSize,
-               std::chrono::duration<Rep, Period> timeout) {
+  bool try_put(
+      const Container<T>& values,
+      size_t maxSize,
+      std::chrono::duration<Rep, Period> timeout) {
     {
       if (values.size() > maxSize) {
         throw QueueException("Queue is full: values.size() > maxSize");
@@ -152,9 +161,10 @@ class ThreadSafeQueue {
         throw QueueEmptyException();
       } else {
         if (timeout) {
-          if (!pushed_cond_.wait_for(lock,
-                                     std::chrono::duration<double>(*timeout),
-                                     [this] { return !queue_.empty(); })) {
+          if (!pushed_cond_.wait_for(
+                  lock, std::chrono::duration<double>(*timeout), [this] {
+                    return !queue_.empty();
+                  })) {
             throw QueueEmptyException("Queue is empty after timeout");
           }
         } else {
@@ -195,8 +205,9 @@ class ThreadSafeQueue {
   // please note that there is no notify when get() called. So call it
   // by yourself.
   template <typename Rep, typename Period>
-  bool wait_for_new_data(std::function<bool(size_t)> size_condition,
-                         std::chrono::duration<Rep, Period> timeout) {
+  bool wait_for_new_data(
+      std::function<bool(size_t)> size_condition,
+      std::chrono::duration<Rep, Period> timeout) {
     std::unique_lock<std::mutex> lock(mutex_);
 
     auto predicate = [this, size_condition]() {
@@ -213,11 +224,19 @@ class ThreadSafeQueue {
     }
   }
 
-  void notify_one() { pushed_cond_.notify_one(); }
-  void notify_all() { pushed_cond_.notify_all(); }
+  void notify_one() {
+    pushed_cond_.notify_one();
+  }
+  void notify_all() {
+    pushed_cond_.notify_all();
+  }
 
-  void popped_notify_one() { popped_cond_.notify_one(); }
-  void popped_notify_all() { popped_cond_.notify_all(); }
+  void popped_notify_one() {
+    popped_cond_.notify_one();
+  }
+  void popped_notify_all() {
+    popped_cond_.notify_all();
+  }
 
   // Try to pop an element within a timeout
   template <typename Rep, typename Period>
@@ -324,8 +343,9 @@ class ThreadSafeSizedQueue {
   // void shutdown() { shutdown_.store(true); }
   // bool is_shutdown() { return shutdown_.load(); }
   // Push an element with a specified size
-  template <typename U,
-            typename = std::enable_if_t<std::is_convertible_v<U, T>>>
+  template <
+      typename U,
+      typename = std::enable_if_t<std::is_convertible_v<U, T>>>
   void put(U&& value) {
     {
       std::unique_lock<std::mutex> lock(mutex_);
@@ -344,9 +364,10 @@ class ThreadSafeSizedQueue {
         throw QueueEmptyException();
       } else {
         if (timeout) {
-          if (!pushed_cond_.wait_for(lock,
-                                     std::chrono::duration<double>(*timeout),
-                                     [this] { return !queue_.empty(); })) {
+          if (!pushed_cond_.wait_for(
+                  lock, std::chrono::duration<double>(*timeout), [this] {
+                    return !queue_.empty();
+                  })) {
             throw QueueEmptyException("Queue is empty after timeout");
           }
         } else {
@@ -370,8 +391,8 @@ class ThreadSafeSizedQueue {
       throw QueueEmptyException();
     }
 
-    return std::pair<const T&, size_t>(queue_.front().value,
-                                       queue_.front().size);
+    return std::pair<const T&, size_t>(
+        queue_.front().value, queue_.front().size);
   }
 
   // Get the total size of the queue
@@ -389,8 +410,9 @@ class ThreadSafeSizedQueue {
   // please note that there is no notify when get() called. So call it
   // by yourself.
   template <typename Rep, typename Period>
-  bool wait_for_new_data(std::function<bool(size_t)> size_condition,
-                         std::chrono::duration<Rep, Period> timeout) {
+  bool wait_for_new_data(
+      std::function<bool(size_t)> size_condition,
+      std::chrono::duration<Rep, Period> timeout) {
     std::unique_lock<std::mutex> lock(mutex_);
 
     auto predicate = [this, size_condition]() {
@@ -400,24 +422,27 @@ class ThreadSafeSizedQueue {
   }
 
   template <typename Rep, typename Period>
-  bool wait_until_at_most(size_t max_size,
-                          std::chrono::duration<Rep, Period> timeout) {
+  bool wait_until_at_most(
+      size_t max_size,
+      std::chrono::duration<Rep, Period> timeout) {
     std::unique_lock<std::mutex> lock(mutex_);
     return popped_cond_.wait_for(
         lock, timeout, [this, max_size] { return queue_.size() <= max_size; });
   }
 
   template <typename Rep, typename Period>
-  bool wait_until_at_least(size_t min_size,
-                           std::chrono::duration<Rep, Period> timeout) {
+  bool wait_until_at_least(
+      size_t min_size,
+      std::chrono::duration<Rep, Period> timeout) {
     std::unique_lock<std::mutex> lock(mutex_);
     return pushed_cond_.wait_for(
         lock, timeout, [this, min_size] { return queue_.size() >= min_size; });
   }
 
   template <template <typename> class Container>
-  void put_without_notify(const Container<T>& values,
-                          size_t size_per_item = 1) {
+  void put_without_notify(
+      const Container<T>& values,
+      size_t size_per_item = 1) {
     std::unique_lock<std::mutex> lock(mutex_);
     for (const auto& value : values) {
       queue_.push(SizedElement(value, size_per_item));
@@ -432,14 +457,15 @@ class ThreadSafeSizedQueue {
     totalSize_ += 1;
   }
 
-  template <typename U,
-            template <typename, typename...> class Container,
-            typename... Args>
+  template <
+      typename U,
+      template <typename, typename...> class Container,
+      typename... Args>
   void puts(const Container<U, Args...>& values) {
     {
       std::unique_lock<std::mutex> lock(mutex_);
       for (const auto& value : values) {
-        size_t size_per_item = 1;
+        const auto size_per_item = get_request_size(value);
         queue_.push(SizedElement(value, size_per_item));
         totalSize_ += size_per_item;
       }
@@ -448,11 +474,19 @@ class ThreadSafeSizedQueue {
     pushed_cond_.notify_all();
   }
 
-  void notify_one() { pushed_cond_.notify_one(); }
-  void notify_all() { pushed_cond_.notify_all(); }
+  void notify_one() {
+    pushed_cond_.notify_one();
+  }
+  void notify_all() {
+    pushed_cond_.notify_all();
+  }
 
-  void popped_notify_one() { popped_cond_.notify_one(); }
-  void popped_notify_all() { popped_cond_.notify_all(); }
+  void popped_notify_one() {
+    popped_cond_.notify_one();
+  }
+  void popped_notify_all() {
+    popped_cond_.notify_all();
+  }
 
   // Try to pop an element within a timeout
   template <typename Rep, typename Period>
@@ -477,40 +511,48 @@ class ThreadSafeSizedQueue {
     }
   }
 
-  template <typename Rep,
-            typename Period,
-            typename U,
-            template <typename, typename...> class Container,
-            typename... Args,
-            typename = std::enable_if_t<std::is_convertible_v<U, T>>>
-  bool try_put(const Container<U, Args...>& values,
-               size_t size_per_item,
-               size_t maxSize,
-               std::chrono::duration<Rep, Period> timeout) {
+  template <
+      typename Rep,
+      typename Period,
+      typename U,
+      template <typename, typename...> class Container,
+      typename... Args,
+      typename = std::enable_if_t<std::is_convertible_v<U, T>>>
+  bool try_puts(
+      const Container<U, Args...>& values,
+      size_t maxSize,
+      std::chrono::duration<Rep, Period> timeout) {
     {
-      const size_t size = values.size() * size_per_item;
+      std::vector<size_t> size(values.size());
+
+      for (size_t i = 0; i < values.size(); ++i) {
+        size[i] = get_request_size(values[i]);
+      }
+      size_t total = std::accumulate(size.begin(), size.end(), 0);
+
       std::unique_lock<std::mutex> lock(mutex_);
 
-      if (!popped_cond_.wait_for(lock, timeout, [this, size, maxSize] {
-            return totalSize_ + size <= maxSize;
+      if (!popped_cond_.wait_for(lock, timeout, [this, total, maxSize] {
+            return totalSize_ + total <= maxSize;
           })) {
         return false;
       }
-      for (const auto& value : values) {
-        queue_.push(SizedElement(value, size_per_item));
+      for (size_t i = 0; i < values.size(); ++i) {
+        queue_.push(SizedElement(values[i], size[i]));
       }
-      totalSize_ += size;
+      totalSize_ += total;
     }
     pushed_cond_.notify_all();
     return true;
   }
 
   template <typename Rep, typename Period>
-  bool try_put(const T& value,
-               size_t size,
-               size_t maxSize,
-               std::chrono::duration<Rep, Period> timeout) {
+  bool try_put(
+      const T& value,
+      size_t maxSize,
+      std::chrono::duration<Rep, Period> timeout) {
     {
+      const size_t size = get_request_size(value);
       std::unique_lock<std::mutex> lock(mutex_);
 
       if (!popped_cond_.wait_for(lock, timeout, [this, size, maxSize] {
@@ -536,4 +578,4 @@ class ThreadSafeSizedQueue {
   // ~ThreadSafeSizedQueue() { shutdown(); }
 };
 
-}  // namespace hami::queue
+} // namespace hami::queue
