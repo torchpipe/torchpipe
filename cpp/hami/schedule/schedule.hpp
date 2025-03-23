@@ -12,10 +12,10 @@
 namespace hami {
 class Batching : public Dependency {
  private:
-  void impl_init(const std::unordered_map<string, string>& config,
-                 const dict&) override final;
-  void impl_forward_with_dep(const std::vector<dict>& input,
-                             Backend* dep) override final;
+  void impl_init(const std::unordered_map<string, string>& config, const dict&)
+      override final;
+  void impl_forward_with_dep(const std::vector<dict>& input, Backend* dep)
+      override final;
   virtual void run();
   void impl_inject_dependency(Backend* dependency) override;
 
@@ -30,9 +30,10 @@ class Batching : public Dependency {
   }
 
  private:
-  bool try_forward(const std::vector<dict>& input_output,
-                   size_t req_size,
-                   size_t timeout) {
+  bool try_forward(
+      const std::vector<dict>& input_output,
+      size_t req_size,
+      size_t timeout) {
     if (instances_state_->query_avaliable(req_size, timeout, false)) {
       injected_dependency_->forward(input_output);
       return true;
@@ -46,12 +47,13 @@ class Batching : public Dependency {
   std::thread thread_;
   ThreadSafeSizedQueue<dict> input_queue_;
   std::shared_ptr<InstancesState> instances_state_;
+  std::string node_name_;
 };
 
 class BackgroundThread : public Backend {
  private:
-  void impl_init(const std::unordered_map<string, string>& config,
-                 const dict&) override final;
+  void impl_init(const std::unordered_map<string, string>& config, const dict&)
+      override final;
   void impl_forward(const std::vector<dict>& inputs) override final;
 
   virtual void run();
@@ -85,12 +87,17 @@ class BackgroundThread : public Backend {
 
 class InstanceDispatcher : public Backend {
  private:
-  void impl_init(const std::unordered_map<std::string, std::string>& config,
-                 const dict& kwargs) override final;
+  void impl_init(
+      const std::unordered_map<std::string, std::string>& config,
+      const dict& kwargs) override final;
   virtual void impl_forward(const std::vector<dict>& inputs) override;
 
-  [[nodiscard]] size_t impl_max() const override final { return max_; }
-  [[nodiscard]] size_t impl_min() const override final { return min_; }
+  [[nodiscard]] size_t impl_max() const override final {
+    return max_;
+  }
+  [[nodiscard]] size_t impl_min() const override final {
+    return min_;
+  }
 
  private:
   void update_min_max(const std::vector<Backend*>& deps);
@@ -106,4 +113,4 @@ class InstanceDispatcher : public Backend {
 
 // IOC[instancedd, executor]
 
-}  // namespace hami
+} // namespace hami

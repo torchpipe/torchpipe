@@ -1,9 +1,9 @@
 
 #include <fstream>
 
-#include "torchplugins/GpuTensor.hpp"
 #include "helper/task_keys.hpp"
 #include "helper/torch.hpp"
+#include "torchplugins/GpuTensor.hpp"
 
 using namespace hami;
 

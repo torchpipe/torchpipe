@@ -1,8 +1,8 @@
-#include <algorithm>
-#include <string>
-#include <cctype>  //   isspace   iscntrl
-#include <stack>
 #include "hami/helper/string.hpp"
+#include <algorithm>
+#include <cctype> //   isspace   iscntrl
+#include <stack>
+#include <string>
 #include "hami/helper/base_logging.hpp"
 #include "hami/helper/macro.h"
 
@@ -10,7 +10,8 @@ namespace hami::str {
 
 std::vector<std::string> str_split(std::string strtem, char a) {
   remove_space_and_ctrl(strtem);
-  if (strtem.empty()) return {};
+  if (strtem.empty())
+    return {};
 
   std::vector<std::string> strvec;
 
@@ -28,12 +29,14 @@ std::vector<std::string> str_split(std::string strtem, char a) {
   return strvec;
 }
 
-std::vector<std::string> items_split(std::string strtem,
-                                     char a,
-                                     char left,
-                                     char right) {
+std::vector<std::string> items_split(
+    std::string strtem,
+    char a,
+    char left,
+    char right) {
   std::vector<std::string> strvec;
-  if (strtem.empty()) return strvec;
+  if (strtem.empty())
+    return strvec;
 
   remove_space_and_ctrl(strtem);
 
@@ -71,9 +74,10 @@ std::vector<std::string> items_split(std::string strtem,
   return strvec;
 }
 
-bool is_comma_semicolon_separable(const std::string& strtem,
-                                  char left,
-                                  char right) {
+bool is_comma_semicolon_separable(
+    const std::string& strtem,
+    char left,
+    char right) {
   auto index_left = strtem.find(',');
 
   // 逗号位置异常
@@ -113,23 +117,25 @@ bool is_comma_semicolon_separable(const std::string& strtem,
 }
 
 void remove_space_and_ctrl(std::string& strtem) {
-  strtem.erase(std::remove_if(strtem.begin(),
-                              strtem.end(),
-                              [](unsigned char c) {
-                                return std::isspace(c) || std::iscntrl(c);
-                              }),
-               strtem.end());
+  strtem.erase(
+      std::remove_if(
+          strtem.begin(),
+          strtem.end(),
+          [](unsigned char c) { return std::isspace(c) || std::iscntrl(c); }),
+      strtem.end());
 }
 
-std::vector<std::string> flatten_brackets(const std::string& strtem_in,
-                                          char left,
-                                          char right) {
+std::vector<std::string> flatten_brackets(
+    const std::string& strtem_in,
+    char left,
+    char right) {
   std::vector<std::string> brackets;
   std::string strtem = strtem_in;
   remove_space_and_ctrl(strtem);
 
   while (!strtem.empty()) {
-    if (brackets.size() > 10000) throw std::invalid_argument("too many []");
+    if (brackets.size() > 10000)
+      throw std::invalid_argument("too many []");
     auto iter_begin = strtem.find(left);
     if (iter_begin != std::string::npos) {
       auto iter_end = strtem.find_last_of(right);
@@ -137,8 +143,8 @@ std::vector<std::string> flatten_brackets(const std::string& strtem_in,
       if (iter_end == std::string::npos) {
         throw std::invalid_argument("brackets not match: " + strtem_in);
       }
-      HAMI_ASSERT(iter_end == strtem.size() - 1,
-                  "brackets not match: " + strtem_in);
+      HAMI_ASSERT(
+          iter_end == strtem.size() - 1, "brackets not match: " + strtem_in);
 
       brackets.emplace_back(strtem.substr(0, iter_begin));
       strtem = strtem.substr(iter_begin + 1, iter_end - iter_begin - 1);
@@ -156,19 +162,21 @@ std::vector<std::string> flatten_brackets(const std::string& strtem_in,
   return brackets;
 }
 
-void brackets_split(const std::string& strtem_,
-                    std::unordered_map<std::string, std::string>& config,
-                    std::string key,
-                    char left,
-                    char right) {
+void brackets_split(
+    const std::string& strtem_,
+    std::unordered_map<std::string, std::string>& config,
+    std::string key,
+    char left,
+    char right) {
   auto re = brackets_split(strtem_, config, left, right);
   config[key] = re;
 }
 
-std::string brackets_split(const std::string& strtem_,
-                           std::unordered_map<std::string, std::string>& config,
-                           char left,
-                           char right) {
+std::string brackets_split(
+    const std::string& strtem_,
+    std::unordered_map<std::string, std::string>& config,
+    char left,
+    char right) {
   // SPDLOG_INFO("brackets_split: " + strtem_);
   auto brackets = flatten_brackets(strtem_, left, right);
 
@@ -181,12 +189,14 @@ std::string brackets_split(const std::string& strtem_,
   for (std::size_t i = 1; i < brackets.size(); ++i) {
     auto iter = new_config.find(brackets[i - 1] + "::dependency");
     if (iter != new_config.end()) {
-      SPDLOG_ERROR("Recursive backend({}) is not allowed. backend={}",
-                   brackets[i - 1],
-                   strtem_);
+      SPDLOG_ERROR(
+          "Recursive backend({}) is not allowed. backend={}",
+          brackets[i - 1],
+          strtem_);
 
-      throw std::invalid_argument("Recursive backend(" + brackets[i - 1] +
-                                  ") is not allowed. Backend is " + strtem_);
+      throw std::invalid_argument(
+          "Recursive backend(" + brackets[i - 1] +
+          ") is not allowed. Backend is " + strtem_);
     }
     new_config[brackets[i - 1] + "::dependency"] = brackets[i];
   }
@@ -196,8 +206,9 @@ std::string brackets_split(const std::string& strtem_,
   return brackets[0];
 }
 
-std::string prefix_parentheses_split(const std::string& strtem,
-                                     std::string& pre_str) {
+std::string prefix_parentheses_split(
+    const std::string& strtem,
+    std::string& pre_str) {
   constexpr auto left = '(';
   constexpr auto right = ')';
   auto iter = strtem.find(left);
@@ -210,14 +221,15 @@ std::string prefix_parentheses_split(const std::string& strtem,
   }
 }
 
-std::string post_parentheses_split(const std::string& strtem,
-                                   std::string& post) {
+std::string post_parentheses_split(
+    const std::string& strtem,
+    std::string& post) {
   constexpr auto left = '(';
   constexpr auto right = ')';
   auto iter = strtem.find(left);
   auto iter_right = strtem.find_last_of(right, strtem.find('['));
 
-  if (iter > strtem.find('[')) {  // A[(b)B]
+  if (iter > strtem.find('[')) { // A[(b)B]
     return strtem;
   }
 
@@ -226,8 +238,8 @@ std::string post_parentheses_split(const std::string& strtem,
     return strtem;
   } else {
     HAMI_ASSERT(iter != 0);
-    HAMI_ASSERT(iter_right != std::string::npos,
-                "strtem=" + strtem + "; post=" + post);
+    HAMI_ASSERT(
+        iter_right != std::string::npos, "strtem=" + strtem + "; post=" + post);
     post = strtem.substr(iter + 1, iter_right - 1 - iter);
     return strtem.substr(0, iter) + strtem.substr(iter_right + 1);
   }
@@ -245,8 +257,9 @@ std::unordered_map<std::string, std::string> raw_map_split(
     HAMI_ASSERT(tmp.size() == 2 || tmp.size() == 1, "error config: " + strtem);
     if (tmp.size() == 1) {
       if (default_key.empty()) {
-        throw std::invalid_argument("error config: " + strtem +
-                                    ".  default_key is empty for " + tmp[0]);
+        throw std::invalid_argument(
+            "error config: " + strtem + ".  default_key is empty for " +
+            tmp[0]);
       }
       re[default_key] = tmp[0];
     } else {
@@ -272,12 +285,14 @@ size_t min3(size_t a, size_t b, size_t c) {
   a = a < b ? a : b;
   return a < c ? a : c;
 }
-}  // namespace
+} // namespace
 // levenshtein distance
 size_t edit_distance(const std::string& s, const std::string& t) {
   size_t dp[s.length() + 1][t.length() + 1];
-  for (size_t i = 0; i <= s.length(); i++) dp[i][0] = i;
-  for (size_t j = 1; j <= t.length(); j++) dp[0][j] = j;
+  for (size_t i = 0; i <= s.length(); i++)
+    dp[i][0] = i;
+  for (size_t j = 1; j <= t.length(); j++)
+    dp[0][j] = j;
   for (size_t j = 0; j < t.length(); j++) {
     for (size_t i = 0; i < s.length(); i++) {
       if (s[i] == t[j])
@@ -290,15 +305,16 @@ size_t edit_distance(const std::string& s, const std::string& t) {
   return dp[s.length()][t.length()];
 }
 
-size_t replace_once(std::string& str,
-                    const std::string& from,
-                    const std::string& to) {
+size_t replace_once(
+    std::string& str,
+    const std::string& from,
+    const std::string& to) {
   size_t start_pos = str.find(from);
   if (start_pos != std::string::npos) {
     str.replace(start_pos, from.length(), to);
-    return start_pos + to.length();  // 返回替换后的下一个查找位置
+    return start_pos + to.length(); // 返回替换后的下一个查找位置
   }
-  return std::string::npos;  // 返回未找到的标志
+  return std::string::npos; // 返回未找到的标志
 }
 
 // namespace config_parser {
@@ -310,7 +326,8 @@ bool areBracketsBalanced(const std::string& str) {
     if (ch == '(' || ch == '[' || ch == '{') {
       stack.push(ch);
     } else if (ch == ')' || ch == ']' || ch == '}') {
-      if (stack.empty()) return false;
+      if (stack.empty())
+        return false;
       char top = stack.top();
       stack.pop();
       if ((ch == ')' && top != '(') || (ch == ']' && top != '[') ||
@@ -343,10 +360,11 @@ std::vector<size_t> findValidSeparators(const std::string& str, char sep) {
 }
 
 // Function to find valid outer separators between two inner separators
-size_t findValidOuterSeparator(const std::string& str,
-                               char outer_sp,
-                               size_t start,
-                               size_t end) {
+size_t findValidOuterSeparator(
+    const std::string& str,
+    char outer_sp,
+    size_t start,
+    size_t end) {
   std::stack<char> bracketStack;
   size_t lastValidPos = std::string::npos;
 
@@ -401,13 +419,14 @@ std::unordered_map<std::string, std::string> map_split(
 
   std::vector<std::string> key_values;
   // Process the first key-value pair
+  HAMI_ASSERT(validInnerSeparators.size() <= 2048 * 2048);
   size_t firstInner = validInnerSeparators[0];
   size_t outerPos = findValidOuterSeparator(strtem, outer_sp, 0, firstInner);
   if (outerPos == std::string::npos) {
-    SPDLOG_INFO(
-        "No valid outer separator found before the first inner separator. "
-        "strtem= {}",
-        strtem);
+    // SPDLOG_INFO(
+    //     "No valid outer separator found before the first inner separator. "
+    //     "strtem= {}",
+    //     strtem);
   }
   key_values.push_back(strtem.substr(0, validInnerSeparators[0]));
 
@@ -453,4 +472,4 @@ std::unordered_map<std::string, std::string> map_split(
 }
 
 // }  // namespace config_parser
-}  // namespace hami::str
+} // namespace hami::str

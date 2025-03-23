@@ -17,8 +17,8 @@ namespace hami {
 void SequentialV0::impl_forward(const std::vector<dict>& io) {
   DictHelper dicts_guard(io);
   dicts_guard.keep(TASK_DATA_KEY)
-      .erase(TASK_RESULT_KEY);  // to keey the storage of TASK_DATA_KEY. This
-                                // tensor is
+      .erase(TASK_RESULT_KEY); // to keey the storage of TASK_DATA_KEY. This
+                               // tensor is
   // may be created in another stream
   std::unordered_set<std::size_t> break_index;
   for (std::size_t i = 0; i < base_dependencies_.size(); ++i) {
@@ -41,10 +41,11 @@ void SequentialV0::impl_forward(const std::vector<dict>& io) {
           valid_inputs.push_back(input_dict);
         } else {
           dicts_guard.erase(TASK_RESULT_KEY);
-          throw std::runtime_error("SequentialV0: no result in " +
-                                   base_config_[i].at("backend"));
+          throw std::runtime_error(
+              "SequentialV0: no result in " + base_config_[i].at("backend"));
           break_index.insert(j);
-          if (break_index.size() == io.size()) return;
+          if (break_index.size() == io.size())
+            return;
         }
       }
     }
@@ -87,27 +88,29 @@ void Sequential::update_min_max() {
   // union of all backends
   max_ = std::numeric_limits<size_t>::max();
   min_ = 1;
-  size_t num_one = 0;
+  // size_t num_one = 0;
   for (const auto& depend : backends_) {
-    if (depend->max() == 1) {
-      num_one++;
-    } else {
+    // if (depend->max() == 1) {
+    //   num_one++;
+    // } else
+    {
       min_ = std::max(min_, depend->min());
       max_ = std::min(max_, depend->max());
     }
   }
 
-  if (num_one == backends_.size()) {
-    max_ = 1;
-  }
+  // if (num_one == backends_.size()) {
+  //   max_ = 1;
+  // }
+
   SPDLOG_INFO("Sequential: min={}, max={}", min_, max_);
 }
 
 void Sequential::impl_forward(const std::vector<dict>& io) {
   DictHelper dicts_guard(io);
   dicts_guard.keep_alive(TASK_DATA_KEY)
-      .erase(TASK_RESULT_KEY);  // to keey the storage of TASK_DATA_KEY. This
-                                // tensor is
+      .erase(TASK_RESULT_KEY); // to keey the storage of TASK_DATA_KEY. This
+                               // tensor is
   // may be created in another stream
   std::unordered_set<std::size_t> break_index;
   for (std::size_t i = 0; i < backends_.size(); ++i) {
@@ -134,7 +137,8 @@ void Sequential::impl_forward(const std::vector<dict>& io) {
           // throw std::runtime_error("Sequential: no result in " +
           //                          backend_cfgs_[i]);
           break_index.insert(j);
-          if (break_index.size() == io.size()) return;
+          if (break_index.size() == io.size())
+            return;
         }
       }
     }
@@ -150,4 +154,4 @@ void Sequential::impl_forward(const std::vector<dict>& io) {
 }
 HAMI_REGISTER(Backend, Sequential, "Sequential, S");
 
-}  // namespace hami
+} // namespace hami

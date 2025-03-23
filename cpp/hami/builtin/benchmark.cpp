@@ -99,6 +99,7 @@ void Benchmark::impl_forward_with_dep(
             state.exception = (std::current_exception());
           }
           state.end_time = std::chrono::steady_clock::now();
+          state.data.clear();
           outputs_.put(data);
         } else if (bNoNewData_.load() && inputs_->empty()) {
           break;

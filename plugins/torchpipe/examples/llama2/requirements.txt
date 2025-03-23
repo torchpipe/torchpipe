@@ -1,9 +1,10 @@
 torch>=2.4.0 
-transformers>=4.44.2,<=4.49.0
+transformers>=4.49.0,<=4.49.0
 shortuuid
 fire
 fastapi
 uvicorn
 aiohttp
 onnx
-onnx-simplifier
+onnxsim
+onnx_graphsurgeon

@@ -159,7 +159,7 @@ void DagDispatcher::on_finish_node(
     if (curr_event->has_exception()) {
       if (!pstack->exception) {
         pstack->exception = curr_event->reset_exception();
-        SPDLOG_WARN("Exception occurred in node: {}", node_name);
+        // SPDLOG_WARN("Exception occurred in node: {}", node_name);
       } else {
         auto tmp_exc = curr_event->reset_exception();
         try {

@@ -14,9 +14,12 @@
 #include "hami/helper/timer.hpp"
 
 namespace hami {
-void Batching::impl_init(const std::unordered_map<string, string>& config,
-                         const dict& kwargs) {
+void Batching::impl_init(
+    const std::unordered_map<string, string>& config,
+    const dict& kwargs) {
   str::try_update(config, "batching_timeout", batching_timeout_);
+  str::try_update(config, "node_name", node_name_);
+
   HAMI_ASSERT(batching_timeout_ >= 0);
 
   HAMI_ASSERT(kwargs);
@@ -38,10 +41,11 @@ void Batching::impl_inject_dependency(Backend* dependency) {
   }
 }
 
-void Batching::impl_forward_with_dep(const std::vector<dict>& inputs,
-                                     Backend* dep) {
+void Batching::impl_forward_with_dep(
+    const std::vector<dict>& inputs,
+    Backend* dep) {
   HasEventHelper helper(
-      inputs);  // add `event` (and wait for possible exception) if not exist
+      inputs); // add `event` (and wait for possible exception) if not exist
   HAMI_FATAL_ASSERT(dep);
 
   if (bInited_.load())
@@ -56,9 +60,11 @@ void Batching::run() {
   while (bInited_.load() && !input_queue_.wait_for(batching_timeout_)) {
   };
   const size_t max_bs = max();
-  SPDLOG_INFO("Batching thread inited. Timeout = {} Max Batch Size = {}",
-              batching_timeout_,
-              max_bs);
+  SPDLOG_INFO(
+      "Batching thread inited. node_name = `{}` Timeout = `{}` Max Batch Size = `{}`",
+      node_name_,
+      batching_timeout_,
+      max_bs);
   std::vector<dict> cached_data;
   bool already_batching_timout = false;
   while (bInited_.load()) {
@@ -68,15 +74,16 @@ void Batching::run() {
       dict tmp_dict;
       if (!input_queue_.wait_pop(
               tmp_dict,
-              SHUTDOWN_TIMEOUT)) {  // every batching_timeout_ ms check
-                                    // that whether bIbited_ is true.
+              SHUTDOWN_TIMEOUT)) { // every batching_timeout_ ms check
+                                   // that whether bIbited_ is true.
         // if not, exit this  loop
         continue;
       }
       cached_data.push_back(tmp_dict);
       continue;
-    } else if (input_queue_.size() + cached_size >= max_bs ||
-               already_batching_timout) {
+    } else if (
+        input_queue_.size() + cached_size >= max_bs ||
+        already_batching_timout) {
       std::size_t new_pop = 0;
       while (cached_size + new_pop < max_bs && !input_queue_.empty()) {
         const auto front_size = input_queue_.front_size();
@@ -109,7 +116,7 @@ void Batching::run() {
       }
     }
 
-  }  // end while
+  } // end while
 }
 
 void InstanceDispatcher::impl_init(
@@ -171,8 +178,8 @@ void InstanceDispatcher::impl_forward(const std::vector<dict>& inputs) {
     auto resource_guard = [this, valid_index](void*) {
       instances_state_->remove_lock(valid_index);
     };
-    std::unique_ptr<void, decltype(resource_guard)> guard(nullptr,
-                                                          resource_guard);
+    std::unique_ptr<void, decltype(resource_guard)> guard(
+        nullptr, resource_guard);
 
     base_dependencies_[valid_index]->forward(inputs);
   }
@@ -200,12 +207,14 @@ void BackgroundThread::impl_init(
   while (!bInited_.load() && (!bStoped_.load())) {
     std::this_thread::yield();
   }
-  if (init_eptr_) std::rethrow_exception(init_eptr_);
+  if (init_eptr_)
+    std::rethrow_exception(init_eptr_);
   HAMI_ASSERT(bInited_.load() && (!bStoped_.load()));
-  SPDLOG_INFO("BackgroundThread inited: {}[{}, {}]",
-              dependency_name,
-              dependency_->min(),
-              dependency_->max());
+  SPDLOG_INFO(
+      "BackgroundThread inited: {}[{}, {}]",
+      dependency_name,
+      dependency_->min(),
+      dependency_->max());
 }
 
 void BackgroundThread::impl_forward(const std::vector<dict>& inputs) {
@@ -233,7 +242,7 @@ void BackgroundThread::run() {
     std::vector<dict> tasks;
     {
       auto succ = batched_queue_.wait_pop(
-          tasks, SHUTDOWN_TIMEOUT);  // for exit this thread
+          tasks, SHUTDOWN_TIMEOUT); // for exit this thread
 
       if (!succ) {
         assert(tasks.empty());
@@ -250,9 +259,10 @@ void BackgroundThread::run() {
         events.push_back(ti_p);
       }
     }
-    HAMI_FATAL_ASSERT(events.size() == tasks.size(),
-                      "event: " + std::to_string(events.size()) +
-                          " tasks: " + std::to_string(tasks.size()));
+    HAMI_FATAL_ASSERT(
+        events.size() == tasks.size(),
+        "event: " + std::to_string(events.size()) +
+            " tasks: " + std::to_string(tasks.size()));
 #ifndef NCATCH_SUB
     try {
 #endif
@@ -291,8 +301,9 @@ HAMI_REGISTER(Backend, Batching);
 
 class SharedInstancesState : public Backend {
  private:
-  void impl_init(const std::unordered_map<std::string, std::string>& config,
-                 const dict& kwargs) override final {
+  void impl_init(
+      const std::unordered_map<std::string, std::string>& config,
+      const dict& kwargs) override final {
     HAMI_ASSERT(kwargs, "kwargs is empty");
     auto res = std::make_shared<InstancesState>();
     (*kwargs)[TASK_RESOURCE_STATE_KEY] = res;
@@ -300,4 +311,4 @@ class SharedInstancesState : public Backend {
 };
 
 HAMI_REGISTER_BACKEND(SharedInstancesState);
-}  // namespace hami
+} // namespace hami

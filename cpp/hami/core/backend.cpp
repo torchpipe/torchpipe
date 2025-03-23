@@ -1,12 +1,12 @@
 
-#include <memory>
 #include "hami/core/backend.hpp"
-#include "hami/core/reflect.h"
-#include "hami/helper/base_logging.hpp"
-#include "hami/helper/string.hpp"
+#include <memory>
 #include "hami/core/event.hpp"
 #include "hami/core/helper.hpp"
 #include "hami/core/parser.hpp"
+#include "hami/core/reflect.h"
+#include "hami/helper/base_logging.hpp"
+#include "hami/helper/string.hpp"
 
 namespace hami {
 
@@ -62,8 +62,9 @@ void HasEventForwardGuard::impl_forward(const std::vector<dict>& inputs) {
   return;
 }
 
-std::unique_ptr<Backend> create_backend(const std::string& class_name,
-                                        const std::string& aspect_name_str) {
+std::unique_ptr<Backend> create_backend(
+    const std::string& class_name,
+    const std::string& aspect_name_str) {
   auto backend = std::unique_ptr<Backend>(
       HAMI_CREATE(Backend, class_name, aspect_name_str));
   HAMI_ASSERT(
@@ -72,15 +73,18 @@ std::unique_ptr<Backend> create_backend(const std::string& class_name,
   return backend;
 };
 
-void register_backend(const std::string& aspect_name_str,
-                      std::shared_ptr<Backend> backend) {
+void register_backend(
+    const std::string& aspect_name_str,
+    std::shared_ptr<Backend> backend) {
   HAMI_INSTANCE_REGISTER(Backend, aspect_name_str, backend);
 }
 void unregister_backend(const std::string& aspect_name_str) {
   HAMI_INSTANCE_UNREGISTER(Backend, aspect_name_str);
 }
 
-void clearup_backend() { HAMI_INSTANCE_CLEANUP(Backend); }
+void clearup_backend() {
+  HAMI_INSTANCE_CLEANUP(Backend);
+}
 
 HAMI_REGISTER(Backend, Backend, "Backend, Pass");
 
@@ -124,7 +128,7 @@ void Backend::safe_forward(const std::vector<dict>& input_output) {
   size_t io_size = get_request_size(input_output);
   if (io_size >= min() && io_size <= max()) {
     forward(input_output);
-  } else if (1 == max()) {  // special case
+  } else if (1 == max()) { // special case
     for (const auto& item : input_output) {
       forward({item});
     }
@@ -133,7 +137,8 @@ void Backend::safe_forward(const std::vector<dict>& input_output) {
         std::vector<dict>(input_output.begin(), input_output.begin() + max()));
     const auto& left =
         std::vector<dict>(input_output.begin() + max(), input_output.end());
-    if (!left.empty()) safe_forward(left);
+    if (!left.empty())
+      safe_forward(left);
   } else if (input_output.size() < min()) {
     throw std::invalid_argument("input_output.size() < min()");
   }
@@ -192,15 +197,17 @@ std::string get_dependency_name(
     const std::unordered_map<std::string, std::string>& config,
     const std::optional<std::string>& defualt_cls_name) {
   auto name = HAMI_OBJECT_NAME(Backend, this_ptr);
-  if (!name) name = defualt_cls_name;
+  if (!name)
+    name = defualt_cls_name;
   HAMI_ASSERT(name, "this instance was not created via reflection");
   auto iter = config.find(*name + "::dependency");
-  HAMI_ASSERT(iter != config.end(),
-              *name + "::dependency" + " not found in configuration. ");
+  HAMI_ASSERT(
+      iter != config.end(),
+      *name + "::dependency" + " not found in configuration. ");
   return iter->second;
 }
-}  // namespace backend
-}  // namespace hami
+} // namespace backend
+} // namespace hami
 
 namespace hami::parser_v2 {
 bool get_backend_name(const Backend* obj_ptr, std::string& cls_name) {
@@ -212,6 +219,21 @@ bool get_backend_name(const Backend* obj_ptr, std::string& cls_name) {
   return false;
 }
 
+std::string get_dependency_name(
+    const Backend* this_ptr,
+    const std::unordered_map<std::string, std::string>& config,
+    const std::optional<std::string>& defualt_cls_name) {
+  auto name = HAMI_OBJECT_NAME(Backend, this_ptr);
+  if (!name)
+    name = defualt_cls_name;
+  HAMI_ASSERT(name, "this instance was not created via reflection");
+  auto iter = config.find(*name + "::dependency");
+  HAMI_ASSERT(
+      iter != config.end(),
+      *name + "::dependency" + " not found in configuration. ");
+  return iter->second;
+}
+
 ArgsKwargs get_args_kwargs(
     const Backend* obj_ptr,
     std::string cls_name,
@@ -220,8 +242,8 @@ ArgsKwargs get_args_kwargs(
   if (name) {
     cls_name = *name;
   } else {
-    HAMI_ASSERT(!cls_name.empty(),
-                "This instance was not created via reflection");
+    HAMI_ASSERT(
+        !cls_name.empty(), "This instance was not created via reflection");
   }
   auto iter = config.find(cls_name + "::args");
   if (iter != config.end()) {
@@ -230,6 +252,6 @@ ArgsKwargs get_args_kwargs(
     return {args, str_kwargs};
   }
 
-  return {};
+  return {{}, config};
 }
-}  // namespace hami::parser_v2
+} // namespace hami::parser_v2

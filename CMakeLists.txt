@@ -139,6 +139,8 @@ add_compile_definitions(USE_CXX11_ABI=0)
 
 endif()
 
+message(STATUS "USE_CXX11_ABI: ${USE_CXX11_ABI} ")
+
 message(STATUS "CMAKE_CXX_FLAGS: ${CMAKE_CXX_FLAGS}")
 message(STATUS "CMAKE_CXX_FLAGS_DEBUG: ${CMAKE_CXX_FLAGS_DEBUG}")
  

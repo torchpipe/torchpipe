@@ -58,6 +58,7 @@ def circ_pad_plugin_desc(
 ) -> trtp.TensorDesc:
     ndim = inp0.ndim
     out_desc = inp0.like()
+    print(pads, 'pads', inp0)
 
     for i in range(np.size(pads) // 2):
         out_desc.shape_expr[ndim - i - 1] += int(
@@ -123,10 +124,10 @@ if __name__ == "__main__":
             print(f"    Plugin Namespace: {creator.plugin_namespace}")
             print(f"    Field Names: {creator.field_names}\n")
 
-    list_all_tensorrt_plugins()
+    # list_all_tensorrt_plugins()
 
 
-    # build_engine(onnx_path)
+    build_engine(onnx_path)
     
    
    

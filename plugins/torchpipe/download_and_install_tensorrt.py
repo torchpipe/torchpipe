@@ -17,7 +17,8 @@ TrtAddr = {
 }
 
 
-
+POSSIBLE_TENSORRT_LIB_DIR = set({"/usr/lib/x86_64-linux-gnu/"})
+POSSIBLE_TENSORRT_INCLUDE_DIR = set({"/usr/include/", '/usr/include/x86_64-linux-gnu/'})
 def get_trt_path():
     """Get TensorRT download URL based on CUDA version."""
     if not torch.cuda.is_available():
@@ -81,7 +82,19 @@ def download_and_install_trt(
         TENSORRT_INCLUDE, TENSORRT_LIB = exist_return(install_dir)
         if TENSORRT_INCLUDE and TENSORRT_LIB:
             return TENSORRT_INCLUDE, TENSORRT_LIB
-    
+        
+    for dir_path in POSSIBLE_TENSORRT_INCLUDE_DIR:
+        if os.path.exists(os.path.join(dir_path, "NvInfer.h")):
+            TENSORRT_INCLUDE = dir_path
+            break
+    for dir_path in POSSIBLE_TENSORRT_LIB_DIR:
+        if os.path.exists(os.path.join(dir_path, "libnvonnxparser.so")):
+            TENSORRT_LIB = dir_path
+            break
+    # print((os.path.join(dir_path, "NvInfer.h")), os.path.exists(os.path.join(dir_path, "libnvonnxparser.so")))
+    if TENSORRT_INCLUDE and TENSORRT_LIB:
+        return TENSORRT_INCLUDE, TENSORRT_LIB
+
     if not os.path.exists(install_dir):
         try:
             os.makedirs(install_dir, exist_ok=True)

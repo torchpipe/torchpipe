@@ -9,6 +9,7 @@ next = "batchable"
 [batchable]
 backend = 'S[TensorrtTensor,StreamGuard]'
 model = 'exported_params/batchable.onnx'
-'model::cache' = 'export_params/batchable.trt'
+max=5
+# 'model::cache' = 'export_params/batchable.trt'
 # the tensorrt plugin 
 #

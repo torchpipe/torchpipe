@@ -197,6 +197,7 @@ class BuildHelper:
             
         merged_params['extra_compile_args'] = extra_compile_args
         # CppExtension
+        sources = [str(x) for x in sources]
         return CUDAExtension(
             name=f"torchpipe.{name}",
             sources=sources,
@@ -211,6 +212,8 @@ def build_core_extension():
         *config.csrc_dir.glob("helper/*.cpp"),
         *config.csrc_dir.glob("pybind/*.cpp"),
     ]
+    # print(config.csrc_dir, type(sources), sources)
+    sources = [str(x) for x in sources]
     if config.build_cuda:
         sources += config.csrc_dir.glob("cuda/*.cu")
     
@@ -225,7 +228,7 @@ def build_nvjpeg_extension():
     
     sources = config.csrc_dir.glob("nvjpeg_torch/*.cpp")
     
-            
+    sources = [str(x) for x in sources]
     return BuildHelper.create_extension(
         name="image",
         sources=sources,
@@ -242,7 +245,8 @@ def build_opencv_extension():
     for lib in opencv_libs:
         assert any(Path(config.opencv_lib).glob(f"lib{lib}.so*")), \
             f"OpenCV library {lib} not found in {config.opencv_lib}"
-            
+    
+    sources = [str(x) for x in sources]
     return BuildHelper.create_extension(
         name="mat",
         sources=sources,

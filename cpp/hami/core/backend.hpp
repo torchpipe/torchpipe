@@ -13,16 +13,16 @@
 // limitations under the License.
 
 #pragma once
-#include <unordered_map>
-#include <string>
-#include <vector>
 #include <limits>
 #include <memory>
 #include <stdexcept>
+#include <string>
+#include <unordered_map>
+#include <vector>
 
 #include "hami/core/dict.hpp"
-#include "hami/helper/hami_export.h"
 #include "hami/core/reflect.h"
+#include "hami/helper/hami_export.h"
 
 namespace hami {
 
@@ -318,6 +318,10 @@ namespace hami::parser_v2 {
 
 bool get_backend_name(const Backend* obj_ptr, std::string& cls_name);
 
+std::string get_dependency_name(
+    const Backend* this_ptr,
+    const std::unordered_map<std::string, std::string>& config,
+    const std::optional<std::string>& defualt_cls_name = std::nullopt);
 using ArgsKwargs = std::pair<
     std::vector<std::string>,
     std::unordered_map<std::string, std::string>>;

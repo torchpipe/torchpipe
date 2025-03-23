@@ -11,6 +11,9 @@ import importlib
 import requests
 import zipfile
 
+POSSIBLE_OPENCV_LIB_DIR = set({"/usr/local/lib/"})
+POSSIBLE_OPENCV_INCLUDE_DIR = set({"/usr/local/include/opencv4/"})
+
 # import torch
 from pkg_resources import DistributionNotFound, get_distribution, parse_version
 # from setuptools import find_packages, setup
@@ -64,6 +67,16 @@ def download_and_build_opencv(cxx11_abi : bool = default_cxx11_abi(), install_di
         OPENCV_INCLUDE, OPENCV_LIB = exist_return(install_dir)
         if OPENCV_INCLUDE and OPENCV_LIB:
             return OPENCV_INCLUDE, OPENCV_LIB
+    for dir_path in POSSIBLE_OPENCV_INCLUDE_DIR:
+        if os.path.exists(os.path.join(dir_path, "opencv2/opencv.hpp")):
+            OPENCV_INCLUDE = dir_path
+            break
+    for dir_path in POSSIBLE_OPENCV_LIB_DIR:
+        if os.path.exists(os.path.join(dir_path, "libopencv_core.so")):
+            OPENCV_LIB = dir_path
+            break
+    if OPENCV_INCLUDE and OPENCV_LIB:
+        return OPENCV_INCLUDE, OPENCV_LIB
         
     OPENCV_VERSION = "4.5.4"
     OPENCV_URL = f"https://codeload.github.com/opencv/opencv/zip/refs/tags/{OPENCV_VERSION}"

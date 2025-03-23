@@ -174,6 +174,8 @@ E.g., different schedulers for different hardware backends
 
 img_name=nvcr.io/nvidia/pytorch:25.02-py3
 docker run --rm --gpus=all --ipc=host  --network=host -v `pwd`:/workspace  --shm-size 1G  --ulimit memlock=-1 --ulimit stack=67108864  --privileged=true  -w/workspace -it $img_name /bin/bash
+docker run --gpus=all --ipc=host --name debug_hami --network=host -v `pwd`:/workspace  --shm-size 1G  --ulimit memlock=-1 --ulimit stack=67108864  --privileged=true  -w/workspace -it $img_name /bin/bash
+
 
 
 https://torchpipe.github.io/docs/faq/remote-gdb

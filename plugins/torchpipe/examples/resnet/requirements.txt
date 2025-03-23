@@ -1,2 +1,4 @@
 tqdm
 fire
+datasets<=3.0.0
+oss2

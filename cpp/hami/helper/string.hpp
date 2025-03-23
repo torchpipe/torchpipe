@@ -27,8 +27,9 @@ void remove_space_and_ctrl(std::string& strtem);
 
 template <typename T>
 std::vector<T> str_split(const std::string& input, char delimiter = ',') {
-  static_assert(std::is_arithmetic_v<T>,
-                "T must be an arithmetic type (integer or floating-point)");
+  static_assert(
+      std::is_arithmetic_v<T>,
+      "T must be an arithmetic type (integer or floating-point)");
 
   std::vector<T> result;
   std::string trimmed_input = input;
@@ -59,22 +60,22 @@ std::vector<T> str_split(const std::string& input, char delimiter = ',') {
                 ": '" + token + "'. Non-numeric characters found.");
           }
         } else if (ec == std::errc::result_out_of_range) {
-          throw std::out_of_range("Integer out of range at index " +
-                                  std::to_string(token_index) + ": '" + token +
-                                  "'");
+          throw std::out_of_range(
+              "Integer out of range at index " + std::to_string(token_index) +
+              ": '" + token + "'");
         } else {
-          throw std::invalid_argument("Invalid integer at index " +
-                                      std::to_string(token_index) + ": '" +
-                                      token + "'");
+          throw std::invalid_argument(
+              "Invalid integer at index " + std::to_string(token_index) +
+              ": '" + token + "'");
         }
       } else if constexpr (std::is_floating_point_v<T>) {
         char* end;
         value = std::strtod(token.c_str(), &end);
         if (end != token.c_str() + token.size()) {
-          throw std::invalid_argument("Invalid floating-point value at index " +
-                                      std::to_string(token_index) + ": '" +
-                                      token +
-                                      "'. Non-numeric characters found.");
+          throw std::invalid_argument(
+              "Invalid floating-point value at index " +
+              std::to_string(token_index) + ": '" + token +
+              "'. Non-numeric characters found.");
         }
         if (errno == ERANGE) {
           throw std::out_of_range(
@@ -91,9 +92,10 @@ std::vector<T> str_split(const std::string& input, char delimiter = ',') {
 }
 
 template <typename T>
-std::vector<std::vector<T>> str_split(const std::string& in_input,
-                                      char inner_delimiter,
-                                      char outer_delimiter) {
+std::vector<std::vector<T>> str_split(
+    const std::string& in_input,
+    char inner_delimiter,
+    char outer_delimiter) {
   auto input = in_input;
   remove_space_and_ctrl(input);
   std::vector<std::vector<T>> result;
@@ -107,10 +109,11 @@ std::vector<std::vector<T>> str_split(const std::string& in_input,
 }
 
 template <typename T>
-std::vector<std::vector<std::vector<T>>> str_split(std::string input,
-                                                   char inner_delimiter,
-                                                   char middle_delimiter,
-                                                   char outer_delimiter) {
+std::vector<std::vector<std::vector<T>>> str_split(
+    std::string input,
+    char inner_delimiter,
+    char middle_delimiter,
+    char outer_delimiter) {
   std::vector<std::vector<std::vector<T>>> result;
 
   remove_space_and_ctrl(input);
@@ -145,10 +148,11 @@ std::vector<std::vector<std::vector<T>>> str_split(std::string input,
  * @param skipRight The character that marks the end of a section to skip.
  * @return A vector of strings after splitting.
  */
-std::vector<std::string> items_split(std::string input,
-                                     char delimiter,
-                                     char skipLeft = '[',
-                                     char skipRight = ']');
+std::vector<std::string> items_split(
+    std::string input,
+    char delimiter,
+    char skipLeft = '[',
+    char skipRight = ']');
 /**
  * @brief Expands nested brackets in strings.
  *
@@ -167,9 +171,10 @@ std::vector<std::string> items_split(std::string input,
  * @param right The right bracket character, default is ']'.
  * @return A vector of strings after expanding the brackets.
  */
-std::vector<std::string> flatten_brackets(const std::string& strtem,
-                                          char left = '[',
-                                          char right = ']');
+std::vector<std::string> flatten_brackets(
+    const std::string& strtem,
+    char left = '[',
+    char right = ']');
 
 /**
  * @brief Converts square bracket expressions into key-value pair parameters.
@@ -203,11 +208,12 @@ std::vector<std::string> flatten_brackets(const std::string& strtem,
  * @param left The left bracket character, default is '['.
  * @param right The right bracket character, default is ']'.
  */
-void brackets_split(const std::string& src,
-                    std::unordered_map<std::string, std::string>& dst_config,
-                    std::string key,
-                    char left = '[',
-                    char right = ']');
+void brackets_split(
+    const std::string& src,
+    std::unordered_map<std::string, std::string>& dst_config,
+    std::string key,
+    char left = '[',
+    char right = ']');
 
 std::string brackets_split(
     const std::string& src,
@@ -215,10 +221,12 @@ std::string brackets_split(
     char left = '[',
     char right = ']');
 
-std::string prefix_parentheses_split(const std::string& strtem,
-                                     std::string& pre_str);
-std::string post_parentheses_split(const std::string& strtem,
-                                   std::string& post_str);
+std::string prefix_parentheses_split(
+    const std::string& strtem,
+    std::string& pre_str);
+std::string post_parentheses_split(
+    const std::string& strtem,
+    std::string& post_str);
 
 /**
  * @brief Checks if the left and right brackets in the string are matched and if
@@ -234,9 +242,10 @@ std::string post_parentheses_split(const std::string& strtem,
  * @exception Throws invalid_argument exception if brackets are unmatched or if
  * a comma appears at the first or last position of the string.
  */
-bool is_comma_semicolon_separable(const std::string& strtem,
-                                  char left,
-                                  char right);
+bool is_comma_semicolon_separable(
+    const std::string& strtem,
+    char left,
+    char right);
 
 /** @brief
  * split "a=1,2/b=1" to {{"a", "1,2"}, {"b", "1"}} by config_split("a=1,2/b=1",
@@ -303,27 +312,40 @@ T str2int(const str::str_map& config, const std::string& key) {
   return result_value;
 }
 
+template <typename>
+struct always_false : std::false_type {};
+
 template <typename T = std::string>
 T update(const str::str_map& config, const std::string& key) {
-  static_assert(std::is_integral_v<T>, "T must be an integral type");
   auto iter = config.find(key);
   if (iter == config.end()) {
-    throw std::invalid_argument("parameter " + key + " not found");
+    throw std::invalid_argument("Parameter '" + key + "' not found");
   }
 
-  T result_value;
   const std::string& value = iter->second;
-  auto [ptr, ec] =
-      std::from_chars(value.data(), value.data() + value.size(), result_value);
-  bool success = ec == std::errc() && ptr == value.data() + value.size();
-  if (!success) {
-    throw std::invalid_argument("invalid " + key + ": " + value);
+
+  if constexpr (std::is_integral_v<T>) {
+    T result;
+    auto [ptr, ec] =
+        std::from_chars(value.data(), value.data() + value.size(), result);
+
+    if (ec != std::errc() || ptr != value.data() + value.size()) {
+      throw std::invalid_argument(
+          "Invalid integer value for '" + key + "': " + value);
+    }
+    return result;
+  } else if constexpr (std::is_same_v<T, std::string>) {
+    return value; // 直接返回字符串
+  } else {
+    static_assert(
+        always_false<T>::value,
+        "Unsupported type: must be integral or std::string");
   }
-  return result_value;
 }
 
-static inline std::string get_str(const str::str_map& config,
-                                  const std::string& key) {
+static inline std::string get_str(
+    const str::str_map& config,
+    const std::string& key) {
   auto iter = config.find(key);
   if (iter == config.end()) {
     throw std::invalid_argument("parameter " + key + " not found");
@@ -332,8 +354,9 @@ static inline std::string get_str(const str::str_map& config,
   return iter->second;
 }
 
-static inline std::string join(const std::unordered_set<std::string>& vec,
-                               char sep) {
+static inline std::string join(
+    const std::unordered_set<std::string>& vec,
+    char sep) {
   std::ostringstream oss;
   bool first = true;
   for (const auto& s : vec) {
@@ -356,45 +379,51 @@ static inline std::string tolower(std::string s) {
   return s;
 }
 
-inline void try_update(
+template <typename T>
+void try_update(
     const str::str_map& config,
     const std::string& key,
-    std::string& default_value,
+    T& default_value,
     const std::unordered_set<std::string>& valid_inputs = {}) {
   auto iter = config.find(key);
   if (iter == config.end()) {
     return;
   }
 
-  if (!valid_inputs.empty() && valid_inputs.count(iter->second) == 0) {
-    throw std::invalid_argument(
-        "parameter " + key + " is out of range: " + iter->second +
-        ", valid inputs are `" + str::join(valid_inputs, ',') + "`.");
-  }
-
-  default_value = iter->second;
-}
-
-template <typename T>
-void try_update(const str::str_map& config,
-                const std::string& key,
-                T& default_value) {
-  static_assert(std::is_arithmetic_v<T>, "T must be a number");
-  auto iter = config.find(key);
-  if (iter == config.end()) {
-    return;
-  }
-
   const std::string& value = iter->second;
-  auto [ptr, ec] =
-      std::from_chars(value.data(), value.data() + value.size(), default_value);
-  bool success = ec == std::errc() && ptr == value.data() + value.size();
-  if (!success) {
-    throw std::invalid_argument("invalid " + key + ": " + value);
+
+  if constexpr (std::is_same_v<T, std::string>) {
+    // 字符串类型校验逻辑
+    if (!valid_inputs.empty() && !valid_inputs.count(value)) {
+      throw std::invalid_argument(
+          "Parameter " + key + " value `" + value +
+          "` is invalid. "
+          "Valid options: [" +
+          str::join(valid_inputs, ',') + "]");
+    }
+    default_value = value;
+
+  } else {
+    // 数值类型转换逻辑
+    static_assert(
+        std::is_arithmetic_v<T>, "T must be string or arithmetic type");
+
+    T parsed_value;
+    auto [ptr, ec] = std::from_chars(
+        value.data(), value.data() + value.size(), parsed_value);
+
+    if (ec != std::errc() || ptr != value.data() + value.size()) {
+      throw std::invalid_argument(
+          "Failed to parse " + key + " as " + typeid(T).name() + ": " + value);
+    }
+    default_value = parsed_value;
+
+    // 显式忽略未使用的 valid_inputs 避免警告
+    (void)valid_inputs;
   }
 }
 
-}  // namespace hami::str
+} // namespace hami::str
 namespace hami {
 
 namespace str {
@@ -402,7 +431,7 @@ namespace str {
 template <typename... Args>
 std::string format(const std::string& fmt, Args&&... args) {
   std::ostringstream oss;
-  std::string remaining_fmt = fmt;  // 引入一个非 const 的局部变量
+  std::string remaining_fmt = fmt; // 引入一个非 const 的局部变量
   size_t index = 0;
   size_t pos = 0;
 
@@ -422,7 +451,7 @@ std::string format(const std::string& fmt, Args&&... args) {
       oss << arg;
       // 更新剩余格式字符串
       remaining_fmt = remaining_fmt.substr(current_pos + placeholder.length());
-      pos = 0;  // 重置位置，以确保后续搜索从头开始
+      pos = 0; // 重置位置，以确保后续搜索从头开始
     } else {
       // 如果没有找到占位符，直接添加剩余部分
       oss << remaining_fmt;
@@ -439,9 +468,10 @@ std::string format(const std::string& fmt, Args&&... args) {
   return oss.str();
 }
 
-size_t replace_once(std::string& str,
-                    const std::string& from,
-                    const std::string& to);
+size_t replace_once(
+    std::string& str,
+    const std::string& from,
+    const std::string& to);
 
 template <typename T>
 std::string vec2str(const std::vector<T>& vec) {
@@ -496,6 +526,6 @@ std::unordered_map<std::string, std::string> map_split(
     char outer_sp,
     const std::string& default_key = "");
 // }  // namespace config_parser
-}  // namespace str
+} // namespace str
 
-}  // namespace hami
+} // namespace hami

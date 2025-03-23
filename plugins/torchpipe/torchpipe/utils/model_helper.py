@@ -221,6 +221,11 @@ class OnnxModel:
 
 
 def get_mini_imagenet():
+    import_or_install_package('modelscope')
+    import_or_install_package('datasets')
+    import_or_install_package('addict')
+    
+    
     from modelscope.msdatasets import MsDataset
     from modelscope.utils.constant import DownloadMode
 

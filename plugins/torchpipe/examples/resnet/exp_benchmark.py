@@ -10,7 +10,8 @@ def onnx2trt(onnx_path, toml_path):
     """Convert ONNX model to TensorRT using HAMI configurations."""
     config = hami.parser.parse(toml_path)
     
-    trt_path = Path(onnx_path).with_suffix('.trt')
+    # trt_path = Path(onnx_path).with_suffix('.trt')
+    trt_path = onnx_path.replace('.onnx','_benchmark.trt')
     for _, settings in config.items():
         if 'model' in settings:
             settings['model'] = onnx_path

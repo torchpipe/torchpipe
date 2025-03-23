@@ -21,8 +21,9 @@ namespace hami {
 using namespace hami::python;
 class PyInstance : public Backend {
  private:
-  void impl_init(const std::unordered_map<string, string>& config,
-                 const dict& kwargs) override final {
+  void impl_init(
+      const std::unordered_map<string, string>& config,
+      const dict& kwargs) override final {
     py::gil_scoped_acquire gil;
     if (py::hasattr(*obj_, "init")) {
       init_num_params_ = get_num_params(*obj_, "init", &init_default_params_);
@@ -49,13 +50,17 @@ class PyInstance : public Backend {
   void impl_forward(const std::vector<dict>& input_output) override final {
     std::vector<PyDict> py_input_output;
     for (const auto& item : input_output) {
-      py_input_output.push_back(PyDict(item));  // no need gil
+      py_input_output.push_back(PyDict(item)); // no need gil
     }
     py::gil_scoped_acquire gil;
     obj_->attr("forward")(py_input_output);
   }
-  size_t impl_max() const override final { return max_; }
-  size_t impl_min() const override final { return min_; }
+  size_t impl_max() const override final {
+    return max_;
+  }
+  size_t impl_min() const override final {
+    return min_;
+  }
 
  public:
   void init_with_obj(const py::object& obj) {
@@ -78,7 +83,7 @@ class PyInstance : public Backend {
   size_t init_num_params_ = 0;
 };
 
-}  // namespace hami
+} // namespace hami
 namespace hami {
 namespace py = pybind11;
 using namespace pybind11::literals;
@@ -123,18 +128,21 @@ static std::shared_ptr<Backend> create_backend_from_py(
   return backend;
 };
 
-using ConfigVariant = std::variant<std::unordered_map<std::string, std::string>,
-                                   std::unordered_map<std::string, int>,
-                                   std::unordered_map<std::string, double>>;
+using ConfigVariant = std::variant<
+    std::unordered_map<std::string, std::string>,
+    std::unordered_map<std::string, int>,
+    std::unordered_map<std::string, double>>;
 std::unordered_map<std::string, std::string> convert_config(
     const std::optional<ConfigVariant>& config) {
-  if (!config) return {};
+  if (!config)
+    return {};
   return std::visit(
       [](auto&& arg) {
         std::unordered_map<std::string, std::string> result;
         for (const auto& [key, value] : arg) {
-          if constexpr (std::is_same_v<std::decay_t<decltype(value)>,
-                                       std::string>) {
+          if constexpr (std::is_same_v<
+                            std::decay_t<decltype(value)>,
+                            std::string>) {
             result[key] = value;
           } else {
             result[key] = std::to_string(value);
@@ -221,10 +229,11 @@ void forward_backend(Backend& self, const py::object& input_output) {
     }
 
     for (const auto& item : input_output) {
-      HAMI_ASSERT(py::isinstance<PyDict>(item),
-                  " Unsupported input type. Please provide one of "
-                  "the following: dict, hami.Dict, or "
-                  "List[hami.Dict].");
+      HAMI_ASSERT(
+          py::isinstance<PyDict>(item),
+          " Unsupported input type. Please provide one of "
+          "the following: dict, hami.Dict, or "
+          "List[hami.Dict].");
       PyDict data_inside = py::cast<PyDict>(item);
       data.push_back(data_inside.to_dict());
     }
@@ -232,14 +241,14 @@ void forward_backend(Backend& self, const py::object& input_output) {
     py::dict py_dict = py::cast<py::dict>(input_output);
     dict input = PyDict::py2dict(py_dict);
     if (input_output.contains(TASK_EVENT_KEY)) {
-      throw py::key_error(std::string("The input dictionary contains key[`") +
-                          TASK_EVENT_KEY +
-                          "`]. This indicates an asynchronous call. In this "
-                          "case, writing "
-                          "back values to the Python dictionary is not "
-                          "supported yet. "
-                          "Please use hami.Dict instead of dict as input.");
-#if 0  // todo: add event support
+      throw py::key_error(
+          std::string("The input dictionary contains key[`") + TASK_EVENT_KEY +
+          "`]. This indicates an asynchronous call. In this "
+          "case, writing "
+          "back values to the Python dictionary is not "
+          "supported yet. "
+          "Please use hami.Dict instead of dict as input.");
+#if 0 // todo: add event support
                 py::dict py_dict = py::cast<py::dict>(input_output);
                 dict input = PyDict::py2dict(py_dict);
                 data.push_back(input);
@@ -282,13 +291,14 @@ void forward_backend(Backend& self, const py::object& input_output) {
   self.forward(data);
 }
 
-}  // namespace
+} // namespace
 void py_init_backend(py::module_& m) {
-  m.def("create",
-        &create_backend_from_py,
-        py::arg("name"),
-        py::arg("register_name") = py::none(),
-        R"pbdoc(
+  m.def(
+       "create",
+       &create_backend_from_py,
+       py::arg("name"),
+       py::arg("register_name") = py::none(),
+       R"pbdoc(
         Create a Backend object.
 
         Parameters:
@@ -298,13 +308,14 @@ void py_init_backend(py::module_& m) {
         Returns:
             Backend: A new Backend object.
     )pbdoc")
-      .def("init",
-           &init_backend_from_py,
-           py::arg("backend"),
-           py::arg("config") = py::none(),
-           py::arg("kwargs") = py::none(),
-           py::arg("register_name") = py::none(),
-           R"pbdoc(
+      .def(
+          "init",
+          &init_backend_from_py,
+          py::arg("backend"),
+          py::arg("config") = py::none(),
+          py::arg("kwargs") = py::none(),
+          py::arg("register_name") = py::none(),
+          R"pbdoc(
         Create and initialize a Backend object.
 
         Parameters:
@@ -316,10 +327,11 @@ void py_init_backend(py::module_& m) {
         Returns:
             Backend: A newly created Backend object.
     )pbdoc")
-      .def("unregister",
-           &unregister_backend,
-           py::arg("name"),
-           R"pbdoc(
+      .def(
+          "unregister",
+          &unregister_backend,
+          py::arg("name"),
+          R"pbdoc(
         Unregister a named backend instance.
 
         Parameters:
@@ -399,19 +411,21 @@ void py_init_backend(py::module_& m) {
                 kwargs (dict, optional): Shared configuration. Defaults to None.
         )pbdoc");
   hami_backend
-      .def("__call__",
-           &forward_backend,
-           py::arg("input_output"),
-           R"pbdoc(
+      .def(
+          "__call__",
+          &forward_backend,
+          py::arg("input_output"),
+          R"pbdoc(
                 Process input/output data. Support Union[dict, hami.Dict, List[hami.Dict]. The 'data' must be filled, and the results are stored in 'result' and other key-value pairs.
              )pbdoc")
       .def(
           "forward",
           [](Backend& self,
-             const std::variant<PyDict,
-                                std::vector<PyDict>,
-                                py::dict,
-                                std::vector<py::dict>>& input_output,
+             const std::variant<
+                 PyDict,
+                 std::vector<PyDict>,
+                 py::dict,
+                 std::vector<py::dict>>& input_output,
              std::optional<Backend*> dep) {
             std::vector<dict> inputs;
 
@@ -447,10 +461,11 @@ void py_init_backend(py::module_& m) {
       .def("min", &Backend::min, R"pbdoc(
                 Get the minimum size of the input/output data.
              )pbdoc")
-      .def("max",
-           &Backend::max,
-           R"pbdoc(
+      .def(
+          "max",
+          &Backend::max,
+          R"pbdoc(
                 Get the maximum size of the input/output data.
              )pbdoc");
 }
-}  // namespace hami
+} // namespace hami

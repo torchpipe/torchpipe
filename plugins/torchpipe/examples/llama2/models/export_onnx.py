@@ -5,7 +5,7 @@ import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM
 import transformers
 
-import os
+import os, tempfile, shutil
 import subprocess
 import sys
 import importlib
@@ -23,27 +23,88 @@ def install_package(package):
 print(transformers.__version__)
 
 
+
+class TorchPlugin(torch.nn.Module):
+    __constants__ = ["params"]
+    
+    # 使用 PEP 526 语法定义类变量
+    params: str
+
+    def __init__(self):
+        super().__init__()  # 修正 super() 的用法
+        # self.plugin_namespace = "CustomTorchOps"
+        self.params = "name=TorchPlugin"
+
+    def forward(self, q, k, v):
+        # return q
+        return q+k+v
+
 def _modify_attention(attention):
     # todo : https://github.com/leimao/TensorRT-Custom-Plugin-Example/blob/main/scripts/export_identity_neural_network_new_opset.py
-    class DummyTorchPluginOp(torch.autograd.Function):
-        @staticmethod
-        def symbolic(g, q, k, v):
-            args = [q, k, v]
-            # These become the operator attributes.
-            kwargs = {}
-            from torch.onnx.symbolic_helper import _get_tensor_sizes
-            output_type = q.type().with_sizes(_get_tensor_sizes(q))
-            return g.op("CustomTorchOps::TorchPlugin", *args,
-                        **kwargs).setType(output_type)
+    # class DummyTorchPluginOp(torch.autograd.Function):
+    #     @staticmethod
+    #     def symbolic(g, q, k, v):
+    #         args = [q, k, v]
+    #         # Define attributes explicitly
+    #         kwargs = {
+    #             "plugin_namespace_s": "CustomTorchOps",  # Add plugin_namespace attribute
+    #             "name_s": "TorchPlugin"                  # Set the node name explicitly
+    #         }
+    #         from torch.onnx.symbolic_helper import _get_tensor_sizes
+    #         output_type = q.type().with_sizes(_get_tensor_sizes(q))
+    #         # Create the ONNX node with custom name and namespace
+    #         return g.op(
+    #             "CustomTorchOps::TorchPlugin",  # Domain and op type
+    #             *args,
+    #             **kwargs
+    #         ).setType(output_type)
 
-        @staticmethod
-        def forward(ctx, q,k,v):
-            return q
-            
-    class DummyTorchPlugin(torch.nn.Module):
-        def forward(self, q,k,v):
-            x = DummyTorchPluginOp.apply(q,k,v)
-            return x
+    #     @staticmethod
+    #     def forward(ctx, q, k, v):
+    #         return q
+
+    # class DummyTorchPlugin(torch.nn.Module):
+    #     def forward(self, q, k, v):
+    #         print(self.__name__)
+    #         x = DummyTorchPluginOp.apply(q, k, v)
+    #         return x
+
+
+    # from torch.onnx import register_custom_op_symbolic
+    # from torch.onnx.symbolic_helper import _get_tensor_sizes, parse_args
+
+        
+    # class DummyTorchPluginOp(torch.autograd.Function):
+    #     @staticmethod
+    #     def symbolic(g, q, k, v):
+    #         node = g.op(
+    #             "CustomTorchOps::TorchPlugin", 
+    #             q, k, v,
+    #             plugin_namespace_s="CustomTorchOps",
+    #         )
+    #         # 直接设置节点名称为"TorchPlugin"
+    #         # graph = g._g  # 获取底层 ONNX 图
+    #         # nodes = list(graph.nodes())
+    #         # nodes[-1].setName("TorchPlugin") 
+    #         return node.setType(q.type())
+
+        
+    #     @staticmethod
+    #     def forward(ctx, q, k, v):
+    #         return q
+
+    # class DummyTorchPlugin(torch.nn.Module):
+    #     def forward(self, q, k, v):
+    #         return DummyTorchPluginOp.apply(q, k, v)
+
+    # # 注册符号函数（关联PyTorch算子名与ONNX节点）
+    # torch.onnx.register_custom_op_symbolic(
+    #     "CustomTorchOps::TorchPlugin",  # PyTorch中调用的算子名（需与C++注册名一致）
+    #     DummyTorchPluginOp.symbolic, 
+    #     9  # ONNX opset版本
+    # )
+
+
 
 
     def forward(
@@ -69,9 +130,10 @@ def _modify_attention(attention):
         attn_output = self.o_proj(attn_output)
         
  
-        return attn_output, None, None
+        # return attn_output, None, None
+        return attn_output, None
     attention.forward = types.MethodType(forward, attention)
-    attention.batchless_attn = DummyTorchPlugin()
+    attention.batchless_attn = TorchPlugin()
 
 
 def _modify_decode_layers(layers):
@@ -183,6 +245,20 @@ def _modify_causal_llm(llm):
 
             
 def export_batchable(model,  out_dir = 'model_files/', use_index_select = True):
+
+
+    # def rename_modules(model, prefix=''):
+    #     for name, child in model.named_children():
+    #         print(name, "xxxx")
+    #         if '.' in name:
+    #             new_name = name.replace('.', '_')
+    #             setattr(model, new_name, child)
+    #             delattr(model, name)
+    #             name = new_name
+    #         rename_modules(child, prefix + name + '.')
+
+    # rename_modules(model)
+
     llama_model = model.model
     _modify_decode_layers(llama_model.layers) 
     _modify_llama_model(llama_model)
@@ -191,7 +267,11 @@ def export_batchable(model,  out_dir = 'model_files/', use_index_select = True):
     
     os.makedirs(out_dir, exist_ok=True)
     out_path = os.path.join(out_dir, "batchable.onnx")
+    out_tmp_dir = os.path.join(out_dir, ".temp/")
+    os.makedirs(out_tmp_dir, exist_ok = True)
+    out_tmp_path = os.path.join(out_tmp_dir, "batchable.onnx")
     
+
     def _export_batchable(llm):
         if use_index_select:
             dynamic_axes={'inputs_embeds': {0: 'seq_len'}, 'index_select': {0: 'request_size'}}
@@ -208,15 +288,39 @@ def export_batchable(model,  out_dir = 'model_files/', use_index_select = True):
         print(f'start exporting {out_path}')
         torch.onnx.export(hf_helper.EmbedsAsInputWrapper(model),
                         args=(inputs_embeds, index_select),
-                        f=out_path,
+                        f=out_tmp_path,
                         opset_version=17,
                         input_names=input_names,
                         output_names=['logits'],
-                        dynamic_axes=dynamic_axes)
-        assert 0 == subprocess.call(["onnxsim", out_path, out_path])
+                        dynamic_axes=dynamic_axes,
+                        export_modules_as_functions={TorchPlugin})
+        
+                        # custom_opsets={"CustomTorchOps": 1}
+
+        # raise RuntimeError(out_tmp_path)
+        assert 0 == subprocess.call(["onnxsim", out_tmp_path, out_path])
+
+        shutil.rmtree(out_tmp_dir)
         
         print(f'Batchable: {out_path} saved.')
-    
+        # def repair_prefix(model_path):
+        #     import onnx
+        #     model = onnx.load(model_path)
+        #     for node in model.graph.node:
+                
+        #         # 将 "/model/layers.0/linear/..." 转为 "linear_..."
+        #         # new_name = node.name.split("/")[-1]  # 取最后一段名称
+        #         if "TorchPlugin" in  node.name:
+        #             new_name = node.name.split("/")[-1].replace(".", "_")
+        #             print(node.name, f" replaced by {new_name} node.op = {node.op_type}")
+        #             node.name = new_name.replace(".", "_")
+        #         else:
+        #             print(f"node.name: = {node.name:}")
+                    
+        #     onnx.save(model, model_path)
+        # repair_prefix(out_path)
+                
+
     
     
     _export_batchable(model)
@@ -231,9 +335,13 @@ def export_batchless_prefilling(model, out_dir = 'model_files/'):
         bsz = 1
         assert query_states.shape[0] == bsz
         q_len = query_states.shape[-2]
-        query_states = query_states.view(bsz, q_len, self.num_heads, self.head_dim).transpose(1, 2)
-        key_states = key_states.view(bsz, q_len, self.num_key_value_heads, self.head_dim).transpose(1, 2)
-        past_value = value_states.view(bsz, q_len, self.num_key_value_heads, self.head_dim)
+
+        # input_shape = hidden_states.shape[:-1]
+        # hidden_shape = (*input_shape, -1, self.head_dim)
+
+        query_states = query_states.view(bsz, q_len, self.config.num_attention_heads, self.head_dim).transpose(1, 2)
+        key_states = key_states.view(bsz, q_len, self.config.num_key_value_heads, self.head_dim).transpose(1, 2)
+        past_value = value_states.view(bsz, q_len, self.config.num_key_value_heads, self.head_dim)
         value_states = past_value.transpose(1, 2)
 
         query_states, key_states = apply_rotary_pos_emb(query_states, key_states, cos, sin)
@@ -255,15 +363,15 @@ def export_batchless_prefilling(model, out_dir = 'model_files/'):
         attn_weights = torch.nn.functional.dropout(attn_weights, p=self.attention_dropout, training=self.training)
         attn_output = torch.matmul(attn_weights, value_states)
 
-        if attn_output.size() != (bsz, self.num_heads, q_len, self.head_dim):
+        if attn_output.size() != (bsz, self.config.num_attention_heads, q_len, self.head_dim):
             raise ValueError(
-                f"`attn_output` should be of size {(bsz, self.num_heads, q_len, self.head_dim)}, but is"
+                f"`attn_output` should be of size {(bsz, self.config.num_attention_heads, q_len, self.head_dim)}, but is"
                 f" {attn_output.size()}"
             )
 
         attn_output = attn_output.transpose(1, 2).contiguous()
 
-        attn_output = attn_output.view(bsz, q_len, self.num_heads* self.head_dim)
+        attn_output = attn_output.view(bsz, q_len, self.config.num_attention_heads* self.head_dim)
         return attn_output, past_key, past_value
 
     origin_forward = llama_model.layers[0].self_attn.forward
@@ -325,9 +433,9 @@ def export_batchless_decoding(llm, out_dir = 'model_files/'):
         assert query_states.shape[0] == bsz
         q_len = int(query_states.shape[-2])
         assert q_len == 1
-        query_states = query_states.view(bsz, q_len, self.num_heads, self.head_dim).transpose(1, 2)
-        key_states = key_states.view(bsz, q_len, self.num_key_value_heads, self.head_dim).transpose(1, 2)
-        value_states = value_states.view(bsz, q_len, self.num_key_value_heads, self.head_dim).transpose(1, 2)
+        query_states = query_states.view(bsz, q_len, self.config.num_attention_heads, self.head_dim).transpose(1, 2)
+        key_states = key_states.view(bsz, q_len, self.config.num_key_value_heads, self.head_dim).transpose(1, 2)
+        value_states = value_states.view(bsz, q_len, self.config.num_key_value_heads, self.head_dim).transpose(1, 2)
 
         query_states, key_states = apply_rotary_pos_emb(query_states, key_states, cos, sin)
         assert past_key is not None
@@ -352,9 +460,9 @@ def export_batchless_decoding(llm, out_dir = 'model_files/'):
         
         attn_output = torch.matmul(attn_weights, value_states)
 
-        if attn_output.size() != (bsz, self.num_heads, q_len, self.head_dim):
+        if attn_output.size() != (bsz, self.config.num_attention_heads, q_len, self.head_dim):
             raise ValueError(
-                f"`attn_output` should be of size {(bsz, self.num_heads, q_len, self.head_dim)}, but is"
+                f"`attn_output` should be of size {(bsz, self.config.num_attention_heads, q_len, self.head_dim)}, but is"
                 f" {attn_output.size()}"
             )
 
@@ -372,22 +480,22 @@ def export_batchless_decoding(llm, out_dir = 'model_files/'):
     q_len_with_past = q_len + past
     
     hidden_size = model.embed_tokens.weight.shape[-1]
-    num_heads = model.layers[0].self_attn.num_heads
-    num_key_value_heads = model.layers[0].self_attn.num_key_value_heads
+    num_attention_heads = model.layers[0].self_attn.config.num_attention_heads
+    num_key_value_heads = model.layers[0].self_attn.config.num_key_value_heads
     num_key_value_groups = model.layers[0].self_attn.num_key_value_groups
  
-    print("hidden_size/num_heads ", hidden_size, num_heads)
+    print("hidden_size/num_attention_heads ", hidden_size, num_attention_heads)
     print(f"num_key_value_groups={num_key_value_groups}")
     device = model.device
     query_states = torch.zeros((bsz, q_len, hidden_size), dtype=torch.float16, device=device)
     key_states = torch.zeros((bsz, q_len, hidden_size//num_key_value_groups), dtype=torch.float16, device=device)
     value_states = torch.zeros((bsz, q_len, hidden_size//num_key_value_groups), dtype=torch.float16, device=device)
     
-    past_key = torch.zeros((1,num_heads//num_key_value_groups, past, hidden_size//num_heads), dtype=torch.float16, device=device)
-    past_value = torch.zeros((1,num_heads//num_key_value_groups, past, hidden_size//num_heads), dtype=torch.float16, device=device)
+    past_key = torch.zeros((1,num_key_value_heads//num_key_value_groups, past, hidden_size//num_key_value_heads), dtype=torch.float16, device=device)
+    past_value = torch.zeros((1,num_key_value_heads//num_key_value_groups, past, hidden_size//num_key_value_heads), dtype=torch.float16, device=device)
     
-    cos = torch.zeros((bsz, q_len, hidden_size//num_heads), dtype=torch.float16, device=device)
-    sin = torch.zeros((bsz, q_len, hidden_size//num_heads), dtype=torch.float16, device=device)
+    cos = torch.zeros((bsz, q_len, hidden_size//num_attention_heads), dtype=torch.float16, device=device)
+    sin = torch.zeros((bsz, q_len, hidden_size//num_attention_heads), dtype=torch.float16, device=device)
     attention_mask = torch.zeros((1,1, q_len, q_len_with_past), dtype=torch.float16, device=device)
 
     out_path = os.path.join(out_dir,"batchless_decoding.onnx")

@@ -27,7 +27,8 @@ def compute_layer_requirements(config):
 
 def get_hf_model(model_id='meta-llama/Llama-2-7b-chat-hf', device='cuda', num_layers=None):
     """Load model with automatic layer adjustment based on available memory."""
-    config = AutoConfig.from_pretrained(model_id)
+    config = AutoConfig.from_pretrained(model_id,
+                        trust_remote_code=True )
     tokenizer = AutoTokenizer.from_pretrained(model_id)
 
     if num_layers is None and device == "cuda":

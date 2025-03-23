@@ -79,14 +79,20 @@ def use_cxx11_abi():
     abi11 = os.environ.get("USE_CXX11_ABI", None)
     if abi11 is None:
         try:
-            import torch
-            abi11 = torch._C._GLIBCXX_USE_CXX11_ABI
-        except ImportError:
-            abi11 = False
+            # 使用 subprocess 捕获命令输出
+            result = subprocess.check_output(
+                "python -c 'import torch; print(torch._C._GLIBCXX_USE_CXX11_ABI)'",
+                shell=True,
+                text=True
+            )
+            abi11 = result.strip() == "True"
+        except Exception as e:
+            log.info(f"Failed to import torch or get ABI info: {e}")
+            abi11 = True
     else:
         if abi11 in ['False', '0']:
             abi11 = False
-        else :
+        else:
             abi11 = True
     return abi11
 
