@@ -78,17 +78,18 @@ BUILD_INFO = {}
 def use_cxx11_abi():
     abi11 = os.environ.get("USE_CXX11_ABI", None)
     if abi11 is None:
+        command = [
+            sys.executable,
+            '-c',
+            'import torch; print(torch._C._GLIBCXX_USE_CXX11_ABI)'
+        ]
+
         try:
-            # 使用 subprocess 捕获命令输出
-            result = subprocess.check_output(
-                "python -c 'import torch; print(torch._C._GLIBCXX_USE_CXX11_ABI)'",
-                shell=True,
-                text=True
-            )
+            result = subprocess.check_output(command, text=True)
             abi11 = result.strip() == "True"
-        except Exception as e:
-            log.info(f"Failed to import torch or get ABI info: {e}")
-            abi11 = True
+        except subprocess.CalledProcessError as e:
+            print(f"Error checking ABI: {e}")
+            abi11 = False   
     else:
         if abi11 in ['False', '0']:
             abi11 = False

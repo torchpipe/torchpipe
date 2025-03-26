@@ -88,20 +88,22 @@ void Sequential::update_min_max() {
   // union of all backends
   max_ = std::numeric_limits<size_t>::max();
   min_ = 1;
-  // size_t num_one = 0;
+  size_t num_one = 0;
   for (const auto& depend : backends_) {
-    // if (depend->max() == 1) {
-    //   num_one++;
-    // } else
-    {
+    if (depend->max() == 1) {
+      num_one++;
+    } else {
       min_ = std::max(min_, depend->min());
       max_ = std::min(max_, depend->max());
     }
   }
 
-  // if (num_one == backends_.size()) {
-  //   max_ = 1;
-  // }
+  if (num_one == backends_.size()) {
+    max_ = 1;
+  }
+  if (num_one != 0 && max_ == std::numeric_limits<size_t>::max()) {
+    max_ = 1;
+  }
 
   SPDLOG_INFO("Sequential: min={}, max={}", min_, max_);
 }

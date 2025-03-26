@@ -17,7 +17,7 @@ def register_trt_plugin():
     import numpy.typing as npt
     import numpy as np
 
-    hami.init("Identity", register_name="instance_name_node")
+    hami.init("Identity", register_name="TorchPlugin")
 
     # @trtp.register("CustomTorchOps::TorchPlugin")
     # def circ_pad_plugin_desc(

@@ -176,6 +176,15 @@ img_name=nvcr.io/nvidia/pytorch:25.02-py3
 docker run --rm --gpus=all --ipc=host  --network=host -v `pwd`:/workspace  --shm-size 1G  --ulimit memlock=-1 --ulimit stack=67108864  --privileged=true  -w/workspace -it $img_name /bin/bash
 docker run --gpus=all --ipc=host --name debug_hami --network=host -v `pwd`:/workspace  --shm-size 1G  --ulimit memlock=-1 --ulimit stack=67108864  --privileged=true  -w/workspace -it $img_name /bin/bash
 
-
+<!-- https://aijishu.com/a/1060000000503090 -->
 
 https://torchpipe.github.io/docs/faq/remote-gdb
+
+
+design:
+ReqToTokenPool -> ReqToPagePool  [max_num_req x max_num_page_per_seq](w. page index)
+ <!-- [max_num_req x 1] (w. last_page_len)  -->
+
+TokenToKVPoolAllocator -> PageToKVPoolAllocator [manage free pages slots] [max_num_page x 1 KVCache]
+
+KVCache -> k x v -> (max_num_page, head_num, head_dim) * 2 * num_layer

@@ -3,7 +3,7 @@ import hami._C as _C
 
 def test_backend_creation():
     # Test Identity backend
-    backend = _C.create("Identity")
+    backend = _C.create("Identities")
     assert backend is not None
     assert backend.max() == 18446744073709551615
 

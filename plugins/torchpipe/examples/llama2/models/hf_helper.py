@@ -1,7 +1,333 @@
 from transformers import AutoTokenizer, AutoModelForCausalLM, AutoConfig
 import torch
-import fire
+import fire,types
+from typing import Optional, Tuple, Callable
+def _modify_attention_v0(attention: torch.nn.Module):
+    from transformers.models.llama.modeling_llama import apply_rotary_pos_emb, repeat_kv
+    import flashinfer
+    def forward(
+        self,
+        hidden_states: torch.Tensor,
+        position_embeddings: Tuple[torch.Tensor, torch.Tensor],
+        attention_mask: Optional[torch.Tensor],
+        past_key_value = None,
+        cache_position: Optional[torch.LongTensor] = None,
+        **kwargs,
+    ) -> Tuple[torch.Tensor, Optional[torch.Tensor], Optional[Tuple[torch.Tensor]]]:
+        input_shape = hidden_states.shape[:-1]
+        bsz, q_len, _ = hidden_states.size()
+        if q_len > 1:
+            pass
 
+        hidden_shape = (*input_shape, -1, self.head_dim)
+
+        query_states = self.q_proj(hidden_states).view(hidden_shape).transpose(1, 2)
+        key_states = self.k_proj(hidden_states).view(hidden_shape).transpose(1, 2)
+        value_states = self.v_proj(hidden_states).view(hidden_shape).transpose(1, 2)
+
+        cos, sin = position_embeddings
+        # query_states, key_states = apply_rotary_pos_emb(query_states, key_states, cos, sin)
+
+        if past_key_value is not None:
+            # sin and cos are specific to RoPE models; cache_position needed for the static cache
+            cache_kwargs = {"sin": sin, "cos": cos, "cache_position": cache_position}
+            key_states, value_states = past_key_value.update(key_states, value_states, self.layer_idx, cache_kwargs)
+
+        
+        # The key tensor, shape: [kv_len, num_kv_heads, head_dim_qk] if kv_layout is NHD, 
+        # or [num_kv_heads, kv_len, head_dim_qk] if kv_layout is HND.
+        if q_len == 1:
+            query_states = query_states[0].transpose(0,1)[0]
+            attn_output = flashinfer.single_decode_with_kv_cache(
+            query_states, key_states[0], value_states[0], 
+            kv_layout="HND", 
+            use_tensor_cores=False,
+            pos_encoding_mode='ROPE_LLAMA') # NONE ROPE_LLAMA
+            attn_output = attn_output.view(bsz, q_len, -1)
+        else:
+            q = query_states.squeeze(0).transpose(0,1)
+            attn_output = flashinfer.single_prefill_with_kv_cache(
+                q, key_states[0],
+                value_states[0], causal=True,
+                kv_layout="HND",pos_encoding_mode='ROPE_LLAMA')
+            attn_output = attn_output.view(bsz, q_len, -1)
+        attn_weights =None
+    
+
+        attn_output = attn_output.reshape(*input_shape, -1).contiguous()
+        attn_output = self.o_proj(attn_output)
+        return attn_output, attn_weights
+    attention.forward = types.MethodType(forward, attention)
+
+
+def _modify_attention_v1(attention: torch.nn.Module):
+    from transformers.models.llama.modeling_llama import apply_rotary_pos_emb, repeat_kv
+    import flashinfer
+    def forward(
+        self,
+        hidden_states: torch.Tensor,
+        position_embeddings: Tuple[torch.Tensor, torch.Tensor],
+        attention_mask: Optional[torch.Tensor],
+        past_key_value = None,
+        cache_position: Optional[torch.LongTensor] = None,
+        **kwargs,
+    ) -> Tuple[torch.Tensor, Optional[torch.Tensor], Optional[Tuple[torch.Tensor]]]:
+        input_shape = hidden_states.shape[:-1]
+        bsz, q_len, _ = hidden_states.size()
+        if q_len > 1:
+            pass
+
+        hidden_shape = (*input_shape, -1, self.head_dim)
+
+        query_states = self.q_proj(hidden_states).view(hidden_shape)#.transpose(1, 2)
+        key_states = self.k_proj(hidden_states).view(hidden_shape)#.transpose(1, 2)
+        value_states = self.v_proj(hidden_states).view(hidden_shape)#.transpose(1, 2)
+
+        cos, sin = position_embeddings
+        # query_states, key_states = apply_rotary_pos_emb(query_states, key_states, cos, sin)
+
+        if past_key_value is not None:
+            # sin and cos are specific to RoPE models; cache_position needed for the static cache
+            cache_kwargs = {"sin": sin, "cos": cos, "cache_position": cache_position}
+            key_states, value_states = past_key_value.update(key_states.transpose(1, 2), value_states.transpose(1, 2), self.layer_idx, cache_kwargs)
+            key_states, value_states = key_states.transpose(1, 2).contiguous(), value_states.transpose(1, 2).contiguous()
+        
+        # The key tensor, shape: [kv_len, num_kv_heads, head_dim_qk] if kv_layout is NHD, 
+        # or [num_kv_heads, kv_len, head_dim_qk] if kv_layout is HND.
+        if q_len == 1:
+            query_states = query_states[0][0]
+            attn_output = flashinfer.single_decode_with_kv_cache(
+            query_states, key_states[0], value_states[0], 
+            kv_layout="NHD", 
+            use_tensor_cores=False,
+            pos_encoding_mode='ROPE_LLAMA',  # NONE ROPE_LLAMA
+            )
+            attn_output = attn_output.view(bsz, q_len, -1)
+        else:
+            q = query_states.squeeze(0)
+            if True:
+                
+                attn_output = flashinfer.single_prefill_with_kv_cache(
+                    q, key_states[0],
+                    value_states[0], causal=True,
+                    kv_layout="NHD",pos_encoding_mode='ROPE_LLAMA',
+                    )
+            attn_output = attn_output.view(bsz, q_len, -1)
+                
+        attn_weights = None
+    
+
+        attn_output = attn_output.reshape(*input_shape, -1).contiguous()
+        attn_output = self.o_proj(attn_output)
+        return attn_output, attn_weights
+    attention.forward = types.MethodType(forward, attention)
+    
+def _modify_attention_v2(attention: torch.nn.Module):
+    from transformers.models.llama.modeling_llama import apply_rotary_pos_emb, repeat_kv
+    import flashinfer
+    def forward(
+        self,
+        hidden_states: torch.Tensor,
+        position_embeddings: Tuple[torch.Tensor, torch.Tensor],
+        attention_mask: Optional[torch.Tensor],
+        past_key_value = None,
+        cache_position: Optional[torch.LongTensor] = None,
+        **kwargs,
+    ) -> Tuple[torch.Tensor, Optional[torch.Tensor], Optional[Tuple[torch.Tensor]]]:
+        input_shape = hidden_states.shape[:-1]
+        bsz, q_len, _ = hidden_states.size()
+        if q_len > 1:
+            pass
+
+        hidden_shape = (*input_shape, -1, self.head_dim)
+
+        query_states = self.q_proj(hidden_states).view(hidden_shape)#.transpose(1, 2)
+        key_states = self.k_proj(hidden_states).view(hidden_shape)#.transpose(1, 2)
+        value_states = self.v_proj(hidden_states).view(hidden_shape)#.transpose(1, 2)
+
+        cos, sin = position_embeddings
+        # query_states, key_states = apply_rotary_pos_emb(query_states, key_states, cos, sin)
+
+        if past_key_value is not None:
+            # sin and cos are specific to RoPE models; cache_position needed for the static cache
+            cache_kwargs = {"sin": sin, "cos": cos, "cache_position": cache_position}
+            key_states, value_states = past_key_value.update(key_states.transpose(1, 2), value_states.transpose(1, 2), self.layer_idx, cache_kwargs)
+            key_states, value_states = key_states.transpose(1, 2).contiguous(), value_states.transpose(1, 2).contiguous()
+        
+        # The key tensor, shape: [kv_len, num_kv_heads, head_dim_qk] if kv_layout is NHD, 
+        # or [num_kv_heads, kv_len, head_dim_qk] if kv_layout is HND.
+        if q_len == 1:
+            query_states = query_states[0][0]
+            attn_output = flashinfer.single_decode_with_kv_cache(
+            query_states, key_states[0], value_states[0], 
+            kv_layout="NHD", 
+            use_tensor_cores=False,
+            pos_encoding_mode='ROPE_LLAMA',  # NONE ROPE_LLAMA
+            )
+            attn_output = attn_output.view(bsz, q_len, -1)
+        else:
+            q = query_states.squeeze(0)
+            if False:
+                
+                attn_output = flashinfer.single_prefill_with_kv_cache(
+                    q, key_states[0],
+                    value_states[0], causal=True,
+                    kv_layout="NHD",pos_encoding_mode='ROPE_LLAMA',
+                    )
+                
+            
+            else:
+                # batch_prefill_with_ragged_kv_cache
+                # https://github.com/LinHeLurking/flashinfer/blob/b53a46f8b073e66fbc8fe888e87517b3aea8bd2d/tests/test_batch_prefill_kernels.py#L561
+                page_size = 16
+                batch_size =1
+                qo_len = q_len
+                kv_len = key_states.shape[-3]
+                num_pages_per_seq = (kv_len + page_size - 1) // page_size
+                total_num_pages = num_pages_per_seq * batch_size
+                
+                num_kv_heads =  key_states.shape[-2]
+                kv_shape = [total_num_pages, 2, page_size, num_kv_heads, self.head_dim] # NHD
+    
+                workspace_buffer = torch.empty(128 * 1024 * 1024, dtype=torch.uint8, device="cuda:0")
+                wrapper = flashinfer.BatchPrefillWithRaggedKVCacheWrapper(
+                    workspace_buffer, "NHD"
+                )
+                
+                print(f"qo_len={qo_len}, kv_len={kv_len}, key_states={key_states.shape}")
+                q_indptr = torch.arange(0, batch_size + 1).to(0).int() * qo_len
+                kv_indptr = torch.arange(0, batch_size + 1).to(0).int() * kv_len
+                num_qo_heads = query_states.shape[-2]
+                wrapper.plan(
+                    q_indptr,
+                    kv_indptr,
+                    num_qo_heads,
+                    num_kv_heads,
+                    self.head_dim,
+                    causal=True, pos_encoding_mode='ROPE_LLAMA',
+                )
+                out = torch.empty_like(query_states).squeeze(0)
+                attn_output = wrapper.run(q, key_states[0],
+                                value_states[0],
+                                out=out)
+            assert attn_output is out
+            assert attn_output.data_ptr() == out.data_ptr() 
+            attn_output = out.view(bsz, q_len, -1)
+                
+        attn_weights = None
+
+        attn_output = attn_output.reshape(*input_shape, -1).contiguous()
+        attn_output = self.o_proj(attn_output)
+        return attn_output, attn_weights
+    attention.forward = types.MethodType(forward, attention)
+
+
+def _modify_attention(attention: torch.nn.Module):
+    from transformers.models.llama.modeling_llama import apply_rotary_pos_emb, repeat_kv
+    import flashinfer
+    def forward(
+        self,
+        hidden_states: torch.Tensor,
+        position_embeddings: Tuple[torch.Tensor, torch.Tensor],
+        attention_mask: Optional[torch.Tensor],
+        past_key_value = None,
+        cache_position: Optional[torch.LongTensor] = None,
+        **kwargs,
+    ) -> Tuple[torch.Tensor, Optional[torch.Tensor], Optional[Tuple[torch.Tensor]]]:
+        input_shape = hidden_states.shape[:-1]
+        bsz, q_len, _ = hidden_states.size()
+        if q_len > 1:
+            pass
+
+        hidden_shape = (*input_shape, -1, self.head_dim)
+
+        query_states = self.q_proj(hidden_states).view(hidden_shape)#.transpose(1, 2)
+        key_states = self.k_proj(hidden_states).view(hidden_shape)#.transpose(1, 2)
+        value_states = self.v_proj(hidden_states).view(hidden_shape)#.transpose(1, 2)
+
+        cos, sin = position_embeddings
+        # query_states, key_states = apply_rotary_pos_emb(query_states, key_states, cos, sin)
+
+        if past_key_value is not None:
+            # sin and cos are specific to RoPE models; cache_position needed for the static cache
+            cache_kwargs = {"sin": sin, "cos": cos, "cache_position": cache_position}
+            key_states, value_states = past_key_value.update(key_states.transpose(1, 2), value_states.transpose(1, 2), self.layer_idx, cache_kwargs)
+            key_states, value_states = key_states.transpose(1, 2).contiguous(), value_states.transpose(1, 2).contiguous()
+        
+        # The key tensor, shape: [kv_len, num_kv_heads, head_dim_qk] if kv_layout is NHD, 
+        # or [num_kv_heads, kv_len, head_dim_qk] if kv_layout is HND.
+        if q_len == 1:
+            query_states = query_states[0][0]
+            attn_output = flashinfer.single_decode_with_kv_cache(
+            query_states, key_states[0], value_states[0], 
+            kv_layout="NHD", 
+            use_tensor_cores=False,
+            pos_encoding_mode='ROPE_LLAMA',  # NONE ROPE_LLAMA
+            )
+            attn_output = attn_output.view(bsz, q_len, -1)
+        else:
+            q = query_states.squeeze(0)
+            if False:
+                
+                attn_output = flashinfer.single_prefill_with_kv_cache(
+                    q, key_states[0],
+                    value_states[0], causal=True,
+                    kv_layout="NHD",pos_encoding_mode='ROPE_LLAMA',
+                    )
+                
+            
+            else:
+                # batch_prefill_with_ragged_kv_cache
+                # https://github.com/LinHeLurking/flashinfer/blob/b53a46f8b073e66fbc8fe888e87517b3aea8bd2d/tests/test_batch_prefill_kernels.py#L561
+                page_size = 16
+                batch_size =1
+                qo_len = q_len
+                kv_len = key_states.shape[-3]
+                num_pages_per_seq = (kv_len + page_size - 1) // page_size
+                total_num_pages = num_pages_per_seq * batch_size
+                
+                num_kv_heads =  key_states.shape[-2]
+                kv_shape = [total_num_pages, 2, page_size, num_kv_heads, self.head_dim] # NHD
+    
+                workspace_buffer = torch.empty(128 * 1024 * 1024, dtype=torch.uint8, device="cuda:0")
+                wrapper = flashinfer.BatchPrefillWithRaggedKVCacheWrapper(
+                    workspace_buffer, "NHD"
+                )
+                
+                print(f"qo_len={qo_len}, kv_len={kv_len}, key_states={key_states.shape}")
+                q_indptr = torch.arange(0, batch_size + 1).to(0).int() * qo_len
+                kv_indptr = torch.arange(0, batch_size + 1).to(0).int() * kv_len
+                num_qo_heads = query_states.shape[-2]
+                wrapper.plan(
+                    q_indptr,
+                    kv_indptr,
+                    num_qo_heads,
+                    num_kv_heads,
+                    self.head_dim,
+                    causal=True, pos_encoding_mode='ROPE_LLAMA',
+                )
+                out = torch.empty_like(query_states).squeeze(0)
+                attn_output = wrapper.run(q, key_states[0],
+                                value_states[0],
+                                out=out)
+            
+            # kvcache
+            append_key = key_states[0]
+            append_value = value_states[0]
+            # https://docs.flashinfer.ai/generated/flashinfer.page.append_paged_kv_cache.html
+            
+            
+            assert attn_output is out
+            assert attn_output.data_ptr() == out.data_ptr() 
+            attn_output = out.view(bsz, q_len, -1)
+                
+        attn_weights = None
+
+        attn_output = attn_output.reshape(*input_shape, -1).contiguous()
+        attn_output = self.o_proj(attn_output)
+        return attn_output, attn_weights
+    attention.forward = types.MethodType(forward, attention)
+    
 def compute_layer_requirements(config):
     """Calculate memory requirements for base model and per-layer components."""
     hidden_size = config.hidden_size
@@ -25,7 +351,7 @@ def compute_layer_requirements(config):
     return base_params, layer_params
 
 
-def get_hf_model(model_id='meta-llama/Llama-2-7b-chat-hf', device='cuda', num_layers=None):
+def get_hf_model(model_id='meta-llama/Llama-2-7b-chat-hf', device='cuda', num_layers=None, use_flashinfer=False):
     """Load model with automatic layer adjustment based on available memory."""
     config = AutoConfig.from_pretrained(model_id,
                         trust_remote_code=True )
@@ -68,6 +394,10 @@ def get_hf_model(model_id='meta-llama/Llama-2-7b-chat-hf', device='cuda', num_la
         attn_implementation='eager',
     )
     
+    if use_flashinfer:
+        for layer in model.model.layers:
+            _modify_attention(layer.self_attn)
+    
     if num_layers < config.num_hidden_layers:
         model.model.layers = model.model.layers[:num_layers]
         model.config.num_hidden_layers = num_layers
@@ -104,8 +434,8 @@ def generate_text(model, tokenizer, prompt, max_new_tokens=7):
         )
     return tokenizer.decode(outputs[0], skip_special_tokens=True)
 
-def inference(model_id='meta-llama/Llama-2-7b-chat-hf',device='cuda' ,num_layers=2):
-    model, tokenizer, num_layers = get_hf_model(model_id, device, num_layers)
+def inference(model_id='meta-llama/Llama-2-7b-chat-hf',device='cuda' ,num_layers=2, use_flashinfer=True):
+    model, tokenizer, num_layers = get_hf_model(model_id, device, num_layers, use_flashinfer=use_flashinfer)
     prompt = "San Francisco is a"
     
     result = generate_text(model, tokenizer, prompt)
