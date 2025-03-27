@@ -12,12 +12,12 @@
 #include "hami/helper/macro.h"
 #include "hami/helper/string.hpp"
 
-#include "hami/core/reflect.h"
 #include "hami/core/backend.hpp"
+#include "hami/core/reflect.h"
 #include "hami/core/task_keys.hpp"
 
-#include "tensorrt_torch/tensorrt_plugins.hpp"
 #include "tensorrt_torch/tensorrt_helper.hpp"
+#include "tensorrt_torch/tensorrt_plugins.hpp"
 
 #include <c10/cuda/CUDAStream.h> // 必须包含此头文件
 #include <torch/torch.h>
@@ -46,7 +46,8 @@ TorchPlugin::TorchPlugin(const std::string& params) : serialization_(params) {
     return 1;
   }();
 
-  dependency_ = HAMI_INSTANCE_GET(hami::Backend, torch_params_.name);
+  // dependency_ = HAMI_INSTANCE_GET(hami::Backend, torch_params_.name);
+  dependency_ = hami::init_backend(torch_params_.name, params_);
   HAMI_ASSERT(dependency_);
 }
 

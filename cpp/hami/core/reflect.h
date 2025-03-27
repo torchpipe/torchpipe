@@ -39,17 +39,23 @@ namespace hami {
 HAMI_EXPORT bool hami_load();
 HAMI_EXPORT void printlog_and_throw(std::string name);
 HAMI_EXPORT void printlog(std::string name);
-HAMI_EXPORT std::vector<std::string> strict_str_split(std::string strtem,
-                                                      char a);
-HAMI_EXPORT std::vector<std::array<std::string, 2>>
-multi_str_split(std::string strtem, char inner_sp, char outer);
-HAMI_EXPORT void print_check_distance(std::string strtem,
-                                      const std::vector<std::string>& targets);
+HAMI_EXPORT std::vector<std::string> strict_str_split(
+    std::string strtem,
+    char a);
+HAMI_EXPORT std::vector<std::array<std::string, 2>> multi_str_split(
+    std::string strtem,
+    char inner_sp,
+    char outer);
+HAMI_EXPORT void print_check_distance(
+    std::string strtem,
+    const std::vector<std::string>& targets);
 
 template <typename ClassName>
 class HAMI_EXPORT ClassRegistryBase {
  public:
-  ClassRegistryBase() { hami_load(); }
+  ClassRegistryBase() {
+    hami_load();
+  }
   using ObjectGetter = std::function<ClassName*()>;
 
   std::vector<std::string> HamiGetAll() {
@@ -76,7 +82,8 @@ class HAMI_EXPORT ClassRegistryBase {
   void DoAddClass(const std::string& class_name, ObjectGetter getter) {
     auto keys = strict_str_split(class_name, ',');
     std::unordered_set<std::string> keys_set(keys.begin(), keys.end());
-    for (const auto& item : keys_set) DoAddSingleClass(item, getter);
+    for (const auto& item : keys_set)
+      DoAddSingleClass(item, getter);
   }
 
   void DoAddSingleClass(const std::string& class_name, ObjectGetter getter) {
@@ -90,8 +97,9 @@ class HAMI_EXPORT ClassRegistryBase {
     // printlog("Register " + class_name);
   }
 
-  ClassName* DoCreateObject(const std::string& class_name,
-                            const std::string& aspect_name = "") {
+  ClassName* DoCreateObject(
+      const std::string& class_name,
+      const std::string& aspect_name = "") {
     std::unique_lock<std::mutex> guard(getter_map_mutex_);
     typename ClassMap::const_iterator it = getter_map_.find(class_name);
 
@@ -121,14 +129,16 @@ class HAMI_EXPORT ClassRegistryBase {
 
   // Why use shared_ptr? Because it facilitates easier interaction with
   // Python.
-  void DoRegisterObject(const std::string& aspect_name,
-                        const std::shared_ptr<ClassName>& backend) {
+  void DoRegisterObject(
+      const std::string& aspect_name,
+      const std::shared_ptr<ClassName>& backend) {
     {
       std::lock_guard<std::mutex> guard(class_name_map_mutex_);
       {
-        printlog("Register Named Instance `" + aspect_name +
-                 std::string("` in address ") +
-                 std::to_string((long long)&reverse_class_name_map_));
+        printlog(
+            "Register Named Instance `" + aspect_name +
+            std::string("` in address ") +
+            std::to_string((long long)&reverse_class_name_map_));
         reverse_class_name_map_[aspect_name] = backend.get();
         reverse_class_name_map_owner_[aspect_name] = backend;
         reverse_class_name_map_owner_order_.push_back(aspect_name);
@@ -152,8 +162,9 @@ class HAMI_EXPORT ClassRegistryBase {
 
   void DoUnRegisterObject(const std::string& aspect_name) {
     {
-      printlog("Unregistering named instance '" + aspect_name +
-               "' (with ownership)");
+      printlog(
+          "Unregistering named instance '" + aspect_name +
+          "' (with ownership)");
 
       std::lock_guard<std::mutex> guard(class_name_map_mutex_);
       {
@@ -194,7 +205,7 @@ class HAMI_EXPORT ClassRegistryBase {
       } else {
         printlog("Failed to get named instance '" + aspect_name + "'");
         std::vector<std::string> keys;
-        for (const auto& item : reverse_class_name_map_) {  // NOLINT
+        for (const auto& item : reverse_class_name_map_) { // NOLINT
           keys.push_back(item.first);
         }
         print_check_distance(aspect_name, keys);
@@ -253,8 +264,8 @@ class HAMI_EXPORT ClassRegister{public : ClassRegister(
     std::string class_name,
     std::initializer_list<std::string> names){hami_load();
 if (names.size() >= 2) {
-  ClassRegistryInstance<BaseClassName>().DoAddClass(*(names.begin() + 1),
-                                                    getterraw);
+  ClassRegistryInstance<BaseClassName>().DoAddClass(
+      *(names.begin() + 1), getterraw);
 } else if (names.size() == 1) {
   ClassRegistryInstance<BaseClassName>().DoAddClass(class_name, getterraw);
 }
@@ -262,13 +273,13 @@ if (names.size() >= 3) {
   printlog_and_throw("ClassRegister: too many parameters.");
   // ClassRegistryInstance<BaseClassName>().DoAddClass(names[2], getterraw);
 }
-}  // namespace hami
+} // namespace hami
 
 ~ClassRegister() {}
 }
-;  // namespace hami
+; // namespace hami
 
-}  // namespace hami
+} // namespace hami
 
 // class_name should not contain '>' '<' and ':'.
 #define HAMI_REGISTER(base_class_type, class_name, ...)                \
@@ -298,9 +309,9 @@ if (names.size() >= 3) {
 // #define HAMI_CREATE(base_class_type, register_name)
 //   hami::ClassRegistryInstance<base_class_type>().DoGetObject(register_name)
 
-#define HAMI_CREATE(base_class_type, register_name, ...)                       \
-  hami::ClassRegistryInstance<base_class_type>().DoCreateObject(register_name, \
-                                                                ##__VA_ARGS__)
+#define HAMI_CREATE(base_class_type, register_name, ...)         \
+  hami::ClassRegistryInstance<base_class_type>().DoCreateObject( \
+      register_name, ##__VA_ARGS__)
 
 #define HAMI_INSTANCE_GET(base_class_type, aspect_name) \
   hami::ClassRegistryInstance<base_class_type>().DoGetObject(aspect_name)
@@ -320,8 +331,9 @@ if (names.size() >= 3) {
     aspect_class_type, derived_aspect_cls, config_setting)           \
   class derived_aspect_cls : public aspect_class_type {              \
    public:                                                           \
-    void impl_init(const std::unordered_map<string, string>& config, \
-                   const dict& kwargs) override {                    \
+    void impl_init(                                                  \
+        const std::unordered_map<string, string>& config,            \
+        const dict& kwargs) override {                               \
       auto new_config = config;                                      \
       auto config_addin = multi_str_split(config_setting, '=', '/'); \
       for (const auto& item : config_addin) {                        \

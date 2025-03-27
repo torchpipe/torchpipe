@@ -6,15 +6,16 @@
 
 #include <NvInferRuntime.h>
 #include <NvInferRuntimePlugin.h>
+#include "hami/core/backend.hpp"
 
 // In IPluginV3 interface, the plugin name, version, and name space must be
 // specified for the plugin and plugin creator exactly the same.
 constexpr char const* const kTORCH_PLUGIN_NAME{"TorchPlugin"};
 constexpr char const* const kTORCH_PLUGIN_VERSION{"1"};
 constexpr char const* const kTORCH_PLUGIN_NAMESPACE{""};
-namespace hami {
-class Backend;
-}
+// namespace hami {
+// class Backend;
+// }
 namespace nvinfer1 {
 namespace plugin {
 
@@ -126,7 +127,7 @@ class TorchPlugin : public IPluginV3,
   std::vector<nvinfer1::PluginField> mDataToSerialize;
   nvinfer1::PluginFieldCollection mFCToSerialize;
 
-  hami::Backend* dependency_{nullptr};
+  std::unique_ptr<hami::Backend> dependency_{nullptr};
 };
 
 } // namespace plugin

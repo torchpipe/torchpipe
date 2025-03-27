@@ -3,9 +3,25 @@
 #include "hami/helper/macro.h"
 namespace hami::python {
 
-size_t get_num_params(const py::object& obj, const char* method, size_t* defaults_count) {
+size_t get_num_params(
+    const py::object& obj,
+    const char* method,
+    size_t* defaults_count) {
   py::object method_attr = obj.attr(method);
   HAMI_ASSERT(py::isinstance<py::function>(method_attr));
+  // SPDLOG_INFO(
+  //     "__func__ {} __code__ {}",
+  //     py::hasattr(obj, "__func__"),
+  //     py::hasattr(obj, "__code__"));
+  if (!py::hasattr(method_attr, "__code__")) {
+    return 0;
+  }
+  // HAMI_ASSERT(
+  //     py::hasattr(method_attr, "__code__"),
+  //     "no __code__ for " + std::string(method));
+  // if (!py::hasattr(obj, "__code__")) {
+  //   return 1;
+  // }
   auto code_obj = method_attr.attr("__code__");
   int arg_count = code_obj.attr("co_argcount").cast<int>();
 
@@ -18,11 +34,13 @@ size_t get_num_params(const py::object& obj, const char* method, size_t* default
       SPDLOG_DEBUG("Number of default arguments: {}", *defaults_count);
 
       for (int i = 0; i < *defaults_count; ++i) {
-        SPDLOG_DEBUG("Default value for argument {}: {}", i,
-                     py::cast<std::string>(py::str(defaults_tuple[i])));
+        SPDLOG_DEBUG(
+            "Default value for argument {}: {}",
+            i,
+            py::cast<std::string>(py::str(defaults_tuple[i])));
       }
     }
   }
   return arg_count;
 }
-}  // namespace hami::python
+} // namespace hami::python

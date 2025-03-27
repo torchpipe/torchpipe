@@ -24,26 +24,51 @@ class PyInstance : public Backend {
   void impl_init(
       const std::unordered_map<string, string>& config,
       const dict& kwargs) override final {
+    std::string init_method;
     py::gil_scoped_acquire gil;
     if (py::hasattr(*obj_, "init")) {
-      init_num_params_ = get_num_params(*obj_, "init", &init_default_params_);
+      init_method = "init";
+      init_num_params_ =
+          get_num_params(*obj_, init_method.data(), &init_default_params_);
+    } else if (py::hasattr(*obj_, "__init__")) {
+      init_method = "__init__";
+      init_num_params_ =
+          get_num_params(*obj_, init_method.data(), &init_default_params_);
+
     } else {
+      SPDLOG_WARN(
+          "No `init/__init__` method found in the python backend. Skip initialization.");
+      return;
       throw std::invalid_argument(
           "No `init` method found in the python backend. You may need to "
           "use Forward[yourpython].");
     }
-    if (!kwargs) {
-      if (init_num_params_ - init_default_params_ == 2)
-        obj_->attr("init")(config);
-      else if (init_num_params_ == 3 && init_default_params_ == 0) {
-        obj_->attr("init")(config, py::none());
+    SPDLOG_INFO(
+        "(python)initialization, init_method = {}, init_num_params = {}, init_default_params = {} ",
+        init_method,
+        init_num_params_,
+        init_default_params_);
+    if (init_num_params_ > 0) {
+      if (!kwargs) {
+        if (init_num_params_ - init_default_params_ == 2)
+          obj_->attr(init_method.data())(config);
+        else if (init_num_params_ == 3 && init_default_params_ == 0) {
+          obj_->attr(init_method.data())(config, py::none());
+        } else if (init_num_params_ == 1 && init_default_params_ == 0) {
+          obj_->attr(init_method.data())();
+        } else {
+          SPDLOG_WARN(
+              "(python)Skip initialization, init_num_params = {}, init_default_params = {} ",
+              init_num_params_,
+              init_default_params_);
+        }
+        // throw std::invalid_argument(
+        //     "init must have 1 or 2 arguments except self.");
+      } else {
+        if (init_num_params_ != 3)
+          throw std::invalid_argument("init must have 2 arguments");
+        obj_->attr(init_method.data())(config, PyDict(kwargs));
       }
-      throw std::invalid_argument(
-          "init must have 1 or 2 arguments except self.");
-    } else {
-      if (init_num_params_ != 3)
-        throw std::invalid_argument("init must have 2 arguments");
-      obj_->attr("init")(config, PyDict(kwargs));
     }
     HAMI_ASSERT(!py::hasattr(*obj_, "min") && !py::hasattr(*obj_, "max"));
   }
@@ -172,7 +197,31 @@ static std::shared_ptr<Backend> init_backend_from_py(
   return backend;
 };
 
+static void register_backend(
+    const std::string& cls_name,
+    std::function<Backend*()> f) {
+  ClassRegistryInstance<Backend>().DoAddClass(cls_name, f);
+}
+
+static void register_cls(const std::string& cls_name, py::type obj) {
+  auto creater = [obj]() {
+    auto* backend = new PyInstance();
+    py::gil_scoped_acquire guard;
+    // backend->init_with_obj(obj.attr("__new__")(obj));
+    backend->init_with_obj(obj());
+    // std::unique_ptr<Backend> backend
+    return (Backend*)backend;
+  };
+
+  register_backend(cls_name, creater);
+}
+
 static void register_backend(const std::string& aspect_name, py::object obj) {
+  if (py::isinstance<py::type>(obj)) {
+    register_cls(aspect_name, py::cast<py::type>(obj));
+    return;
+  }
+
   if (!py::hasattr(obj, "forward")) {
     if (py::isinstance<Backend>(obj)) {
       std::shared_ptr<Backend> backend =
@@ -187,23 +236,23 @@ static void register_backend(const std::string& aspect_name, py::object obj) {
     }
   }
 
-  do {
-    if (py::isinstance<py::type>(obj)) {
-      if (py::hasattr(obj, "__init__")) {
-        size_t default_params = 0;
-        int num_params = get_num_params(obj, "__init__", &default_params);
-        if (num_params - default_params == 1) {
-          obj = py::cast<py::type>(obj)();
-          break;
-        }
-      }
+  // do {
+  //   if (py::isinstance<py::type>(obj)) {
+  //     if (py::hasattr(obj, "__init__")) {
+  //       size_t default_params = 0;
+  //       int num_params = get_num_params(obj, "__init__", &default_params);
+  //       if (num_params - default_params == 1) {
+  //         obj = py::cast<py::type>(obj)();
+  //         break;
+  //       }
+  //     }
 
-      throw std::invalid_argument(
-          "You must provide an instance, or a type name that can be "
-          "default "
-          "constructed (__init__(self)).");
-    }
-  } while (false);
+  //     throw std::invalid_argument(
+  //         "You must provide an instance, or a type name that can be "
+  //         "default "
+  //         "constructed (__init__(self)).");
+  //   }
+  // } while (false);
 
   int num_params = get_num_params(obj, "forward");
   HAMI_ASSERT(

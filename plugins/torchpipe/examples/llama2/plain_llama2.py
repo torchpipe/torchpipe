@@ -12,21 +12,27 @@ from models import hf_helper
 
 import hami
 class Py:
+    def init(self, params):
+        self.params = params
+        print(self.params)
+        
     def forward(self, io: List[hami.Dict]):
         print(list(io[0].keys()))
         input = io[0]['data']
         output = io[0]['output']
-        print([x.shape for x in input])
-        print([x.shape for x in output])
+        # print([x.shape for x in input])
+        # print([x.shape for x in output])
 
 
 def register_trt_plugin():
     # import tensorrt.plugin as trtp
-    import numpy.typing as npt
-    import numpy as np
+    # import numpy.typing as npt
+    # import numpy as np
+    import time
+    # time.sleep(10)
 
     # hami.init("Identity", register_name="TorchPlugin")
-    hami.register("TorchPlugin", Py())
+    hami.register("TorchPlugin", Py)
 
     # @trtp.register("CustomTorchOps::TorchPlugin")
     # def circ_pad_plugin_desc(
