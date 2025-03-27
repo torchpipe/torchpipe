@@ -221,7 +221,21 @@ def _modify_attention_v2(attention: torch.nn.Module):
         return attn_output, attn_weights
     attention.forward = types.MethodType(forward, attention)
 
+global_kv = None
 
+def set_kv(max_num_pages, num_layers, page_size, num_kv_heads, head_dim):
+    global global_kv
+    if global_kv is None:
+        global_kv = []
+        for i in range(num_layers):
+            global_kv.append((torch.zeros(max_num_pages, page_size, num_kv_heads, head_dim).half().to(0),
+                            torch.zeros(max_num_pages, page_size, num_kv_heads, head_dim).half().to(0)))
+def get_kv(layer_idx):
+    global global_kv
+    return global_kv[layer_idx]
+    
+
+    pass
 def _modify_attention(attention: torch.nn.Module):
     from transformers.models.llama.modeling_llama import apply_rotary_pos_emb, repeat_kv
     import flashinfer
@@ -312,8 +326,40 @@ def _modify_attention(attention: torch.nn.Module):
                                 out=out)
             
             # kvcache
-            append_key = key_states[0]
-            append_value = value_states[0]
+            global global_kv
+            page_size = 16
+            if global_kv is None:
+                max_num_pages = 1000
+                set_kv(max_num_pages=max_num_pages, num_layers=32, page_size=16, num_kv_heads=32, head_dim=128)
+            k_append = key_states[0]
+            v_append = value_states[0]
+            paged_kv_cache = global_kv[self.layer_idx]
+
+            nnz_kv = k_append.shape[0]
+            # kv_append_indptr, kv_page_indptr, kv_last_page_len
+            kv_append_length = torch.tensor([q_len], dtype=torch.int32, device="cuda:0")
+            kv_append_indptr = torch.cat([torch.zeros(1).int().to(0), torch.cumsum(kv_append_length, dim=0)]).int()  # [0, 45, 53, 78, 100]
+
+            num_pages_per_req = torch.tensor([1], dtype=torch.int32, device="cuda:0")
+            kv_page_indptr = torch.cat([torch.zeros(1).int().to(0), torch.cumsum(num_pages_per_req, dim=0)]).int()
+            kv_last_page_len = torch.tensor([q_len], dtype=torch.int32, device="cuda:0")
+
+            kv_page_indices = torch.arange(1, dtype=torch.int32, device="cuda:0")
+
+            batch_indices, positions = flashinfer.get_batch_indices_positions(
+                    kv_append_indptr, flashinfer.get_seq_lens(kv_page_indptr, kv_last_page_len, page_size), nnz_kv)
+            flashinfer.append_paged_kv_cache(
+                k_append,
+                v_append,
+                batch_indices,
+                positions,
+                paged_kv_cache,
+                kv_page_indices,
+                kv_page_indptr,
+                kv_last_page_len
+            )
+            # kvcache
+
             # https://docs.flashinfer.ai/generated/flashinfer.page.append_paged_kv_cache.html
             
             

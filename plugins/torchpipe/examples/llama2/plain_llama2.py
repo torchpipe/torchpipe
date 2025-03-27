@@ -13,7 +13,7 @@ from models import hf_helper
 
 
 def register_trt_plugin():
-    import tensorrt.plugin as trtp
+    # import tensorrt.plugin as trtp
     import numpy.typing as npt
     import numpy as np
 

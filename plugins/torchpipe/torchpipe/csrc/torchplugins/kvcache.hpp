@@ -2,13 +2,13 @@
 
 #pragma once
 
-#include <vector>
-#include <string>
 #include <mutex>
 #include <set>
-#include <unordered_set>
+#include <stdexcept>
+#include <string>
 #include <unordered_map>
-
+#include <unordered_set>
+#include <vector>
 namespace torchpipe {
 class ThreadSafeSlots {
  public:
