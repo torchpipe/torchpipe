@@ -6,14 +6,18 @@
 
 #include <NvInferRuntime.h>
 #include <NvInferRuntimePlugin.h>
+#include <cuda_runtime.h>
 
 #include "hami/helper/base_logging.hpp"
 #include "hami/helper/macro.h"
 #include "hami/helper/string.hpp"
 
 #include "hami/core/reflect.h"
+#include "hami/core/backend.hpp"
+#include "hami/core/task_keys.hpp"
 
 #include "tensorrt_torch/tensorrt_plugins.hpp"
+#include "tensorrt_torch/tensorrt_helper.hpp"
 
 #include <c10/cuda/CUDAStream.h> // 必须包含此头文件
 #include <torch/torch.h>
@@ -23,16 +27,17 @@ namespace nvinfer1 {
 namespace plugin {
 
 TorchPlugin::TorchPlugin(const std::string& params) : serialization_(params) {
-  mParams = hami::str::map_split(params, '=', ',');
-  //       HAMI_ASSERT(
-  //         mParams.find("num_output") != mParams.end,
-  //         "No `num_output` find in params. Export onnx with `params` attr.
-  //         and `num_output=*`"); // abort
-  //     torch_params_.num_output = std::soti(mParams["num_output"]);
-  // hami::str::try_update(mParams, "index", torch_params_.index);
-  hami::str::try_update(mParams, "num_output", torch_params_.num_output);
+  params_ = hami::str::map_split(params, '=', ';');
 
-  hami::str::try_update<std::string>(mParams, "name", torch_params_.name);
+  hami::str::try_update(params_, "num_output", torch_params_.num_output);
+  hami::str::try_update(params_, "num_input", torch_params_.num_input);
+  hami::str::try_update(params_, "layer_idx", torch_params_.layer_idx);
+
+  hami::str::try_update<std::string>(params_, "name", torch_params_.name);
+
+  // std::string dtype = "fp16,fp16,fp16,fp16";
+  // hami::str::try_update(params_, "dtype", dtype);
+  // torch_params_.type = torchpipe::convert2trt(dtype);
 
   initFieldsToSerialize();
 
@@ -88,11 +93,6 @@ IPluginV3* TorchPlugin::clone() noexcept {
 }
 
 char const* TorchPlugin::getPluginName() const noexcept {
-  //   HAMI_ASSERT(
-  //       mParams.find("name") != mParams.end,
-  //       "No `name` find in params. Export onnx with `params` attr. and
-  //       `name=*`"); // abort
-  //   return mParams["name"];
   return kTORCH_PLUGIN_NAME;
 }
 
@@ -140,16 +140,6 @@ int32_t TorchPlugin::configurePlugin(
     return true;
   }();
 
-  // if (mParams.dtype == nvinfer1::DataType::kINT8) {
-  //   mParams.dtypeBytes = 1;
-  // } else if (mParams.dtype == nvinfer1::DataType::kHALF) {
-  //   mParams.dtypeBytes = 2;
-  // } else if (mParams.dtype == nvinfer1::DataType::kFLOAT) {
-  //   mParams.dtypeBytes = 4;
-  // } else {
-  //   HAMI_ASSERT(false);
-  // }
-
   return 0;
 }
 
@@ -161,6 +151,10 @@ bool TorchPlugin::supportsFormatCombination(
   // For this method inputs are numbered 0..(nbInputs-1) and outputs are
   // numbered nbInputs..(nbInputs+nbOutputs-1). Using this numbering, pos is
   // an index into InOut, where 0 <= pos < nbInputs+nbOutputs.
+  // if (torch_params_.type != inOut[0].desc.type) {
+  //   return false;
+  // }
+
   [[maybe_unused]] static auto _ = [nbInputs, nbOutputs, inOut] {
     SPDLOG_INFO(
         "supportsFormatCombination called. nbInputs={}, nbOutputs={}, type={}",
@@ -342,7 +336,13 @@ int32_t TorchPlugin::enqueue(
   // 3. 调用外部处理函数
   //----------------------------------------------
   try {
-    // get_output(output_tensors, input_tensors); // 用户自定义函数
+    // get_output(output_tensors, input_tensors, torch_params_.name); //
+    // 用户自定义函数
+    auto io = hami::make_dict();
+    (*io)[hami::TASK_DATA_KEY] = input_tensors;
+    (*io)[hami::TASK_OUTPUT_KEY] = output_tensors;
+
+    dependency_->forward({io});
   } catch (const std::exception& e) {
     SPDLOG_ERROR("get_output failed: {}", e.what());
     return cudaErrorUnknown;
@@ -429,7 +429,7 @@ IPluginV3* TorchPluginCreator::createPlugin(
       for (int32_t i{0}; i < nbFields; ++i) {
         char const* attrName = fields[i].name;
         if (!strcmp(attrName, "params")) {
-          SPDLOG_INFO("fields[i].length={}", fields[i].length);
+          // SPDLOG_INFO("fields[i].length={}", fields[i].length);
           params.resize(size_t(fields[i].length));
           HAMI_ASSERT(
               fields[i].type == nvinfer1::PluginFieldType::kCHAR,

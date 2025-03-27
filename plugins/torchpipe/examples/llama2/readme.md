@@ -1,9 +1,9 @@
 ### paramater export 
 ```bash
-python models/hf_helper.py 
+# python models/hf_helper.py 
 
 # export HF_ENDPOINT=https://hf-mirror.com
-python models/export_onnx.py 
+python models/export_onnx_v2.py 
 ```
 
 

@@ -277,7 +277,7 @@ class Profile : public Dependency {
 
     std::vector<std::string> req_ids;
     for (const auto& item : io) {
-      std::string req_id = dict_get<std::string>(item, TASK_REQUEST_ID_KEY);
+      id_type req_id = dict_get<id_type>(item, TASK_REQUEST_ID_KEY);
       req_ids.push_back(req_id);
     }
 

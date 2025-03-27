@@ -2,7 +2,7 @@ import hami
 import torchpipe
 import torch
 import sys, os
-from typing import Tuple
+from typing import Tuple, List
 from transformers import AutoTokenizer, AutoModelForCausalLM, AutoConfig
 
 # sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -10,6 +10,14 @@ from transformers import AutoTokenizer, AutoModelForCausalLM, AutoConfig
 # from models.partial_hf import get_hf_model
 from models import hf_helper
 
+import hami
+class Py:
+    def forward(self, io: List[hami.Dict]):
+        print(list(io[0].keys()))
+        input = io[0]['data']
+        output = io[0]['output']
+        print([x.shape for x in input])
+        print([x.shape for x in output])
 
 
 def register_trt_plugin():
@@ -17,7 +25,8 @@ def register_trt_plugin():
     import numpy.typing as npt
     import numpy as np
 
-    hami.init("Identity", register_name="TorchPlugin")
+    # hami.init("Identity", register_name="TorchPlugin")
+    hami.register("TorchPlugin", Py())
 
     # @trtp.register("CustomTorchOps::TorchPlugin")
     # def circ_pad_plugin_desc(

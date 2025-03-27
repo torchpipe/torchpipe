@@ -118,7 +118,7 @@ class BuildHelper:
         macros = [("WITH_CUDA", None)] if config.build_cuda else []
         
         compile_args = {
-            "cxx": ["-std=c++17", "-Wno-sign-compare", "-Wno-deprecated-declarations"]
+            "cxx": ["-std=c++17", "-Wno-sign-compare", "-Wno-deprecated-declarations", "-Wno-reorder"]
         }
         
         if config.debug:

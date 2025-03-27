@@ -24,6 +24,8 @@
 namespace hami {
 
 constexpr auto TASK_DATA_KEY = "data";
+constexpr auto TASK_OUTPUT_KEY = "output";
+
 constexpr auto TASK_RESULT_KEY = "result";
 constexpr auto TASK_TMP_KEY = "tmp";
 
@@ -44,6 +46,7 @@ constexpr auto TASK_INDEX_KEY = "_independent_index";
 
 constexpr auto TASK_RESTART_KEY = "restart";
 constexpr auto TASK_REQUEST_ID_KEY = "request_id";
+using id_type = std::string;
 
 constexpr auto TASK_DEFAULT_NODE_NAME_KEY = "default_node_name";
 constexpr auto TASK_GLOBAL_KEY = "global";

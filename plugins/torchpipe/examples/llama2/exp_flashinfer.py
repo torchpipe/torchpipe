@@ -16,7 +16,7 @@ paged_kv_cache = torch.zeros(max_num_pages, 2, page_size, num_kv_heads, head_dim
 num_pages_per_req = torch.tensor([3, 1, 2, 2], dtype=torch.int32, device="cuda:0")
 kv_page_indptr = torch.cat(
     [torch.zeros(1).int().to(0), torch.cumsum(num_pages_per_req, dim=0)]
-).int()
+).int() # [0, 3, 4, 6, 8]
 # use first 8 pages in the paged-kv
 kv_page_indices = torch.arange(8, dtype=torch.int32, device="cuda:0")
 # 45 = (3 - 1) * 16 + 13
@@ -24,11 +24,15 @@ kv_page_indices = torch.arange(8, dtype=torch.int32, device="cuda:0")
 # 25 = (2 - 1) * 16 + 9
 # 22 = (2 - 1) * 16 + 6
 kv_last_page_len = torch.tensor([13, 8, 9, 6], dtype=torch.int32, device="cuda:0")
+sl=flashinfer.get_seq_lens(kv_page_indptr, kv_last_page_len, page_size)
+print(f"sl={sl}")
 batch_indices, positions = flashinfer.get_batch_indices_positions(
-    kv_append_indptr, flashinfer.get_seq_lens(kv_page_indptr, kv_last_page_len, page_size), nnz_kv
+    kv_append_indptr, kv_append_length, nnz_kv
 )
 
-print(kv_page_indptr, kv_page_indices)
+print(f'batch_indices={batch_indices},{batch_indices.shape}')
+
+print(f'kv_page_indptr={kv_page_indptr}', kv_page_indices)
 
 print(paged_kv_cache[0,0,0,0,0])
 flashinfer.append_paged_kv_cache(

@@ -222,7 +222,8 @@ def _modify_attention_v2(attention: torch.nn.Module):
     attention.forward = types.MethodType(forward, attention)
 
 global_kv = None
-
+global_app = None
+obj_map = {}
 def set_kv(max_num_pages, num_layers, page_size, num_kv_heads, head_dim):
     global global_kv
     if global_kv is None:
@@ -258,6 +259,8 @@ def _modify_attention(attention: torch.nn.Module):
         query_states = self.q_proj(hidden_states).view(hidden_shape)#.transpose(1, 2)
         key_states = self.k_proj(hidden_states).view(hidden_shape)#.transpose(1, 2)
         value_states = self.v_proj(hidden_states).view(hidden_shape)#.transpose(1, 2)
+        ori_k = key_states[0][0]
+        ori_v = value_states[0][0]
 
         cos, sin = position_embeddings
         # query_states, key_states = apply_rotary_pos_emb(query_states, key_states, cos, sin)
@@ -270,15 +273,62 @@ def _modify_attention(attention: torch.nn.Module):
         
         # The key tensor, shape: [kv_len, num_kv_heads, head_dim_qk] if kv_layout is NHD, 
         # or [num_kv_heads, kv_len, head_dim_qk] if kv_layout is HND.
+        global global_kv, model, global_app, obj_map
+        
+        page_size = 16
+        batch_size =1
+        qo_len = q_len
+        num_qo_heads = query_states.shape[-2]
+        num_kv_heads =  key_states.shape[-2]
+        max_num_pages = 1000
+        assert key_states[0].shape[0]  <= page_size
         if q_len == 1:
-            query_states = query_states[0][0]
-            attn_output = flashinfer.single_decode_with_kv_cache(
-            query_states, key_states[0], value_states[0], 
-            kv_layout="NHD", 
-            use_tensor_cores=False,
-            pos_encoding_mode='ROPE_LLAMA',  # NONE ROPE_LLAMA
-            )
-            attn_output = attn_output.view(bsz, q_len, -1)
+            if key_states[0].shape[0]  > 16  :
+                # print("key_states[0], value_states[0] = {}, {}".format(key_states[0].shape, value_states[0].shape))
+                query_states = query_states[0][0]
+                attn_output = flashinfer.single_decode_with_kv_cache(
+                query_states, key_states[0], value_states[0], 
+                kv_layout="NHD", 
+                use_tensor_cores=False,
+                pos_encoding_mode='ROPE_LLAMA',  # NONE ROPE_LLAMA
+                )
+            else:
+                kv_page_indices = obj_map[f'kv_page_indices.{self.layer_idx}']  
+                kv_page_indptr = obj_map[f'kv_page_indptr.{self.layer_idx}'] 
+                kv_last_page_len = obj_map[f'kv_last_page_len.{self.layer_idx}']  + key_states[0].shape[0] - 5
+                print("zzz xxx", kv_page_indices,kv_page_indptr,kv_last_page_len, ori_k.shape)
+                
+                paged_kv_cache = global_kv[self.layer_idx]
+                # print("paged_kv_cache in prefill: ", paged_kv_cache[0][999,4,2,1], k_append[4,2,1])
+                paged_kv_cache[0][max_num_pages-1][key_states[0].shape[0]-1] = ori_k
+                paged_kv_cache[1][max_num_pages-1][key_states[0].shape[0]-1] = ori_v
+                
+                
+                if "wrapper" not in obj_map:
+                    
+                    workspace_buffer = torch.empty(128 * 1024 * 1024, dtype=torch.uint8, device="cuda:0")
+                    decode_wrapper = flashinfer.BatchDecodeWithPagedKVCacheWrapper(
+                        workspace_buffer, "NHD"
+                    )
+                    obj_map['workspace_buffer'] = workspace_buffer
+                    obj_map['wrapper'] = decode_wrapper
+                wrapper = obj_map['wrapper']
+                wrapper.plan(
+                    kv_page_indptr,
+                    kv_page_indices,
+                    kv_last_page_len,
+                    num_qo_heads,
+                    num_kv_heads,
+                    self.head_dim,
+                    page_size,
+                    pos_encoding_mode="ROPE_LLAMA",
+                    data_type=torch.float16
+                )
+                print(f"xxxx query_states", query_states.shape)
+                query_states = query_states[0]
+                
+                attn_output = wrapper.run(query_states, paged_kv_cache)
+
         else:
             q = query_states.squeeze(0)
             if False:
@@ -293,14 +343,12 @@ def _modify_attention(attention: torch.nn.Module):
             else:
                 # batch_prefill_with_ragged_kv_cache
                 # https://github.com/LinHeLurking/flashinfer/blob/b53a46f8b073e66fbc8fe888e87517b3aea8bd2d/tests/test_batch_prefill_kernels.py#L561
-                page_size = 16
-                batch_size =1
-                qo_len = q_len
+                
                 kv_len = key_states.shape[-3]
                 num_pages_per_seq = (kv_len + page_size - 1) // page_size
                 total_num_pages = num_pages_per_seq * batch_size
                 
-                num_kv_heads =  key_states.shape[-2]
+                
                 kv_shape = [total_num_pages, 2, page_size, num_kv_heads, self.head_dim] # NHD
     
                 workspace_buffer = torch.empty(128 * 1024 * 1024, dtype=torch.uint8, device="cuda:0")
@@ -311,7 +359,7 @@ def _modify_attention(attention: torch.nn.Module):
                 print(f"qo_len={qo_len}, kv_len={kv_len}, key_states={key_states.shape}")
                 q_indptr = torch.arange(0, batch_size + 1).to(0).int() * qo_len
                 kv_indptr = torch.arange(0, batch_size + 1).to(0).int() * kv_len
-                num_qo_heads = query_states.shape[-2]
+                
                 wrapper.plan(
                     q_indptr,
                     kv_indptr,
@@ -326,28 +374,41 @@ def _modify_attention(attention: torch.nn.Module):
                                 out=out)
             
             # kvcache
-            global global_kv
+            
             page_size = 16
             if global_kv is None:
-                max_num_pages = 1000
+                
                 set_kv(max_num_pages=max_num_pages, num_layers=32, page_size=16, num_kv_heads=32, head_dim=128)
+                import hami
+                import torchpipe
+                model = hami.init(f"FIAppendTensor", {"max_num_page":max_num_pages})
             k_append = key_states[0]
             v_append = value_states[0]
             paged_kv_cache = global_kv[self.layer_idx]
 
-            nnz_kv = k_append.shape[0]
-            # kv_append_indptr, kv_page_indptr, kv_last_page_len
-            kv_append_length = torch.tensor([q_len], dtype=torch.int32, device="cuda:0")
-            kv_append_indptr = torch.cat([torch.zeros(1).int().to(0), torch.cumsum(kv_append_length, dim=0)]).int()  # [0, 45, 53, 78, 100]
+            if self.layer_idx == 0:
+                nnz_kv = k_append.shape[0]
+                # kv_append_indptr, kv_page_indptr, kv_last_page_len
+                kv_append_length = torch.tensor([q_len], dtype=torch.int32)
+                
+                data = {'kv_append_length': kv_append_length, "request_ids": ["req"]}
+                model(data)
+                kv_page_indices = data["kv_page_indices"]  
+                kv_page_indptr = data["kv_page_indptr"]  
+                kv_last_page_len = data["kv_last_page_len"]
+                print(f'kv_page_indices={kv_page_indices}, kv_page_indptr={kv_page_indptr}, kv_last_page_len={kv_last_page_len}')
+                
+                kv_append_length = kv_append_length.cuda()
+                kv_append_indptr = torch.cat(
+                    [torch.zeros(1).int().to(0), torch.cumsum(kv_append_length, dim=0)]
+                ).int()  # [0, 45, 53, 78, 100]
 
-            num_pages_per_req = torch.tensor([1], dtype=torch.int32, device="cuda:0")
-            kv_page_indptr = torch.cat([torch.zeros(1).int().to(0), torch.cumsum(num_pages_per_req, dim=0)]).int()
-            kv_last_page_len = torch.tensor([q_len], dtype=torch.int32, device="cuda:0")
-
-            kv_page_indices = torch.arange(1, dtype=torch.int32, device="cuda:0")
-
-            batch_indices, positions = flashinfer.get_batch_indices_positions(
-                    kv_append_indptr, flashinfer.get_seq_lens(kv_page_indptr, kv_last_page_len, page_size), nnz_kv)
+                nnz_kv = q_len
+                batch_indices, positions = flashinfer.get_batch_indices_positions(
+                        kv_append_indptr, kv_append_length, nnz_kv)
+                global_app = (batch_indices, positions, kv_page_indices, kv_page_indptr, kv_last_page_len)
+            else:
+                batch_indices, positions, kv_page_indices, kv_page_indptr, kv_last_page_len = global_app
             flashinfer.append_paged_kv_cache(
                 k_append,
                 v_append,
@@ -358,14 +419,19 @@ def _modify_attention(attention: torch.nn.Module):
                 kv_page_indptr,
                 kv_last_page_len
             )
+            print("paged_kv_cache in prefill: ", paged_kv_cache[0][999,4,2,1], k_append[4,2,1])
+            obj_map[f'kv_page_indices.{self.layer_idx}'] = kv_page_indices
+            obj_map[f'kv_page_indptr.{self.layer_idx}'] = kv_page_indptr
+            obj_map[f'kv_last_page_len.{self.layer_idx}'] = kv_last_page_len
             # kvcache
 
             # https://docs.flashinfer.ai/generated/flashinfer.page.append_paged_kv_cache.html
             
-            
             assert attn_output is out
             assert attn_output.data_ptr() == out.data_ptr() 
-            attn_output = out.view(bsz, q_len, -1)
+            # attn_output = out
+            
+        attn_output = attn_output.view(bsz, q_len, -1)
                 
         attn_weights = None
 

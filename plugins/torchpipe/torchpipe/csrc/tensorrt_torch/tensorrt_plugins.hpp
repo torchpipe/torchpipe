@@ -4,8 +4,6 @@
 #include <string>
 #include <vector>
 
-#include <cuda_runtime.h>
-
 #include <NvInferRuntime.h>
 #include <NvInferRuntimePlugin.h>
 
@@ -30,7 +28,8 @@ struct TorchPluginParameters {
 
   // size_t index{0};
   int32_t num_output{1};
-  int32_t num_input{-1};
+  int32_t num_input{1};
+  int32_t layer_idx{0};
   nvinfer1::DataType type;
   std::string name{"TorchPlugin"};
 };
@@ -118,7 +117,7 @@ class TorchPlugin : public IPluginV3,
 
  private:
   // TensorRT plugin parameters.
-  std::unordered_map<std::string, std::string> mParams;
+  std::unordered_map<std::string, std::string> params_;
   TorchPluginParameters torch_params_;
   std::string serialization_;
 

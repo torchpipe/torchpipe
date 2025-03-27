@@ -327,7 +327,8 @@ void BackendOne::impl_forward(const std::vector<dict>& input_output) {
   HAMI_ASSERT(
       input_output.size() == 1, "BackendOne only supports single input");
 
-  HAMI_ASSERT(input_output[0]->find(TASK_DATA_KEY) != input_output[0]->end());
+  // HAMI_ASSERT(input_output[0]->find(TASK_DATA_KEY) !=
+  // input_output[0]->end());
   forward(input_output[0]);
 }
 
