@@ -188,3 +188,15 @@ ReqToTokenPool -> ReqToPagePool  [max_num_req x max_num_page_per_seq](w. page in
 TokenToKVPoolAllocator -> PageToKVPoolAllocator [manage free pages slots] [max_num_page x 1 KVCache]
 
 KVCache -> k x v -> (max_num_page, head_num, head_dim) * 2 * num_layer
+
+
+- leixinggongshi(key-value) leixingzhuanhuan  there is no one rule to get all
+- inline scheduling instruc
+<!-- ./parser -->
+
+- objective-agnostic dispatch （aop dep.） dag restart cb 
+
+- pipeline parallel everywhere
+
+- ContiguousBatching 中心dispatcher
+- relation with actor

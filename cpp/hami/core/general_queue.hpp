@@ -311,11 +311,17 @@ class ThreadSafeSizedQueue {
     status_ = Status::EOS;
   }
 
+  void set_input_callback(std::function<void(void)> f) {
+    input_callback_ = f;
+  }
+
  private:
   mutable std::mutex status_mutex_;
   std::condition_variable status_cond_;
   Status status_{Status::RUNNING};
   std::exception_ptr excep_{nullptr};
+
+  std::function<void(void)> input_callback_;
 
   // queue data
  private:
@@ -349,9 +355,26 @@ class ThreadSafeSizedQueue {
   void put(U&& value) {
     {
       std::unique_lock<std::mutex> lock(mutex_);
-
       queue_.push(SizedElement(std::forward<U>(value), 1));
       totalSize_ += 1;
+      if (input_callback_)
+        input_callback_();
+    }
+    pushed_cond_.notify_all();
+  }
+
+  template <
+      typename U,
+      typename = std::enable_if_t<std::is_convertible_v<U, T>>>
+  void put(U&& value, std::function<int(const U&)> f) {
+    {
+      auto size = f(value);
+      std::unique_lock<std::mutex> lock(mutex_);
+
+      queue_.push(SizedElement(std::forward<U>(value), size));
+      totalSize_ += size;
+      if (input_callback_)
+        input_callback_();
     }
     pushed_cond_.notify_all();
   }
@@ -469,6 +492,8 @@ class ThreadSafeSizedQueue {
         queue_.push(SizedElement(value, size_per_item));
         totalSize_ += size_per_item;
       }
+      if (input_callback_)
+        input_callback_();
     }
 
     pushed_cond_.notify_all();

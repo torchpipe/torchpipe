@@ -46,6 +46,7 @@ def _modify_attention_v0(attention: torch.nn.Module):
             attn_output = attn_output.view(bsz, q_len, -1)
         else:
             q = query_states.squeeze(0).transpose(0,1)
+            
             attn_output = flashinfer.single_prefill_with_kv_cache(
                 q, key_states[0],
                 value_states[0], causal=True,
@@ -331,6 +332,9 @@ def _modify_attention(attention: torch.nn.Module):
 
         else:
             q = query_states.squeeze(0)
+            
+            # print(key_states[0], value_states[0])
+            # exit()
             if False:
                 
                 attn_output = flashinfer.single_prefill_with_kv_cache(

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "hami/core/dict.hpp"
-constexpr auto TASK_REQUEST_KEY = "request";
+// constexpr auto TASK_REQUEST_KEY = "request";
 constexpr auto TASK_REQUEST_SIZE_KEY = "request_size";
 
 namespace hami {

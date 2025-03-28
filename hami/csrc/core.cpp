@@ -7,7 +7,7 @@
 #include "hami/core/task_keys.hpp"
 #include "hami/csrc/py_register.hpp"
 #include "hami/helper/exception.hpp"
-
+#include "hami/core/request_size.hpp"
 namespace py = pybind11;
 using hami::error::ExceptionHolder;
 
@@ -21,11 +21,13 @@ struct type_caster<std::exception_ptr> {
 
   // Python -> C++ 转换
   bool load(handle src, bool convert) {
-    if (!src) return false;
+    if (!src)
+      return false;
 
     // 检查是否是ExceptionHolder实例
     auto holder_type = py::type::of<ExceptionHolder>();
-    if (!py::isinstance(src, holder_type)) return false;
+    if (!py::isinstance(src, holder_type))
+      return false;
 
     // 提取C++对象指针
     auto* holder = src.cast<ExceptionHolder*>();
@@ -34,13 +36,14 @@ struct type_caster<std::exception_ptr> {
   }
 
   // C++ -> Python 转换
-  static handle cast(std::exception_ptr ptr,
-                     return_value_policy /* policy */,
-                     handle /* parent */) {
+  static handle cast(
+      std::exception_ptr ptr,
+      return_value_policy /* policy */,
+      handle /* parent */) {
     return py::cast(ExceptionHolder(ptr)).release();
   }
 };
-}  // namespace pybind11::detail
+} // namespace pybind11::detail
 
 namespace hami {
 
@@ -50,11 +53,15 @@ void init_core(py::module_& m) {
   m.attr("TASK_BOX_KEY") = py::cast(TASK_BOX_KEY);
   m.attr("TASK_INFO_KEY") = py::cast(TASK_INFO_KEY);
   m.attr("TASK_NODE_NAME_KEY") = py::cast(TASK_NODE_NAME_KEY);
+  m.attr("TASK_MSG_KEY") = py::cast(TASK_MSG_KEY);
+  m.attr("TASK_REQUEST_ID_KEY") = py::cast(TASK_REQUEST_ID_KEY);
+  m.attr("TASK_REQUEST_SIZE_KEY") = py::cast(TASK_REQUEST_SIZE_KEY);
 
   py::class_<ExceptionHolder>(m, "ExceptionHolder")
-      .def(py::init<std::exception_ptr>())  // 构造函数
-      .def("has_exception",
-           &ExceptionHolder::has_exception)  // 检查是否有异常
+      .def(py::init<std::exception_ptr>()) // 构造函数
+      .def(
+          "has_exception",
+          &ExceptionHolder::has_exception) // 检查是否有异常
       .def("rethrow", &ExceptionHolder::rethrow);
 
   HAMI_ADD_HASH(std::exception_ptr);
@@ -62,4 +69,4 @@ void init_core(py::module_& m) {
   //     return py::cast(ExceptionHolder(any_cast<std::exception_ptr>(data)));
   // });
 }
-}  // namespace hami
+} // namespace hami

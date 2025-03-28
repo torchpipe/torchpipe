@@ -138,7 +138,7 @@ void EmbeddingTensor::forward(const dict& io) {
 }
 HAMI_REGISTER_BACKEND(EmbeddingTensor);
 
-class SetRequestSizeTensor : public hami::BackendOne {
+class SetTensorRequestSize : public hami::BackendOne {
   void forward(const dict& io) override {
     auto data = dict_gets<torch::Tensor>(io, TASK_DATA_KEY);
     const size_t req_size = data.at(0).size(0);
@@ -198,6 +198,6 @@ class AppendIndexSelectTensor : public hami::BackendOne {
   std::unique_ptr<torch::Tensor> tensor_cache_;
 };
 
-HAMI_REGISTER_BACKEND(SetRequestSizeTensor);
+HAMI_REGISTER_BACKEND(SetTensorRequestSize);
 HAMI_REGISTER_BACKEND(AppendIndexSelectTensor);
 } // namespace torchpipe

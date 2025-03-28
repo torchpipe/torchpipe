@@ -1,10 +1,16 @@
 
 
 [embed_token]
-backend = "S[EmbeddingTensor(exported_params/embed_tokens.pt),AppendIndexSelectTensor(-1),StreamGuard,SetRequestSizeTensor,Send2Queue(batchless_prefill,keep_result=1)]"
+backend = "S[EmbeddingTensor(exported_params/embed_tokens.pt),AppendIndexSelectTensor(-1),StreamGuard,SetTensorRequestSize]"
 # Add(jump:batchless_prefill)
+# ,Send2Queue(batchless_prefill,keep_result=1) SetTensorMsg UpdateTensorMsg
+next = "contiguous_batching"
 
-next = "batchable"
+[contiguous_batching]
+# init = "List[Register(cb)[ContiguousBatching(queue)], Register[S[CBTensorStatus,Forward[cb]]]]"
+init = "Register[IoC[ContiguousBatching(target=node.batchable);Loop(src_queue,target=ContiguousBatching)]]"
+# req CBStatus Loop(src_queue,target="") TASK_MSG_KEY xieyi / pool
+# 
 
 [batchable]
 backend = 'S[TensorrtTensor,StreamGuard]'

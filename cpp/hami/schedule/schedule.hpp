@@ -8,8 +8,48 @@
 #include "hami/helper/threadsafe_queue.hpp"
 #include "hami/helper/threadsafe_sized_queue.hpp"
 #include "hami/schedule/schedule_states.hpp"
-
+#include "hami/core/queue.hpp"
 namespace hami {
+
+class Loop : public Backend {
+ private:
+  void impl_init(const std::unordered_map<string, string>& config, const dict&)
+      override;
+  void impl_forward(const std::vector<dict>& input) override;
+  virtual void run();
+  void impl_inject_dependency(Backend* dep) override {
+    if (!injected_dependency_)
+      injected_dependency_ = dep;
+    else {
+      injected_dependency_->inject_dependency(dep);
+    }
+  }
+
+  ~Loop() {
+    bInited_.store(false);
+
+    if (thread_.joinable()) {
+      thread_.join();
+    }
+  }
+
+ private:
+  std::atomic_bool bInited_{false};
+  std::thread thread_;
+  Queue* src_queue_{nullptr};
+
+  [[nodiscard]] size_t impl_max() const override {
+    return injected_dependency_->max();
+  };
+  [[nodiscard]] size_t impl_min() const override {
+    return injected_dependency_->min();
+  };
+
+ protected:
+  Backend* injected_dependency_{nullptr};
+  std::string node_name_;
+};
+
 class Batching : public Dependency {
  private:
   void impl_init(const std::unordered_map<string, string>& config, const dict&)
@@ -112,5 +152,25 @@ class InstanceDispatcher : public Backend {
 };
 
 // IOC[instancedd, executor]
+class ContiguousBatching : public Backend {
+ public:
+  struct CBProtocol {
+    // enum struct Action { Stop, Cancel };
+    id_type req_id;
+    int32_t req_tokens{0};
+    int32_t new_tokens{0};
+    int32_t max_new_tokens{0};
+    int32_t max_tokens{0};
+    bool stop{false}; // error, cancel
+  };
+
+ private:
+  void impl_init(
+      const std::unordered_map<string, string>& params,
+      const dict& options) override {}
+  void impl_forward(const std::vector<dict>& io) override;
+};
+// #  CBStatus Loop(src_queue)[ContiguousBatching] TASK_MSG_KEY
+// xieyi
 
 } // namespace hami

@@ -24,19 +24,22 @@
 namespace hami {
 
 constexpr auto TASK_DATA_KEY = "data";
+constexpr auto TASK_RESULT_KEY = "result";
+
 constexpr auto TASK_OUTPUT_KEY = "output";
 
-constexpr auto TASK_RESULT_KEY = "result";
 constexpr auto TASK_TMP_KEY = "tmp";
+constexpr auto TASK_STATUS_KEY = "status";
+constexpr auto TASK_MSG_KEY = "MSG";
 
 constexpr auto TASK_CPU_RESULT_KEY = "cpu_result";
 
 constexpr auto TASK_CONTEXT_KEY = "context";
 
-constexpr auto TASK_BOX_KEY = "_box";
-constexpr auto TASK_INFO_KEY = "_info";
+constexpr auto TASK_BOX_KEY = "BOX";
+constexpr auto TASK_INFO_KEY = "INFO";
 
-constexpr auto TASK_STACK_KEY = "_stack";
+constexpr auto TASK_STACK_KEY = "STACK";
 
 constexpr auto TASK_NODE_NAME_KEY = "node_name";
 constexpr auto TASK_ENTRY_KEY = "entrypoint";

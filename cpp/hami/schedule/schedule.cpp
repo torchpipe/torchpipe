@@ -12,8 +12,56 @@
 #include "hami/helper/macro.h"
 #include "hami/helper/string.hpp"
 #include "hami/helper/timer.hpp"
+#include "hami/core/queue.hpp"
 
 namespace hami {
+
+void Loop::impl_init(
+    const std::unordered_map<string, string>& params,
+    const dict& options) {
+  auto [args, kwargs] = parser_v2::get_args_kwargs(this, "Loop", params);
+  // str::try_update(config, "batching_timeout", batching_timeout_);
+  str::try_update(kwargs, "node_name", node_name_);
+  HAMI_ASSERT(args.size() >= 1);
+  src_queue_ = &(default_queue(args[0]));
+  std::string name_dep = str::update<std::string>(kwargs, "target");
+  Backend* dependency_ = HAMI_INSTANCE_GET(Backend, name_dep);
+  HAMI_ASSERT(dependency_);
+  HAMI_FATAL_ASSERT(dependency_->max() == std::numeric_limits<size_t>::max());
+  inject_dependency(dependency_);
+
+  bInited_.store(true);
+  thread_ = std::thread(&Loop::run, this);
+}
+
+void Loop::run() {
+  std::vector<dict> datas;
+
+  while (bInited_.load()) {
+    do {
+      auto [data, size] =
+          src_queue_->try_get(std::chrono::milliseconds(SHUTDOWN_TIMEOUT));
+
+      if (data) {
+        datas.push_back(*data);
+      }
+    } while (!src_queue_->empty());
+    if (!datas.empty()) {
+      // todo safe_forward
+      injected_dependency_->forward(datas);
+      datas.clear();
+    }
+  }
+}
+
+void Loop::impl_forward(const std::vector<dict>& inputs) {
+  HasEventHelper helper(
+      inputs); // add `event` (and wait for possible exception) if not exist
+
+  src_queue_->puts(inputs);
+  helper.wait();
+}
+
 void Batching::impl_init(
     const std::unordered_map<string, string>& config,
     const dict& kwargs) {
@@ -311,4 +359,23 @@ class SharedInstancesState : public Backend {
 };
 
 HAMI_REGISTER_BACKEND(SharedInstancesState);
+
+// struct CBProtocol {
+//   enum struct Action { Stop, Cancel };
+//   id_type req_id;
+//   int32_t req_tokens;
+//   int32_t new_tokens;
+//   int32_t max_new_tokens;
+//   int32_t max_tokens;
+//   std::vector<int32_t> stop_token_ids;
+//   Action action;
+// };
+
+void ContiguousBatching::impl_forward(const std::vector<dict>& io) {
+  for (const auto& item : io) {
+    HAMI_FATAL_ASSERT(item->find(TASK_MSG_KEY) != item->end());
+  }
+}
+
+HAMI_REGISTER_BACKEND(ContiguousBatching);
 } // namespace hami
