@@ -6,13 +6,13 @@
 #include "hami/builtin/proxy.hpp"
 #include "hami/core/event.hpp"
 #include "hami/core/helper.hpp"
+#include "hami/core/queue.hpp"
 #include "hami/core/reflect.h"
 #include "hami/core/task_keys.hpp"
 #include "hami/helper/base_logging.hpp"
 #include "hami/helper/macro.h"
 #include "hami/helper/string.hpp"
 #include "hami/helper/timer.hpp"
-#include "hami/core/queue.hpp"
 
 namespace hami {
 
@@ -61,6 +61,8 @@ void Loop::impl_forward(const std::vector<dict>& inputs) {
   src_queue_->puts(inputs);
   helper.wait();
 }
+
+HAMI_REGISTER_BACKEND(Loop);
 
 void Batching::impl_init(
     const std::unordered_map<string, string>& config,
@@ -371,10 +373,54 @@ HAMI_REGISTER_BACKEND(SharedInstancesState);
 //   Action action;
 // };
 
+void ContiguousBatching::impl_init(
+    const std::unordered_map<string, string>& params,
+    const dict& options) {
+  auto [args, kwargs] =
+      parser_v2::get_args_kwargs(this, "ContiguousBatching", params);
+  std::string target = str::update<std::string>(kwargs, "target");
+  dependency_ = HAMI_INSTANCE_GET(Backend, target);
+  HAMI_ASSERT(dependency_, target + " not found (ContiguousBatching).");
+}
+
 void ContiguousBatching::impl_forward(const std::vector<dict>& io) {
+  std::vector<CBProtocol> configs;
+  configs.reserve(io.size());
   for (const auto& item : io) {
-    HAMI_FATAL_ASSERT(item->find(TASK_MSG_KEY) != item->end());
+    CBProtocol pro;
+    pro.req_id = dict_get<std::string>(item, TASK_REQUEST_ID_KEY);
+    // HAMI_FATAL_ASSERT(item->find(TASK_MSG_KEY) != item->end());
+    auto re = dict_get<std::shared_ptr<TypedDict>>(item, TASK_MSG_KEY);
+    parser_message(re, pro);
+
+    configs.emplace_back(std::move(pro));
+
+    item->erase(TASK_MSG_KEY);
   }
+  dependency_->forward(io);
+}
+
+void ContiguousBatching::parser_message(
+    const std::shared_ptr<TypedDict>& msg,
+    CBProtocol& pro) {
+  pro.req_tokens = get<int32_t>(*msg, "req_tokens");
+  pro.max_tokens = get<int32_t>(*msg, "max_tokens");
+  pro.new_tokens = get<int32_t>(*msg, "new_tokens");
+  try_update<int32_t>(*msg, "max_new_tokens", pro.max_new_tokens);
+  SPDLOG_INFO(
+      "\n"
+      "+---------------------------- Contiguous Batching ----------------------------+\n"
+      "| Request ID:      {:45} |\n"
+      "| Req Tokens:      {:45} |\n"
+      "| Max Tokens:      {:45} |\n"
+      "| New Tokens:      {:45} |\n"
+      "| Max New Tokens:  {:45} |\n"
+      "+------------------------------------------------------------------------------+",
+      pro.req_id,
+      pro.req_tokens,
+      pro.max_tokens,
+      pro.new_tokens,
+      pro.max_new_tokens);
 }
 
 HAMI_REGISTER_BACKEND(ContiguousBatching);

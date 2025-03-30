@@ -35,8 +35,9 @@ PyDict::PyDict(dict data) : data_(data) {
   HAMI_ASSERT(data_ != nullptr, "The input data is nullptr.");
 }
 
-py::object PyDict::pop(const std::string& key,
-                       std::optional<std::string> default_value) {
+py::object PyDict::pop(
+    const std::string& key,
+    std::optional<std::string> default_value) {
   auto it = data_->find(key);
   if (it != data_->end()) {
     auto re = any2object(it->second);
@@ -60,11 +61,13 @@ dict PyDict::py2dict(py::dict data) {
   }
   return result;
 }
-void PyDict::dict2py(dict data,
-                     py::dict result,
-                     const std::unordered_set<std::string>& ignore_keys) {
+void PyDict::dict2py(
+    dict data,
+    py::dict result,
+    const std::unordered_set<std::string>& ignore_keys) {
   for (auto iter = data->begin(); iter != data->end(); ++iter) {
-    if (ignore_keys.count(iter->first) != 0) continue;
+    if (ignore_keys.count(iter->first) != 0)
+      continue;
     result[py::str(iter->first)] = any2object(iter->second);
   }
 }
@@ -96,62 +99,73 @@ void init_dict(py::module_& m) {
       "hami::dict class, which is essentially a wrapper around "
       "std::shared_ptr<std::unordered_map<std::string, std::any>>.";
   hami_dict.def(py::init<>())
-      .def(py::init<const py::dict&>(),
-           "Construct a dictionary from a Python dict")
+      .def(
+          py::init<const py::dict&>(),
+          "Construct a dictionary from a Python dict")
       // .def("set", &PyDict::set, "Set a value in the dictionary", "key"_a,
       // "value"_a)
       .def("get", &PyDict::get, "Get a value from the dictionary", "key"_a)
-      .def("contains",
-           &PyDict::contains,
-           "Check if the dictionary contains a key",
-           "key"_a)
-      .def("remove",
-           &PyDict::remove,
-           "Remove a key from the dictionary",
-           "key"_a)
+      .def(
+          "contains",
+          &PyDict::contains,
+          "Check if the dictionary contains a key",
+          "key"_a)
+      .def(
+          "remove",
+          &PyDict::remove,
+          "Remove a key from the dictionary",
+          "key"_a)
       .def("clear", &PyDict::clear, "Clear the dictionary")
-      .def("pop",
-           &PyDict::pop,
-           py::arg("key"),
-           py::arg("default") = py::none(),
-           "Remove specified key and return the corresponding value.\n"
-           "If key is not found, default is returned if given, otherwise "
-           "KeyError is raised.")
-      .def("__setitem__",
-           py::overload_cast<const std::string&, const py::object&>(
-               &PyDict::set),
-           "Set a value in the dictionary",
-           "key"_a,
-           "value"_a)
-      .def("__setitem__",
-           py::overload_cast<
-               const std::string&,
-               const std::unordered_map<std::string, std::string>&>(
-               &PyDict::set),
-           "Set a nested dictionary value in the dictionary",
-           "key"_a,
-           "value"_a)
-      .def("__getitem__",
-           &PyDict::get,
-           py::return_value_policy::reference_internal,
-           "Get a value from the dictionary",
-           py::arg("key"))
-      .def("update",
-           py::overload_cast<const PyDict&>(&PyDict::update),
-           "Update the dictionary with another PyDict",
-           "other"_a)
-      .def("update",
-           py::overload_cast<const str::str_map&>(&PyDict::update),
-           "Update the dictionary with a str_map",
-           "other"_a)
-      .def("__contains__",
-           &PyDict::contains,
-           "Check if the dictionary contains a key",
-           "key"_a)
-      .def("__delitem__",
-           &PyDict::remove,
-           "Remove a key from the dictionary",
-           "key"_a)
+      .def(
+          "pop",
+          &PyDict::pop,
+          py::arg("key"),
+          py::arg("default") = py::none(),
+          "Remove specified key and return the corresponding value.\n"
+          "If key is not found, default is returned if given, otherwise "
+          "KeyError is raised.")
+      .def(
+          "__setitem__",
+          py::overload_cast<const std::string&, const py::object&>(
+              &PyDict::set),
+          "Set a value in the dictionary",
+          "key"_a,
+          "value"_a)
+      .def(
+          "__setitem__",
+          py::overload_cast<
+              const std::string&,
+              const std::unordered_map<std::string, std::string>&>(
+              &PyDict::set),
+          "Set a nested dictionary value in the dictionary",
+          "key"_a,
+          "value"_a)
+      .def(
+          "__getitem__",
+          &PyDict::get,
+          py::return_value_policy::reference_internal,
+          "Get a value from the dictionary",
+          py::arg("key"))
+      .def(
+          "update",
+          py::overload_cast<const PyDict&>(&PyDict::update),
+          "Update the dictionary with another PyDict",
+          "other"_a)
+      .def(
+          "update",
+          py::overload_cast<const str::str_map&>(&PyDict::update),
+          "Update the dictionary with a str_map",
+          "other"_a)
+      .def(
+          "__contains__",
+          &PyDict::contains,
+          "Check if the dictionary contains a key",
+          "key"_a)
+      .def(
+          "__delitem__",
+          &PyDict::remove,
+          "Remove a key from the dictionary",
+          "key"_a)
       .def(
           "keys",
           [](const PyDict& d) {
@@ -166,20 +180,22 @@ void init_dict(py::module_& m) {
           py::keep_alive<0, 1>())
       .def(
           "__len__", &PyDict::size, "Get the number of items in the dictionary")
-      .def("__repr__",
-           [](const PyDict& d) {
-             std::ostringstream repr_stm;
-             repr_stm << "{";
-             for (const auto& [key, value] : d.data()) {
-               auto re = any2object(value);
-               repr_stm << key << ": " << pybind11::repr(re)
-                        << ", ";  // re.attr("__repr__")()
-             }
-             std::string repr = repr_stm.str();
-             if (repr.size() > 1) repr.pop_back(), repr.pop_back();
-             repr += "}";
-             return repr;
-           })
+      .def(
+          "__repr__",
+          [](const PyDict& d) {
+            std::ostringstream repr_stm;
+            repr_stm << "{";
+            for (const auto& [key, value] : d.data()) {
+              auto re = any2object(value);
+              repr_stm << key << ": " << pybind11::repr(re)
+                       << ", "; // re.attr("__repr__")()
+            }
+            std::string repr = repr_stm.str();
+            if (repr.size() > 1)
+              repr.pop_back(), repr.pop_back();
+            repr += "}";
+            return repr;
+          })
       .def("__repr__2", [](const PyDict& d) {
         std::ostringstream repr_stm;
         repr_stm << "{";
@@ -189,13 +205,23 @@ void init_dict(py::module_& m) {
           repr_stm << key << ": <no_repr>, ";
         }
         std::string repr = repr_stm.str();
-        if (repr.size() > 2) repr.pop_back(), repr.pop_back();
+        if (repr.size() > 2)
+          repr.pop_back(), repr.pop_back();
         repr += "}";
         return repr;
       });
 
   py::class_<TypedDict, std::shared_ptr<TypedDict>>(m, "TypedDict")
       .def(py::init<>())
+      .def(py::init<std::unordered_map<std::string, TypedDict::BaseType>>())
+      // .def(py::init([](py::dict d) {
+      //   auto self = std::make_shared<TypedDict>();
+      //   for (auto item : d) {
+      //     std::string key = py::cast<std::string>(item.first);
+      //     self->data[key] = convert_to_base_type(item.second);
+      //   }
+      //   return self;
+      // }))
       .def_readwrite("data", &TypedDict::data);
 
   // Register base exception
@@ -220,16 +246,19 @@ void init_dict(py::module_& m) {
     py::register_exception<hami::queue::QueueFullException>(m, "Full");
   }
 
-  m.def("default_queue",
-        &default_queue,
-        py::arg("tag") = std::string(""),
-        pybind11::return_value_policy::reference);
-  m.def("default_src_queue",
-        &default_src_queue,
-        pybind11::return_value_policy::reference);
-  m.def("default_output_queue",
-        &default_output_queue,
-        pybind11::return_value_policy::reference);
+  m.def(
+      "default_queue",
+      &default_queue,
+      py::arg("tag") = std::string(""),
+      pybind11::return_value_policy::reference);
+  m.def(
+      "default_src_queue",
+      &default_src_queue,
+      pybind11::return_value_policy::reference);
+  m.def(
+      "default_output_queue",
+      &default_output_queue,
+      pybind11::return_value_policy::reference);
   // m.def(  // todo: support other types
   //     "get",
   //     [](py::object /* cls */, const std::string& name) -> Queue& {
@@ -298,4 +327,4 @@ void init_dict(py::module_& m) {
   reg::register_any_ptr_object_hash_converter<Queue>();
 }
 
-}  // namespace hami
+} // namespace hami

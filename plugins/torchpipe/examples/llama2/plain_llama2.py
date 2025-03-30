@@ -9,7 +9,8 @@ from transformers import AutoTokenizer, AutoModelForCausalLM, AutoConfig
     
 # from models.partial_hf import get_hf_model
 from models import hf_helper
-
+def get_page_address():
+    pass
 import hami
 class PyPlugin:
     def init(self, params):
@@ -17,12 +18,18 @@ class PyPlugin:
         print(params)
         
         self.layer_idx = int(self.params['layer_idx'])
+
+        self.addr = hami.result_wrapper(hami.init("TensorPage"))
         
         # self.addr_pool = hami._C.
     def forward(self, io: List[hami.Dict]):
+        if self.layer_idx == 0:
+            get_page_address()
+            ## addr to tensor addr
         # print(list(io[0].keys()))
         input = io[0]['data']
-        output = io[0]['output']
+        output = io[0]['output'][0]
+        print(f"running: {self.layer_idx}, {output.shape}")
         # if self.params['layer_idx'] == '0':
         #     print("input[1] = ", input[1])
         # print([x.shape for x in input])
@@ -49,7 +56,7 @@ if __name__ == '__main__':
     # attention_mask = inputs['attention_mask']
     print(inputs, input_ids.shape)
     # print(io)
-    io = {'data':input_ids.squeeze(0)}
+    io = {'data':input_ids.squeeze(0),"node_name":'embed_token'}
     #     id_type req_id;
     # int32_t req_tokens{0};
     # int32_t new_tokens{0};

@@ -5,10 +5,10 @@
 #include "hami/builtin/basic_backends.hpp"
 // #include  "hami/helper/threadsafe_queue.hpp"
 #include "hami/core/helper.hpp"
+#include "hami/core/queue.hpp"
 #include "hami/helper/threadsafe_queue.hpp"
 #include "hami/helper/threadsafe_sized_queue.hpp"
 #include "hami/schedule/schedule_states.hpp"
-#include "hami/core/queue.hpp"
 namespace hami {
 
 class Loop : public Backend {
@@ -167,8 +167,12 @@ class ContiguousBatching : public Backend {
  private:
   void impl_init(
       const std::unordered_map<string, string>& params,
-      const dict& options) override {}
+      const dict& options) override;
   void impl_forward(const std::vector<dict>& io) override;
+  Backend* dependency_{nullptr};
+  void parser_message(
+      const std::shared_ptr<TypedDict>& msg,
+      CBProtocol& protocol);
 };
 // #  CBStatus Loop(src_queue)[ContiguousBatching] TASK_MSG_KEY
 // xieyi

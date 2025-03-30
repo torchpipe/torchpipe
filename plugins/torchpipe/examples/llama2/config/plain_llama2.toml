@@ -16,6 +16,6 @@ init = "Register[IoC[ContiguousBatching(target=node.batchable);Loop(src_queue,ta
 backend = 'S[TensorrtTensor,StreamGuard]'
 max = 5
 model = 'exported_params/batchable.onnx'
-# 'model::cache' = 'export_params/batchable.trt'
+'model::cache' = 'exported_params/batchable.trt'
 # the tensorrt plugin 
 #
