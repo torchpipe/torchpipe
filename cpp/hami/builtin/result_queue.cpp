@@ -156,7 +156,7 @@ class Send2Queue : public BackendOne {
  protected:
   Queue* queue_{nullptr};
   size_t queue_max_{std::numeric_limits<size_t>::max()};
-  int keep_result_{0};
+  int keep_result_{1};
 };
 
 class SrcQueue : public BackendOne {

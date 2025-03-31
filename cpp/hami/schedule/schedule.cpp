@@ -381,23 +381,43 @@ void ContiguousBatching::impl_init(
   std::string target = str::update<std::string>(kwargs, "target");
   dependency_ = HAMI_INSTANCE_GET(Backend, target);
   HAMI_ASSERT(dependency_, target + " not found (ContiguousBatching).");
+
+  page_table_ = &default_page_table();
+  page_size_ = page_table_->page_size();
+  HAMI_ASSERT(page_size_ > 0);
 }
 
 void ContiguousBatching::impl_forward(const std::vector<dict>& io) {
   std::vector<CBProtocol> configs;
   configs.reserve(io.size());
+  // size_t need_new_page = 0;
+  std::vector<id_type> ids;
   for (const auto& item : io) {
     CBProtocol pro;
     pro.req_id = dict_get<std::string>(item, TASK_REQUEST_ID_KEY);
+    ids.push_back(pro.req_id);
     // HAMI_FATAL_ASSERT(item->find(TASK_MSG_KEY) != item->end());
     auto re = dict_get<std::shared_ptr<TypedDict>>(item, TASK_MSG_KEY);
     parser_message(re, pro);
+    pro.data = item;
+
+    page_table_->alloc(pro.req_id, pro.req_tokens);
 
     configs.emplace_back(std::move(pro));
 
     item->erase(TASK_MSG_KEY);
   }
+  page_table_->activate(ids);
+  // 首先准备next （假设没有停止和error）
+  // 然后等待  page_table_->wait_finish() /  dependency_->forward(io);
+  // 然后等待
+  // while
+  // page_table_->wait_finish()
+
+  // contiguous batching next -> get new token
   dependency_->forward(io);
+  // 直接执行下一轮（不需要token 判断停止） 跳出循环x
+  // to queue: add_callback
 }
 
 void ContiguousBatching::parser_message(

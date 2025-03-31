@@ -9,9 +9,23 @@ from transformers import AutoTokenizer, AutoModelForCausalLM, AutoConfig
     
 # from models.partial_hf import get_hf_model
 from models import hf_helper
+
+
+page_table = hami.default_page_table().init(max_num_req=10, max_num_page=1000,page_size=16)
+# page_table.init(max_num_req=10, max_num_page=1000,page_size=16)
+
 def get_page_address():
     pass
 import hami
+
+class Pdb:
+    def forward(self, io: List[hami.Dict]):
+        data = io[0]
+        print(data['data'])
+        # import pdb; pdb.set_trace()
+        # print("pdb, d")
+hami.register("Pdb", Pdb)
+
 class PyPlugin:
     def init(self, params):
         self.params = params
@@ -19,12 +33,20 @@ class PyPlugin:
         
         self.layer_idx = int(self.params['layer_idx'])
 
-        self.addr = hami.result_wrapper(hami.init("TensorPage"))
+        self.tensor_page_table = hami.init("StreamGuard[TensorPage]")#.as_function()
         
         # self.addr_pool = hami._C.
     def forward(self, io: List[hami.Dict]):
         if self.layer_idx == 0:
             get_page_address()
+            print("activated page_table=", page_table.get_activated())
+            table = {}
+            self.tensor_page_table(io)
+            
+            kv_page_indices = table['kv_page_indices']
+            kv_last_page_len = table['kv_last_page_len']
+            print(f"kv_page_indices={kv_page_indices}")
+            print(f'kv_last_page_len={kv_last_page_len}')
             ## addr to tensor addr
         # print(list(io[0].keys()))
         input = io[0]['data']
@@ -68,5 +90,5 @@ if __name__ == '__main__':
                                             "max_new_tokens": 7,
                                             "max_tokens":4096})
     model(io)
-    print([x.shape for x in io['result']])
-    print(io['result'])
+    # print([x.shape for x in io['result']])
+    # print(io['result'])

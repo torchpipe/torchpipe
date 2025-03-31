@@ -13,9 +13,12 @@ init = "Register[IoC[ContiguousBatching(target=node.batchable);Loop(src_queue,ta
 # 
 
 [batchable]
-backend = 'S[TensorrtTensor,StreamGuard]'
+backend = 'S[TensorrtTensor,StreamGuard,Pdb,Send2Queue(net_out)]'
 max = 5
 model = 'exported_params/batchable.onnx'
 'model::cache' = 'exported_params/batchable.trt'
 # the tensorrt plugin 
 #
+
+# [decoding]
+# backend = "IoC[StreamGuard[PyDecodeTensor];SyncLoop(net_out,target=StreamGuard)]"

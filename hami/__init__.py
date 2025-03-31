@@ -14,12 +14,12 @@ from .commands import get_cmake_dir, get_includes, get_pkgconfig_dir, get_librar
 
 from hami._C import Any, Dict, Backend, Event, create, register, init, get, TypedDict
 
-from hami._C import (Queue, default_queue)
+from hami._C import (Queue, default_queue, default_page_table)
 
 from hami._C import TASK_DATA_KEY, TASK_RESULT_KEY, TASK_MSG_KEY, TASK_REQUEST_ID_KEY
 # from hami import pybackend
 from .parser import parse, init_from_file
 
-__all__ = ["Any", "Dict", 'Backend', 'Event', 'create', 'create', 'register', 'parse', 'init', 'get']
+__all__ = ["Any", "Dict", 'Backend', 'Event', 'create', 'create', 'register', 'parse', 'init', 'get', 'default_page_table']
 
 __all__.extend(['Queue', 'default_queue'])

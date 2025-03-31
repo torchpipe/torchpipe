@@ -9,6 +9,7 @@
 #include "hami/helper/threadsafe_queue.hpp"
 #include "hami/helper/threadsafe_sized_queue.hpp"
 #include "hami/schedule/schedule_states.hpp"
+#include "hami/builtin/page_table.hpp"
 namespace hami {
 
 class Loop : public Backend {
@@ -162,6 +163,8 @@ class ContiguousBatching : public Backend {
     int32_t max_new_tokens{0};
     int32_t max_tokens{0};
     bool stop{false}; // error, cancel
+    bool is_prefill = true;
+    dict data;
   };
 
  private:
@@ -174,6 +177,8 @@ class ContiguousBatching : public Backend {
       const std::shared_ptr<TypedDict>& msg,
       CBProtocol& protocol);
 };
+PageTable* page_table_{nullptr};
+int page_size_{0};
 // #  CBStatus Loop(src_queue)[ContiguousBatching] TASK_MSG_KEY
 // xieyi
 

@@ -1,7 +1,7 @@
 #include <numeric>
 #include <unordered_map>
 
-#include "torchplugins/kvcache.hpp"
+#include "hami/builtin/page_table.hpp"
 #include "hami/core/backend.hpp"
 #include <cuda_runtime_api.h>
 #include "c10/cuda/CUDAStream.h"
@@ -30,7 +30,7 @@ class FIAppendTensor : public hami::BackendOne {
   bool inited_{false};
   // std::vector<torch::Tensor> k_;
   // std::vector<torch::Tensor> v_;
-  std::unique_ptr<ReqPagePool> pool_;
+  std::unique_ptr<PageTable> pool_;
 
  private:
   void impl_init(
@@ -152,7 +152,7 @@ class FIAppendTensor : public hami::BackendOne {
     //       torch::MemoryFormat::Contiguous);
     // }
     pool_ =
-        std::make_unique<ReqPagePool>(max_num_req_, max_num_page_, page_size_);
+        std::make_unique<PageTable>(max_num_req_, max_num_page_, page_size_);
     inited_ = true;
   }
 };

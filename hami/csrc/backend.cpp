@@ -1,11 +1,9 @@
+#include <optional>
 #include "hami/csrc/backend.hpp"
-
 #include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <pybind11/stl_bind.h>
-
-#include <optional>
 
 #include "hami/builtin/basic_backends.hpp"
 #include "hami/core/backend.hpp"
@@ -15,6 +13,7 @@
 #include "hami/csrc/py_helper.hpp"
 #include "hami/helper/base_logging.hpp"
 #include "hami/helper/macro.h"
+#include "hami/csrc/converts.hpp"
 // #include  "hami/builtin/proxy.hpp"
 
 namespace hami {
@@ -459,6 +458,44 @@ void py_init_backend(py::module_& m) {
                 config (dict): Configuration for the backend.
                 kwargs (dict, optional): Shared configuration. Defaults to None.
         )pbdoc");
+
+  hami_backend.def(
+      "as_function",
+      [](std::shared_ptr<Backend> self) {
+        return py::cpp_function(
+            [self](const py::kwargs& kwargs) -> py::object {
+              PyDict input_dict(
+                  py::cast<py::dict>(kwargs)); // 需要先转换为py::dict
+
+              dict cpp_dict = input_dict.to_dict();
+              {
+                py::gil_scoped_release release;
+                self->forward({cpp_dict});
+              }
+              // {
+              //   py::gil_scoped_release release;
+              //   try {
+              //     self->forward({cpp_dict});
+              //   } catch (...) {
+              //     py::gil_scoped_acquire acquire;
+              //     throw py::error_already_set();
+              //   }
+              // }
+              auto iter = cpp_dict->find(TASK_RESULT_KEY);
+              HAMI_ASSERT(iter != cpp_dict->end());
+
+              return any2object(iter->second);
+            },
+            py::keep_alive<0, 1>());
+      },
+      R"pbdoc(
+              Convert the backend into a callable function that processes keyword arguments.
+      
+              Returns:
+                  dict: Processed results. If the result contains the 'result' key, 
+                       returns its value directly. Otherwise throw.
+          )pbdoc");
+
   hami_backend
       .def(
           "__call__",

@@ -182,7 +182,7 @@ https://torchpipe.github.io/docs/faq/remote-gdb
 
 
 design:
-ReqToTokenPool -> ReqToPagePool  [max_num_req x max_num_page_per_seq](w. page index)
+ReqToTokenPool -> ReqToPageTable  [max_num_req x max_num_page_per_seq](w. page index)
  <!-- [max_num_req x 1] (w. last_page_len)  -->
 
 TokenToKVPoolAllocator -> PageToKVPoolAllocator [manage free pages slots] [max_num_page x 1 KVCache]

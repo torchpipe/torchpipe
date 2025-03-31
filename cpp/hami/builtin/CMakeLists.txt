@@ -9,6 +9,7 @@ cc_library(
     aspect.hpp
     basic_backends.hpp
     proxy.hpp 
+    page_table.hpp
   SRCS
     identity.cpp
     sequential.cpp
@@ -29,6 +30,7 @@ cc_library(
     key_operator.cpp
     source.cpp
     control_plane.cpp
+    page_table.cpp
   DEPS
     :spdlog
     :core

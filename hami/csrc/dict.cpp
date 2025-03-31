@@ -5,6 +5,7 @@
 #include <pybind11/functional.h>
 #include <pybind11/stl.h>
 #include <pybind11/stl_bind.h>
+#include <pybind11/numpy.h>
 
 #include <sstream>
 
@@ -14,6 +15,7 @@
 #include "hami/csrc/py_register.hpp"
 #include "hami/helper/base_logging.hpp"
 #include "hami/helper/macro.h"
+#include "hami/builtin/page_table.hpp"
 namespace hami {
 
 namespace py = pybind11;
@@ -259,14 +261,86 @@ void init_dict(py::module_& m) {
       "default_output_queue",
       &default_output_queue,
       pybind11::return_value_policy::reference);
-  // m.def(  // todo: support other types
-  //     "get",
-  //     [](py::object /* cls */, const std::string& name) -> Queue& {
-  //         return HAMI_INSTANCE_GET(Queue, name)
-  //         // return default_queue(name);
-  //     },
-  //     py::arg("cls"), py::arg("name") = std::string(""),
-  //     pybind11::return_value_policy::reference);
+
+  // Bind PageInfo structure first
+  py::class_<PageTable::PageInfo>(m, "PageInfo")
+      .def(py::init<>())
+      // .def_readwrite("kv_page_indices",
+      // &PageTable::PageInfo::kv_page_indices)
+      .def_property(
+          "kv_page_indices",
+          [](const PageTable::PageInfo& self) {
+            auto& vec = self.kv_page_indices;
+            // 创建非拷贝数组视图
+            return py::array_t<int>(
+                {vec.size()}, // shape
+                {sizeof(int)}, // stride
+                vec.data(), // 原始指针
+                py::cast(self) // 保持父对象存活
+            );
+          },
+          [](PageTable::PageInfo& self, py::array_t<int> arr) {
+            py::buffer_info buf = arr.request();
+            if (buf.ndim != 1)
+              throw std::runtime_error("Only 1D arrays accepted");
+
+            self.kv_page_indices.resize(buf.shape[0]);
+            std::memcpy(
+                self.kv_page_indices.data(),
+                buf.ptr,
+                sizeof(int) * buf.shape[0]);
+          })
+      .def_readwrite(
+          "kv_last_page_len", &PageTable::PageInfo::kv_last_page_len);
+
+  // Main PageTable class binding
+  py::class_<PageTable, std::shared_ptr<PageTable>>(m, "PageTable")
+      .def(py::init<>())
+      .def(
+          py::init<size_t, size_t, size_t>(),
+          py::arg("max_num_req"),
+          py::arg("max_num_page"),
+          py::arg("page_size"))
+      .def(
+          "init",
+          [](PageTable& self,
+             size_t max_num_req,
+             size_t max_num_page,
+             size_t page_size) -> PageTable& {
+            self.init(max_num_req, max_num_page, page_size);
+            return self; // 返回 self 实现链式调用
+          },
+          py::arg("max_num_req"),
+          py::arg("max_num_page"),
+          py::arg("page_size"),
+          py::return_value_policy::reference_internal)
+      .def("alloc", &PageTable::alloc, py::arg("name"), py::arg("num_tok"))
+      .def("extend", &PageTable::extend, py::arg("name"), py::arg("num_tok"))
+      .def("free", &PageTable::free, py::arg("id"))
+      .def(
+          "add_more_page",
+          &PageTable::add_more_page,
+          py::arg("num_added_slots"))
+      .def("available_pages", &PageTable::available_pages)
+      .def("available_ids", &PageTable::available_ids)
+      .def("get_activated", &PageTable::get_activated)
+      .def(
+          "page_info",
+          &PageTable::page_info,
+          py::arg("id"),
+          py::return_value_policy::reference_internal);
+
+  // Default page table factory function
+  m.def(
+      "default_page_table",
+      [](const std::string& tag) -> std::shared_ptr<PageTable> {
+        // Assuming singleton-like management, prevent deletion
+        return std::shared_ptr<PageTable>(
+            &default_page_table(tag), [](PageTable*) { /* no-op deleter */ });
+      },
+      py::arg("tag") = "",
+      py::return_value_policy::automatic);
+
   py::class_<Queue, std::shared_ptr<Queue>> queue_class(m, "Queue");
   py::enum_<typename Queue::Status>(queue_class, "Status")
       .value("RUNNING", Queue::Status::RUNNING)
