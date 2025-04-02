@@ -186,15 +186,21 @@ std::string parse_dependency_from_param(
     default_params_name = iter->second;
     config.erase(iter);
   }
-  iter = config.find(default_params_name);
+  auto params = str::str_split(default_params_name, ',');
+  HAMI_ASSERT(params.size() >= 1, "error params: " + default_params_name);
+  iter = config.find(params[0]);
   if (iter == config.end()) {
-    HAMI_ASSERT(
-        !default_dep_name.empty(),
-        "In config, cannot find key `" + default_params_name +
-            "`, please check the configuration");
-    // SPDLOG_INFO("Using defalut dependency {}", default_dep_name);
+    if (params.size() > 1) {
+      return params[1];
+    } else {
+      HAMI_ASSERT(
+          !default_dep_name.empty(),
+          "In config, cannot find key `" + default_params_name +
+              "`, please check the configuration");
+      // SPDLOG_INFO("Using defalut dependency {}", default_dep_name);
 
-    return default_dep_name;
+      return default_dep_name;
+    }
   }
 
   return iter->second;

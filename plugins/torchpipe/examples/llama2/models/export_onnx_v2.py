@@ -56,11 +56,11 @@ def _modify_attention(attention):
         
         q_len, _ = hidden_states.size()
 
-        query_states = self.q_proj(hidden_states)
-        key_states = self.k_proj(hidden_states)
-        value_states = self.v_proj(hidden_states)
+        query_states = self.q_proj(hidden_states).view(-1, self.config.num_attention_heads, self.head_dim)
+        key_states = self.k_proj(hidden_states).view(-1, self.config.num_key_value_heads, self.head_dim)
+        value_states = self.v_proj(hidden_states).view(-1, self.config.num_key_value_heads, self.head_dim)
   
-        attn_output = self.batchless_attn(query_states, key_states, value_states)
+        attn_output = self.batchless_attn(query_states, key_states, value_states).view(-1,  self.config.num_attention_heads* self.head_dim)
         attn_output = self.o_proj(attn_output)
         
         return attn_output, None
@@ -69,7 +69,7 @@ def _modify_attention(attention):
     tp.add_params("layer_idx", attention.layer_idx)
     tp.add_params("num_output", 1)
     tp.add_params("num_input", 3)
-    # tp.add_params("dtype", 'fp16,fp16,fp16,fp16')
+    tp.add_params("dtype", 'fp16') # or fp16,fp16,fp16,fp16
     attention.batchless_attn = tp
 
 def _modify_decode_layers(layers):

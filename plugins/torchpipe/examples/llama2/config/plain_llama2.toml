@@ -1,5 +1,6 @@
 
-
+entrypoint = "Restart[DagDispatcher]"
+# "Ring RingDispatcher"
 [embed_token]
 backend = "S[EmbeddingTensor(exported_params/embed_tokens.pt),AppendIndexSelectTensor(-1),StreamGuard,SetTensorRequestSize]"
 # Add(jump:batchless_prefill)
@@ -7,16 +8,22 @@ backend = "S[EmbeddingTensor(exported_params/embed_tokens.pt),AppendIndexSelectT
 next = "contiguous_batching"
 
 [contiguous_batching]
-# init = "List[Register(cb)[ContiguousBatching(queue)], Register[S[CBTensorStatus,Forward[cb]]]]"
-init = "Register[IoC[ContiguousBatching(target=node.batchable);Loop(src_queue,target=ContiguousBatching)]]"
+# node_entrypoint = "List[Register(cb)[ContiguousBatching(queue)], Register[S[CBTensorStatus,Forward[cb]]]]"
+node_entrypoint = "Register[IoC[ContiguousBatching(target=node.batchable);Loop(src_queue,target=ContiguousBatching)]]"
 # req CBStatus Loop(src_queue,target="") TASK_MSG_KEY xieyi / pool
 # 
+# node_entrypoint
 
 [batchable]
-backend = 'S[TensorrtTensor,StreamGuard,Pdb,Send2Queue(net_out)]'
+backend = 'S[TensorrtTensor,StreamGuard,Add(restart:node.embed_token),Pdb,Send2Queue(net_out)]'
 max = 5
 model = 'exported_params/batchable.onnx'
 'model::cache' = 'exported_params/batchable.trt'
+post_processor = "SoftmaxArgMaxTensor"
+
+# [pre_decode_stage]
+# # node_entrypoint = "Register[Forward[node.contiguous_batching]]"
+# backend=""
 # the tensorrt plugin 
 #
 

@@ -8,7 +8,7 @@ void TensorPage::forward(const hami::dict& io) {
   std::vector<int> all_indices;
   std::vector<int> all_lengths;
 
-  for (const auto& item : table) {
+  for (const auto& item : table.first) {
     const hami::PageTable::PageInfo& info = page_table_->page_info(item);
 
     // Append the page indices

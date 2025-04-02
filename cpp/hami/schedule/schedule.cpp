@@ -397,19 +397,24 @@ void ContiguousBatching::impl_forward(const std::vector<dict>& io) {
     pro.req_id = dict_get<std::string>(item, TASK_REQUEST_ID_KEY);
     ids.push_back(pro.req_id);
     // HAMI_FATAL_ASSERT(item->find(TASK_MSG_KEY) != item->end());
-    auto re = dict_get<std::shared_ptr<TypedDict>>(item, TASK_MSG_KEY);
-    parser_message(re, pro);
-    pro.data = item;
+    auto iter = item->find(TASK_MSG_KEY);
+    if (iter != item->end()) {
+      auto re = dict_get<std::shared_ptr<TypedDict>>(item, TASK_MSG_KEY);
+      parser_message(re, pro);
+      pro.data = item;
 
-    page_table_->alloc(pro.req_id, pro.req_tokens);
+      page_table_->alloc(pro.req_id, pro.req_tokens);
 
-    configs.emplace_back(std::move(pro));
-
-    item->erase(TASK_MSG_KEY);
+      configs.emplace_back(std::move(pro));
+      item->erase(iter);
+    } else {
+      throw std::runtime_error("Not Impl. Yet");
+    }
   }
+
   page_table_->activate(ids);
   // 首先准备next （假设没有停止和error）
-  // 然后等待  page_table_->wait_finish() /  dependency_->forward(io);
+  // 然后等待  page_table_->wait_finsh() /  dependency_->forward(io);
   // 然后等待
   // while
   // page_table_->wait_finish()

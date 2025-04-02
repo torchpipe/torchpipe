@@ -2,6 +2,7 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <pybind11/stl_bind.h>
+#include <pybind11/numpy.h>
 
 #include "hami/core/any.hpp"
 #include "hami/core/task_keys.hpp"
@@ -68,5 +69,10 @@ void init_core(py::module_& m) {
   // ([](const any& data) {
   //     return py::cast(ExceptionHolder(any_cast<std::exception_ptr>(data)));
   // });
+
+  // PYBIND11_MAKE_OPAQUE(std::vector<int>);
+  // PYBIND11_MAKE_OPAQUE(std::vector<float>);
+  // py::bind_vector<std::vector<int>>(m, "VectorInt");
+  // py::bind_vector<std::vector<float>>(m, "VectorFloat");
 }
 } // namespace hami

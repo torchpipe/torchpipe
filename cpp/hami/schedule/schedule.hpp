@@ -162,9 +162,9 @@ class ContiguousBatching : public Backend {
     int32_t new_tokens{0};
     int32_t max_new_tokens{0};
     int32_t max_tokens{0};
-    bool stop{false}; // error, cancel
-    bool is_prefill = true;
+    bool stop{false}; // error, cancel //stop by error or cancel
     dict data;
+    // std::string req_type = "prefill";
   };
 
  private:

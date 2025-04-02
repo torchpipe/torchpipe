@@ -22,6 +22,7 @@
 #include <c10/cuda/CUDAStream.h> // 必须包含此头文件
 #include <torch/torch.h>
 #include "c10/cuda/CUDAGuard.h"
+#include <ATen/cuda/CUDAEvent.h>
 
 namespace nvinfer1 {
 namespace plugin {
@@ -35,9 +36,18 @@ TorchPlugin::TorchPlugin(const std::string& params) : serialization_(params) {
 
   hami::str::try_update<std::string>(params_, "name", torch_params_.name);
 
-  // std::string dtype = "fp16,fp16,fp16,fp16";
-  // hami::str::try_update(params_, "dtype", dtype);
-  // torch_params_.type = torchpipe::convert2trt(dtype);
+  std::string dtype = "fp16";
+  hami::str::try_update(params_, "dtype", dtype);
+  std::vector<std::string> types = hami::str::str_split(dtype, ',');
+  for (const auto& item : types)
+    torch_params_.type.push_back(torchpipe::convert2trt(item));
+  HAMI_ASSERT(!torch_params_.type.empty());
+  if (torch_params_.num_output + torch_params_.num_input >
+      torch_params_.type.size()) {
+    torch_params_.type.resize(
+        torch_params_.num_output + torch_params_.num_input,
+        torch_params_.type.back());
+  }
 
   initFieldsToSerialize();
 
@@ -156,14 +166,22 @@ bool TorchPlugin::supportsFormatCombination(
   //   return false;
   // }
 
-  [[maybe_unused]] static auto _ = [nbInputs, nbOutputs, inOut] {
+  [[maybe_unused]] static auto _ = [nbInputs, nbOutputs, inOut, pos] {
     SPDLOG_INFO(
-        "supportsFormatCombination called. nbInputs={}, nbOutputs={}, type={}",
+        "supportsFormatCombination(pos={}) called. nbInputs={}, nbOutputs={}, type={}",
+        pos,
         nbInputs,
         nbOutputs,
-        int(inOut[0].desc.type));
+        int(inOut[pos].desc.type));
     return true;
   }();
+
+  if (inOut[pos].desc.type != torch_params_.type[pos] ||
+      inOut[pos].desc.format != nvinfer1::PluginFormat::kLINEAR) {
+    // SPDLOG_INFO("skip type {}", size_t(inOut[pos].desc.type));
+    return false;
+  }
+
   return true;
 }
 
@@ -225,10 +243,13 @@ int32_t TorchPlugin::enqueue(
   }
 
   // 2. 条件性创建流守卫
+  at::cuda::CUDAEvent pre_event;
   std::unique_ptr<c10::cuda::CUDAStreamGuard> guard;
-  if (c10::cuda::getCurrentCUDAStream(device_id) != stream) {
+  if (at::cuda::getCurrentCUDAStream(device_id) != stream) {
     guard = std::make_unique<c10::cuda::CUDAStreamGuard>(
         c10::cuda::getStreamFromExternal(stream, device_id));
+    pre_event.record(guard->current_stream());
+    pre_event.block(guard->original_stream());
   }
 
   //----------------------------------------------
@@ -332,26 +353,33 @@ int32_t TorchPlugin::enqueue(
         strides,
         torch::TensorOptions().dtype(dtype).device(torch::kCUDA, device_id)));
   }
-
-  //----------------------------------------------
-  // 3. 调用外部处理函数
-  //----------------------------------------------
+  bool in_err = false;
   try {
-    // get_output(output_tensors, input_tensors, torch_params_.name); //
-    // 用户自定义函数
     auto io = hami::make_dict();
     (*io)[hami::TASK_DATA_KEY] = input_tensors;
     (*io)[hami::TASK_OUTPUT_KEY] = output_tensors;
 
-    dependency_->forward({io});
-  } catch (const std::exception& e) {
-    SPDLOG_ERROR("get_output failed: {}", e.what());
-    return cudaErrorUnknown;
+    dependency_->forward({io}); // 可能抛出Python异常
+  } catch (const pybind11::error_already_set& e) {
+    SPDLOG_ERROR("Python error: {}", e.what());
+    // e.restore(); // 保持Python错误状态
+    // PyErr_Print(); // 可选：将错误打印到标准错误流
+    // return cudaErrorUnknown;
+    in_err = true;
+  } catch (const std::exception& e) { // 其他C++异常
+    SPDLOG_ERROR("C++ runtime error: {}", e.what());
+    // return cudaErrorUnknown;
+    in_err = true;
+  } catch (...) {
+    SPDLOG_ERROR("Unknown exception occurred");
+    in_err = true;
+    // return cudaErrorUnknown;
   }
+  // if (guard)
+  //   guard->original_stream().wait_stream(guard->current_stream());
+  if (in_err)
+    return cudaErrorUnknown;
 
-  //----------------------------------------------
-  // 4. 错误检查（移除冗余事件同步）
-  //----------------------------------------------
   return cudaGetLastError();
 }
 

@@ -329,6 +329,8 @@ def _modify_attention(attention: torch.nn.Module):
                 query_states = query_states[0]
                 
                 attn_output = wrapper.run(query_states, paged_kv_cache)
+                print(f"attn_output= {attn_output} {attn_output.shape}")
+                raise 0
 
         else:
             q = query_states.squeeze(0)
@@ -408,11 +410,14 @@ def _modify_attention(attention: torch.nn.Module):
                 ).int()  # [0, 45, 53, 78, 100]
 
                 nnz_kv = q_len
+                seq = flashinfer.get_seq_lens(kv_page_indptr, kv_last_page_len, page_size)
                 batch_indices, positions = flashinfer.get_batch_indices_positions(
                         kv_append_indptr, kv_append_length, nnz_kv)
+                print(f'batch_indices={batch_indices}, positions={positions},', kv_append_indptr, kv_append_length, nnz_kv)
                 global_app = (batch_indices, positions, kv_page_indices, kv_page_indptr, kv_last_page_len)
             else:
                 batch_indices, positions, kv_page_indices, kv_page_indptr, kv_last_page_len = global_app
+            
             flashinfer.append_paged_kv_cache(
                 k_append,
                 v_append,

@@ -8,9 +8,10 @@
 
 namespace hami {
 
-void RestartEvent::pre_init(const std::unordered_map<string, string>& config,
-                            const dict& kwargs) {
-  constexpr auto N = 1;  // M:N         set to one if 需要严格保持先来的先处理
+void RestartEvent::pre_init(
+    const std::unordered_map<string, string>& config,
+    const dict& kwargs) {
+  constexpr auto N = 1; // M:N         set to one if 需要严格保持先来的先处理
 
   // TODO unique  EventBus
   for (std::size_t i = 0; i < N; ++i) {
@@ -20,8 +21,9 @@ void RestartEvent::pre_init(const std::unordered_map<string, string>& config,
   }
 }
 
-void RestartEvent::task_loop(std::size_t thread_index,
-                             ThreadSafeQueue<dict>* pqueue) {
+void RestartEvent::task_loop(
+    std::size_t thread_index,
+    ThreadSafeQueue<dict>* pqueue) {
   while (bInited_.load()) {
     dict tmp_data = nullptr;
     if (pqueue->wait_pop(tmp_data, 100)) {
@@ -38,8 +40,9 @@ void RestartEvent::task_loop(std::size_t thread_index,
   return;
 };
 
-void RestartEvent::custom_forward_with_dep(const std::vector<dict>& inputs,
-                                           Backend* dependency) {
+void RestartEvent::custom_forward_with_dep(
+    const std::vector<dict>& inputs,
+    Backend* dependency) {
   const size_t queue_index = std::rand() % task_queues_.size();
 
   for (auto& item : inputs) {
@@ -52,9 +55,10 @@ void RestartEvent::custom_forward_with_dep(const std::vector<dict>& inputs,
   }
 }
 
-void RestartEvent::on_start_node(dict tmp_data,
-                                 std::size_t task_queue_index,
-                                 Backend* dependency) {
+void RestartEvent::on_start_node(
+    dict tmp_data,
+    std::size_t task_queue_index,
+    Backend* dependency) {
   std::shared_ptr<RestartEvent::Stack> pstack =
       std::make_shared<RestartEvent::Stack>();
 
@@ -94,7 +98,8 @@ void RestartEvent::on_finish_node(dict tmp_data) {
 
   // TODO the following is useless and should be removed
   while (bInited_.load()) {
-    if (pre_event->wait_finish(50)) break;
+    if (pre_event->wait_finish(50))
+      break;
     SPDLOG_WARN("wait need to much time");
   }
 
@@ -106,13 +111,15 @@ void RestartEvent::on_finish_node(dict tmp_data) {
     pstack->input_event->set_exception_and_notify_all(
         pre_event->reset_exception());
     return;
-  } else if (tmp_data->find(TASK_RESTART_KEY) == tmp_data->end() ||
-             tmp_data->find(TASK_RESULT_KEY) == tmp_data->end()) {
+  } else if (
+      tmp_data->find(TASK_RESTART_KEY) == tmp_data->end() ||
+      tmp_data->find(TASK_RESULT_KEY) == tmp_data->end()) {
     static const std::unordered_set<std::string> ignore_keys = {
         TASK_STACK_KEY, TASK_EVENT_KEY, TASK_DATA_KEY};
     for (auto iter = tmp_data->begin(); iter != tmp_data->end(); ++iter) {
       if (ignore_keys.count(iter->first) == 0) {
-        if (pstack->input_data != tmp_data) pstack->input_data->insert(*iter);
+        if (pstack->input_data != tmp_data)
+          pstack->input_data->insert(*iter);
       }
     }
     pstack->input_data->erase(TASK_STACK_KEY);
@@ -176,4 +183,4 @@ HAMI_PROXY_WITH_DEPENDENCY(Restart, "Aspect[EventGuard,RestartEvent]");
 // static hami::ClassRegister<Backend> RestartRegistryTag(
 //     hami::ClassRegistry_NewObject<Backend, Restart>, "Restart", {"Restart"});
 // ;
-}  // namespace hami
+} // namespace hami

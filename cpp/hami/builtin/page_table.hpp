@@ -113,6 +113,15 @@ class PageTable {
     page_infos_.erase(req);
   }
 
+  int get_num_tok(const id_type& id) const {
+    std::lock_guard<std::mutex> lock(page_infos_lock_);
+    const auto& item = page_infos_.at(id);
+    if (item.kv_page_indices.empty())
+      return 0;
+    return item.kv_last_page_len +
+        page_size_ * (item.kv_page_indices.size() - 1);
+  }
+
   void add_more_page(size_t num_added_slots) {
     page_table_.add_more_slots(num_added_slots);
   }
@@ -134,18 +143,15 @@ class PageTable {
     std::swap(ids_, empty);
     return final_size;
   }
-  std::vector<id_type> get_activated() {
-    std::lock_guard<std::mutex> lock(page_infos_lock_);
-    return ids_.front();
-    std::vector<id_type> re;
-    std::swap(re, ids_.front());
-    ids_.pop();
-    return re;
-  }
+  std::pair<std::vector<id_type>, std::vector<int>> get_activated();
 
   const PageInfo& page_info(const id_type& id) const {
+    std::lock_guard<std::mutex> lock(page_infos_lock_);
     return page_infos_.at(id);
   }
+
+  std::tuple<std::vector<int>, std::vector<int>, std::vector<int>> page_table(
+      const std::vector<id_type>& id);
 
   int page_size() const {
     return page_size_;
@@ -156,7 +162,7 @@ class PageTable {
   int page_size_{0};
   ThreadSafeSlots page_table_;
 
-  std::mutex page_infos_lock_;
+  mutable std::mutex page_infos_lock_;
   std::unordered_map<id_type, PageInfo> page_infos_;
   std::queue<std::vector<id_type>> ids_;
 };

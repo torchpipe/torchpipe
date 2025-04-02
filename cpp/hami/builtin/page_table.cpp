@@ -6,19 +6,25 @@
 #include "hami/builtin/page_table.hpp"
 #include "hami/helper/macro.h"
 #include "hami/helper/base_logging.hpp"
+#include "hami/helper/macro.h"
 
 namespace hami {
 
 bool PageTable::extend(const hami::id_type& name, size_t num_tok) {
-  auto iter = page_infos_.find(name);
-  HAMI_ASSERT(iter != page_infos_.end());
-  auto& info = iter->second;
-  const auto total =
-      (info.kv_page_indices.size() - 1) * page_size_ + info.kv_last_page_len;
+  // std::lock_guard<std::mutex> lock(page_infos_lock_);
+  // auto iter = page_infos_.find(name);
+  // HAMI_ASSERT(iter != page_infos_.end());
+  // auto& info = iter->second;
+  const auto total = get_num_tok(name);
   if (total >= num_tok) {
-    SPDLOG_WARN("decode_extend: total >= num_tok");
+    SPDLOG_WARN("extend: total >= num_tok");
     return true;
-  } else if (page_size_ - info.kv_last_page_len >= num_tok - total) {
+  }
+
+  std::lock_guard<std::mutex> lock(page_infos_lock_);
+  auto& info = page_infos_.at(name);
+
+  if (page_size_ - info.kv_last_page_len >= num_tok - total) {
     info.kv_last_page_len += num_tok - total;
     return true;
   }
@@ -37,6 +43,62 @@ bool PageTable::extend(const hami::id_type& name, size_t num_tok) {
       ? need_new_tok
       : (need_new_tok % page_size_);
   return true;
+}
+
+std::pair<std::vector<id_type>, std::vector<int>> PageTable::get_activated() {
+  std::pair<std::vector<id_type>, std::vector<int>> re;
+
+  std::lock_guard<std::mutex> lock(page_infos_lock_);
+  if (ids_.empty())
+    return re;
+  re.first = ids_.front();
+  for (const id_type& id : re.first) {
+    const auto& item = page_infos_.at(id);
+    HAMI_FATAL_ASSERT(!item.kv_page_indices.empty());
+
+    re.second.push_back(
+        item.kv_last_page_len + page_size_ * (item.kv_page_indices.size() - 1));
+  }
+
+  return re;
+
+  // std::vector<id_type> re;
+  // std::swap(re, ids_.front());
+  // ids_.pop();
+  // return re;
+}
+
+std::tuple<std::vector<int>, std::vector<int>, std::vector<int>> PageTable::
+    page_table(const std::vector<id_type>& id) {
+  // std::vector<int> kv_page_indices;
+  // std::vector<int> kv_page_indptr;
+  // std::vector<int> kv_last_page_len;
+
+  // HAMI_ASSERT(id.size() == seq_lens.size(0) && seq_lens.is_cpu());
+  size_t total{0};
+
+  std::lock_guard<std::mutex> lock(page_infos_lock_);
+  for (size_t i = 0; i < id.size(); ++i) {
+    SPDLOG_INFO("id = {}", id[i]);
+    total += page_infos_.at(id[i]).kv_page_indices.size();
+  }
+
+  std::vector<int> kv_page_indices;
+  kv_page_indices.reserve(total);
+
+  std::vector<int> kv_page_indptr(1 + id.size(), 0);
+  std::vector<int> kv_last_page_len(id.size());
+  for (size_t i = 0; i < id.size(); ++i) {
+    const auto& infor = page_infos_.at(id[i]);
+    kv_page_indices.insert(
+        kv_page_indices.end(),
+        infor.kv_page_indices.begin(),
+        infor.kv_page_indices.end());
+    kv_page_indptr[i + 1] = kv_page_indptr[i] + infor.kv_page_indices.size();
+    kv_last_page_len[i] = infor.kv_last_page_len;
+  }
+
+  return std::make_tuple(kv_page_indices, kv_page_indptr, kv_last_page_len);
 }
 
 void PageTable::activate(std::vector<id_type> ids) {

@@ -30,12 +30,12 @@ void Interpreter::impl_init(
     if (item.first == TASK_GLOBAL_KEY)
       continue;
     std::string init_config;
-    auto iter_init = item.second.find("init");
+    auto iter_init = item.second.find("node_entrypoint");
     if (iter_init != item.second.end()) {
       init_config = iter_init->second;
     } else {
       SPDLOG_INFO(
-          "Interpreter: `init` not found in node config, using default: "
+          "Interpreter: `node_entrypoint` not found in node config, using default: "
           "{}",
           DEFAULT_INIT_CONFIG);
       init_config = DEFAULT_INIT_CONFIG;
@@ -63,7 +63,8 @@ void Interpreter::impl_init(
         entry_name);
   }
 
-  owned_backend_ = init_backend(entry_name, global_config, new_kwargs);
+  owned_backend_ =
+      init_backend(entry_name, global_config, new_kwargs, "entrypoint");
   SPDLOG_INFO(
       "Interpreter: entrypoint({})[{} {}]",
       entry_name,

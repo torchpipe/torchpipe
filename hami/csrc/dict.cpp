@@ -1,21 +1,24 @@
 
 
+#include <sstream>
+
 #include "hami/core/dict.hpp"
 
-#include <pybind11/functional.h>
-#include <pybind11/stl.h>
-#include <pybind11/stl_bind.h>
-#include <pybind11/numpy.h>
+#include <pybind11/pybind11.h>
+// #include <pybind11/functional>
+#include "hami/csrc/all2numpy.hpp"
 
-#include <sstream>
+#include <pybind11/stl.h>
 
 #include "hami/core/queue.hpp"
 #include "hami/csrc/converts.hpp"
 #include "hami/csrc/dict.hpp"
+
 #include "hami/csrc/py_register.hpp"
 #include "hami/helper/base_logging.hpp"
 #include "hami/helper/macro.h"
 #include "hami/builtin/page_table.hpp"
+
 namespace hami {
 
 namespace py = pybind11;
@@ -189,7 +192,7 @@ void init_dict(py::module_& m) {
             repr_stm << "{";
             for (const auto& [key, value] : d.data()) {
               auto re = any2object(value);
-              repr_stm << key << ": " << pybind11::repr(re)
+              repr_stm << key << ": " << pybind11::repr(re).cast<std::string>()
                        << ", "; // re.attr("__repr__")()
             }
             std::string repr = repr_stm.str();
@@ -318,12 +321,37 @@ void init_dict(py::module_& m) {
       .def("extend", &PageTable::extend, py::arg("name"), py::arg("num_tok"))
       .def("free", &PageTable::free, py::arg("id"))
       .def(
+          "page_table",
+          [](PageTable& self, const std::vector<id_type>& id) {
+            std::tuple<std::vector<int>, std::vector<int>, std::vector<int>> re;
+            {
+              py::gil_scoped_release release;
+              re = self.page_table(id);
+            }
+
+            return py::make_tuple(
+                to_numpy(std::move(std::get<0>(re))),
+                to_numpy(std::move(std::get<1>(re))),
+                to_numpy(std::move(std::get<2>(re))));
+          },
+          py::arg("id"))
+      .def(
           "add_more_page",
           &PageTable::add_more_page,
           py::arg("num_added_slots"))
       .def("available_pages", &PageTable::available_pages)
+      .def("get_num_tok", &PageTable::get_num_tok)
       .def("available_ids", &PageTable::available_ids)
-      .def("get_activated", &PageTable::get_activated)
+      // .def("get_activated", &PageTable::get_activated)
+      .def(
+          "get_activated",
+          [](PageTable& self) {
+            auto result = self.get_activated();
+            return py::make_tuple(
+                result.first, //  std::vector
+                to_numpy(std::move(result.second)) // 转换为 NumPy 数组
+            );
+          })
       .def(
           "page_info",
           &PageTable::page_info,

@@ -6,10 +6,11 @@
 namespace hami {
 
 class RestartEvent : public DependencyV0 {
-  void pre_init(const std::unordered_map<string, string>& config,
-                const dict&) override final;
-  void custom_forward_with_dep(const std::vector<dict>& inputs,
-                               Backend* dependency) override final;
+  void pre_init(const std::unordered_map<string, string>& config, const dict&)
+      override final;
+  void custom_forward_with_dep(
+      const std::vector<dict>& inputs,
+      Backend* dependency) override final;
 
   ~RestartEvent() {
     bInited_.store(false);
@@ -30,9 +31,10 @@ class RestartEvent : public DependencyV0 {
     Backend* dependency = nullptr;
   };
 
-  void on_start_node(dict tmp_data,
-                     std::size_t task_queue_index,
-                     Backend* dependency);
+  void on_start_node(
+      dict tmp_data,
+      std::size_t task_queue_index,
+      Backend* dependency);
   void on_finish_node(dict tmp_data);
 
  private:
@@ -45,4 +47,4 @@ class RestartEvent : public DependencyV0 {
   //   std::unique_ptr<Params> params_;
   //   std::string continue_;
 };
-}  // namespace hami
+} // namespace hami
