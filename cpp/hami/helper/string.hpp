@@ -10,6 +10,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
+#include <type_traits>
 
 namespace hami::str {
 const auto ITEM_DELIMITERS = std::unordered_set<char>{
@@ -354,12 +355,15 @@ static inline std::string get_str(
   return iter->second;
 }
 
-static inline std::string join(
-    const std::unordered_set<std::string>& vec,
-    char sep) {
+template <typename Container>
+static inline std::string join(const Container& container, char sep = ',') {
+  static_assert(
+      std::is_same_v<typename Container::value_type, std::string>,
+      "Container must hold std::string elements");
+
   std::ostringstream oss;
   bool first = true;
-  for (const auto& s : vec) {
+  for (const auto& s : container) {
     if (!first) {
       oss << sep;
     }

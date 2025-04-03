@@ -206,6 +206,17 @@ std::string parse_dependency_from_param(
   return iter->second;
 }
 
+void notify_event(const std::vector<dict>& io) {
+  for (const auto& item : io) {
+    auto iter = item->find(TASK_EVENT_KEY);
+    if (iter != item->end()) {
+      auto ev = any_cast<std::shared_ptr<Event>>(iter->second);
+      ev->notify_all();
+      SPDLOG_INFO("event notified");
+    }
+  }
+}
+
 std::string get_cls_name(
     const Backend* this_ptr,
     const std::string& default_cls_name) {

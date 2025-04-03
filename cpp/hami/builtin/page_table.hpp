@@ -104,6 +104,8 @@ class PageTable {
   }
 
   bool alloc(const hami::id_type& name, size_t num_tok);
+  // bool alloc_pages(const hami::id_type& name, size_t num_page);
+  bool alloc_or_extend(const hami::id_type& name, size_t num_tok);
 
   bool extend(const hami::id_type& name, size_t num_tok);
 

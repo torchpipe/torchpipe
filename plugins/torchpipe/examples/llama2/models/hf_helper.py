@@ -196,8 +196,8 @@ def _modify_attention_v2(attention: torch.nn.Module):
                 )
                 
                 print(f"qo_len={qo_len}, kv_len={kv_len}, key_states={key_states.shape}")
-                q_indptr = torch.arange(0, batch_size + 1).to(0).int() * qo_len
-                kv_indptr = torch.arange(0, batch_size + 1).to(0).int() * kv_len
+                q_indptr = torch.arange(0, batch_size + 1).cuda().int() * qo_len
+                kv_indptr = torch.arange(0, batch_size + 1).cuda().int() * kv_len
                 num_qo_heads = query_states.shape[-2]
                 wrapper.plan(
                     q_indptr,
@@ -230,8 +230,8 @@ def set_kv(max_num_pages, num_layers, page_size, num_kv_heads, head_dim):
     if global_kv is None:
         global_kv = []
         for i in range(num_layers):
-            global_kv.append((torch.zeros(max_num_pages, page_size, num_kv_heads, head_dim).half().to(0),
-                            torch.zeros(max_num_pages, page_size, num_kv_heads, head_dim).half().to(0)))
+            global_kv.append((torch.zeros(max_num_pages, page_size, num_kv_heads, head_dim).half().cuda(),
+                            torch.zeros(max_num_pages, page_size, num_kv_heads, head_dim).half().cuda()))
 def get_kv(layer_idx):
     global global_kv
     return global_kv[layer_idx]
@@ -330,7 +330,7 @@ def _modify_attention(attention: torch.nn.Module):
                 
                 attn_output = wrapper.run(query_states, paged_kv_cache)
                 print(f"attn_output= {attn_output} {attn_output.shape}")
-                raise 0
+                raise RuntimeError("stop")
 
         else:
             q = query_states.squeeze(0)
@@ -363,8 +363,8 @@ def _modify_attention(attention: torch.nn.Module):
                 )
                 
                 print(f"qo_len={qo_len}, kv_len={kv_len}, key_states={key_states.shape}")
-                q_indptr = torch.arange(0, batch_size + 1).to(0).int() * qo_len
-                kv_indptr = torch.arange(0, batch_size + 1).to(0).int() * kv_len
+                q_indptr = torch.arange(0, batch_size + 1).cuda().int() * qo_len
+                kv_indptr = torch.arange(0, batch_size + 1).cuda().int() * kv_len
                 
                 wrapper.plan(
                     q_indptr,
@@ -406,7 +406,7 @@ def _modify_attention(attention: torch.nn.Module):
                 
                 kv_append_length = kv_append_length.cuda()
                 kv_append_indptr = torch.cat(
-                    [torch.zeros(1).int().to(0), torch.cumsum(kv_append_length, dim=0)]
+                    [torch.zeros(1).int().cuda(), torch.cumsum(kv_append_length, dim=0)]
                 ).int()  # [0, 45, 53, 78, 100]
 
                 nnz_kv = q_len

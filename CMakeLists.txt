@@ -42,6 +42,10 @@ if(NOT CMAKE_BUILD_TYPE)
   )
 endif()
 
+# if(DEBUG)
+#     add_compile_options(-UNDEBUG -O0 -DDEBUG)
+# endif()
+
 # Convert the bool variable to integer.
 if(USE_CXX11_ABI)
   set(USE_CXX11_ABI 1)

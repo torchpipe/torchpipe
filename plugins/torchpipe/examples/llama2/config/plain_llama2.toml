@@ -15,11 +15,11 @@ node_entrypoint = "Register[IoC[ContiguousBatching(target=node.batchable);Loop(s
 # node_entrypoint
 
 [batchable]
-backend = 'S[TensorrtTensor,StreamGuard,Add(restart:node.embed_token),Pdb,Send2Queue(net_out)]'
-max = 5
-model = 'exported_params/batchable.onnx'
-'model::cache' = 'exported_params/batchable.trt'
-post_processor = "SoftmaxArgMaxTensor"
+backend = 'S[TensorrtTensor,StreamGuard,Add(restart:embed_token),Send2Queue(net_out)]' # Pdb,
+max = 5 
+model = 'exported_params/batchable.onnx' 
+'model::cache' = 'exported_params/batchable.trt' 
+post_processor = "SoftmaxArgMaxTensor" 
 
 # [pre_decode_stage]
 # # node_entrypoint = "Register[Forward[node.contiguous_batching]]"

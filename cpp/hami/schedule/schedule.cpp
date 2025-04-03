@@ -365,11 +365,11 @@ HAMI_REGISTER_BACKEND(SharedInstancesState);
 // struct CBProtocol {
 //   enum struct Action { Stop, Cancel };
 //   id_type req_id;
-//   int32_t req_tokens;
-//   int32_t new_tokens;
-//   int32_t max_new_tokens;
-//   int32_t max_tokens;
-//   std::vector<int32_t> stop_token_ids;
+//   int req_tokens;
+//   int new_tokens;
+//   int max_new_tokens;
+//   int max_tokens;
+//   std::vector<int> stop_token_ids;
 //   Action action;
 // };
 
@@ -388,39 +388,146 @@ void ContiguousBatching::impl_init(
 }
 
 void ContiguousBatching::impl_forward(const std::vector<dict>& io) {
-  std::vector<CBProtocol> configs;
-  configs.reserve(io.size());
-  // size_t need_new_page = 0;
-  std::vector<id_type> ids;
+  // only one thread can call this funciton
+  // process msg
   for (const auto& item : io) {
-    CBProtocol pro;
-    pro.req_id = dict_get<std::string>(item, TASK_REQUEST_ID_KEY);
-    ids.push_back(pro.req_id);
-    // HAMI_FATAL_ASSERT(item->find(TASK_MSG_KEY) != item->end());
+    auto req_id = dict_get<std::string>(item, TASK_REQUEST_ID_KEY);
+    // ids.push_back(req_id);
+    auto iter_req = req_status_.find(req_id);
     auto iter = item->find(TASK_MSG_KEY);
     if (iter != item->end()) {
+      CBProtocol pro;
+      pro.req_id = req_id;
+      // prefill / cancell
       auto re = dict_get<std::shared_ptr<TypedDict>>(item, TASK_MSG_KEY);
       parser_message(re, pro);
+
+      HAMI_FATAL_ASSERT(pro.new_tokens == 0);
+
+      if (pro.stop) {
+        // std::lock_guard<std::mutex> lock(req_status_mutex_);
+        if (iter_req == req_status_.find(pro.req_id)) {
+          SPDLOG_WARN("can not find `{}` when trying to stop it.", pro.req_id);
+        } else {
+          iter_req->second.stop = true;
+        }
+        continue;
+      }
+
+      HAMI_FATAL_ASSERT(iter_req == req_status_.find(pro.req_id));
+      // page_table_->alloc(pro.req_id, pro.req_tokens);
       pro.data = item;
-
-      page_table_->alloc(pro.req_id, pro.req_tokens);
-
-      configs.emplace_back(std::move(pro));
+      req_status_.emplace(pro.req_id, std::move(pro));
       item->erase(iter);
     } else {
-      throw std::runtime_error("Not Impl. Yet");
+      // decode
+      CBProtocol& pro = (iter_req->second);
+      pro.new_tokens += 1;
+      pro.running = false;
+      SPDLOG_INFO(
+          "decoding: id = {}, new_tokens = {}", pro.req_id, pro.new_tokens);
+
+      pro.data = item;
     }
   }
 
-  page_table_->activate(ids);
-  // 首先准备next （假设没有停止和error）
-  // 然后等待  page_table_->wait_finsh() /  dependency_->forward(io);
-  // 然后等待
-  // while
-  // page_table_->wait_finish()
+  // wait for all ready
+  if (!std::all_of(
+          req_status_.begin(), req_status_.end(), [](const auto& pair) {
+            return !pair.second.running;
+          })) {
+    SPDLOG_WARN("returned at all_of. wired. not all ready ");
+    return;
+  }
 
+  // remove stoped id and finished id
+
+  for (auto it = req_status_.begin(); it != req_status_.end();) {
+    SPDLOG_INFO(
+        "id={} req_tokens={},new_tokens={}, max_tokens={}, max_new_tokens={}",
+        it->first,
+        it->second.req_tokens,
+        it->second.new_tokens,
+        it->second.max_tokens,
+        it->second.max_new_tokens);
+    if (it->second.stop ||
+        (it->second.req_tokens + it->second.new_tokens ==
+         it->second.max_tokens) ||
+        it->second.new_tokens == it->second.max_new_tokens) {
+      notify_event({it->second.data});
+      SPDLOG_INFO("Contiguous Batching stoped: {}", it->second.req_id);
+      it = req_status_.erase(it);
+    } else {
+      ++it;
+    }
+  }
+  if (req_status_.empty())
+    return;
+
+  // needed page
+  for (auto it = req_status_.begin(); it != req_status_.end(); ++it) {
+    if (0 == it->second.new_tokens) // prefill
+      it->second.new_page_needed =
+          (it->second.req_tokens + page_size_ - 1) / page_size_;
+    else if (1 == (it->second.req_tokens + it->second.new_tokens) % page_size_)
+      it->second.new_page_needed = (1);
+    else
+      it->second.new_page_needed = 0;
+  }
+
+  // sort
+  std::vector<id_type> sorted_ids;
+  sorted_ids.reserve(req_status_.size());
+
+  std::transform(
+      req_status_.begin(),
+      req_status_.end(),
+      std::back_inserter(sorted_ids),
+      [](const auto& pair) { return pair.first; });
+
+  std::sort(
+      sorted_ids.begin(),
+      sorted_ids.end(),
+      [this](const id_type& a, const id_type& b) {
+        const auto a_p = req_status_.at(a).new_page_needed;
+        const auto b_p = req_status_.at(b).new_page_needed;
+        if (a_p < b_p)
+          return true;
+        // else if (a_p == b_p&&)
+        //   return true;
+        return false;
+      });
+  std::vector<id_type> ids;
+  for (const auto& id : sorted_ids) {
+    if ((req_status_.at(id).new_page_needed) == 0) {
+      ids.push_back(id);
+    } else {
+      if (page_table_->alloc_or_extend(
+              id,
+              req_status_.at(id).req_tokens + req_status_.at(id).new_tokens)) {
+        ids.push_back(id);
+      } else {
+        break;
+      }
+    }
+  }
+  if (ids.empty()) {
+    SPDLOG_WARN("returned. wired");
+    return;
+  }
+
+  page_table_->activate(ids);
+  SPDLOG_INFO(
+      "activated id: {} unactivated id size: {}",
+      str::join(ids),
+      sorted_ids.size() - ids.size());
+  std::vector<dict> new_ios;
+  for (const auto& id : ids) {
+    new_ios.emplace_back(req_status_.at(id).data);
+    req_status_.at(id).running = true;
+  }
   // contiguous batching next -> get new token
-  dependency_->forward(io);
+  dependency_->forward(new_ios);
   // 直接执行下一轮（不需要token 判断停止） 跳出循环x
   // to queue: add_callback
 }
@@ -428,23 +535,29 @@ void ContiguousBatching::impl_forward(const std::vector<dict>& io) {
 void ContiguousBatching::parser_message(
     const std::shared_ptr<TypedDict>& msg,
     CBProtocol& pro) {
-  pro.req_tokens = get<int32_t>(*msg, "req_tokens");
-  pro.max_tokens = get<int32_t>(*msg, "max_tokens");
-  pro.new_tokens = get<int32_t>(*msg, "new_tokens");
-  try_update<int32_t>(*msg, "max_new_tokens", pro.max_new_tokens);
+  pro.stop = get<bool>(*msg, "stop");
+  if (pro.stop)
+    return;
+  pro.req_tokens = get<int>(*msg, "req_tokens");
+  pro.max_tokens = get<int>(*msg, "max_tokens");
+  try_update<int>(*msg, "max_new_tokens", pro.max_new_tokens);
+
+  if (pro.max_tokens == 0)
+    pro.max_tokens = std::numeric_limits<int>::max();
+  if (pro.max_new_tokens == 0)
+    pro.max_new_tokens = std::numeric_limits<int>::max();
+
   SPDLOG_INFO(
       "\n"
       "+---------------------------- Contiguous Batching ----------------------------+\n"
       "| Request ID:      {:45} |\n"
       "| Req Tokens:      {:45} |\n"
       "| Max Tokens:      {:45} |\n"
-      "| New Tokens:      {:45} |\n"
       "| Max New Tokens:  {:45} |\n"
       "+------------------------------------------------------------------------------+",
       pro.req_id,
       pro.req_tokens,
       pro.max_tokens,
-      pro.new_tokens,
       pro.max_new_tokens);
 }
 

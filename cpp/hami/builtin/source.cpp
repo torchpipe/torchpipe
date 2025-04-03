@@ -14,7 +14,7 @@ dict uniform_sample(const std::vector<dict>& input) {
   thread_local std::random_device seeder;
   thread_local std::mt19937 engine(seeder());
   thread_local std::uniform_int_distribution<int> dist(0, input.size() - 1);
-  return deep_copy(input[dist(engine)]);
+  return copy_dict(input[dist(engine)]);
 }
 
 void Source::impl_forward(const std::vector<dict>& input) {
@@ -27,7 +27,7 @@ void Source::impl_forward(const std::vector<dict>& input) {
     size_t num_finish = 0;
     while (num_finish < total_number_) {
       if (src_queue->try_put(
-              deep_copy(input[dist(engine)]),
+              copy_dict(input[dist(engine)]),
               20,
               std::chrono::milliseconds(SHUTDOWN_TIMEOUT))) {
         num_finish++;

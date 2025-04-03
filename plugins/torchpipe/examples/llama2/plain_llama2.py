@@ -39,7 +39,9 @@ import hami
 class Pdb:
     def forward(self, io: List[hami.Dict]):
         data = io[0]
-        print(data['data'])
+        print(data['request_size'], data['request_id'], data['node_name'])
+        print(list(data.keys()))
+        data['result'] = data['data']
         # import pdb; pdb.set_trace()
         # print("pdb, d")
 hami.register("Pdb", Pdb)
@@ -230,9 +232,17 @@ if __name__ == '__main__':
     # int32_t max_tokens{0};
     io[hami.TASK_REQUEST_ID_KEY] = "id"
     io[hami.TASK_MSG_KEY] = hami.TypedDict({"req_tokens": 5,
-                                            "new_tokens": 0,
                                             "max_new_tokens": 7,
                                             "max_tokens":4096})
     model(io)
     # print([x.shape for x in io['result']])
     # print(io['result'])
+    
+    tokenizer = AutoTokenizer.from_pretrained('exported_params/')
+    q = hami.default_queue("net_out")
+    while not q.empty():
+        data = q.get()
+        print(data['data'])
+        
+        text = tokenizer.decode(data['data'], skip_special_tokens=True)
+        print(text)

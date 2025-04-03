@@ -59,9 +59,14 @@ class HAMI_EXPORT Backend {
    *
    * @param io Input/output data to be processed.
    */
-  void forward(const std::vector<dict>& io) {
+  void forward(const std::vector<dict>& io)
+#ifdef DEBUG
+      ;
+#else
+  {
     impl_forward(io);
   }
+#endif
 
   /**
    * @brief Returns the maximum number of inputs supported.

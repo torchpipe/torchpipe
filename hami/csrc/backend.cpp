@@ -76,8 +76,15 @@ class PyInstance : public Backend {
     for (const auto& item : input_output) {
       py_input_output.push_back(PyDict(item)); // no need gil
     }
-    py::gil_scoped_acquire gil;
-    obj_->attr("forward")(py_input_output);
+    {
+      py::gil_scoped_acquire gil;
+      obj_->attr("forward")(py_input_output);
+    }
+    for (const auto& item : input_output) {
+      if (item->find(TASK_RESULT_KEY) == item->end()) {
+        SPDLOG_WARN("find no result in io from python side.");
+      }
+    }
   }
   size_t impl_max() const override final {
     return max_;

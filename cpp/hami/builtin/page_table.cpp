@@ -109,6 +109,45 @@ void PageTable::activate(std::vector<id_type> ids) {
   ids_.push(std::move(ids));
 }
 
+// bool PageTable::alloc_pages(const hami::id_type& name, size_t num_page) {
+//   std::unique_lock<std::mutex> lock(page_infos_lock_);
+
+//   auto& info = page_infos_.at(name);
+
+//   if (page_size_ - info.kv_last_page_len >= num_tok - total) {
+//     info.kv_last_page_len += num_tok - total;
+//     return true;
+//   }
+//   //   PageInfo new_info;
+//   auto need_new_tok = num_tok - (page_size_ - info.kv_last_page_len + total);
+//   auto kv_page_indices =
+//       page_table_.alloc((need_new_tok + page_size_ - 1) / page_size_);
+//   if (kv_page_indices.empty()) {
+//     return false;
+//   }
+//   info.kv_page_indices.insert(
+//       info.kv_page_indices.end(),
+//       kv_page_indices.begin(),
+//       kv_page_indices.end());
+//   info.kv_last_page_len = (need_new_tok % page_size_) == 0
+//       ? need_new_tok
+//       : (need_new_tok % page_size_);
+//   return true;
+// }
+
+bool PageTable::alloc_or_extend(const hami::id_type& name, size_t num_tok) {
+  bool find_id = false;
+  {
+    std::unique_lock<std::mutex> lock(page_infos_lock_);
+    find_id = page_infos_.find(name) != page_infos_.end();
+  }
+  // todo: lock
+  if (find_id)
+    return extend(name, num_tok);
+  else
+    return alloc(name, num_tok);
+}
+
 bool PageTable::alloc(const hami::id_type& name, size_t num_tok) {
   std::unique_lock<std::mutex> lock(page_infos_lock_);
   if (page_infos_.size() >= max_num_req_) {

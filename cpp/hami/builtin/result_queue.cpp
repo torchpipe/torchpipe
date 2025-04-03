@@ -127,7 +127,7 @@ class Send2Queue : public BackendOne {
     auto [args, kwargs] =
         parser_v2::get_args_kwargs(this, "Send2Queue", config);
 
-    str::try_update(kwargs, "max", queue_max_);
+    str::try_update(kwargs, "queue_max", queue_max_);
     str::try_update(kwargs, "keep_result", keep_result_);
     if (args.size() == 1) {
       queue_ = &(default_queue(args[0]));
@@ -143,11 +143,11 @@ class Send2Queue : public BackendOne {
   }
 
   void forward(const dict& input) override {
-    auto data = deep_copy(input);
+    auto data = copy_dict(input);
     while (!queue_->try_put(
         data, queue_max_, std::chrono::milliseconds(SHUTDOWN_TIMEOUT))) {
     };
-    // SPDLOG_INFO("Send2Queue {} ", queue_->size());
+    SPDLOG_INFO("Send2Queue {} ", queue_->size());
     if (keep_result_) {
       (*input)[TASK_RESULT_KEY] = input->at(TASK_DATA_KEY);
     }
@@ -227,7 +227,7 @@ HAMI_REGISTER_BACKEND(CreateQueue, "CreateQueue");
 void Observer::impl_forward(const std::vector<dict>& input) {
   for (auto& item : input) {
     (*item)[TASK_RESULT_KEY] = item->at(TASK_DATA_KEY);
-    auto new_dict = deep_copy(item);
+    auto new_dict = copy_dict(item);
     queue_->put(new_dict);
   }
 }

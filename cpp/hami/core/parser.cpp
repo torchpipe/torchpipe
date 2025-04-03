@@ -14,7 +14,8 @@ namespace hami::parser {
 
 void broadcast_global(str::mapmap& config) {
   auto iter = config.find(TASK_GLOBAL_KEY);
-  if (iter == config.end()) return;
+  if (iter == config.end())
+    return;
 
   // only global
   if (config.size() == 1) {
@@ -105,12 +106,12 @@ DagParser::DagParser(const str::mapmap& config) {
     if (item.second.cited.size() > 1) {
       for (const auto& cited_item : item.second.cited) {
         if (dag_config_[cited_item].map_config.empty()) {
-          SPDLOG_INFO("DagParser: node `" + item.first +
-                      "` has been cited(through map or next) by more than "
-                      "one node, but one "
-                      "of them - " +
-                      cited_item +
-                      " has no map config, default set to [result:data]");
+          SPDLOG_INFO(
+              "DagParser: node `" + item.first +
+              "` has been cited(through map or next) by more than "
+              "one node, but one "
+              "of them - " +
+              cited_item + " has no map config, default set to [result:data]");
           dag_config_[cited_item].map_config = str::mapmap();
           dag_config_[cited_item].map_config[item.first] =
               str::str_map{{TASK_RESULT_KEY, TASK_DATA_KEY}};
@@ -122,8 +123,9 @@ DagParser::DagParser(const str::mapmap& config) {
   // check or
   for (const auto& item : dag_config_) {
     if (item.second.cited.size() > 1) {
-      HAMI_ASSERT(!item.second.or_filter,
-                  "DagParser: `map` and `or` cannot be used together");
+      HAMI_ASSERT(
+          !item.second.or_filter,
+          "DagParser: `map` and `or` cannot be used together");
     }
   }
 
@@ -135,16 +137,17 @@ void DagParser::update_previous() {
   for (auto& item : dag_config_) {
     for (const auto& next : item.second.next) {
       auto iter = dag_config_.find(next);
-      HAMI_ASSERT(iter != dag_config_.end(),
-                  "DagParser: next node not found: " + next);
+      HAMI_ASSERT(
+          iter != dag_config_.end(), "DagParser: next node not found: " + next);
       // item.first => next
       iter->second.previous.insert(item.first);
     }
     if (item.second.map_config.empty()) {
-      HAMI_ASSERT(item.second.previous.size() <= 1,
-                  "DagParser: " + item.first +
-                      " has more than "
-                      "one previous node but no map config");
+      HAMI_ASSERT(
+          item.second.previous.size() <= 1,
+          "DagParser: " + item.first +
+              " has more than "
+              "one previous node but no map config");
     }
   }
 }
@@ -208,8 +211,9 @@ str::mapmap DagParser::parse_map_config(const std::string& config) {
   for (const auto& maps_item : maps) {
     str::str_map in_map;
     auto maps_data = str::flatten_brackets(maps_item);
-    HAMI_ASSERT(maps_data.size() == 2,
-                "map should be in the form of node_name[src_key:dst_key]");
+    HAMI_ASSERT(
+        maps_data.size() == 2,
+        "map should be in the form of node_name[src_key:dst_key]");
     in_map = str::map_split(maps_data[1], ':', ',', "");
     if (!in_map.empty()) {
       map_config[maps_data[0]] = in_map;
@@ -221,8 +225,9 @@ str::mapmap DagParser::parse_map_config(const std::string& config) {
 std::unordered_set<std::string> DagParser::get_subgraph(
     const std::string& root) {
   // std::unordered_set<std::string> re;
-  HAMI_ASSERT(dag_config_.find(root) != dag_config_.end(),
-              "DagParser: " + root + " not found");
+  HAMI_ASSERT(
+      dag_config_.find(root) != dag_config_.end(),
+      "DagParser: " + root + " not found");
   HAMI_ASSERT(dag_config_[root].previous.empty(), root + " is not a root node");
 
   std::unordered_set<std::string> parsered;
@@ -245,8 +250,9 @@ std::unordered_set<std::string> DagParser::get_subgraph(
   // check independency
   for (const auto& item : parsered) {
     for (const auto& pre : dag_config_[item].previous) {
-      HAMI_ASSERT(parsered.find(pre) != parsered.end(),
-                  "DagParser: " + pre + " is not in subgraph");
+      HAMI_ASSERT(
+          parsered.find(pre) != parsered.end(),
+          "DagParser: " + pre + " is not in subgraph");
     }
   }
   return parsered;
@@ -260,8 +266,8 @@ dict DagParser::prepare_data_from_previous(
     auto re = processed.at(previous_node);
     if (re->find(TASK_RESULT_KEY) == re->end()) {
       if (!dag_config_.at(node).or_filter) {
-        throw std::runtime_error("DagParser: " + previous_node +
-                                 " has no result");
+        throw std::runtime_error(
+            "DagParser: " + previous_node + " has no result");
       }
     } else {
       if (dag_config_.at(node).or_filter) {
@@ -282,8 +288,9 @@ dict DagParser::prepare_data_from_previous(
     const auto& src_dict = processed.at(src_node);
     for (const auto& [src_key, dst_key] : item.second) {
       auto iter = src_dict->find(src_key);
-      HAMI_ASSERT(iter != src_dict->end(),
-                  "DagParser: " + src_key + " not found in " + src_node);
+      HAMI_ASSERT(
+          iter != src_dict->end(),
+          "DagParser: " + src_key + " not found in " + src_node);
       (*re)[dst_key] = iter->second;
       if (src_key == TASK_CONTEXT_KEY || dst_key == TASK_CONTEXT_KEY) {
         has_context_already = true;
@@ -303,8 +310,9 @@ dict DagParser::prepare_data_from_previous(
   return re;
 }
 
-void update(const std::unordered_map<std::string, std::string>& config,
-            std::unordered_map<std::string, std::string>& str_kwargs) {
+void update(
+    const std::unordered_map<std::string, std::string>& config,
+    std::unordered_map<std::string, std::string>& str_kwargs) {
   for (const auto& [key, value] : config) {
     if (str_kwargs.find(key) == str_kwargs.end()) {
       str_kwargs[key] = value;
@@ -354,7 +362,8 @@ std::vector<std::string> split_args(const std::string& s, char delimiter) {
   }
 
   // Validate bracket balance
-  if (!brackets.empty()) throw std::runtime_error("Mismatched brackets");
+  if (!brackets.empty())
+    throw std::runtime_error("Mismatched brackets");
 
   return args;
 }
@@ -401,7 +410,8 @@ std::pair<bool, std::pair<std::string, std::string>> parse_kwarg(
   }
 
   // Validate delimiter position
-  if (eq_pos == std::string::npos) return {false, {}};
+  if (eq_pos == std::string::npos)
+    return {false, {}};
 
   if (eq_pos == 0) {
     std::stringstream ss;
@@ -420,14 +430,15 @@ std::pair<bool, std::pair<std::string, std::string>> parse_kwarg(
 
 // Main parsing function with Python-style argument rules
 // Parse a configuration string into positional arguments and keyword arguments
-std::pair<std::vector<std::string>,
-          std::unordered_map<std::string, std::string>>
-parse_args_kwargs(std::string config) {
+std::
+    pair<std::vector<std::string>, std::unordered_map<std::string, std::string>>
+    parse_args_kwargs(std::string config) {
   // Remove whitespace and control characters
   config.erase(
-      std::remove_if(config.begin(),
-                     config.end(),
-                     [](char c) { return std::isspace(c) || std::iscntrl(c); }),
+      std::remove_if(
+          config.begin(),
+          config.end(),
+          [](char c) { return std::isspace(c) || std::iscntrl(c); }),
       config.end());
 
   // Handle empty input
@@ -436,13 +447,15 @@ parse_args_kwargs(std::string config) {
   }
 
   auto args = split_args(config, ',');
-  std::pair<std::vector<std::string>,
-            std::unordered_map<std::string, std::string>>
+  std::pair<
+      std::vector<std::string>,
+      std::unordered_map<std::string, std::string>>
       result;
   bool kwarg_started = false;
 
   for (const auto& arg : args) {
-    if (arg.empty()) continue;
+    if (arg.empty())
+      continue;
 
     try {
       auto [is_kwarg, kv] = parse_kwarg(arg, '=');
@@ -473,7 +486,7 @@ parse_args_kwargs(std::string config) {
 
   return result;
 }
-}  // namespace hami::parser
+} // namespace hami::parser
 
 namespace hami::parser_v2 {
 bool has_valid_unnested_delimiters(
@@ -530,7 +543,7 @@ bool has_valid_unnested_delimiters(
       bracket_stack.pop();
     } else if (delimiters.count(c)) {
       // Validate delimiter context
-      if (pos == 0 || pos == input.size() - 1) {  // Redundant check for safety
+      if (pos == 0 || pos == input.size() - 1) { // Redundant check for safety
         SPDLOG_ERROR(
             "Invalid delimiter '{}' at string boundary in: {}", c, input);
         throw std::invalid_argument("Boundary delimiter");
@@ -553,12 +566,12 @@ bool has_valid_unnested_delimiters(
 }
 
 void remove_space_and_ctrl(std::string& strtem) {
-  strtem.erase(std::remove_if(strtem.begin(),
-                              strtem.end(),
-                              [](unsigned char c) {
-                                return std::isspace(c) || std::iscntrl(c);
-                              }),
-               strtem.end());
+  strtem.erase(
+      std::remove_if(
+          strtem.begin(),
+          strtem.end(),
+          [](unsigned char c) { return std::isspace(c) || std::iscntrl(c); }),
+      strtem.end());
 }
 
 /**
@@ -600,9 +613,8 @@ bool is_delimiter_separable(
     const std::string& input,
     std::vector<char>& result_delimiters,
     std::vector<std::string>& result_output,
-    const std::unordered_map<char, char>& left_to_right = {{'(', ')'},
-                                                           {'{', '}'},
-                                                           {'[', ']'}},
+    const std::unordered_map<char, char>& left_to_right =
+        {{'(', ')'}, {'{', '}'}, {'[', ']'}},
     const std::unordered_set<char>& delimiters = {',', ';'}) {
   result_delimiters.clear();
   result_output.clear();
@@ -634,15 +646,16 @@ bool is_delimiter_separable(
   std::string last_token = input.substr(start_pos);
   result_output.push_back(last_token);
 
-  HAMI_FATAL_ASSERT(result_delimiters.size() + 1 == result_output.size(),
-                    "size not match");
+  HAMI_FATAL_ASSERT(
+      result_delimiters.size() + 1 == result_output.size(), "size not match");
   // Return true if at least one delimiter was found and processed
   return !result_delimiters.empty();
 }
 
-bool is_delimiter_separable(const std::string& input,
-                            const std::unordered_map<char, char>& left_to_right,
-                            const std::unordered_set<char>& delimiters) {
+bool is_delimiter_separable(
+    const std::string& input,
+    const std::unordered_map<char, char>& left_to_right,
+    const std::unordered_set<char>& delimiters) {
   HAMI_ASSERT(!input.empty());
   if (left_to_right.count(input[0])) {
     return false;
@@ -684,9 +697,12 @@ bool is_delimiter_separable(const std::string& input,
  * are_brackets_balanced("a(b)c[d]e{f}") // returns true
  * @endcode
  */
-bool are_brackets_balanced(const std::string& input,
-                           const std::unordered_map<char, char> open_to_close =
-                               {{'(', ')'}, {'{', '}'}, {'[', ']'}}) {
+bool are_brackets_balanced(
+    const std::string& input,
+    const std::unordered_map<char, char> open_to_close = {
+        {'(', ')'},
+        {'{', '}'},
+        {'[', ']'}}) {
   // Create fast lookup structures
   std::unordered_set<char> close_brackets;
 
@@ -729,19 +745,22 @@ std::vector<std::pair<std::string, char>> flatten_brackets(
     const std::string& strtem_in) {
   std::vector<std::pair<std::string, char>> re =
       expend_outmost_brackets(strtem_in);
-  HAMI_ASSERT(re.size() >= 1 && re.size() <= 3 && re[0].second == 0,
-              "illegal input: " + strtem_in + ". Support A(args, kwsrag)[B]");
+  HAMI_ASSERT(
+      re.size() >= 1 && re.size() <= 3 && re[0].second == 0,
+      "illegal input: " + strtem_in + ". Support A(args, kwsrag)[B]");
 
   if (re.size() == 1) {
     return {{strtem_in, 0}};
   }
   if (re.size() == 2) {
-    HAMI_ASSERT(re[1].second == '(' || re[1].second == '[',
-                "illegal input: " + strtem_in);
+    HAMI_ASSERT(
+        re[1].second == '(' || re[1].second == '[',
+        "illegal input: " + strtem_in);
   }
   if (re.size() == 3) {
-    HAMI_ASSERT(re[1].second == '(' && re[2].second == '[',
-                "illegal input: " + strtem_in);
+    HAMI_ASSERT(
+        re[1].second == '(' && re[2].second == '[',
+        "illegal input: " + strtem_in);
   }
   if (re.back().second == '[') {
     HAMI_ASSERT(!re.back().first.empty());
@@ -786,8 +805,8 @@ std::pair<std::string, std::string> Parser::prifix_split(
       if (bracket_stack.empty()) {
         throw std::invalid_argument("Mismatched brackets");
       } else if (bracket_stack.size() == 1) {
-        result = {input.substr(1, i - 1),
-                  input.substr(i + 1, input.size() - i - 1)};
+        result = {
+            input.substr(1, i - 1), input.substr(i + 1, input.size() - i - 1)};
         return result;
       }
       bracket_stack.pop();
@@ -852,31 +871,35 @@ std::string Parser::parse(
   return result[0].first;
 }
 
-std::vector<std::string> Parser::split_by_delimiter(const std::string& input,
-                                                    char delimiter) {
+std::vector<std::string> Parser::split_by_delimiter(
+    const std::string& input,
+    char delimiter) {
   std::vector<char> result_delimiters;
   std::vector<std::string> result_output;
-  if (!is_delimiter_separable(input,
-                              result_delimiters,
-                              result_output,
-                              {{'(', ')'}, {'{', '}'}, {'[', ']'}},
-                              {delimiter})) {
+  if (!is_delimiter_separable(
+          input,
+          result_delimiters,
+          result_output,
+          {{'(', ')'}, {'{', '}'}, {'[', ']'}},
+          {delimiter})) {
     return {input};
   };
   return result_output;
 }
 
-std::pair<std::vector<char>, std::vector<std::string>>
-Parser::split_by_delimiters(const std::string& input,
-                            char delimiter,
-                            char delimiter_outter) {
+std::pair<std::vector<char>, std::vector<std::string>> Parser::
+    split_by_delimiters(
+        const std::string& input,
+        char delimiter,
+        char delimiter_outter) {
   std::vector<char> result_delimiters;
   std::vector<std::string> result_output;
-  if (!is_delimiter_separable(input,
-                              result_delimiters,
-                              result_output,
-                              {{'(', ')'}, {'{', '}'}, {'[', ']'}},
-                              {delimiter, delimiter_outter})) {
+  if (!is_delimiter_separable(
+          input,
+          result_delimiters,
+          result_output,
+          {{'(', ')'}, {'{', '}'}, {'[', ']'}},
+          {delimiter, delimiter_outter})) {
     return {{}, {input}};
   };
   return {result_delimiters, result_output};
@@ -901,9 +924,10 @@ std::vector<std::pair<std::string, char>> expend_outmost_brackets(
     const char c = input[i];
 
     if (valid_right_brackets.count(c)) {
-      HAMI_ASSERT(!bracket_stack.empty() &&
-                      open_to_close_bracket[bracket_stack.top()] == c,
-                  "Mismatched brackets.");
+      HAMI_ASSERT(
+          !bracket_stack.empty() &&
+              open_to_close_bracket[bracket_stack.top()] == c,
+          "Mismatched brackets.");
       if (bracket_stack.size() == 1) {
         bracket_pos.push_back(i);
         // bracket_type.push_back(bracket_stack.top());
@@ -935,20 +959,22 @@ std::vector<std::pair<std::string, char>> expend_outmost_brackets(
     }
     ++i;
   }
-  HAMI_ASSERT(bracket_pos.size() == 2 * bracket_type.size() &&
-              !bracket_pos.empty());
+  HAMI_ASSERT(
+      bracket_pos.size() == 2 * bracket_type.size() && !bracket_pos.empty());
   std::vector<std::pair<std::string, char>> result;
 
   for (size_t i = 0; i < bracket_type.size(); ++i) {
     if (bracket_type[i] == 0)
       result.emplace_back(
-          input.substr(bracket_pos[2 * i],
-                       bracket_pos[2 * i + 1] - bracket_pos[2 * i] + 1),
+          input.substr(
+              bracket_pos[2 * i],
+              bracket_pos[2 * i + 1] - bracket_pos[2 * i] + 1),
           bracket_type[i]);
     else {
       result.emplace_back(
-          input.substr(bracket_pos[2 * i] + 1,
-                       bracket_pos[2 * i + 1] - bracket_pos[2 * i] - 1),
+          input.substr(
+              bracket_pos[2 * i] + 1,
+              bracket_pos[2 * i + 1] - bracket_pos[2 * i] - 1),
           bracket_type[i]);
     }
   }
@@ -956,16 +982,16 @@ std::vector<std::pair<std::string, char>> expend_outmost_brackets(
   // prefix `()`
   HAMI_ASSERT(!result.empty());
   if (result[0].second != 0) {
-    HAMI_ASSERT(result.size() > 0 && result[0].second == '(' &&
-                result[1].second == 0);
+    HAMI_ASSERT(
+        result.size() > 0 && result[0].second == '(' && result[1].second == 0);
     result[1].first = result[0].second + result[0].first +
-                      open_to_close_bracket[result[0].second] + result[1].first;
+        open_to_close_bracket[result[0].second] + result[1].first;
     result.erase(result.begin());
   }
 
   return result;
 }
-}  // namespace hami::parser_v2
+} // namespace hami::parser_v2
 
 namespace hami {
 class ParserTest : public BackendOne {
@@ -992,10 +1018,10 @@ class ParserTest : public BackendOne {
     } else {
       std::string main_bkd = parser.parse(config, config_output);
 
-      data->insert_or_assign(TASK_RESULT_KEY,
-                             std::make_pair(main_bkd, config_output));
+      data->insert_or_assign(
+          TASK_RESULT_KEY, std::make_pair(main_bkd, config_output));
     }
   }
 };
 HAMI_REGISTER_BACKEND(ParserTest, "ParserTest");
-}  // namespace hami
+} // namespace hami

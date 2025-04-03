@@ -53,7 +53,7 @@ inline dict make_dict(string node_name, dict data = nullptr) {
   return data_out;
 }
 
-inline dict deep_copy(dict data) {
+inline dict copy_dict(dict data) {
   dict data_out;
   if (!data) {
     data_out = std::make_shared<std::unordered_map<string, any>>();
@@ -198,6 +198,15 @@ T get(const TypedDict& data, const std::string& key) {
     throw std::runtime_error(key + " not found in TypedDict");
   }
   return std::get<T>(iter->second);
+}
+
+template <>
+inline bool get<bool>(const TypedDict& data, const std::string& key) {
+  auto iter = data.data.find(key);
+  if (iter == data.data.end()) {
+    return false;
+  }
+  return std::get<bool>(iter->second);
 }
 
 template <typename T>

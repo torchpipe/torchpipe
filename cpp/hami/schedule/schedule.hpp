@@ -158,11 +158,17 @@ class ContiguousBatching : public Backend {
   struct CBProtocol {
     // enum struct Action { Stop, Cancel };
     id_type req_id;
-    int32_t req_tokens{0};
-    int32_t new_tokens{0};
-    int32_t max_new_tokens{0};
-    int32_t max_tokens{0};
+
+    int req_tokens{0};
+    int max_tokens{0};
+    int max_new_tokens{0};
+
     bool stop{false}; // error, cancel //stop by error or cancel
+
+    int new_tokens{0};
+
+    size_t new_page_needed{0};
+    bool running = false;
     dict data;
     // std::string req_type = "prefill";
   };
@@ -176,9 +182,15 @@ class ContiguousBatching : public Backend {
   void parser_message(
       const std::shared_ptr<TypedDict>& msg,
       CBProtocol& protocol);
+
+ private:
+  std::unordered_map<id_type, CBProtocol> req_status_;
+  // std::mutex req_status_mutex_;
+  PageTable* page_table_{nullptr};
+  int page_size_{0};
+  // std::unordered_set<id_type> need_stop_;
 };
-PageTable* page_table_{nullptr};
-int page_size_{0};
+
 // #  CBStatus Loop(src_queue)[ContiguousBatching] TASK_MSG_KEY
 // xieyi
 
