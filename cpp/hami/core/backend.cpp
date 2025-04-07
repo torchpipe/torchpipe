@@ -125,15 +125,15 @@ Backend* get_backend(const std::string& aspect_name_str) {
 }
 
 #ifdef DEBUG
-void Backend::forward(const std::vector<dict>& io) {
-  std::optional<std::string> node_name;
-  auto cls_name = HAMI_OBJECT_NAME(Backend, this);
-  if (!io.empty()) {
-    node_name = try_get<std::string>(io[0], "node_name");
-  }
-  SPDLOG_INFO("tracing: node={}, cls_name={}", *node_name, *cls_name);
-  impl_forward(io);
-}
+// void Backend::forward(const std::vector<dict>& io) {
+//   std::optional<std::string> node_name;
+//   auto cls_name = HAMI_OBJECT_NAME(Backend, this);
+//   if (!io.empty()) {
+//     node_name = try_get<std::string>(io[0], "node_name");
+//   }
+//   SPDLOG_INFO("tracing: node={}, cls_name={}", *node_name, *cls_name);
+//   impl_forward(io);
+// }
 #endif
 
 void Backend::safe_forward(const std::vector<dict>& input_output) {

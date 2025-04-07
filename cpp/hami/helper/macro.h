@@ -28,31 +28,31 @@ inline constexpr const char* file_name(const char* path) {
   }
   return file;
 }
-}  // namespace
+} // namespace
 
 #ifdef NEVER_DEFINE_THIS_COMMENTED_CODE
-#define HAMI_ASSERT(x, args...)                                                \
-  do {                                                                         \
-    if (!(x)) {                                                                \
-      throw std::runtime_error("[" + std::string(file_name(__FILE__)) + ":" +  \
-                               std::to_string(__LINE__) + std::string(" ") +   \
-                               std::string(__FUNCTION__) +                     \
-                               std::string("]: assert `") + std::string(#x) +  \
-                               std::string("` failed. ") + std::string(args)); \
-    }                                                                          \
+#define HAMI_ASSERT(x, args...)                                             \
+  do {                                                                      \
+    if (!(x)) {                                                             \
+      throw std::runtime_error(                                             \
+          "[" + std::string(file_name(__FILE__)) + ":" +                    \
+          std::to_string(__LINE__) + std::string(" ") +                     \
+          std::string(__FUNCTION__) + std::string("]: assert `") +          \
+          std::string(#x) + std::string("` failed. ") + std::string(args)); \
+    }                                                                       \
   } while (false)
 #endif
 
-#define HAMI_ASSERT_V1(x, ...)                                                \
-  do {                                                                        \
-    if (!(x)) {                                                               \
-      throw std::runtime_error("[" + std::string(file_name(__FILE__)) + ":" + \
-                               std::to_string(__LINE__) + std::string(" ") +  \
-                               std::string(__FUNCTION__) +                    \
-                               std::string("]: assert `") + std::string(#x) + \
-                               std::string("` failed. ") +                    \
-                               std::string(__VA_ARGS__));                     \
-    }                                                                         \
+#define HAMI_ASSERT_V1(x, ...)                                     \
+  do {                                                             \
+    if (!(x)) {                                                    \
+      throw std::runtime_error(                                    \
+          "[" + std::string(file_name(__FILE__)) + ":" +           \
+          std::to_string(__LINE__) + std::string(" ") +            \
+          std::string(__FUNCTION__) + std::string("]: assert `") + \
+          std::string(#x) + std::string("` failed. ") +            \
+          std::string(__VA_ARGS__));                               \
+    }                                                              \
   } while (false)
 
 #define HAMI_ASSERT(x, ...)                                                   \
@@ -74,21 +74,22 @@ inline constexpr const char* file_name(const char* path) {
     }                                                                         \
   } while (false)
 
-#define HAMI_THROW(args...)                                                   \
-  {                                                                           \
-    throw std::runtime_error("[" + std::string(file_name(__FILE__)) + ":" +   \
-                             std::to_string(__LINE__) + std::string(" ") +    \
-                             std::string(__FUNCTION__) + std::string("]: ") + \
-                             std::string(args));                              \
+#define HAMI_THROW(args...)                                                  \
+  {                                                                          \
+    throw std::runtime_error(                                                \
+        "[" + std::string(file_name(__FILE__)) + ":" +                       \
+        std::to_string(__LINE__) + std::string(" ") +                        \
+        std::string(__FUNCTION__) + std::string("]: ") + std::string(args)); \
   }
 
 #define HAMI_FATAL_ASSERT(x, ...) HAMI_ASSERT(x, __VA_ARGS__)
 #define IPIPE_ASSERT(x, ...) HAMI_ASSERT(x, __VA_ARGS__)
 
-#define STR_CONFIG_GET(config, key)                                        \
-  auto iter = config.find(#key);                                           \
-  HAMI_ASSERT(iter != config.end(),                                        \
-              "Incomplete configuration: missing " #key " configuration"); \
+#define STR_CONFIG_GET(config, key)                                \
+  auto iter = config.find(#key);                                   \
+  HAMI_ASSERT(                                                     \
+      iter != config.end(),                                        \
+      "Incomplete configuration: missing " #key " configuration"); \
   const std::string key = iter->second;
 
 #define TRACE_EXCEPT(input)                                               \
@@ -99,8 +100,8 @@ inline constexpr const char* file_name(const char* path) {
       const auto& trace_exception_msg =                                   \
           ('[' + std::string(__FILE__) + ":" + std::to_string(__LINE__) + \
            "]: failed:\n `" + std::string(#input) + "`.");                \
-      throw std::runtime_error(std::string(e.what()) +                    \
-                               "\nerror: " + trace_exception_msg);        \
+      throw std::runtime_error(                                           \
+          std::string(e.what()) + "\nerror: " + trace_exception_msg);     \
     } catch (...) {                                                       \
       const auto& trace_exception_msg =                                   \
           ('[' + std::string(__FILE__) + ":" + std::to_string(__LINE__) + \

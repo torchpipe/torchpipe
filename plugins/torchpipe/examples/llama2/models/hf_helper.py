@@ -198,6 +198,7 @@ def _modify_attention_v2(attention: torch.nn.Module):
                 print(f"qo_len={qo_len}, kv_len={kv_len}, key_states={key_states.shape}")
                 q_indptr = torch.arange(0, batch_size + 1).cuda().int() * qo_len
                 kv_indptr = torch.arange(0, batch_size + 1).cuda().int() * kv_len
+                
                 num_qo_heads = query_states.shape[-2]
                 wrapper.plan(
                     q_indptr,
@@ -260,6 +261,8 @@ def _modify_attention(attention: torch.nn.Module):
         query_states = self.q_proj(hidden_states).view(hidden_shape)#.transpose(1, 2)
         key_states = self.k_proj(hidden_states).view(hidden_shape)#.transpose(1, 2)
         value_states = self.v_proj(hidden_states).view(hidden_shape)#.transpose(1, 2)
+        
+        print(f"all in q={query_states[0][0,0,:3]}, k={key_states[0][0,0,:3]}, v={value_states[0][0,0,:3]}, mean={torch.mean(query_states)}")
         ori_k = key_states[0][0]
         ori_v = value_states[0][0]
 
@@ -330,7 +333,9 @@ def _modify_attention(attention: torch.nn.Module):
                 
                 attn_output = wrapper.run(query_states, paged_kv_cache)
                 print(f"attn_output= {attn_output} {attn_output.shape}")
-                raise RuntimeError("stop")
+                print(f'q={query_states[0,0:3,0:3]}')
+                # exit(0)
+                # raise RuntimeError("stop")
 
         else:
             q = query_states.squeeze(0)
@@ -362,10 +367,12 @@ def _modify_attention(attention: torch.nn.Module):
                     workspace_buffer, "NHD"
                 )
                 
-                print(f"qo_len={qo_len}, kv_len={kv_len}, key_states={key_states.shape}")
+                # print(f"qo_len={qo_len}, kv_len={kv_len}, key_states={key_states.shape}")
                 q_indptr = torch.arange(0, batch_size + 1).cuda().int() * qo_len
                 kv_indptr = torch.arange(0, batch_size + 1).cuda().int() * kv_len
                 
+                # print(f'before prefill_wrapper plan, q_indptr={q_indptr}, kv_indptr={kv_indptr}, num_attention_heads={ num_qo_heads}, num_key_value_heads={num_kv_heads}, head_dim={self.head_dim}')
+        
                 wrapper.plan(
                     q_indptr,
                     kv_indptr,
@@ -428,6 +435,7 @@ def _modify_attention(attention: torch.nn.Module):
                 kv_page_indptr,
                 kv_last_page_len
             )
+            print(kv_page_indptr, kv_last_page_len)
             print("paged_kv_cache in prefill: ", paged_kv_cache[0][999,4,2,1], k_append[4,2,1])
             obj_map[f'kv_page_indices.{self.layer_idx}'] = kv_page_indices
             obj_map[f'kv_page_indptr.{self.layer_idx}'] = kv_page_indptr
@@ -445,7 +453,10 @@ def _modify_attention(attention: torch.nn.Module):
         attn_weights = None
 
         attn_output = attn_output.reshape(*input_shape, -1).contiguous()
-        attn_output = self.o_proj(attn_output)
+        # torch.cuda.synchronize()
+        print("attn_output x = ", attn_output[0,:2,:5], torch.mean(attn_output))
+        attn_output = self.o_proj(attn_output)  
+        
         return attn_output, attn_weights
     attention.forward = types.MethodType(forward, attention)
     
@@ -553,6 +564,7 @@ def generate_text(model, tokenizer, prompt, max_new_tokens=7):
             do_sample=False,
             temperature=0.0
         )
+    print(f"inputs={inputs}, outputs={outputs}")
     return tokenizer.decode(outputs[0], skip_special_tokens=True)
 
 def inference(model_id='meta-llama/Llama-2-7b-chat-hf',device='cuda' ,num_layers=2, use_flashinfer=True):

@@ -7,9 +7,6 @@ from transformers import AutoTokenizer, AutoModelForCausalLM, AutoConfig
 import numpy as np
 import flashinfer
 
-# sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-    
-# from models.partial_hf import get_hf_model
 from models import hf_helper
 
 max_num_req=10
@@ -46,131 +43,126 @@ class Pdb:
         # print("pdb, d")
 hami.register("Pdb", Pdb)
 
-workspace_buffer = torch.empty(128 * 1024 * 1024, dtype=torch.uint8, device="cuda:0")
-class PrefillPlugin:
-    def init(self, params):
-        self.params = params
-        self.prefill_wrapper = flashinfer.BatchPrefillWithRaggedKVCacheWrapper(
+
+
+workspace_buffer = torch.empty(64 * 1024 * 1024, dtype=torch.uint8, device="cuda:0") # 1MB
+workspace_buffer_decode = torch.empty(64 * 1024 * 1024, dtype=torch.uint8, device="cuda:0") # 1MB
+prefill_wrapper = flashinfer.BatchPrefillWithRaggedKVCacheWrapper(
             workspace_buffer, "NHD"
         )
-    def forward(self, io: List[hami.Dict]):
-        q, k, v = io[0]['data']
-        output = io[0]['output'][0]
-        
+decode_wrapper = flashinfer.BatchDecodeWithPagedKVCacheWrapper(
+                workspace_buffer_decode, "NHD")
+     
+zero = torch.tensor([0], device='cuda', dtype=torch.int32)
+
+   
 class PyPlugin:
     def init(self, params):
         self.params = params
         print(params)
         
         self.layer_idx = int(self.params['layer_idx'])
-
-        self.tensor_page_table = hami.init("StreamGuard[TensorPage]")#.as_function()
-        # self.side_stream =  hami.init("TaskLoop[SideStreamTensor]").as_function()
-        # self.side_stream = hami.init("BackendgroundThread[]")
-        self.prefill = PrefillPlugin()
-        self.prefill.init(params)
-        self.num_prefill_tok = 0
-        self.num_decode = 0
-        self.num_attention_heads = 0
-        self.head_dim = 0
-        self.num_key_value_heads =0
         
         self.page_size = page_size
         
-        self.prefill_wrapper = flashinfer.BatchPrefillWithRaggedKVCacheWrapper(
-            workspace_buffer, "NHD"
-        )
-        self.decode_wrapper = flashinfer.BatchDecodeWithPagedKVCacheWrapper(
-                        workspace_buffer, "NHD")
-        self.req_ids = None
+        PyPlugin.req_ids = None
 
     def forward(self, io: List[hami.Dict]):
         q, k, v = io[0]['data']
-        print(f'q.dtype={q.dtype}, layer_idx={self.layer_idx}')
+                
         assert q.dtype == torch.float16
         output = io[0]['output'][0]
         
         if self.layer_idx == 0:
-            bs, self.num_attention_heads, self.head_dim = q.shape
-            self.num_key_value_heads = k.shape[1]
+            bs, PyPlugin.num_attention_heads, PyPlugin.head_dim = q.shape
+            PyPlugin.num_key_value_heads = k.shape[1]
             
-            self.req_ids, num_toks = page_table.get_activated()
-            print("type(num_toks)=", type(num_toks), num_toks)
-            # num_prefill_tok = np.argmax(num_toks > k.shape[0])
-            condition = num_toks > k.shape[0]  # prefill <=, decode >
-            self.num_decode = int(condition.sum())
+            PyPlugin.req_ids, PyPlugin.num_toks = page_table.get_activated()
+            print("type(PyPlugin.num_toks)=", type(PyPlugin.num_toks), PyPlugin.num_toks)
+
+            condition = PyPlugin.num_toks > k.shape[0]  # prefill <=, decode >
+            PyPlugin.num_decode = int(condition.sum())
             # assume always prefill first
             
-            self.num_prefill  = len(self.req_ids) - self.num_decode
-            self.num_prefill_tok = int(num_toks[:self.num_prefill].sum())
+            PyPlugin.num_prefill  = len(PyPlugin.req_ids) - PyPlugin.num_decode
+            PyPlugin.num_prefill_tok = int(PyPlugin.num_toks[:PyPlugin.num_prefill].sum())
 
-            print(f"activated page_table={page_table.get_activated()}, num_prefill_tok={self.num_prefill_tok}, num_decode={self.num_decode}", )
+            print(f"activated page_table={page_table.get_activated()}, num_prefill_tok={PyPlugin.num_prefill_tok}, num_decode={PyPlugin.num_decode}", )
         
-        if self.num_prefill_tok > 0 and self.num_decode > 0:
-            pass
-        elif self.num_prefill_tok > 0:
-            self.prefill_forward(q[:self.num_prefill_tok], k[:self.num_prefill_tok], v[:self.num_prefill_tok],
-                                output[:self.num_prefill_tok], self.num_prefill, num_toks[:self.num_prefill])
-        elif self.num_decode > 0:
-            self.decode_forward(q[self.num_prefill_tok:], k[self.num_prefill_tok:], v[self.num_prefill_tok:],
-                                output[self.num_prefill_tok:], self.num_decode, num_toks[self.num_prefill:])
+        # print(f'q.dtype={q.dtype}, layer_idx={self.layer_idx},PyPlugin.num_prefill_tok={PyPlugin.num_prefill_tok}, PyPlugin.num_decode={PyPlugin.num_decode}')
+        
+        # if PyPlugin.num_prefill_tok > 0 and PyPlugin.num_decode > 0:
+        #     assert False
+            # todo : side stream
             
-    def decode_forward(self, q, k, v, output, num_decode, num_toks):
+        if PyPlugin.num_prefill_tok > 0:
+            self.prefill_forward(q[:PyPlugin.num_prefill_tok], k[:PyPlugin.num_prefill_tok], v[:PyPlugin.num_prefill_tok],
+                                output[:PyPlugin.num_prefill_tok], PyPlugin.num_prefill, PyPlugin.num_toks[:PyPlugin.num_prefill])
+        if PyPlugin.num_decode > 0:
+            self.decode_forward(q[PyPlugin.num_prefill_tok:], k[PyPlugin.num_prefill_tok:], v[PyPlugin.num_prefill_tok:],
+                                output[PyPlugin.num_prefill_tok:])
+    def decode_forward(self, q, k, v, output):
         if self.layer_idx == 0:
-            kv_page_indices_np, kv_page_indptr_np, kv_last_page_len_np  = page_table.page_table(self.req_ids[self.num_prefill_tok:])  
+            kv_page_indices_np, kv_page_indptr_np, kv_last_page_len_np  = page_table.page_table(PyPlugin.req_ids[PyPlugin.num_prefill_tok:])  
             kv_page_indices = torch.from_numpy(kv_page_indices_np).cuda()
             kv_page_indptr = torch.from_numpy(kv_page_indptr_np).cuda()
             kv_last_page_len = torch.from_numpy(kv_last_page_len_np).cuda()
             print(f"decode: kv_page_indices= {kv_page_indices}, kv_page_indptr {kv_page_indptr}, kv_last_page_len {kv_last_page_len} ")
             
-            
-            PyPlugin.decode_page_table = kv_page_indices, kv_page_indptr, kv_last_page_len, kv_page_indices_np, kv_page_indptr_np, kv_last_page_len_np
-        else:
-            kv_page_indices, kv_page_indptr, kv_last_page_len = PyPlugin.decode_page_table
-            
-        paged_kv_cache = global_kv[self.layer_idx]
-        paged_kv_cache[0][999][kv_last_page_len-1] = k
-        paged_kv_cache[1][999][kv_last_page_len-1] = v
-        
-        self.decode_wrapper.plan(
+            index_a=kv_page_indices[kv_page_indptr[1:]-1]
+            index_b=kv_last_page_len-1
+            PyPlugin.decode_page_table = kv_page_indices, kv_page_indptr, kv_last_page_len, kv_page_indices_np, kv_page_indptr_np, kv_last_page_len_np, index_a, index_b
+            decode_wrapper.plan(
                     kv_page_indptr,
                     kv_page_indices,
                     kv_last_page_len,
-                    self.num_attention_heads,
-                    self.num_key_value_heads,
-                    self.head_dim,
+                    PyPlugin.num_attention_heads,
+                    PyPlugin.num_key_value_heads,
+                    PyPlugin.head_dim,
                     self.page_size,
                     pos_encoding_mode="ROPE_LLAMA",
                     data_type=torch.float16
                 )
-        print(f"xxxx query_states", q.shape)
-        # query_states = query_states[0]
+        else:
+            kv_page_indices, kv_page_indptr, kv_last_page_len, kv_page_indices_np, kv_page_indptr_np, kv_last_page_len_np, index_a, index_b = PyPlugin.decode_page_table
         
-        attn_output = self.decode_wrapper.run(q, paged_kv_cache, out = output)
-        print(" decode output= ",output, output.shape)
+        paged_kv_cache = global_kv[self.layer_idx]
+        # paged_kv_cache[0][999][kv_last_page_len-1] = k
+        # paged_kv_cache[1][999][kv_last_page_len-1] = v
+
+        paged_kv_cache[0][index_a, index_b] = k
+        paged_kv_cache[1][index_a, index_b] = v
+        # todo: https://github.com/NVIDIA/TensorRT-LLM/blob/a2fad51011a48f2cbfee7172047daec74fb0b1b6/tensorrt_llm/_torch/attention_backend/flashinfer.py#L259
+        
+        decode_wrapper.run(q, paged_kv_cache, out = output)
 
     def prefill_forward(self, q, k, v, output, num_prefill_tok, num_toks):
-        num_toks_gpu = torch.tensor(num_toks, device='cuda')
-        cumulative_sum_gpu = torch.cumsum(num_toks_gpu, dim=0)
-        zero = torch.tensor([0], device='cuda', dtype=cumulative_sum_gpu.dtype)
-        q_indptr = torch.cat((zero, cumulative_sum_gpu), dim=0)
+        # torch.cuda.synchronize()
+        if self.layer_idx == 0:
+            PyPlugin.num_toks_gpu = torch.tensor(num_toks, device='cuda')
+            cumulative_sum_gpu = torch.cumsum(PyPlugin.num_toks_gpu, dim=0)
+            q_indptr = torch.cat((zero, cumulative_sum_gpu), dim=0)
 
-        kv_indptr = q_indptr
-        
-        self.prefill_wrapper.plan(
-                    q_indptr,
-                    kv_indptr,
-                    self.num_attention_heads,
-                    self.num_key_value_heads,
-                    self.head_dim,
-                    causal=True, pos_encoding_mode='ROPE_LLAMA',
-                )
-        print(f'prefill output={output.shape}', q.shape, v.shape)
+            PyPlugin.kv_indptr = q_indptr
+            
+            # print(f'before prefill_wrapper plan, q_indptr={q_indptr}, kv_indptr={kv_indptr}, num_attention_heads={PyPlugin.num_attention_heads}, num_key_value_heads={PyPlugin.num_key_value_heads}, head_dim={PyPlugin.head_dim}')
+            prefill_wrapper.plan(
+                        q_indptr,
+                        PyPlugin.kv_indptr,
+                        PyPlugin.num_attention_heads,
+                        PyPlugin.num_key_value_heads,
+                        PyPlugin.head_dim,
+                        causal=True, pos_encoding_mode='ROPE_LLAMA',
+                    )
+            # print(f'prefill output={output.shape}', q.shape, v.shape)
+            # torch.cuda.synchronize()
 
-        attn_output = self.prefill_wrapper.run(q, k,
+        attn_output = prefill_wrapper.run(q, k,
                                 v,
                                 out=output)
-        self.prefill_upadate_kvcache(k, v, self.req_ids[:num_prefill_tok], kv_indptr, num_toks_gpu)
+        assert attn_output is output
+        assert attn_output.data_ptr() == output.data_ptr() 
+        self.prefill_upadate_kvcache(k, v, PyPlugin.req_ids[:num_prefill_tok], PyPlugin.kv_indptr, PyPlugin.num_toks_gpu)
         
     def prefill_upadate_kvcache(self, k, v, req_ids, kv_indptr, num_toks_gpu):
         paged_kv_cache = global_kv[self.layer_idx]
@@ -182,10 +174,11 @@ class PyPlugin:
             kv_page_indptr = torch.from_numpy(kv_page_indptr).cuda()
             kv_last_page_len = torch.from_numpy(kv_last_page_len).cuda()
             
-            seq = num_toks_gpu# flashinfer.get_seq_lens(kv_page_indptr, kv_last_page_len, 16)
+            seq =  num_toks_gpu# flashinfer.get_seq_lens(kv_page_indptr, kv_last_page_len, 16)
             
             batch_indices, positions = flashinfer.get_batch_indices_positions(kv_indptr, seq, k.shape[0])
-            print(f'seq={seq},positions={positions},batch_indices={batch_indices},k.shape[0]={k.shape[0]}')
+            # print(f'seq={seq},positions={positions},batch_indices={batch_indices},k.shape[0]={k.shape[0]}')
+            # import pdb; pdb.set_trace()
             
             PyPlugin.prefill_page_table = (batch_indices, positions, kv_page_indices, kv_page_indptr, kv_last_page_len)
         else:
@@ -200,14 +193,12 @@ class PyPlugin:
             kv_page_indptr,
             kv_last_page_len
         )
-        print(kv_page_indptr)
-        print("paged_kv_cache in prefill: ", paged_kv_cache[0][999,4,2,1], k[4,2,1])
-        assert paged_kv_cache[0][999,4,2,1] == k[4,2,1]
-      
+        # print(kv_page_indptr, kv_last_page_len)
+
         
 if __name__ == '__main__':
     import time
-    time.sleep(10)
+    # time.sleep(10)
 
     hami.register("TorchPlugin", PyPlugin)
     
@@ -225,24 +216,20 @@ if __name__ == '__main__':
     print(inputs, input_ids.shape)
     # print(io)
     io = {'data':input_ids.squeeze(0),"node_name":'embed_token'}
-    #     id_type req_id;
-    # int32_t req_tokens{0};
-    # int32_t new_tokens{0};
-    # int32_t max_new_tokens{0};
-    # int32_t max_tokens{0};
+
     io[hami.TASK_REQUEST_ID_KEY] = "id"
     io[hami.TASK_MSG_KEY] = hami.TypedDict({"req_tokens": 5,
                                             "max_new_tokens": 7,
                                             "max_tokens":4096})
     model(io)
-    # print([x.shape for x in io['result']])
-    # print(io['result'])
     
     tokenizer = AutoTokenizer.from_pretrained('exported_params/')
     q = hami.default_queue("net_out")
+    result = []
     while not q.empty():
         data = q.get()
-        print(data['data'])
-        
-        text = tokenizer.decode(data['data'], skip_special_tokens=True)
-        print(text)
+        # print(data['data'])
+        result+=(data['data'])
+    text = tokenizer.decode(result, skip_special_tokens=True)
+    print('\n'+prompt+' '+text, '\n')
+    # (num_layer = 2) San Francisco is a totalitéaletoreignersbyMSран

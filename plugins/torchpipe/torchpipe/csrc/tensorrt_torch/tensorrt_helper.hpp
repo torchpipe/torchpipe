@@ -71,7 +71,7 @@ struct OnnxParams {
   std::string timingcache; // model::timingcache
   size_t max_workspace_size{2048};
   std::string log_level{"info"};
-  int force_layer_norm_pattern_fp32{0};
+  int force_layer_norm_pattern_fp32{1};
   std::vector<float> mean;
   std::vector<float> std;
   std::vector<std::vector<std::vector<int>>>

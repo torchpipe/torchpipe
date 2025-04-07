@@ -317,8 +317,9 @@ void init_dict(py::module_& m) {
           py::arg("max_num_page"),
           py::arg("page_size"),
           py::return_value_policy::reference_internal)
-      .def("alloc", &PageTable::alloc, py::arg("name"), py::arg("num_tok"))
-      .def("extend", &PageTable::extend, py::arg("name"), py::arg("num_tok"))
+      .def("alloc", &PageTable::alloc, py::arg("id"), py::arg("num_tok"))
+      .def("reset", &PageTable::reset, py::arg("id"), py::arg("num_tok"))
+      .def("extend", &PageTable::extend, py::arg("id"))
       .def("free", &PageTable::free, py::arg("id"))
       .def(
           "page_table",

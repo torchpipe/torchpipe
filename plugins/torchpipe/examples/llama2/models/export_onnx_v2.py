@@ -70,6 +70,7 @@ def _modify_attention(attention):
     tp.add_params("num_output", 1)
     tp.add_params("num_input", 3)
     tp.add_params("dtype", 'fp16') # or fp16,fp16,fp16,fp16
+    # tp.add_params("workspace", 1024*1024*128)
     attention.batchless_attn = tp
 
 def _modify_decode_layers(layers):

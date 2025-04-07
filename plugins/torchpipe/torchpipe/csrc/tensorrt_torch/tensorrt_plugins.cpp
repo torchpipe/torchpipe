@@ -33,6 +33,9 @@ TorchPlugin::TorchPlugin(const std::string& params) : serialization_(params) {
   hami::str::try_update(params_, "num_output", torch_params_.num_output);
   hami::str::try_update(params_, "num_input", torch_params_.num_input);
   hami::str::try_update(params_, "layer_idx", torch_params_.layer_idx);
+  hami::str::try_update(params_, "workspace", torch_params_.workspace_size);
+  HAMI_ASSERT(
+      torch_params_.workspace_size <= std::numeric_limits<long int>::max());
 
   hami::str::try_update<std::string>(params_, "name", torch_params_.name);
 
@@ -358,6 +361,16 @@ int32_t TorchPlugin::enqueue(
     auto io = hami::make_dict();
     (*io)[hami::TASK_DATA_KEY] = input_tensors;
     (*io)[hami::TASK_OUTPUT_KEY] = output_tensors;
+    if (torch_params_.workspace_size > 0) {
+      HAMI_FATAL_ASSERT(workspace);
+      (*io)["workspace"] = torch::from_blob(
+          workspace,
+          {(long int)(torch_params_.workspace_size)},
+          {1},
+          torch::TensorOptions()
+              .dtype(torch::kByte)
+              .device(torch::kCUDA, device_id));
+    }
 
     dependency_->forward({io}); // 可能抛出Python异常
   } catch (const pybind11::error_already_set& e) {
@@ -405,7 +418,7 @@ size_t TorchPlugin::getWorkspaceSize(
     int32_t nbInputs,
     DynamicPluginTensorDesc const* outputs,
     int32_t nbOutputs) const noexcept {
-  return 0;
+  return torch_params_.workspace_size;
 }
 
 } // namespace plugin

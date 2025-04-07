@@ -31,6 +31,7 @@ struct TorchPluginParameters {
   int32_t num_output{1};
   int32_t num_input{1};
   int32_t layer_idx{0};
+  size_t workspace_size{0};
   std::vector<nvinfer1::DataType> type;
   std::string name{"TorchPlugin"};
 };

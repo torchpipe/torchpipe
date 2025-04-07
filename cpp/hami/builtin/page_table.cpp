@@ -10,7 +10,7 @@
 
 namespace hami {
 
-bool PageTable::extend(const hami::id_type& name, size_t num_tok) {
+bool PageTable::reset(const hami::id_type& name, size_t num_tok) {
   // std::lock_guard<std::mutex> lock(page_infos_lock_);
   // auto iter = page_infos_.find(name);
   // HAMI_ASSERT(iter != page_infos_.end());
@@ -20,6 +20,7 @@ bool PageTable::extend(const hami::id_type& name, size_t num_tok) {
     SPDLOG_WARN("extend: total >= num_tok");
     return true;
   }
+  SPDLOG_INFO("PageTable::reset {}, {}, {}", name, total, num_tok);
 
   std::lock_guard<std::mutex> lock(page_infos_lock_);
   auto& info = page_infos_.at(name);
@@ -42,6 +43,33 @@ bool PageTable::extend(const hami::id_type& name, size_t num_tok) {
   info.kv_last_page_len = (need_new_tok % page_size_) == 0
       ? need_new_tok
       : (need_new_tok % page_size_);
+  return true;
+}
+
+bool PageTable::extend(const hami::id_type& name) {
+  // std::lock_guard<std::mutex> lock(page_infos_lock_);
+  // auto iter = page_infos_.find(name);
+  // HAMI_ASSERT(iter != page_infos_.end());
+  // auto& info = iter->second;
+  // const auto total = get_num_tok(name);
+
+  std::lock_guard<std::mutex> lock(page_infos_lock_);
+  auto& info = page_infos_.at(name);
+
+  if (page_size_ - info.kv_last_page_len >= 1) {
+    info.kv_last_page_len += 1;
+    return true;
+  }
+  //   PageInfo new_info;
+  auto kv_page_indices = page_table_.alloc(1);
+  if (kv_page_indices.empty()) {
+    return false;
+  }
+  info.kv_page_indices.insert(
+      info.kv_page_indices.end(),
+      kv_page_indices.begin(),
+      kv_page_indices.end());
+  info.kv_last_page_len = 1;
   return true;
 }
 
@@ -135,7 +163,7 @@ void PageTable::activate(std::vector<id_type> ids) {
 //   return true;
 // }
 
-bool PageTable::alloc_or_extend(const hami::id_type& name, size_t num_tok) {
+bool PageTable::alloc_or_reset(const hami::id_type& name, size_t num_tok) {
   bool find_id = false;
   {
     std::unique_lock<std::mutex> lock(page_infos_lock_);
@@ -143,7 +171,7 @@ bool PageTable::alloc_or_extend(const hami::id_type& name, size_t num_tok) {
   }
   // todo: lock
   if (find_id)
-    return extend(name, num_tok);
+    return reset(name, num_tok);
   else
     return alloc(name, num_tok);
 }

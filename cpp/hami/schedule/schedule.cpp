@@ -456,6 +456,7 @@ void ContiguousBatching::impl_forward(const std::vector<dict>& io) {
         it->second.new_tokens == it->second.max_new_tokens) {
       notify_event({it->second.data});
       SPDLOG_INFO("Contiguous Batching stoped: {}", it->second.req_id);
+      page_table_->free(it->second.req_id);
       it = req_status_.erase(it);
     } else {
       ++it;
@@ -501,8 +502,14 @@ void ContiguousBatching::impl_forward(const std::vector<dict>& io) {
   for (const auto& id : sorted_ids) {
     if ((req_status_.at(id).new_page_needed) == 0) {
       ids.push_back(id);
+      SPDLOG_INFO("id = {} new_page_needed = 0", id);
+      page_table_->extend(id);
     } else {
-      if (page_table_->alloc_or_extend(
+      SPDLOG_INFO(
+          "id = {} new_page_needed = {}",
+          id,
+          req_status_.at(id).new_page_needed);
+      if (page_table_->alloc_or_reset(
               id,
               req_status_.at(id).req_tokens + req_status_.at(id).new_tokens)) {
         ids.push_back(id);
