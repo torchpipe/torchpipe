@@ -180,6 +180,7 @@ void DagDispatcher::on_finish_node(
     }
   }
 
+  SPDLOG_INFO("processed node_name = {}", node_name);
   pstack->dag.processed[node_name] = tmp_data;
 
   if (pstack->exception) { // todo check

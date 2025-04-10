@@ -110,9 +110,9 @@ void Sequential::update_min_max() {
 
 void Sequential::impl_forward(const std::vector<dict>& io) {
   DictHelper dicts_guard(io);
-  dicts_guard.keep_alive(TASK_DATA_KEY)
-      .erase(TASK_RESULT_KEY); // to keey the storage of TASK_DATA_KEY. This
-                               // tensor is
+  // dicts_guard.keep_alive(TASK_DATA_KEY)
+  //     .erase(TASK_RESULT_KEY);
+  dicts_guard.erase(TASK_RESULT_KEY);
   // may be created in another stream
   std::unordered_set<std::size_t> break_index;
   for (std::size_t i = 0; i < backends_.size(); ++i) {
@@ -136,8 +136,8 @@ void Sequential::impl_forward(const std::vector<dict>& io) {
           valid_inputs.push_back(input_dict);
         } else {
           // dicts_guard.erase(TASK_RESULT_KEY);
-          // throw std::runtime_error("Sequential: no result in " +
-          //                          backend_cfgs_[i]);
+          throw std::runtime_error(
+              "Sequential: no result in " + backend_cfgs_.at(i));
           break_index.insert(j);
           if (break_index.size() == io.size())
             return;

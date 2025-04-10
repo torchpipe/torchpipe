@@ -23,11 +23,15 @@ class IndexSelectTensor : public hami::BackendOne {
   torch::Device device_{"cuda"};
 
  private:
-  virtual std::string default_cls_name()const  { return "IndexSelectTensor"; }
+  virtual std::string default_cls_name() const {
+    return "NotExistName";
+  }
 };
 
 class EmbeddingTensor : public IndexSelectTensor {
   void forward(const dict& input_output) override;
-  virtual std::string default_cls_name()const override { return "EmbeddingTensor"; }
+  virtual std::string default_cls_name() const override {
+    return "EmbeddingTensor";
+  }
 };
-}  // namespace torchpipe
+} // namespace torchpipe

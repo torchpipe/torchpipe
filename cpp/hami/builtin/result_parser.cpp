@@ -26,4 +26,13 @@ class ThrowIfNoResult : public ResultParser {
 
 HAMI_REGISTER(Backend, ThrowIfNoResult);
 
-}  // namespace hami
+class RuntimeError : public BackendOne {
+ public:
+  void forward(const dict& io) override {
+    throw std::runtime_error("in RuntimeError backend");
+  }
+};
+
+HAMI_REGISTER(Backend, RuntimeError);
+
+} // namespace hami

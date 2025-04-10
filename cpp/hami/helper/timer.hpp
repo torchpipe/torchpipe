@@ -28,4 +28,13 @@ class ScopedTimer {
   float probability_{1};
   std::chrono::steady_clock::time_point start_;
 };
-}  // namespace hami::helper
+
+inline std::chrono::steady_clock::time_point now() {
+  return std::chrono::steady_clock::now();
+}
+
+inline float time_passed(decltype(now()) time_old) {
+  std::chrono::duration<float, std::milli> fp_ms = now() - time_old;
+  return fp_ms.count();
+}
+} // namespace hami::helper

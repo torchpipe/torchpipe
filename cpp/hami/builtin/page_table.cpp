@@ -20,7 +20,7 @@ bool PageTable::reset(const hami::id_type& name, size_t num_tok) {
     SPDLOG_WARN("extend: total >= num_tok");
     return true;
   }
-  SPDLOG_INFO("PageTable::reset {}, {}, {}", name, total, num_tok);
+  SPDLOG_INFO("PageTable::reset {}, now={}, required={}", name, total, num_tok);
 
   std::lock_guard<std::mutex> lock(page_infos_lock_);
   auto& info = page_infos_.at(name);
@@ -73,15 +73,22 @@ bool PageTable::extend(const hami::id_type& name) {
   return true;
 }
 
-std::pair<std::vector<id_type>, std::vector<int>> PageTable::get_activated() {
+std::pair<std::vector<id_type>, std::vector<int>> PageTable::pop_activated() {
   std::pair<std::vector<id_type>, std::vector<int>> re;
 
   std::lock_guard<std::mutex> lock(page_infos_lock_);
   if (ids_.empty())
     return re;
-  re.first = ids_.front();
+  // re.first = ids_.front();
+  std::swap(ids_.front(), re.first);
+  ids_.pop();
   for (const id_type& id : re.first) {
-    const auto& item = page_infos_.at(id);
+    auto iter = page_infos_.find(id);
+    HAMI_FATAL_ASSERT(
+        iter != page_infos_.end(),
+        id + " not found. Size = " + std::to_string(page_infos_.size()) +
+            " name = " + page_infos_.begin()->first);
+    const auto& item = iter->second;
     HAMI_FATAL_ASSERT(!item.kv_page_indices.empty());
 
     re.second.push_back(
@@ -89,11 +96,31 @@ std::pair<std::vector<id_type>, std::vector<int>> PageTable::get_activated() {
   }
 
   return re;
+}
 
-  // std::vector<id_type> re;
-  // std::swap(re, ids_.front());
+std::pair<std::vector<id_type>, std::vector<int>> PageTable::get_activated() {
+  std::pair<std::vector<id_type>, std::vector<int>> re;
+
+  std::lock_guard<std::mutex> lock(page_infos_lock_);
+  if (ids_.empty())
+    return re;
+  re.first = ids_.front();
+  // std::swap(ids_.front(), re.first);
   // ids_.pop();
-  // return re;
+  for (const id_type& id : re.first) {
+    auto iter = page_infos_.find(id);
+    HAMI_FATAL_ASSERT(
+        iter != page_infos_.end(),
+        id + " not found. Size = " + std::to_string(page_infos_.size()) +
+            " name = " + page_infos_.begin()->first);
+    const auto& item = iter->second;
+    HAMI_FATAL_ASSERT(!item.kv_page_indices.empty());
+
+    re.second.push_back(
+        item.kv_last_page_len + page_size_ * (item.kv_page_indices.size() - 1));
+  }
+
+  return re;
 }
 
 std::tuple<std::vector<int>, std::vector<int>, std::vector<int>> PageTable::
@@ -135,6 +162,13 @@ void PageTable::activate(std::vector<id_type> ids) {
     HAMI_ASSERT(page_infos_.find(item) != page_infos_.end());
   }
   ids_.push(std::move(ids));
+}
+
+void PageTable::deactivate() {
+  std::lock_guard<std::mutex> lock(page_infos_lock_);
+  ids_ = {};
+  // decltype(ids_) empty;
+  // std::swap(ids_, empty);
 }
 
 // bool PageTable::alloc_pages(const hami::id_type& name, size_t num_page) {

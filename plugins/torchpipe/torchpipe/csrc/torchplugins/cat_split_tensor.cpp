@@ -5,16 +5,26 @@
 using namespace hami;
 
 namespace torchpipe {
+void CatTensor::impl_init(
+    const std::unordered_map<std::string, std::string>& params,
+    const dict& kwargs) {
+  auto iter = params.find("append_index_selector");
+  if (iter != params.end()) {
+    index_selector_ = stoi(iter->second);
+    SPDLOG_INFO("index_selector = {}", *index_selector_);
+  }
+}
 
 void CatTensor::impl_forward(const std::vector<dict>& input_dict) {
   std::vector<std::vector<torch::Tensor>> cated_inputs;
-  std::vector<size_t> req_size;
+  std::vector<int> req_size;
   for (const auto& input : input_dict) {
     auto data = dict_gets<torch::Tensor>(input, TASK_DATA_KEY);
+
     req_size.push_back(data[0].size(0));
     cated_inputs.push_back(std::move(data));
   }
-  req_size[0] = std::accumulate(req_size.begin(), req_size.end(), 0ULL);
+  auto total_bs = std::accumulate(req_size.begin(), req_size.end(), 0);
 
   // row2col
   const size_t num_tensors = cated_inputs.front().size();
@@ -34,17 +44,33 @@ void CatTensor::impl_forward(const std::vector<dict>& input_dict) {
 
   for (const auto& item : nchws) {
     if (item.size() == 1)
-      result.push_back(item[0]);
+      result.push_back(item.at(0));
     else
       result.push_back(torch::cat(item, 0));
   }
-  if (result.size() == 1) {
-    (*input_dict.front())[TASK_RESULT_KEY] = result[0];
-  } else {
+  if (index_selector_) {
+    std::vector<int64_t> output_values;
+    output_values.reserve(req_size.size());
+    int current_sum = 0;
+    for (int size : req_size) {
+      current_sum += size;
+      output_values.push_back(current_sum + *index_selector_);
+    }
+
+    const auto opt =
+        torch::TensorOptions().dtype(torch::kLong).device(torch::kCUDA);
+    result.push_back(torch::tensor(output_values, opt));
     (*input_dict.front())[TASK_RESULT_KEY] = result;
+  } else {
+    if (result.size() == 1) {
+      (*input_dict.front())[TASK_RESULT_KEY] = result[0];
+    } else {
+      (*input_dict.front())[TASK_RESULT_KEY] = result;
+    }
   }
 
-  for (size_t i = 0; i < input_dict.size(); ++i) {
+  (*input_dict[0])[TASK_REQUEST_SIZE_KEY] = total_bs;
+  for (size_t i = 1; i < input_dict.size(); ++i) {
     (*input_dict[i])[TASK_REQUEST_SIZE_KEY] = int(req_size[i]);
   }
 }

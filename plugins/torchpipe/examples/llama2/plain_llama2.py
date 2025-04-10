@@ -36,8 +36,8 @@ import hami
 class Pdb:
     def forward(self, io: List[hami.Dict]):
         data = io[0]
-        print(data['request_size'], data['request_id'], data['node_name'])
-        print(list(data.keys()))
+
+        print("Pdb: data.keys()", list(data.keys()), data['request_size'], data['request_id'], data['node_name'], data['data'])
         data['result'] = data['data']
         # import pdb; pdb.set_trace()
         # print("pdb, d")
@@ -59,7 +59,7 @@ zero = torch.tensor([0], device='cuda', dtype=torch.int32)
 class PyPlugin:
     def init(self, params):
         self.params = params
-        print(params)
+        print('params: ', params)
         
         self.layer_idx = int(self.params['layer_idx'])
         
@@ -68,39 +68,43 @@ class PyPlugin:
         PyPlugin.req_ids = None
 
     def forward(self, io: List[hami.Dict]):
-        q, k, v = io[0]['data']
+        try:
+            q, k, v = io[0]['data']
+                    
+            assert q.dtype == torch.float16
+            output = io[0]['output'][0]
+            
+            if self.layer_idx == 0:
+                bs, PyPlugin.num_attention_heads, PyPlugin.head_dim = q.shape
+                PyPlugin.num_key_value_heads = k.shape[1]
                 
-        assert q.dtype == torch.float16
-        output = io[0]['output'][0]
-        
-        if self.layer_idx == 0:
-            bs, PyPlugin.num_attention_heads, PyPlugin.head_dim = q.shape
-            PyPlugin.num_key_value_heads = k.shape[1]
-            
-            PyPlugin.req_ids, PyPlugin.num_toks = page_table.get_activated()
-            print("type(PyPlugin.num_toks)=", type(PyPlugin.num_toks), PyPlugin.num_toks)
+                PyPlugin.req_ids, PyPlugin.num_toks = page_table.pop_activated()
+                # print("type(PyPlugin.num_toks)=", type(PyPlugin.num_toks), PyPlugin.num_toks)
 
-            condition = PyPlugin.num_toks > k.shape[0]  # prefill <=, decode >
-            PyPlugin.num_decode = int(condition.sum())
-            # assume always prefill first
-            
-            PyPlugin.num_prefill  = len(PyPlugin.req_ids) - PyPlugin.num_decode
-            PyPlugin.num_prefill_tok = int(PyPlugin.num_toks[:PyPlugin.num_prefill].sum())
+                condition = PyPlugin.num_toks > k.shape[0]  # prefill <=, decode >
+                PyPlugin.num_decode = int(condition.sum())
+                # assume always prefill first
+                
+                PyPlugin.num_prefill  = len(PyPlugin.req_ids) - PyPlugin.num_decode
+                PyPlugin.num_prefill_tok = int(PyPlugin.num_toks[:PyPlugin.num_prefill].sum())
 
-            print(f"activated page_table={page_table.get_activated()}, num_prefill_tok={PyPlugin.num_prefill_tok}, num_decode={PyPlugin.num_decode}", )
-        
-        # print(f'q.dtype={q.dtype}, layer_idx={self.layer_idx},PyPlugin.num_prefill_tok={PyPlugin.num_prefill_tok}, PyPlugin.num_decode={PyPlugin.num_decode}')
-        
-        # if PyPlugin.num_prefill_tok > 0 and PyPlugin.num_decode > 0:
-        #     assert False
-            # todo : side stream
+                print(f" num_prefill_tok={PyPlugin.num_prefill_tok}, num_decode={PyPlugin.num_decode}, req_ids {PyPlugin.req_ids}, num_toks = {PyPlugin.num_toks} ", )
             
-        if PyPlugin.num_prefill_tok > 0:
-            self.prefill_forward(q[:PyPlugin.num_prefill_tok], k[:PyPlugin.num_prefill_tok], v[:PyPlugin.num_prefill_tok],
-                                output[:PyPlugin.num_prefill_tok], PyPlugin.num_prefill, PyPlugin.num_toks[:PyPlugin.num_prefill])
-        if PyPlugin.num_decode > 0:
-            self.decode_forward(q[PyPlugin.num_prefill_tok:], k[PyPlugin.num_prefill_tok:], v[PyPlugin.num_prefill_tok:],
-                                output[PyPlugin.num_prefill_tok:])
+            # print(f'q.dtype={q.dtype}, layer_idx={self.layer_idx},PyPlugin.num_prefill_tok={PyPlugin.num_prefill_tok}, PyPlugin.num_decode={PyPlugin.num_decode}')
+            
+            # if PyPlugin.num_prefill_tok > 0 and PyPlugin.num_decode > 0:
+            #     assert False
+                # todo : side stream
+                
+            if PyPlugin.num_prefill_tok > 0:
+                self.prefill_forward(q[:PyPlugin.num_prefill_tok], k[:PyPlugin.num_prefill_tok], v[:PyPlugin.num_prefill_tok],
+                                    output[:PyPlugin.num_prefill_tok], PyPlugin.num_prefill, PyPlugin.num_toks[:PyPlugin.num_prefill])
+            if PyPlugin.num_decode > 0:
+                self.decode_forward(q[PyPlugin.num_prefill_tok:], k[PyPlugin.num_prefill_tok:], v[PyPlugin.num_prefill_tok:],
+                                    output[PyPlugin.num_prefill_tok:])
+        except Exception as e:
+            print(f"error {e}", flush=True)
+            raise e
     def decode_forward(self, q, k, v, output):
         if self.layer_idx == 0:
             kv_page_indices_np, kv_page_indptr_np, kv_last_page_len_np  = page_table.page_table(PyPlugin.req_ids[PyPlugin.num_prefill_tok:])  
@@ -129,7 +133,7 @@ class PyPlugin:
         paged_kv_cache = global_kv[self.layer_idx]
         # paged_kv_cache[0][999][kv_last_page_len-1] = k
         # paged_kv_cache[1][999][kv_last_page_len-1] = v
-
+        print(f"index_a, index_b = {index_a}, {index_b} layer_idx = {self.layer_idx}")
         paged_kv_cache[0][index_a, index_b] = k
         paged_kv_cache[1][index_a, index_b] = v
         # todo: https://github.com/NVIDIA/TensorRT-LLM/blob/a2fad51011a48f2cbfee7172047daec74fb0b1b6/tensorrt_llm/_torch/attention_backend/flashinfer.py#L259
@@ -145,7 +149,7 @@ class PyPlugin:
 
             PyPlugin.kv_indptr = q_indptr
             
-            # print(f'before prefill_wrapper plan, q_indptr={q_indptr}, kv_indptr={kv_indptr}, num_attention_heads={PyPlugin.num_attention_heads}, num_key_value_heads={PyPlugin.num_key_value_heads}, head_dim={PyPlugin.head_dim}')
+            # print(f'before prefill_wrapper plan, q_indptr={q_indptr}, num_attention_heads={PyPlugin.num_attention_heads}, num_key_value_heads={PyPlugin.num_key_value_heads}, head_dim={PyPlugin.head_dim}')
             prefill_wrapper.plan(
                         q_indptr,
                         PyPlugin.kv_indptr,
@@ -154,14 +158,19 @@ class PyPlugin:
                         PyPlugin.head_dim,
                         causal=True, pos_encoding_mode='ROPE_LLAMA',
                     )
-            # print(f'prefill output={output.shape}', q.shape, v.shape)
-            # torch.cuda.synchronize()
+            
 
         attn_output = prefill_wrapper.run(q, k,
                                 v,
                                 out=output)
         assert attn_output is output
         assert attn_output.data_ptr() == output.data_ptr() 
+        
+        # torch.cuda.synchronize()
+        
+        # if self.layer_idx == 1:
+        #     print(f'prefill output={torch.mean(output)}', output.shape, v.shape)
+        
         self.prefill_upadate_kvcache(k, v, PyPlugin.req_ids[:num_prefill_tok], PyPlugin.kv_indptr, PyPlugin.num_toks_gpu)
         
     def prefill_upadate_kvcache(self, k, v, req_ids, kv_indptr, num_toks_gpu):
@@ -169,7 +178,7 @@ class PyPlugin:
         
         if self.layer_idx == 0:
             kv_page_indices, kv_page_indptr, kv_last_page_len  = page_table.page_table(req_ids)  
-            print(f"kv_page_indices= {kv_page_indices}, kv_page_indptr {kv_page_indptr}, kv_last_page_len {kv_last_page_len} ")
+            print(f"req_ids={req_ids} kv_page_indices= {kv_page_indices}, kv_page_indptr {kv_page_indptr}, kv_last_page_len {kv_last_page_len} ")
             kv_page_indices = torch.from_numpy(kv_page_indices).cuda()
             kv_page_indptr = torch.from_numpy(kv_page_indptr).cuda()
             kv_last_page_len = torch.from_numpy(kv_last_page_len).cuda()
@@ -199,9 +208,8 @@ class PyPlugin:
 if __name__ == '__main__':
     import time
     # time.sleep(10)
-
-    hami.register("TorchPlugin", PyPlugin)
     
+    hami.register("TorchPlugin", PyPlugin)
     
     model = hami.init_from_file('config/plain_llama2.toml')
     
@@ -215,21 +223,55 @@ if __name__ == '__main__':
     # attention_mask = inputs['attention_mask']
     print(inputs, input_ids.shape)
     # print(io)
-    io = {'data':input_ids.squeeze(0),"node_name":'embed_token'}
-
-    io[hami.TASK_REQUEST_ID_KEY] = "id"
-    io[hami.TASK_MSG_KEY] = hami.TypedDict({"req_tokens": 5,
-                                            "max_new_tokens": 7,
-                                            "max_tokens":4096})
-    model(io)
+    ios = []
+    ids = []
+    events = []
+    for i in range(10):
+        ids.append(f"id-{i}")
+        max_tokens = 7
+        if i == 5: 
+            max_tokens = 10
+        if i == 2: 
+            max_tokens = 4
+        if i == 0:
+            max_tokens += 12
+             
+        io = hami.Dict({'data':input_ids.squeeze(0),"node_name":'embed_token'})
+        io[hami.TASK_EVENT_KEY] = hami.Event() 
+        # events.append(io.set_event())
+        events.append(io[hami.TASK_EVENT_KEY])
+        io[hami.TASK_REQUEST_ID_KEY] = f"id-{i}"
+        io[hami.TASK_MSG_KEY] = hami.TypedDict({"req_tokens": 5,
+                                                "max_tokens": max_tokens,
+                                                "context_length":4096})
+        ios.append(io)
+    model(ios)
     
+    for ev in events:
+        ev.wait()
+        
     tokenizer = AutoTokenizer.from_pretrained('exported_params/')
     q = hami.default_queue("net_out")
-    result = []
+    
+    results = {}
+    for id in ids:
+        results[id] = []
     while not q.empty():
         data = q.get()
-        # print(data['data'])
-        result+=(data['data'])
-    text = tokenizer.decode(result, skip_special_tokens=True)
-    print('\n'+prompt+' '+text, '\n')
+        id = data['request_id']
+        results[id] += data['data']
+    for key, result in results.items():
+        text = tokenizer.decode(result, skip_special_tokens=True)
+        print(f'\n {key}: '+prompt+' '+text)
     # (num_layer = 2) San Francisco is a totalitéaletoreignersbyMSран
+    # 22777|totalité, 9457|alet, 13606|oreign, 414|ers, 1609|by 
+    
+    
+    # for key, result in results.items():
+    #     text = ""
+    #     for index, item in enumerate(result):
+    #         text += f' {index}| '+tokenizer.decode(item, skip_special_tokens=True)
+    #     print(f'\n {key}: '+prompt+' '+text, '\n')
+        
+    
+    

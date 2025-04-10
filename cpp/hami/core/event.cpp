@@ -12,25 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "hami/core/event.hpp"
-
-// #include "pybind11/pybind11.h"
 #include <mutex>
 
+#include "hami/core/event.hpp"
+#include "hami/helper/timer.hpp"
+
 namespace hami {
 
-std::chrono::steady_clock::time_point now() {
-    return std::chrono::steady_clock::now();
+Event::Event(size_t num) : num_task(num), starttime_(helper::now()) {}
+float Event::time_passed() {
+  return helper::time_passed(starttime_);
 }
 
-float time_passed(decltype(now()) time_old) {
-    std::chrono::duration<float, std::milli> fp_ms = now() - time_old;
-    return fp_ms.count();
-}
-}  // namespace hami
-namespace hami {
-
-Event::Event(size_t num) : num_task(num), starttime_(now()) {}
-float Event::time_passed() { return hami::time_passed(starttime_); }
-
-}  // namespace hami
+} // namespace hami

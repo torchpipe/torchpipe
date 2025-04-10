@@ -5,6 +5,7 @@
 #include "hami/helper/base_logging.hpp"
 #include "hami/helper/filesystem.hpp"
 #include "hami/helper/range.hpp"
+#include "hami/helper/timer.hpp"
 
 #include "hami/core/backend.hpp"
 #include "hami/core/helper.hpp"

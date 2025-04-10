@@ -32,6 +32,7 @@ torch::Tensor to_current_device(torch::Tensor input);
 #endif
 
 torch::Tensor get_tensor_from_any(hami::any input);
+std::string print_tensor(const std::vector<torch::Tensor>& data, const std::string & tag ="");
 
 bool is_any_cpu(hami::any input);
 bool is_cpu_tensor(torch::Tensor input);

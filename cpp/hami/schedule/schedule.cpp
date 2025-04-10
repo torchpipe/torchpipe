@@ -14,6 +14,8 @@
 #include "hami/helper/string.hpp"
 #include "hami/helper/timer.hpp"
 
+#include "hami/helper/timer.hpp"
+
 namespace hami {
 
 void Loop::impl_init(
@@ -22,6 +24,13 @@ void Loop::impl_init(
   auto [args, kwargs] = parser_v2::get_args_kwargs(this, "Loop", params);
   // str::try_update(config, "batching_timeout", batching_timeout_);
   str::try_update(kwargs, "node_name", node_name_);
+  str::try_update(kwargs, "max", max_);
+  str::try_update(kwargs, "timeout", timeout_);
+  SPDLOG_INFO(
+      "loop, node_name = {}, max = {}, timeout = {}",
+      node_name_,
+      max_,
+      timeout_);
   HAMI_ASSERT(args.size() >= 1);
   src_queue_ = &(default_queue(args[0]));
   std::string name_dep = str::update<std::string>(kwargs, "target");
@@ -34,23 +43,108 @@ void Loop::impl_init(
   thread_ = std::thread(&Loop::run, this);
 }
 
+void Loop::impl_forward_sync(const std::vector<dict>& ios) {
+  for (const auto& item : ios) {
+    item->erase(TASK_RESULT_KEY);
+  }
+  injected_dependency_->forward(ios);
+  return;
+  std::vector<std::shared_ptr<Event>> events;
+  for (const auto& item : ios) {
+    auto iter = item->find(TASK_EVENT_KEY);
+    events.push_back(any_cast<std::shared_ptr<Event>>(iter->second));
+    item->erase(iter);
+    item->erase(TASK_RESULT_KEY);
+  }
+  try {
+    injected_dependency_->forward(ios);
+  } catch (...) {
+    for (std::size_t i = 0; i < ios.size(); ++i) {
+      (*ios[i])[TASK_EVENT_KEY] = events[i];
+      ios[i]->erase(TASK_RESULT_KEY);
+    }
+    for (const auto& ev : events) {
+      ev->set_exception_and_notify_all(std::current_exception());
+    }
+  }
+  for (std::size_t i = 0; i < ios.size(); ++i) {
+    (*ios[i])[TASK_EVENT_KEY] = events[i];
+  }
+  for (const auto& ev : events) {
+    ev->notify_all();
+  }
+}
+
 void Loop::run() {
-  std::vector<dict> datas;
+  std::vector<dict> input_data;
+  size_t input_data_size = 0;
+  bool timeout = (timeout_ == 0);
 
   while (bInited_.load()) {
-    do {
+    const auto queue_size = src_queue_->size();
+    if (input_data_size != 0 && queue_size != 0)
+      SPDLOG_INFO(
+          "loop, input_data_size = {}, queue_size = {}",
+          input_data_size,
+          queue_size);
+    if (input_data_size + queue_size >= max_) {
+      std::size_t new_pop = 0;
+      while (input_data_size + new_pop < max_) {
+        new_pop += src_queue_->front_size();
+        if (input_data_size + new_pop > max_) {
+          break;
+        }
+        input_data_size += src_queue_->front_size();
+        auto data = src_queue_->get();
+        input_data.push_back(data);
+      }
+      impl_forward_sync(input_data);
+    } else if (input_data_size + queue_size == 0) {
       auto [data, size] =
           src_queue_->try_get(std::chrono::milliseconds(SHUTDOWN_TIMEOUT));
-
       if (data) {
-        datas.push_back(*data);
+        input_data.push_back(*data);
+        input_data_size += size;
       }
-    } while (!src_queue_->empty());
-    if (!datas.empty()) {
-      // todo safe_forward
-      injected_dependency_->forward(datas);
-      datas.clear();
+      continue;
+    } else if (timeout) {
+      std::size_t new_pop = 0;
+      while (!src_queue_->empty() && (input_data_size + new_pop < max_)) {
+        new_pop += src_queue_->front_size();
+        if (input_data_size + new_pop > max_) {
+          break;
+        }
+        input_data_size += src_queue_->front_size();
+        input_data.push_back(src_queue_->get());
+      }
+      if (input_data_size + new_pop >= max_) {
+        continue; // go to another branch
+      }
+      impl_forward_sync(input_data);
+    } else {
+      if (input_data_size == 0) {
+        input_data_size += src_queue_->front_size();
+        input_data.push_back(src_queue_->get());
+      }
+      std::shared_ptr<Event> event =
+          any_cast<std::shared_ptr<Event>>(input_data[0]->at(TASK_EVENT_KEY));
+      auto time_es = event->time_passed();
+      int time = int(timeout_ - time_es);
+      if (time > 0) {
+        if (!src_queue_->wait_for(std::chrono::milliseconds(time))) {
+          timeout = true;
+        } else {
+          // todo
+        }
+      } else {
+        timeout = true;
+      }
+      continue;
     }
+    // re-init
+    input_data.clear();
+    input_data_size = 0;
+    timeout = (timeout_ == 0);
   }
 }
 
@@ -367,8 +461,8 @@ HAMI_REGISTER_BACKEND(SharedInstancesState);
 //   id_type req_id;
 //   int req_tokens;
 //   int new_tokens;
-//   int max_new_tokens;
 //   int max_tokens;
+//   int context_length;
 //   std::vector<int> stop_token_ids;
 //   Action action;
 // };
@@ -379,6 +473,9 @@ void ContiguousBatching::impl_init(
   auto [args, kwargs] =
       parser_v2::get_args_kwargs(this, "ContiguousBatching", params);
   std::string target = str::update<std::string>(kwargs, "target");
+  max_ = str::update<int>(kwargs, "max");
+  SPDLOG_INFO("contiguous batching, target = {}, max = {}", target, max_);
+
   dependency_ = HAMI_INSTANCE_GET(Backend, target);
   HAMI_ASSERT(dependency_, target + " not found (ContiguousBatching).");
 
@@ -408,15 +505,33 @@ void ContiguousBatching::impl_forward(const std::vector<dict>& io) {
         // std::lock_guard<std::mutex> lock(req_status_mutex_);
         if (iter_req == req_status_.find(pro.req_id)) {
           SPDLOG_WARN("can not find `{}` when trying to stop it.", pro.req_id);
+          page_table_->free(pro.req_id);
         } else {
           iter_req->second.stop = true;
+          // iter_req->second.data = (item);
         }
+        SPDLOG_INFO("stop {}", pro.req_id);
+        continue;
+      }
+
+      if (pro.finish) {
+        // std::lock_guard<std::mutex> lock(req_status_mutex_);
+        HAMI_FATAL_ASSERT(iter_req != req_status_.end());
+        {
+          iter_req->second.stop = true;
+          iter_req->second.running = false;
+          // iter_req->second.data = item;
+        }
+        SPDLOG_INFO("finish {}", pro.req_id);
         continue;
       }
 
       HAMI_FATAL_ASSERT(iter_req == req_status_.find(pro.req_id));
       // page_table_->alloc(pro.req_id, pro.req_tokens);
       pro.data = item;
+      // pro.event = dict_get<std::shared_ptr<Event>>(item, TASK_EVENT_KEY);
+      static const auto start_time = helper::now();
+      pro.time = helper::time_passed(start_time);
       req_status_.emplace(pro.req_id, std::move(pro));
       item->erase(iter);
     } else {
@@ -431,34 +546,60 @@ void ContiguousBatching::impl_forward(const std::vector<dict>& io) {
     }
   }
 
+  for (auto iter = req_status_.begin(); iter != req_status_.end();) {
+    if (iter->second.stop && !iter->second.running) {
+      SPDLOG_INFO("Contiguous Batching stoped: {}", iter->first);
+      notify_event({iter->second.data});
+      // iter->second.event->notify_all();
+      SPDLOG_INFO("Contiguous Batching stoped(notify_event): {}", iter->first);
+      HAMI_FATAL_ASSERT(page_table_->free(iter->first));
+      iter = req_status_.erase(iter);
+    } else {
+      ++iter;
+    }
+  }
+
   // wait for all ready
   if (!std::all_of(
           req_status_.begin(), req_status_.end(), [](const auto& pair) {
             return !pair.second.running;
           })) {
-    SPDLOG_WARN("returned at all_of. wired. not all ready ");
+    std::vector<std::string> not_ready_ids;
+    for (const auto& pair : req_status_) {
+      if (pair.second.running) {
+        not_ready_ids.push_back(pair.first);
+      }
+    }
+    SPDLOG_WARN(
+        "contiguous batching: not all ready: " + str::join(not_ready_ids));
     return;
   }
 
   // remove stoped id and finished id
-
+  std::unordered_set<std::string> will_stop_ids;
   for (auto it = req_status_.begin(); it != req_status_.end();) {
     SPDLOG_INFO(
-        "id={} req_tokens={},new_tokens={}, max_tokens={}, max_new_tokens={}",
+        "id={} req_tokens={},new_tokens={}, context_length={}, max_tokens={}",
         it->first,
         it->second.req_tokens,
         it->second.new_tokens,
-        it->second.max_tokens,
-        it->second.max_new_tokens);
-    if (it->second.stop ||
-        (it->second.req_tokens + it->second.new_tokens ==
-         it->second.max_tokens) ||
-        it->second.new_tokens == it->second.max_new_tokens) {
-      notify_event({it->second.data});
-      SPDLOG_INFO("Contiguous Batching stoped: {}", it->second.req_id);
-      page_table_->free(it->second.req_id);
-      it = req_status_.erase(it);
-    } else {
+        it->second.context_length,
+        it->second.max_tokens);
+    // if (it->second.stop ||
+    //     (it->second.req_tokens + it->second.new_tokens ==
+    //      it->second.context_length) ||
+    //     it->second.new_tokens == it->second.max_tokens) {
+    //   notify_event({it->second.data});
+    //   SPDLOG_INFO("Contiguous Batching stoped: {}", it->second.req_id);
+    //   page_table_->free(it->first);
+    //   it = req_status_.erase(it);
+    // }
+    {
+      if ((it->second.req_tokens + it->second.new_tokens + 1 ==
+           it->second.context_length) ||
+          it->second.new_tokens + 1 == it->second.max_tokens) {
+        will_stop_ids.insert(it->first);
+      }
       ++it;
     }
   }
@@ -466,13 +607,18 @@ void ContiguousBatching::impl_forward(const std::vector<dict>& io) {
     return;
 
   // needed page
+  int new_page_needed = 0;
   for (auto it = req_status_.begin(); it != req_status_.end(); ++it) {
     if (0 == it->second.new_tokens) // prefill
+    {
       it->second.new_page_needed =
           (it->second.req_tokens + page_size_ - 1) / page_size_;
-    else if (1 == (it->second.req_tokens + it->second.new_tokens) % page_size_)
+      new_page_needed += it->second.new_page_needed;
+    } else if (
+        1 == (it->second.req_tokens + it->second.new_tokens) % page_size_) {
       it->second.new_page_needed = (1);
-    else
+      new_page_needed += 1;
+    } else
       it->second.new_page_needed = 0;
   }
 
@@ -485,21 +631,41 @@ void ContiguousBatching::impl_forward(const std::vector<dict>& io) {
       req_status_.end(),
       std::back_inserter(sorted_ids),
       [](const auto& pair) { return pair.first; });
-
   std::sort(
       sorted_ids.begin(),
       sorted_ids.end(),
       [this](const id_type& a, const id_type& b) {
-        const auto a_p = req_status_.at(a).new_page_needed;
-        const auto b_p = req_status_.at(b).new_page_needed;
-        if (a_p < b_p)
-          return true;
-        // else if (a_p == b_p&&)
-        //   return true;
-        return false;
+        return req_status_.at(a).time <= req_status_.at(b).time;
       });
+
+  if (new_page_needed > page_table_->available_pages()) {
+    // sort by new_page_needed when available_pages is not enough
+    std::stable_sort(
+        sorted_ids.begin(),
+        sorted_ids.end(),
+        [this](const id_type& a, const id_type& b) {
+          const auto a_p = req_status_.at(a).new_page_needed;
+          const auto b_p = req_status_.at(b).new_page_needed;
+          if (a_p <= b_p)
+            return true;
+          return false;
+        });
+  } else {
+    // prefill first when available_pages is enough
+    std::stable_sort(
+        sorted_ids.begin(),
+        sorted_ids.end(),
+        [this](const id_type& a, const id_type& b) {
+          return (req_status_.at(a).new_tokens == 0);
+        });
+  }
+  int batch_size = 0;
   std::vector<id_type> ids;
   for (const auto& id : sorted_ids) {
+    batch_size +=
+        req_status_.at(id).new_tokens == 0 ? req_status_.at(id).req_tokens : 1;
+    if (batch_size > max_)
+      break;
     if ((req_status_.at(id).new_page_needed) == 0) {
       ids.push_back(id);
       SPDLOG_INFO("id = {} new_page_needed = 0", id);
@@ -519,53 +685,111 @@ void ContiguousBatching::impl_forward(const std::vector<dict>& io) {
     }
   }
   if (ids.empty()) {
-    SPDLOG_WARN("returned. wired");
+    SPDLOG_WARN(
+        "returned. wired. empty ids. No memory? new_page_needed = {}, num_ids= {}, available_pages = {} available_ids = {}",
+        new_page_needed,
+        req_status_.size(),
+        page_table_->available_pages(),
+        page_table_->available_ids());
     return;
   }
 
+  // prefill first
+  std::stable_sort(
+      ids.begin(), ids.end(), [this](const id_type& a, const id_type& b) {
+        return (req_status_.at(a).new_tokens == 0);
+      });
+
   page_table_->activate(ids);
   SPDLOG_INFO(
-      "activated id: {} unactivated id size: {}",
+      "activated id: {}; unactivated id size: {}",
       str::join(ids),
       sorted_ids.size() - ids.size());
   std::vector<dict> new_ios;
   for (const auto& id : ids) {
     new_ios.emplace_back(req_status_.at(id).data);
     req_status_.at(id).running = true;
+    if (will_stop_ids.count(id) > 0) {
+      static const std::string stop_reason = "length";
+      new_ios.back()->insert({"finish_reason", stop_reason});
+      req_status_.at(id).stop = true;
+    }
   }
-  // contiguous batching next -> get new token
-  dependency_->forward(new_ios);
-  // 直接执行下一轮（不需要token 判断停止） 跳出循环x
-  // to queue: add_callback
+
+  // dependency_->forward(new_ios);
+  impl_forward_handle_except(new_ios, ids);
+  SPDLOG_INFO(" {} finished one step.", str::join(ids));
+}
+
+void ContiguousBatching::impl_forward_handle_except(
+    const std::vector<dict>& ios,
+    const std::vector<id_type>& ids) {
+  std::vector<std::shared_ptr<Event>> events;
+  for (const auto& item : ios) {
+    auto iter = item->find(TASK_EVENT_KEY);
+    events.push_back(any_cast<std::shared_ptr<Event>>(iter->second));
+    item->erase(iter);
+    item->erase(TASK_RESULT_KEY);
+  }
+  try {
+    dependency_->forward(ios);
+  } catch (...) {
+    for (std::size_t i = 0; i < ios.size(); ++i) {
+      (*ios[i])[TASK_EVENT_KEY] = events[i];
+      ios[i]->erase(TASK_RESULT_KEY);
+    }
+    for (const auto& ev : events) {
+      ev->set_exception_and_notify_all(std::current_exception());
+    }
+    for (const auto& id : ids) {
+      // req_status_.at(id).running = false;
+      req_status_.erase(id);
+      page_table_->free(id);
+    }
+    page_table_->deactivate();
+    try {
+      std::rethrow_exception(std::current_exception());
+    } catch (std::exception& e) {
+      SPDLOG_ERROR("batching error: {}", e.what());
+    }
+    return;
+  }
+  for (std::size_t i = 0; i < ios.size(); ++i) {
+    (*ios[i])[TASK_EVENT_KEY] = events[i];
+  }
+  for (const auto& ev : events) {
+    ev->notify_all();
+  }
 }
 
 void ContiguousBatching::parser_message(
     const std::shared_ptr<TypedDict>& msg,
     CBProtocol& pro) {
   pro.stop = get<bool>(*msg, "stop");
-  if (pro.stop)
+  pro.finish = get<bool>(*msg, "finish");
+  if (pro.stop || pro.finish)
     return;
   pro.req_tokens = get<int>(*msg, "req_tokens");
-  pro.max_tokens = get<int>(*msg, "max_tokens");
-  try_update<int>(*msg, "max_new_tokens", pro.max_new_tokens);
+  pro.context_length = get<int>(*msg, "context_length");
+  try_update<int>(*msg, "max_tokens", pro.max_tokens);
 
+  if (pro.context_length == 0)
+    pro.context_length = std::numeric_limits<int>::max();
   if (pro.max_tokens == 0)
     pro.max_tokens = std::numeric_limits<int>::max();
-  if (pro.max_new_tokens == 0)
-    pro.max_new_tokens = std::numeric_limits<int>::max();
 
   SPDLOG_INFO(
       "\n"
       "+---------------------------- Contiguous Batching ----------------------------+\n"
       "| Request ID:      {:45} |\n"
       "| Req Tokens:      {:45} |\n"
-      "| Max Tokens:      {:45} |\n"
-      "| Max New Tokens:  {:45} |\n"
+      "| Context Length:      {:45} |\n"
+      "| Max (New) Tokens:  {:45} |\n"
       "+------------------------------------------------------------------------------+",
       pro.req_id,
       pro.req_tokens,
-      pro.max_tokens,
-      pro.max_new_tokens);
+      pro.context_length,
+      pro.max_tokens);
 }
 
 HAMI_REGISTER_BACKEND(ContiguousBatching);

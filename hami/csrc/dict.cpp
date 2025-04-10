@@ -18,6 +18,7 @@
 #include "hami/helper/base_logging.hpp"
 #include "hami/helper/macro.h"
 #include "hami/builtin/page_table.hpp"
+#include "hami/core/event.hpp"
 
 namespace hami {
 
@@ -84,6 +85,13 @@ void PyDict::set(const std::string& key, const py::object& value) {
   data_->insert_or_assign(key, *data);
   // (*data)[key] = data;
 }
+
+std::shared_ptr<Event> PyDict::set_event() {
+  auto ev = make_event();
+  (*data_)[TASK_EVENT_KEY] = ev;
+  return ev;
+}
+
 void PyDict::set(const std::string& key, const str::str_map& value) {
   data_->insert_or_assign(key, value);
 }
@@ -121,6 +129,7 @@ void init_dict(py::module_& m) {
           "Remove a key from the dictionary",
           "key"_a)
       .def("clear", &PyDict::clear, "Clear the dictionary")
+      .def("set_event", &PyDict::set_event, "set and return the event")
       .def(
           "pop",
           &PyDict::pop,
@@ -219,15 +228,84 @@ void init_dict(py::module_& m) {
   py::class_<TypedDict, std::shared_ptr<TypedDict>>(m, "TypedDict")
       .def(py::init<>())
       .def(py::init<std::unordered_map<std::string, TypedDict::BaseType>>())
-      // .def(py::init([](py::dict d) {
-      //   auto self = std::make_shared<TypedDict>();
-      //   for (auto item : d) {
-      //     std::string key = py::cast<std::string>(item.first);
-      //     self->data[key] = convert_to_base_type(item.second);
-      //   }
-      //   return self;
-      // }))
-      .def_readwrite("data", &TypedDict::data);
+      .def(py::init([](py::dict d) {
+        auto self = std::make_shared<TypedDict>();
+        for (auto item : d) {
+          std::string key = py::cast<std::string>(item.first);
+
+          try {
+            self->data.emplace(key, py::cast<TypedDict::BaseType>(item.second));
+          } catch (const py::cast_error& e) {
+            throw py::value_error(
+                "Value for key '" + key + "' has invalid type: " + e.what());
+          }
+        }
+        return self;
+      }))
+      .def(
+          "__getitem__",
+          [](const TypedDict& self, const std::string& key) {
+            if (self.data.find(key) == self.data.end()) {
+              throw py::key_error("Key '" + key + "' not found");
+            }
+            return self.data.at(key);
+          })
+      .def(
+          "__setitem__",
+          [](TypedDict& self,
+             const std::string& key,
+             const TypedDict::BaseType& value) { self.data[key] = value; })
+      .def(
+          "__contains__",
+          [](const TypedDict& self, const std::string& key) {
+            return self.data.find(key) != self.data.end();
+          })
+      .def("__len__", [](const TypedDict& self) { return self.data.size(); })
+      .def_property_readonly(
+          "data", [](const TypedDict& self) { return self.data; })
+      .def(
+          "__repr__",
+          [](const TypedDict& self) {
+            std::ostringstream oss;
+            oss << "TypedDict({";
+            for (const auto& [key, value] : self.data) {
+              oss << "'" << key << "': ";
+
+              // 自定义输出处理器
+              auto value_printer = [&oss](auto&& arg) {
+                using T = std::decay_t<decltype(arg)>;
+                if constexpr (std::is_same_v<T, std::vector<int32_t>>) {
+                  oss << "[";
+                  for (size_t i = 0; i < arg.size(); ++i) {
+                    oss << arg[i];
+                    if (i != arg.size() - 1)
+                      oss << ", ";
+                  }
+                  oss << "]";
+                } else if constexpr (std::is_same_v<
+                                         T,
+                                         std::vector<std::string>>) {
+                  oss << "[";
+                  for (size_t i = 0; i < arg.size(); ++i) {
+                    oss << "'" << arg[i] << "'";
+                    if (i != arg.size() - 1)
+                      oss << ", ";
+                  }
+                  oss << "]";
+                } else {
+                  oss << arg;
+                }
+              };
+
+              std::visit(value_printer, value);
+              oss << ", ";
+            }
+            if (!self.data.empty())
+              oss.seekp(-2, oss.cur);
+            oss << "})";
+            return oss.str();
+          })
+      .attr("type_hash") = typeid(std::shared_ptr<TypedDict>).hash_code();
 
   // Register base exception
   py::register_exception<hami::queue::QueueException>(m, "QueueError");
@@ -343,11 +421,11 @@ void init_dict(py::module_& m) {
       .def("available_pages", &PageTable::available_pages)
       .def("get_num_tok", &PageTable::get_num_tok)
       .def("available_ids", &PageTable::available_ids)
-      // .def("get_activated", &PageTable::get_activated)
+      // .def("pop_activated", &PageTable::pop_activated)
       .def(
-          "get_activated",
+          "pop_activated",
           [](PageTable& self) {
-            auto result = self.get_activated();
+            auto result = self.pop_activated();
             return py::make_tuple(
                 result.first, //  std::vector
                 to_numpy(std::move(result.second)) // 转换为 NumPy 数组

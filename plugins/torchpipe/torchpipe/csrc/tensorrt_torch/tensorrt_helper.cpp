@@ -491,11 +491,16 @@ void update_min_max_setting(
     auto& max_profile = maxs[p];
 
     // Ensure each profile has entries for all network inputs
-    if (min_profile.size() < net_inputs) {
+    if (min_profile.empty())
       min_profile.resize(net_inputs);
+    else if (min_profile.size() < net_inputs) {
+      min_profile.resize(net_inputs, min_profile.back());
     }
-    if (max_profile.size() < net_inputs) {
+
+    if (max_profile.empty())
       max_profile.resize(net_inputs);
+    else if (max_profile.size() < net_inputs) {
+      max_profile.resize(net_inputs, max_profile.back());
     }
 
     // Process each input
@@ -742,11 +747,11 @@ std::unique_ptr<nvinfer1::IHostMemory> onnx2trt(OnnxParams& params) {
       profile_num,
       params.precision);
 
-  auto time_now = hami::now();
+  auto time_now = hami::helper::now();
   std::unique_ptr<nvinfer1::IHostMemory> engine_plan(
       builder->buildSerializedNetwork(*network, *config));
   HAMI_ASSERT(engine_plan->size() > 0);
-  auto time_pass = hami::time_passed(time_now);
+  auto time_pass = hami::helper::time_passed(time_now);
   SPDLOG_INFO(
       "Engine building completed in {:.2f} seconds", time_pass / 1000.0);
   if (params.model_cache.size() > 0) {

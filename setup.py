@@ -176,7 +176,7 @@ class cmake_build(setuptools.Command):
             cmake_args.append(f"-DCMAKE_BUILD_TYPE={CMAKE_BUILD_TYPE}")
             if _debug:
                 cmake_args.append("-DCMAKE_CXX_FLAGS=-Wall -Werror -Wno-error=sign-compare"),
-                cmake_args.append("-DCMAKE_CXX_FLAGS_DEBUG=-UNDEBUG -O0 -DDEBUG")
+                cmake_args.append("-DCMAKE_CXX_FLAGS_DEBUG=-UNDEBUG -O0 -DDEBUG -g")
             if WINDOWS:
                 cmake_args.extend(
                     [
@@ -271,6 +271,6 @@ setuptools.setup(
     ext_modules=ext_modules,
     cmdclass=cmdclass,
     # use_scm_version=True,
-    version="1.0.17",
+    version="1.0.18",
     setup_requires=required_setup_deps
 )

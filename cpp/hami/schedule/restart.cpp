@@ -134,7 +134,7 @@ void RestartEvent::on_finish_node(dict tmp_data) {
     std::string restart_node_name = any_cast<std::string>(iter->second);
     tmp_data->erase(iter);
     (*tmp_data)[TASK_NODE_NAME_KEY] = restart_node_name;
-    SPDLOG_DEBUG("RESTART to: " + restart_node_name);
+    SPDLOG_INFO("RESTART to: " + restart_node_name);
     iter = tmp_data->find(TASK_RESULT_KEY);
     (*tmp_data)[TASK_DATA_KEY] = iter->second;
 

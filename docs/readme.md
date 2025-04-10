@@ -18,9 +18,9 @@ Init[]
 
 
 
-HasKey[Launch[node_name], Identity]
+HasKeyV0[Launch[node_name], Identity]
 
-(has_key)A <==> HasKey[A,Identity]
+(has_key)A <==> HasKeyV0[A,Identity]
 A,(or)B <==> Or[A,B]
 A,(swap)B <==> Swap[A,B]
 
@@ -38,7 +38,7 @@ backend="Py::YourJudge[Forward[pipeline.node_name], Identity]"
 SequentialV0 支持or and
 SequentialV0[A,(or)S_v0[B,C]]  => S_v0[Or[A,S_v0[B,C]]]
 S_v0[A,(or)B] => S_v0[or[A,B]]
-S_v0[A,(has_key)B] <==> HasKey[B, Identity] 
+S_v0[A,(has_key)B] <==> HasKeyV0[B, Identity] 
 
 S_v0[A,B] == S_v0[A,(swap)B] == Swap[A,B]
 
@@ -93,7 +93,7 @@ backend="S_v0[DecodeMat,Mat2Tensor,StreamGuard]"
 
 ```markdown
 <!-- or=1 作为参数
-Aspect[HasKey,B]
+Aspect[HasKeyV0,B]
 
 Aspect[BinaryCondition,B]
 Aspect[HasNoKey,B]  <==> HasNoKey(key="restart")[B] -->
@@ -102,8 +102,8 @@ Aspect[HasNoKey,B]  <==> HasNoKey(key="restart")[B] -->
 
 [x]=/ /,兼容
 [x]or=1 作为参数(cornel case)
-[x]HasKey(key=)[] 存在  *::dependency 则设置dependency
-[x]NotHasKey(key=)[] 存在  *::dependency 则设置dependency
+[x]HasKeyV0(key=)[] 存在  *::dependency 则设置dependency
+[x]NotHasKeyV0(key=)[] 存在  *::dependency 则设置dependency
 [x]Condition[]  存在 *::dependency 则设置dependency
 
 [x]ThrowIfNoResult[A]
@@ -219,8 +219,8 @@ Restart[Dag容器]。 默认的scheduler为Aspect[Batching,MultiInstance,Backgro
 with Restart as r:
     dag(data)
 
-Aspect[HasKey,B,C, Launch[A], D] 
-Aspect[HasKey,B,C, ProxyOfA, D]  允许代理改变dependency， 线程安全。A 需要是可forward实时改变dependency的。Proxy静态对象？
+Aspect[HasKeyV0,B,C, Launch[A], D] 
+Aspect[HasKeyV0,B,C, ProxyOfA, D]  允许代理改变dependency， 线程安全。A 需要是可forward实时改变dependency的。Proxy静态对象？
 
 代码生成HAMI_PROXY_WITH_DEPENDENCY(Aspect, Restart, "EventGuard,RestartEvent");
 

@@ -2,23 +2,17 @@
 
 
 import os, sys
+from abc import ABC, abstractmethod
 
 
-class BackendEngine:
-    def __init__(self):
-        """
-        Initialize the BackendEngine.
-        """
+class BackendEngine(ABC):
+    @abstractmethod
+    async def forward_async(self, *args, **kwargs):
         pass
-    def forward_async(self, *args, **kwargs):
-        """
-        Forward the request to the backend engine asynchronously.
-        """
-        raise NotImplementedError("This method should be implemented in the derived class.")
     
 _registered_engines = {}
 
-def register_backend_engine(model_id: str, backend_engine: BackendEngine) -> None:
+def register_engine(model_id: str, backend_engine: BackendEngine) -> None:
     """
     Register the backend engine for torchpipe.
     """

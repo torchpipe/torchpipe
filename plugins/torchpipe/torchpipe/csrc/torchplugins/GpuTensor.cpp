@@ -133,7 +133,7 @@ void EmbeddingTensor::forward(const dict& io) {
       /*weight=*/weight_, // 加载的权重矩阵
       /*indices=*/input // .to(torch::kLong)
   );
-
+  io->erase(TASK_DATA_KEY);
   (*io)[TASK_RESULT_KEY] = data_loaded;
 }
 HAMI_REGISTER_BACKEND(EmbeddingTensor);
@@ -141,7 +141,9 @@ HAMI_REGISTER_BACKEND(EmbeddingTensor);
 class SetTensorRequestSize : public hami::BackendOne {
   void forward(const dict& io) override {
     auto data = dict_gets<torch::Tensor>(io, TASK_DATA_KEY);
+    // SPDLOG_INFO("SetTensorRequestSize: {}", print_tensor(data));
     const size_t req_size = data.at(0).size(0);
+    io->erase(TASK_DATA_KEY);
     (*io)[TASK_REQUEST_SIZE_KEY] = int(req_size);
     if (data.size() == 1)
       (*io)[TASK_RESULT_KEY] = data[0];
@@ -150,10 +152,12 @@ class SetTensorRequestSize : public hami::BackendOne {
   }
 };
 
-class AppendIndexSelectTensor : public hami::BackendOne {
+#if 0
+class AppendIndexSelectTensor : public hami::Backend {
   void impl_init(
       const std::unordered_map<std::string, std::string>& params,
       const hami::dict& options) override {
+    throw std::runtime_error("not impl");
     parser_v2::ArgsKwargs args_kwargs =
         parser_v2::get_args_kwargs(this, "AppendIndexSelectTensor", params);
     HAMI_ASSERT(
@@ -163,41 +167,87 @@ class AppendIndexSelectTensor : public hami::BackendOne {
 
     SPDLOG_INFO("index = " + name);
     target_value_ = std::stoi(name);
-    cached_ = target_value_;
-    tensor_cache_ = std::make_unique<torch::Tensor>(torch::tensor(
-        {cached_}, torch::TensorOptions().dtype(torch::kLong).device("cuda")));
+    // cached_ = target_value_;
+    tensor_cache_0_ = std::make_unique<torch::Tensor>(torch::tensor(
+        {0}, torch::TensorOptions().dtype(torch::kLong).device("cuda")));
   }
-
-  void forward(const dict& io) override {
-    auto inputs = dict_gets<torch::Tensor>(io, TASK_DATA_KEY);
-    IPIPE_ASSERT(!inputs.empty() && inputs[0].sizes().size() >= 2);
-
-    const auto& input = inputs[0];
-    long index_select = input.size(-2);
-    if (target_value_ < 0)
-      index_select += target_value_;
-    else {
-      index_select = target_value_;
+  void impl_forward(const std::vector<dict>& ios) override {
+    std::vector<int> req_sizes();
+    req_sizes.reserve(ios.size());
+    int sum = 0;
+    for (const auto& io : ios) {
+      sum += get_request_size(io);
+      req_sizes.push_back(sum + target_value_);
     }
-    IPIPE_ASSERT(index_select >= 0 && index_select < input.size(-2));
-
-    if (cached_ != index_select) {
-      tensor_cache_->fill_(index_select);
-      cached_ = index_select;
-    }
-
-    SPDLOG_DEBUG("index_select = {}", cached_);
-
-    inputs.push_back(*tensor_cache_);
-
-    (*io)[TASK_RESULT_KEY] = inputs;
+    static const auto opt =
+        torch::TensorOptions().dtype(torch::kLong).device("cuda");
+    torch::tensor(output_values, options);
   }
+  // void forward(const std::vector<dict>& io) override {
+  //   auto inputs = dict_gets<torch::Tensor>(io, TASK_DATA_KEY);
+  //   IPIPE_ASSERT(!inputs.empty() && inputs[0].sizes().size() >= 2);
 
+  //   const auto& input = inputs[0];
+  //   int64_t index_select = input.size(-2);
+  //   if (target_value_ < 0)
+  //     index_select += target_value_;
+  //   else {
+  //     index_select = target_value_;
+  //   }
+
+  //   IPIPE_ASSERT(index_select >= 0 && index_select < input.size(-2));
+  //   if (0 == index_select) {
+  //     inputs.push_back(*tensor_cache_0_);
+  //   } else {
+  //     static const auto options =
+  //         torch::TensorOptions().dtype(torch::kLong).device(torch::kCUDA);
+
+  //     inputs.push_back(torch::tensor({index_select}, options));
+  //   }
+
+  //   (*io)[TASK_RESULT_KEY] = inputs;
+  // }
+
+ private:
   int target_value_{-1};
-  int cached_{-1};
-  std::unique_ptr<torch::Tensor> tensor_cache_;
+  // int cached_{-1};
+  // std::unique_ptr<torch::Tensor> tensor_cache_;
+  std::unique_ptr<torch::Tensor> tensor_cache_0_;
+};
+#endif
+class PrintTensor : public hami::BackendOne {
+  void impl_init(
+      const std::unordered_map<std::string, std::string>& params,
+      const hami::dict& options) override {}
+  void forward(const dict& io) override {
+    auto data = dict_gets<torch::Tensor>(io, TASK_DATA_KEY);
+    std::string id;
+    try_update<std::string>(io, TASK_REQUEST_ID_KEY, id);
+    std::ostringstream oss;
+    for (size_t i = 0; i < data.size(); ++i) {
+      oss << "Tensor " << i << " shape = " << data[i].sizes() << "\n";
+    }
+
+    for (const auto& item : data) {
+      if (item.numel() > 60) {
+        auto new_view = item.view(-1); // 将张量展平
+        auto head = new_view.slice(0, 0, 5); // 取前5个元素
+        auto tail = new_view.slice(0, -5, new_view.size(0)); // 取后5个元素
+        oss << "Tensor is large. Shape: " << item.sizes()
+            << ". Showing head and tail:\n";
+        oss << "head: " << head << "\n...\ntail: " << tail << "\n";
+      } else {
+        oss << item << "\n\n";
+      }
+    }
+    SPDLOG_WARN("PrintTensor({}): {}", id, oss.str());
+
+    io->operator[](TASK_RESULT_KEY) = io->at(TASK_DATA_KEY);
+  }
 };
 
 HAMI_REGISTER_BACKEND(SetTensorRequestSize);
-HAMI_REGISTER_BACKEND(AppendIndexSelectTensor);
+// HAMI_REGISTER_BACKEND(AppendIndexSelectTensor);
+HAMI_REGISTER_BACKEND(PrintTensor);
+
 } // namespace torchpipe

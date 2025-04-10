@@ -35,6 +35,9 @@ class Loop : public Backend {
   }
 
  private:
+  void impl_forward_sync(const std::vector<dict>& input);
+
+ private:
   std::atomic_bool bInited_{false};
   std::thread thread_;
   Queue* src_queue_{nullptr};
@@ -49,6 +52,8 @@ class Loop : public Backend {
  protected:
   Backend* injected_dependency_{nullptr};
   std::string node_name_;
+  int max_{std::numeric_limits<int>::max()};
+  int timeout_{0};
 };
 
 class Batching : public Dependency {
@@ -160,16 +165,21 @@ class ContiguousBatching : public Backend {
     id_type req_id;
 
     int req_tokens{0};
+    int context_length{0};
     int max_tokens{0};
-    int max_new_tokens{0};
 
     bool stop{false}; // error, cancel //stop by error or cancel
+    bool finish{false};
 
     int new_tokens{0};
 
     size_t new_page_needed{0};
     bool running = false;
     dict data;
+
+    std::shared_ptr<Event> event;
+
+    float time{0};
     // std::string req_type = "prefill";
   };
 
@@ -178,6 +188,9 @@ class ContiguousBatching : public Backend {
       const std::unordered_map<string, string>& params,
       const dict& options) override;
   void impl_forward(const std::vector<dict>& io) override;
+  void impl_forward_handle_except(
+      const std::vector<dict>& ios,
+      const std::vector<id_type>& ids);
   Backend* dependency_{nullptr};
   void parser_message(
       const std::shared_ptr<TypedDict>& msg,
@@ -188,6 +201,7 @@ class ContiguousBatching : public Backend {
   // std::mutex req_status_mutex_;
   PageTable* page_table_{nullptr};
   int page_size_{0};
+  int max_{std::numeric_limits<int>::max()};
   // std::unordered_set<id_type> need_stop_;
 };
 

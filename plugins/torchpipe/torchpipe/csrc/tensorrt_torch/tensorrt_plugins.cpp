@@ -383,11 +383,14 @@ int32_t TorchPlugin::enqueue(
     SPDLOG_ERROR("C++ runtime error: {}", e.what());
     // return cudaErrorUnknown;
     in_err = true;
-  } catch (...) {
-    SPDLOG_ERROR("Unknown exception occurred");
-    in_err = true;
-    // return cudaErrorUnknown;
   }
+  // catch (...) {
+  //   SPDLOG_ERROR("Unknown exception occurred");
+  //   in_err = true;
+  //   [[]] throw;
+  //   std::terminate();
+  //   // return cudaErrorUnknown;
+  // }
   // if (guard)
   //   guard->original_stream().wait_stream(guard->current_stream());
   if (in_err)

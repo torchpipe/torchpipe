@@ -95,19 +95,7 @@ class DictHelper {
     lazy_clear_keys_.push_back(key);
     return *this;
   }
-  DictHelper& keep(const std::string& key) {
-    std::vector<std::optional<any>> keeped;
-    for (const auto& da : dicts_) {
-      auto iter = da->find(key);
-      if (iter == da->end()) {
-        keeped.emplace_back(std::nullopt);
-      } else {
-        keeped.emplace_back(iter->second);
-      }
-    }
-    keep_[key] = keeped;
-    return *this;
-  }
+  DictHelper& keep(const std::string& key);
 
   DictHelper& lazy_copy(const std::string& key, const std::string& target_key) {
     std::vector<std::optional<any>> keeped;

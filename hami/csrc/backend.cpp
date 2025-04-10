@@ -1,4 +1,5 @@
 #include <optional>
+// #include <iostream>
 #include "hami/csrc/backend.hpp"
 #include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
@@ -278,12 +279,18 @@ void forward_backend(Backend& self, const py::object& input_output) {
   if (py::isinstance<PyDict>(input_output)) {
     data = {py::cast<PyDict&>(input_output).to_dict()};
   } else if (py::isinstance<py::list>(input_output)) {
+    auto io_list = py::cast<py::list>(input_output);
     // Check if input_output is empty
-    if (py::len(input_output) == 0) {
+    if (py::len(io_list) == 0) {
       throw std::invalid_argument("input list cannot be empty");
     }
 
-    for (const auto& item : input_output) {
+    for (const auto& item : io_list) {
+      // auto item_type = py::type::of(item);
+      // std::cout << "Item type: "
+      //           << item_type.attr("__name__").cast<std::string>() <<
+      //           std::endl;
+
       HAMI_ASSERT(
           py::isinstance<PyDict>(item),
           " Unsupported input type. Please provide one of "

@@ -13,8 +13,9 @@
 #include "hami/schedule/schedule_states.hpp"
 namespace hami {
 
-void EventGuard::custom_forward_with_dep(const std::vector<dict>& input_output,
-                                         Backend* dependency) {
+void EventGuard::custom_forward_with_dep(
+    const std::vector<dict>& input_output,
+    Backend* dependency) {
   std::vector<dict> evented_data;
   std::vector<dict> data;
 
@@ -26,6 +27,7 @@ void EventGuard::custom_forward_with_dep(const std::vector<dict>& input_output,
     }
   }
   if (data.empty()) {
+    SPDLOG_INFO("EVENT_GUARD: all has event.");
     dependency->forward(evented_data);
   } else {
     std::vector<std::shared_ptr<Event>> events(data.size());
@@ -41,7 +43,8 @@ void EventGuard::custom_forward_with_dep(const std::vector<dict>& input_output,
     std::vector<std::exception_ptr> exceps;
     for (size_t i = 0; i < events.size(); i++) {
       auto expcep = events[i]->wait_and_get_except();
-      if (expcep) exceps.push_back(expcep);
+      if (expcep)
+        exceps.push_back(expcep);
       data[i]->erase(TASK_EVENT_KEY);
     }
     if (exceps.size() == 1) {
@@ -64,8 +67,9 @@ HAMI_REGISTER(Backend, EventGuard, "EventGuard");
 
 class ThreadPoolExecutor : public Dependency {
  private:
-  void impl_init(const std::unordered_map<std::string, std::string>& params,
-                 const dict& options) override final {
+  void impl_init(
+      const std::unordered_map<std::string, std::string>& params,
+      const dict& options) override final {
     auto args_kwargs =
         parser_v2::get_args_kwargs(this, "ThreadPoolExecutor", params);
 
@@ -95,13 +99,14 @@ class ThreadPoolExecutor : public Dependency {
   }
 
   // [[nodiscard]] size_t impl_max() const { return max_workers_; }
-  void impl_forward_with_dep(const std::vector<dict>& input,
-                             Backend* dep) override {
+  void impl_forward_with_dep(const std::vector<dict>& input, Backend* dep)
+      override {
     (void)pool_->submit_task(
         [this, input, dep]() { impl_forward_with_dep_async(input, dep); });
   }
-  void impl_forward_with_dep_async(const std::vector<dict>& input,
-                                   Backend* dep) {
+  void impl_forward_with_dep_async(
+      const std::vector<dict>& input,
+      Backend* dep) {
     HAMI_ASSERT(input.size() == 1);
     Queue* queue = dict_get<Queue*>(input[0], TASK_DATA_KEY);
     HAMI_ASSERT(queue && pool_);
@@ -110,7 +115,8 @@ class ThreadPoolExecutor : public Dependency {
       // SPDLOG_INFO(" pool queue input : {}", queue->size());
       auto [data, len] = queue->try_get(std::chrono::milliseconds(500));
       // SPDLOG_INFO("queue get {}", len);
-      if (!data) continue;
+      if (!data)
+        continue;
       // SPDLOG_INFO("queue :  {}, {} {}", queue->size(),
       // pool_->get_tasks_total(), pool_->get_tasks_queued());
       pool_->detach_task([this, dep, data, queue]() {
@@ -124,12 +130,15 @@ class ThreadPoolExecutor : public Dependency {
       });
 
       while (!pool_->wait_atmost_queued_tasks_for(
-          max_workers_ / 3 + 1, std::chrono::milliseconds(500)));
+          max_workers_ / 3 + 1, std::chrono::milliseconds(500)))
+        ;
 
     } while (queue->status() == Queue::Status::RUNNING && alive_.load());
 
-    while (alive_.load() && !pool_->wait_atmost_total_tasks_for(
-                                1, std::chrono::milliseconds(500)));
+    while (
+        alive_.load() &&
+        !pool_->wait_atmost_total_tasks_for(1, std::chrono::milliseconds(500)))
+      ;
   }
 
  protected:
@@ -156,4 +165,4 @@ class ThreadPoolExecutor : public Dependency {
 
 HAMI_REGISTER_BACKEND(ThreadPoolExecutor);
 
-}  // namespace hami
+} // namespace hami

@@ -110,10 +110,15 @@ class PageTable {
   bool reset(const hami::id_type& name, size_t num_tok);
   bool extend(const hami::id_type& name);
 
-  void free(const id_type& req) {
+  bool free(const id_type& req) {
     std::lock_guard<std::mutex> lock(page_infos_lock_);
-    page_table_.free(page_infos_.at(req).kv_page_indices);
-    page_infos_.erase(req);
+    auto iter = page_infos_.find(req);
+    if (iter == page_infos_.end()) {
+      return false;
+    }
+    page_table_.free(iter->second.kv_page_indices);
+    page_infos_.erase(iter);
+    return true;
   }
 
   int get_num_tok(const id_type& id) const {
@@ -138,6 +143,7 @@ class PageTable {
   }
 
   void activate(std::vector<id_type> ids);
+  void deactivate();
 
   size_t pop_all() {
     std::lock_guard<std::mutex> lock(page_infos_lock_);
@@ -146,6 +152,7 @@ class PageTable {
     std::swap(ids_, empty);
     return final_size;
   }
+  std::pair<std::vector<id_type>, std::vector<int>> pop_activated();
   std::pair<std::vector<id_type>, std::vector<int>> get_activated();
 
   const PageInfo& page_info(const id_type& id) const {

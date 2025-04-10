@@ -23,16 +23,17 @@ get_type_map() {
   return type_names;
 }
 
-void try_insert(const std::type_info& type,
-                const any2obj_func& func,
-                const obj2any_func& o2a) {
+void try_insert(
+    const std::type_info& type,
+    const any2obj_func& func,
+    const obj2any_func& o2a) {
   // SPDLOG_INFO("register hash: {}. ", type.name());
 
   auto [it, inserted] = get_type_map().emplace(
       type.hash_code(), std::pair<any2obj_func, obj2any_func>{func, o2a});
   if (!inserted) {
-    throw std::runtime_error("Type already registered: " +
-                             std::string(type.name()));
+    throw std::runtime_error(
+        "Type already registered: " + std::string(type.name()));
   }
 }
 
@@ -76,7 +77,7 @@ static auto _tmp = []() {
   REGISTER_NO_VECTOR_CONVERTER(char);
   REGISTER_BYTES_CONVERTER(char);
 
-  REGISTER_CONVERTER(std::shared_ptr<hami::Event>);
+  // REGISTER_CONVERTER(std::shared_ptr<hami::Event>);
   return true;
 }();
 
@@ -94,8 +95,8 @@ py::object any2object_from_hash_register(const any& input) {
     return iter->second.first(input);
   } else {
   }
-  throw py::type_error("cpp2py: unregistered type: " +
-                       std::string(input.type().name()));
+  throw py::type_error(
+      "cpp2py: unregistered type: " + std::string(input.type().name()));
   return py::object();
   // throw py::type_error("Can not convert any to python object");
 }
@@ -105,7 +106,7 @@ std::optional<any> object2any_from_hash_register(const py::handle& input) {
   if (py::hasattr(input, "type_hash")) {
     // throw std::runtime_error("type_hash test");
     const static auto& g_type_names = get_type_map();
-    size_t hash = py::cast<size_t>(input.attr("type_hash")());
+    size_t hash = py::cast<size_t>(input.attr("type_hash"));
     SPDLOG_INFO("hash from type: {}", hash);
     auto iter = g_type_names.find(hash);
     if (iter != g_type_names.end()) {
@@ -133,4 +134,4 @@ std::optional<any> object2any_from_hash_register(const py::handle& input) {
 //   }
 //   return std::nullopt;
 // }
-}  // namespace hami::reg
+} // namespace hami::reg

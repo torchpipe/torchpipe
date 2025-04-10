@@ -11,7 +11,13 @@ namespace torchpipe {
 
 class CatTensor : public hami::BackendMax {
  private:
+  void impl_init(
+      const std::unordered_map<std::string, std::string>& config_param,
+      const dict& kwargs) override;
   void impl_forward(const std::vector<dict>& input_output) override;
+
+ private:
+  std::optional<int> index_selector_;
 };
 
 class FixTensor : public hami::BackendMax {

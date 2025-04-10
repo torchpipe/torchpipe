@@ -12,13 +12,15 @@ class Condition : public DependencyV0 {
   std::function<bool(const dict&)> condition_;
 
  public:
-  void pre_init(const std::unordered_map<std::string, std::string>& config,
-                const dict& kwargs) override final;
+  void pre_init(
+      const std::unordered_map<std::string, std::string>& config,
+      const dict& kwargs) override final;
   virtual void init_dep_impl(
       const std::unordered_map<std::string, std::string>& config,
       const dict& kwargs) {}
-  void custom_forward_with_dep(const std::vector<dict>& inputs,
-                               Backend* dependency) override final {
+  void custom_forward_with_dep(
+      const std::vector<dict>& inputs,
+      Backend* dependency) override final {
     std::vector<dict> valid_inputs;
     for (auto& input : inputs) {
       if (condition_(input)) {
@@ -38,4 +40,26 @@ class Condition : public DependencyV0 {
   //   input->end(); };
   // }
 };
-}  // namespace hami
+
+class NotHasKey : public BackendOne {
+  void impl_init(
+      const std::unordered_map<std::string, std::string>& params,
+      const dict& options) override;
+  void forward(const dict& io) override;
+
+ private:
+  std::string key_;
+  std::unique_ptr<Backend> dependency_{nullptr};
+};
+class HasKey : public BackendOne {
+  void impl_init(
+      const std::unordered_map<std::string, std::string>& params,
+      const dict& options) override;
+  void forward(const dict& io) override;
+
+ private:
+  std::string key_;
+  std::unique_ptr<Backend> dependency_a_{nullptr};
+  std::unique_ptr<Backend> dependency_b_{nullptr};
+};
+} // namespace hami

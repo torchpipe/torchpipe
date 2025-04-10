@@ -25,8 +25,8 @@ void Aspect::post_init(
     prefix = iter->second + ".";
     has_prefix = true;
   } else {
-    SPDLOG_DEBUG("{}: prefix not found, will not register the instances",
-                 prefix);
+    SPDLOG_DEBUG(
+        "{}: prefix not found, will not register the instances", prefix);
   }
 
   for (size_t i = 0; i < base_dependencies_.size() - 1; ++i) {
@@ -37,8 +37,8 @@ void Aspect::post_init(
       const auto& backend = base_config_[i]["backend"];
       HAMI_INSTANCE_REGISTER(
           Backend, prefix + backend, base_dependencies_[i].get());
-      SPDLOG_INFO("Aspect::post_init, register backend `{}`.",
-                  prefix + backend);
+      SPDLOG_INFO(
+          "Aspect::post_init, register backend `{}`.", prefix + backend);
     }
   }
 
@@ -47,7 +47,8 @@ void Aspect::post_init(
 
 void Aspect::impl_forward(const std::vector<dict>& input_output) {
   DictHelper dicts_guard(input_output);
-  dicts_guard.keep(TASK_DATA_KEY).erase(TASK_RESULT_KEY);
+  // dicts_guard.keep(TASK_DATA_KEY).erase(TASK_RESULT_KEY);
+  dicts_guard.erase(TASK_RESULT_KEY);
   base_dependencies_.front()->safe_forward(input_output);
 }
 
@@ -62,4 +63,4 @@ std::pair<size_t, size_t> Aspect::update_min_max(
 
 HAMI_REGISTER(Backend, Aspect);
 
-}  // namespace hami
+} // namespace hami

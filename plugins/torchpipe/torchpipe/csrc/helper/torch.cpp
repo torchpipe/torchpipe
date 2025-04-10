@@ -689,7 +689,7 @@ void fix_tensors(
     const std::shared_ptr<NetIOInfos>& infos) {
   const auto num_inputs = tensors.size();
   HAMI_ASSERT(
-      infos->first.size() == num_inputs,
+      infos->first.size() >= num_inputs,
       "number of inputs from model does not match that from the data");
 
   for (size_t i = 0; i < num_inputs; ++i) {
@@ -699,12 +699,40 @@ void fix_tensors(
     fix_tensor_device(tensors[i], infos->first.at(i).device);
   }
 }
+std::string print_tensor(
+    const std::vector<torch::Tensor>& data,
+    const std::string& tag) {
+  std::ostringstream oss;
+  for (size_t i = 0; i < data.size(); ++i) {
+    if (!tag.empty()) {
+      oss << "tag = " << tag << ". ";
+    }
+    oss << "Tensor " << i << " shape = " << data[i].sizes() << "\n";
+  }
+
+  for (const auto& item : data) {
+    if (item.numel() > 60) {
+      auto new_view = item.view(-1); // 将张量展平
+      auto head = new_view.slice(0, 0, 5); // 取前5个元素
+      auto tail = new_view.slice(0, -5, new_view.size(0)); // 取后5个元素
+      oss << "Tensor is large. Shape: " << item.sizes()
+          << ". Showing head and tail:\n";
+      oss << head << "\n...\n" << tail << "\n";
+    } else {
+      oss << item << "\n";
+    }
+  }
+  return oss.str();
+}
 
 void check_input_tensor(const torch::Tensor& tensor, const NetIOInfo& infos) {
-  HAMI_ASSERT(
-      tensor.sizes().size() == infos.min.nbDims,
-      std::to_string(tensor.sizes().size()) + " vs " +
-          std::to_string(infos.min.nbDims));
+  if (tensor.sizes().size() != infos.min.nbDims) {
+    HAMI_ASSERT(
+        false,
+        std::to_string(tensor.sizes().size()) + " vs " +
+            std::to_string(infos.min.nbDims) + "\n" + print_tensor({tensor}));
+  }
+
   for (size_t i = 0; i < infos.min.nbDims; ++i) {
     HAMI_ASSERT(tensor.sizes()[i] >= infos.min.d[i]);
     HAMI_ASSERT(

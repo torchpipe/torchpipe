@@ -4,7 +4,7 @@
 namespace torchpipe {
 
 void TensorPage::forward(const hami::dict& io) {
-  auto table = page_table_->get_activated();
+  auto table = page_table_->pop_activated();
   std::vector<int> all_indices;
   std::vector<int> all_lengths;
 

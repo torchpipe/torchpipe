@@ -7,6 +7,21 @@
 
 namespace hami {
 
+DictHelper& DictHelper::keep(const std::string& key) {
+  std::vector<std::optional<any>> keeped;
+  for (const auto& da : dicts_) {
+    HAMI_ASSERT(da->find(TASK_EVENT_KEY) == da->end());
+    auto iter = da->find(key);
+    if (iter == da->end()) {
+      keeped.emplace_back(std::nullopt);
+    } else {
+      keeped.emplace_back(iter->second);
+    }
+  }
+  keep_[key] = keeped;
+  return *this;
+}
+
 HasEventHelper::HasEventHelper(const std::vector<dict>& data) : dicts_(data) {
   const bool all_have_event =
       std::all_of(data.begin(), data.end(), [](const auto& item) {
@@ -14,6 +29,7 @@ HasEventHelper::HasEventHelper(const std::vector<dict>& data) : dicts_(data) {
       });
 
   if (all_have_event) {
+    // SPDLOG_INFO("HasEventHelper: all_have_event");
     return;
   }
   const bool none_have_event =
@@ -22,6 +38,7 @@ HasEventHelper::HasEventHelper(const std::vector<dict>& data) : dicts_(data) {
       });
 
   if (none_have_event) {
+    SPDLOG_INFO("HasEventHelper: none_have_event");
     event_ = make_event(data.size());
     for (auto& item : data) {
       (*item)[TASK_EVENT_KEY] = event_;
@@ -211,6 +228,7 @@ void notify_event(const std::vector<dict>& io) {
     auto iter = item->find(TASK_EVENT_KEY);
     if (iter != item->end()) {
       auto ev = any_cast<std::shared_ptr<Event>>(iter->second);
+      // SPDLOG_INFO("event notified before");
       ev->notify_all();
       SPDLOG_INFO("event notified");
     }

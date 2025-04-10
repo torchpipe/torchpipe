@@ -418,6 +418,16 @@ class ThreadSafeSizedQueue {
         queue_.front().value, queue_.front().size);
   }
 
+  size_t front_size() const {
+    std::unique_lock<std::mutex> lock(mutex_);
+
+    if (queue_.empty()) {
+      throw QueueEmptyException();
+    }
+
+    return queue_.front().size;
+  }
+
   // Get the total size of the queue
   size_t size() const {
     std::lock_guard<std::mutex> lock(mutex_);
@@ -445,12 +455,20 @@ class ThreadSafeSizedQueue {
   }
 
   template <typename Rep, typename Period>
+  bool wait_for(std::chrono::duration<Rep, Period> timeout) {
+    std::unique_lock<std::mutex> lock(mutex_);
+
+    return pushed_cond_.wait_for(
+        lock, timeout, [this]() { return totalSize_ > 0; });
+  }
+
+  template <typename Rep, typename Period>
   bool wait_until_at_most(
       size_t max_size,
       std::chrono::duration<Rep, Period> timeout) {
     std::unique_lock<std::mutex> lock(mutex_);
     return popped_cond_.wait_for(
-        lock, timeout, [this, max_size] { return queue_.size() <= max_size; });
+        lock, timeout, [this, max_size] { return totalSize_ <= max_size; });
   }
 
   template <typename Rep, typename Period>
@@ -459,7 +477,7 @@ class ThreadSafeSizedQueue {
       std::chrono::duration<Rep, Period> timeout) {
     std::unique_lock<std::mutex> lock(mutex_);
     return pushed_cond_.wait_for(
-        lock, timeout, [this, min_size] { return queue_.size() >= min_size; });
+        lock, timeout, [this, min_size] { return totalSize_ >= min_size; });
   }
 
   template <template <typename> class Container>

@@ -9,6 +9,7 @@
 #include "hami/csrc/py_register.hpp"
 #include "hami/helper/exception.hpp"
 #include "hami/core/request_size.hpp"
+#include "hami/core/event.hpp"
 namespace py = pybind11;
 using hami::error::ExceptionHolder;
 
@@ -57,6 +58,7 @@ void init_core(py::module_& m) {
   m.attr("TASK_MSG_KEY") = py::cast(TASK_MSG_KEY);
   m.attr("TASK_REQUEST_ID_KEY") = py::cast(TASK_REQUEST_ID_KEY);
   m.attr("TASK_REQUEST_SIZE_KEY") = py::cast(TASK_REQUEST_SIZE_KEY);
+  m.attr("TASK_EVENT_KEY") = py::cast(TASK_EVENT_KEY);
 
   py::class_<ExceptionHolder>(m, "ExceptionHolder")
       .def(py::init<std::exception_ptr>()) // 构造函数

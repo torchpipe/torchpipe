@@ -51,3 +51,12 @@ def test_dict_types():
             assert d[key] == pytest.approx(value)
         else:
             assert d[key] == value
+
+def test_event():
+    # Test event creation
+    event = _C.Event()
+    d = _C.Dict()
+    d["event"] = event
+    
+if __name__ == "__main__":
+    test_event()

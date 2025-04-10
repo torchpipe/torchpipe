@@ -70,8 +70,9 @@ class ThreadSafeSizedQueue {
     data_cond_.notify_all();
   }
 
-  void push(const std::vector<T>& new_value,
-            const std::function<int(const T&)>& req_size_func) {
+  void push(
+      const std::vector<T>& new_value,
+      const std::function<int(const T&)>& req_size_func) {
     std::lock_guard<std::mutex> lk(mut_);
     for (size_t i = 0; i < new_value.size(); ++i)
       data_queue_.push(new_value[i], req_size_func(new_value[i]));
@@ -125,10 +126,12 @@ class ThreadSafeSizedQueue {
 
   bool wait_pop(T& value, int time_out) {
     std::unique_lock<std::mutex> lk(mut_);
-    auto re = data_cond_.wait_for(lk,
-                                  std::chrono::milliseconds(time_out),
-                                  [this] { return !data_queue_.empty(); });
-    if (!re) return false;
+    auto re =
+        data_cond_.wait_for(lk, std::chrono::milliseconds(time_out), [this] {
+          return !data_queue_.empty();
+        });
+    if (!re)
+      return false;
     value = data_queue_.front();
     data_queue_.pop();
 
@@ -142,7 +145,8 @@ class ThreadSafeSizedQueue {
         lk, std::chrono::milliseconds(time_out), [this, check] {
           return !data_queue_.empty() && check(data_queue_.front());
         });
-    if (!re) return false;
+    if (!re)
+      return false;
     value = data_queue_.front();
     data_queue_.pop();
 
@@ -150,15 +154,17 @@ class ThreadSafeSizedQueue {
     return true;
   }
 
-  bool WaitForPopWithSize(T& value,
-                          int time_out,
-                          std::function<bool(std::size_t)> check) {
+  bool WaitForPopWithSize(
+      T& value,
+      int time_out,
+      std::function<bool(std::size_t)> check) {
     std::unique_lock<std::mutex> lk(mut_);
     auto re = data_cond_.wait_for(
         lk, std::chrono::milliseconds(time_out), [this, check] {
           return !data_queue_.empty() && check(data_queue_.front_size());
         });
-    if (!re) return false;
+    if (!re)
+      return false;
     value = data_queue_.front();
     data_queue_.pop();
 
@@ -185,7 +191,8 @@ class ThreadSafeSizedQueue {
       num_waiting_--;
       // SPDLOG_INFO("WaitForPopWithConditionAndStatus finish:
       // num_waiting_ = {}", num_waiting_);
-      if (!re) return false;
+      if (!re)
+        return false;
     }
 
     value = data_queue_.front();
@@ -199,10 +206,12 @@ class ThreadSafeSizedQueue {
   bool WaitForWaiting(int time_out) {
     std::unique_lock<std::mutex> lk(mut_);
 
-    auto re = waiting_cond_.wait_for(lk,
-                                     std::chrono::milliseconds(time_out),
-                                     [this] { return num_waiting_ > 0; });
-    if (!re) return false;
+    auto re =
+        waiting_cond_.wait_for(lk, std::chrono::milliseconds(time_out), [this] {
+          return num_waiting_ > 0;
+        });
+    if (!re)
+      return false;
     // SPDLOG_INFO("WaitForWaiting: num_waiting_ = {}", num_waiting_);
     return true;
   }
@@ -216,16 +225,18 @@ class ThreadSafeSizedQueue {
 
   bool wait_for(int time_out) {
     std::unique_lock<std::mutex> lk(mut_);
-    return data_cond_.wait_for(lk,
-                               std::chrono::milliseconds((time_out)),
-                               [this] { return !data_queue_.empty(); });
+    return data_cond_.wait_for(
+        lk, std::chrono::milliseconds((time_out)), [this] {
+          return !data_queue_.empty();
+        });
   }
 
   void WaitLessThan(int num, int time_out) {
     std::unique_lock<std::mutex> lk(mut_);
-    data_cond_.wait_for(lk,
-                        std::chrono::milliseconds(int(time_out)),
-                        [this, num] { return data_queue_.size() < num; });
+    data_cond_.wait_for(
+        lk, std::chrono::milliseconds(int(time_out)), [this, num] {
+          return data_queue_.size() < num;
+        });
   }
 
   bool empty() const {
@@ -252,4 +263,4 @@ class ThreadSafeSizedQueue {
   std::condition_variable waiting_cond_;
 };
 
-}  // namespace hami
+} // namespace hami

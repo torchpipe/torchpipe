@@ -16,7 +16,7 @@ from hami._C import Any, Dict, Backend, Event, create, register, init, get, Type
 
 from hami._C import (Queue, default_queue, default_page_table)
 
-from hami._C import TASK_DATA_KEY, TASK_RESULT_KEY, TASK_MSG_KEY, TASK_REQUEST_ID_KEY
+from hami._C import TASK_DATA_KEY, TASK_RESULT_KEY, TASK_MSG_KEY, TASK_REQUEST_ID_KEY,TASK_EVENT_KEY
 # from hami import pybackend
 from .parser import parse, init_from_file
 

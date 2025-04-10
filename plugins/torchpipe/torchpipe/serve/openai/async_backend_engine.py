@@ -110,12 +110,8 @@ class AsyncEngine:
             output.prompt = prompt
             return output_stream.put(output)
 
-        # use default sampling parameters if not provided
-        # self._handler.schedule_async(
-        #     prompt, sampling_params, priority, stream, callback
-        # )
         try:
-            await self.backend.forward_async({'prompt': prompt, 'priority': priority,
+            await self.backend.forward_async(**{'prompt': prompt, 'priority': priority,
                                         'stream': stream, 'callback': callback,
                                         "image_url": image_url,
                                         'sampling_params': sampling_params})
@@ -143,7 +139,7 @@ class AsyncEngine:
         #     prompt, sampling_params, priority, stream, callback
         # )
         try:
-            await self.backend.forward_async({'message': message, 'priority': priority,
+            await self.backend.forward_async(**{'message': message, 'priority': priority,
                                         'stream': stream, 'callback': callback,
                                         'sampling_params': sampling_params})
         except Exception as e:

@@ -2,29 +2,25 @@
 entrypoint = "Restart[DagDispatcher]"
 # "Ring RingDispatcher"
 [embed_token]
-backend = "S[EmbeddingTensor(exported_params/embed_tokens.pt),ThreadStreamGuard,SetTensorRequestSize]"
+backend = "S[EmbeddingTensor(exported_params/embed_tokens.pt),AppendIndexSelectTensor(-1),StreamGuard,SetTensorRequestSize]"
 # Add(jump:batchless_prefill)
 # ,Send2Queue(batchless_prefill,keep_result=1) SetTensorMsg UpdateTensorMsg
 next = "contiguous_batching"
 
 [contiguous_batching]
-
 # node_entrypoint = "List[Register(cb)[ContiguousBatching(queue)], Register[S[CBTensorStatus,Forward[cb]]]]"
-node_entrypoint = "Register[IoC[ContiguousBatching(target=node.batchable);Loop(batch_queue,target=ContiguousBatching)]]"
+node_entrypoint = "Register[IoC[ContiguousBatching(target=node.batchable);Loop(src_queue,target=ContiguousBatching)]]"
 # req CBStatus Loop(src_queue,target="") TASK_MSG_KEY xieyi / pool
 # 
-max = 5
 # node_entrypoint
 
 [batchable]
-append_index_selector = -1 
-backend = 'S[StreamGuard[TensorrtTensor],HasKey(finish_reason)[Send2Queue(batch_queue),Add(restart:embed_token)],Send2Queue(net_out)]' # Pdb,
+backend = 'S[TensorrtTensor,StreamGuard,NotHasKey(finish_reason)[Add(restart:embed_token)],Forward[py_instance]]' # Pdb,
 max = 5 
 model = 'exported_params/batchable.onnx' 
 'model::cache' = 'exported_params/batchable.trt' 
-node_entrypoint = "Register[Reflect[backend]]" 
 post_processor = "SoftmaxArgMaxTensor" 
-# pre_processor = "PrintTensor" 
+
 # [pre_decode_stage]
 # # node_entrypoint = "Register[Forward[node.contiguous_batching]]"
 # backend=""

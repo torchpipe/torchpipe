@@ -22,16 +22,19 @@ std::optional<any> object2any_base_type(pybind11::handle data) {
     return py::cast<float>(data);
   } else if (py::isinstance<py::bytes>(data)) {
     return py::cast<std::string>(data);
-  } else if (py::isinstance<TypedDict>(data)) {
-    return py::cast<std::shared_ptr<TypedDict>>(data);
-  } else if (py::isinstance<str::str_map>(data)) {
+  }
+  //  else if (py::isinstance<TypedDict>(data)) {
+  //   return py::cast<std::shared_ptr<TypedDict>>(data);
+  // }
+  else if (py::isinstance<str::str_map>(data)) {
     return py::cast<str::str_map>(data);
   }
   return std::nullopt;
 }
 
-std::optional<any> object2any_list_base_type(const pybind11::object& inner_data,
-                                             const pybind11::object& data) {
+std::optional<any> object2any_list_base_type(
+    const pybind11::object& inner_data,
+    const pybind11::object& data) {
   if (py::isinstance<py::str>(inner_data)) {
     return convert_list<std::string>(data);
   } else if (py::isinstance<py::int_>(inner_data)) {
@@ -46,8 +49,9 @@ std::optional<any> object2any_list_base_type(const pybind11::object& inner_data,
   return std::nullopt;
 }
 
-std::optional<any> object2any_dict_base_type(const pybind11::handle& inner_data,
-                                             const pybind11::dict& data) {
+std::optional<any> object2any_dict_base_type(
+    const pybind11::handle& inner_data,
+    const pybind11::dict& data) {
   if (py::isinstance<py::str>(inner_data)) {
     return convert_dict<std::string, std::string>(data);
   } else if (py::isinstance<py::int_>(inner_data)) {
@@ -64,7 +68,8 @@ std::optional<any> object2any_dict_base_type(const pybind11::handle& inner_data,
       SPDLOG_DEBUG("dict is empty.");
       throw std::runtime_error(EMPTY_DICT_NOT_CONVERTABLE);
     }
-    if (!py::isinstance<py::str>(inindata.begin()->first)) return std::nullopt;
+    if (!py::isinstance<py::str>(inindata.begin()->first))
+      return std::nullopt;
 
     str::mapmap re;
     for (const auto& item : data) {
@@ -88,8 +93,9 @@ std::optional<any> object2any_dict_base_type(const pybind11::handle& inner_data,
   return std::nullopt;
 }
 
-std::optional<any> object2any_set_base_type(const pybind11::object& inner_data,
-                                            const pybind11::object& data) {
+std::optional<any> object2any_set_base_type(
+    const pybind11::object& inner_data,
+    const pybind11::object& data) {
   if (py::isinstance<py::str>(inner_data)) {
     return py::cast<std::vector<std::string>>(data);
   } else if (py::isinstance<py::int_>(inner_data)) {
@@ -106,10 +112,12 @@ std::optional<any> object2any_set_base_type(const pybind11::object& inner_data,
 
 std::optional<any> object2any(const py::handle& obj) {
   auto tm = hami::reg::object2any_from_hash_register(obj);
-  if (tm) return tm;
+  if (tm)
+    return tm;
 
   auto re = convert_py2any(obj);
-  if (re) return re;
+  if (re)
+    return re;
 
   if (py::isinstance<py::list>(obj)) {
     py::list inner_list = py::cast<py::list>(obj);
@@ -127,7 +135,8 @@ std::optional<any> object2any(const py::handle& obj) {
       SPDLOG_DEBUG("Dictionary is empty.");
       throw std::runtime_error(EMPTY_DICT_NOT_CONVERTABLE);
     }
-    if (!py::isinstance<py::str>(data.begin()->first)) return std::nullopt;
+    if (!py::isinstance<py::str>(data.begin()->first))
+      return std::nullopt;
     return object2any_dict_base_type(data.begin()->second, data);
   } else if (py::isinstance<py::tuple>(obj)) {
     throw py::type_error(
@@ -180,4 +189,4 @@ py::object any2object(const any& input) {
 // hami::any&)>>& get_cpp2py_registers() {} const
 // std::vector<std::function<std::optional<hami::any>(const
 // pybind11::handle&)>>& get_py2cpp_registers() {}
-}  // namespace hami
+} // namespace hami

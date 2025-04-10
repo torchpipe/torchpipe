@@ -274,7 +274,8 @@ dict DagParser::prepare_data_from_previous(
         processed[node] = re;
         return re;
       } else {
-        (*re)[TASK_DATA_KEY] = (*re)[TASK_RESULT_KEY];
+        (*re)[TASK_DATA_KEY] = re->at(TASK_RESULT_KEY);
+        re->erase(TASK_RESULT_KEY);
       }
     }
     return re;
