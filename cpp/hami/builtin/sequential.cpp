@@ -101,9 +101,9 @@ void Sequential::update_min_max() {
   if (num_one == backends_.size()) {
     max_ = 1;
   }
-  if (num_one != 0 && max_ == std::numeric_limits<size_t>::max()) {
-    max_ = 1;
-  }
+  // if (num_one != 0 && max_ == std::numeric_limits<size_t>::max()) {
+  //   max_ = 1;
+  // }
 
   SPDLOG_INFO("Sequential: min={}, max={}", min_, max_);
 }

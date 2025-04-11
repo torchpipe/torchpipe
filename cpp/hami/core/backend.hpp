@@ -322,6 +322,11 @@ std::string get_dependency_name(
     const Backend* this_ptr,
     const std::unordered_map<std::string, std::string>& config,
     const std::optional<std::string>& defualt_cls_name = std::nullopt);
+
+std::optional<std::string> get_opt_dependency_name(
+    const Backend* this_ptr,
+    const std::unordered_map<std::string, std::string>& config);
+
 using ArgsKwargs = std::pair<
     std::vector<std::string>,
     std::unordered_map<std::string, std::string>>;

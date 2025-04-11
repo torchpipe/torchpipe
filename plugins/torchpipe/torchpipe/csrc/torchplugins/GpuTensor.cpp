@@ -110,39 +110,45 @@ void IndexSelectTensor::impl_init(
   weight_ = torch::pickle_load(data).toTensor().to(device_);
 }
 
-void IndexSelectTensor::forward(const dict& io) {
-  auto input = hami::dict_get<torch::Tensor>(io, TASK_DATA_KEY);
-  if (device_ != input.device()) {
-    input = input.to(device_);
-  }
-  if (input.sizes().size() == 2 && input.size(0) == 1) {
-    input = input.squeeze(0);
-  }
+void IndexSelectTensor::impl_forward(const std::vector<dict>& ios) {
+  for (const auto& io : ios) {
+    auto input = hami::dict_get<torch::Tensor>(io, TASK_DATA_KEY);
+    if (device_ != input.device()) {
+      input = input.to(device_);
+    }
+    if (input.sizes().size() == 2 && input.size(0) == 1) {
+      input = input.squeeze(0);
+    }
 
-  torch::Tensor data_loaded = weight_.index_select(0, input);
-  (*io)[TASK_RESULT_KEY] = data_loaded;
+    torch::Tensor data_loaded = weight_.index_select(0, input);
+    (*io)[TASK_RESULT_KEY] = data_loaded;
+  }
 }
 HAMI_REGISTER_BACKEND(IndexSelectTensor);
 
-void EmbeddingTensor::forward(const dict& io) {
-  auto input = hami::dict_get<torch::Tensor>(io, TASK_DATA_KEY);
-  if (device_ != input.device()) {
-    input = input.to(device_);
+void EmbeddingTensor::impl_forward(const std::vector<dict>& ios) {
+  for (const auto& io : ios) {
+    auto input = hami::dict_get<torch::Tensor>(io, TASK_DATA_KEY);
+    if (device_ != input.device()) {
+      input = input.to(device_);
+    }
+    torch::Tensor data_loaded = torch::embedding(
+        /*weight=*/weight_, // 加载的权重矩阵
+        /*indices=*/input // .to(torch::kLong)
+    );
+    io->erase(TASK_DATA_KEY);
+    (*io)[TASK_RESULT_KEY] = data_loaded;
   }
-  torch::Tensor data_loaded = torch::embedding(
-      /*weight=*/weight_, // 加载的权重矩阵
-      /*indices=*/input // .to(torch::kLong)
-  );
-  io->erase(TASK_DATA_KEY);
-  (*io)[TASK_RESULT_KEY] = data_loaded;
 }
 HAMI_REGISTER_BACKEND(EmbeddingTensor);
 
 class SetTensorRequestSize : public hami::BackendOne {
   void forward(const dict& io) override {
     auto data = dict_gets<torch::Tensor>(io, TASK_DATA_KEY);
-    // SPDLOG_INFO("SetTensorRequestSize: {}", print_tensor(data));
+
     const size_t req_size = data.at(0).size(0);
+    SPDLOG_INFO(
+        "SetTensorRequestSize: {}, req_size={}", print_tensor(data), req_size);
     io->erase(TASK_DATA_KEY);
     (*io)[TASK_REQUEST_SIZE_KEY] = int(req_size);
     if (data.size() == 1)

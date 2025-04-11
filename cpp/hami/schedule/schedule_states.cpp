@@ -45,10 +45,18 @@ std::optional<size_t> InstancesState::query_avaliable(
         return bool(best_match);
       });
   if (!best_match) {
+    auto min_v = avaliable_instances_.empty()
+        ? 0
+        : instances_.at(*avaliable_instances_.begin()).first;
+    auto max_v = avaliable_instances_.empty()
+        ? 0
+        : instances_.at(*avaliable_instances_.begin()).second;
     SPDLOG_WARN(
-        "query_avaliable timeout. req_size: {}, avaliable_instances_: {}",
+        "query_avaliable timeout. req_size: {}, avaliable_instances_: {} min={} max={}",
         req_size,
-        avaliable_instances_.size());
+        avaliable_instances_.size(),
+        min_v,
+        max_v);
   }
   return best_match;
 }

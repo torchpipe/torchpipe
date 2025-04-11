@@ -9,7 +9,7 @@
 using hami::dict;
 
 namespace torchpipe {
-class SyncTensor : public hami::DependencyV0 {
+class SyncTensor : public hami::Backend {
  public:
   /**
    * @brief
@@ -40,23 +40,35 @@ class SyncTensor : public hami::DependencyV0 {
    * order, therefore, even in complex situations, the correct stream
    * synchronization timing can be obtained.
    */
-  virtual void pre_init(
+  virtual void impl_init(
       const std::unordered_map<std::string, std::string>&,
       const dict&) override;
 
-  virtual void post_init(
-      const std::unordered_map<std::string, std::string>&,
-      const dict&) override;
+  //   virtual void post_init(
+  //       const std::unordered_map<std::string, std::string>&,
+  //       const dict&) override;
   /**
    * @brief
    * 如果init时绑定了新的流（也就是bNeedSync_==true），则forward时当子后端执行完毕后执行当前流上的同步。
    *
    */
-  virtual void custom_forward_with_dep(const std::vector<dict>&, Backend*)
-      override;
+  virtual void impl_forward(const std::vector<dict>& ios) override;
 
  private:
+  void impl_dep_forward(const std::vector<dict>& ios) {
+    if (owned_backend_)
+      owned_backend_->forward(ios);
+    else {
+      for (const auto& io : ios) {
+        (*io)[TASK_RESULT_KEY] = io->at(TASK_DATA_KEY);
+      }
+    }
+  }
+
   bool bNeedSync_ = false;
+  std::unique_ptr<Backend> owned_backend_;
+  int independent_thread_index_{-1};
+  std::optional<c10::cuda::CUDAStream> stream_;
 };
 
 class StreamGuard : public hami::DependencyV0 {

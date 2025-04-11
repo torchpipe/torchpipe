@@ -128,15 +128,33 @@ void SplitTensor::impl_init(
 void SplitTensor::impl_forward(const std::vector<dict>& input_dict) {
   std::vector<torch::Tensor> cated_inputs =
       dict_gets<torch::Tensor>(input_dict.front(), TASK_DATA_KEY);
-
+  std::vector<int> req_sizes(input_dict.size(), 1);
   size_t curr_index = cated_inputs[0].size(0);
+  if (curr_index == input_dict.size()) {
+    // HAMI_FATAL_ASSERT(
+    //     cated_inputs.size() == 1,
+    //     "no implementation for multiple outputs yet"); // todo
+    // for (auto i = 0; i < curr_index; ++i) {
+    //   (*input_dict[i])[TASK_RESULT_KEY] = cated_inputs[0][i];
+    //   (*input_dict[i])[TASK_REQUEST_SIZE_KEY] = 1;
+    // }
+    // return;
+  } else {
+    for (auto i = 0; i < input_dict.size(); ++i) {
+      req_sizes[i] = get_request_size(input_dict[i]);
+    }
+  }
 
   std::vector<std::vector<torch::Tensor>> results(input_dict.size());
   for (auto index = input_dict.size() - 1; index >= 1; --index) {
     // const size_t req_size =
     //     dict_get<int>(input_dict[index], TASK_REQUEST_SIZE_KEY);
-    const size_t req_size = get_request_size(input_dict[index]);
+    const size_t req_size = req_sizes[index];
     // SPDLOG_INFO("req_size = {}/{}", req_size, input_dict.size());
+    HAMI_FATAL_ASSERT(
+        curr_index > req_size,
+        "curr_index=" + std::to_string(curr_index) +
+            ", req_size=" + std::to_string(req_size));
     curr_index -= req_size;
     for (const auto& item : cated_inputs) {
       results[index].push_back(item.index(

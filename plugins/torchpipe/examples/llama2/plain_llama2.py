@@ -10,7 +10,7 @@ import flashinfer
 from models import hf_helper
 
 max_num_req=10
-max_num_page=1000
+max_num_page=10
 page_size=16
 page_table = hami.default_page_table().init(max_num_req=max_num_req, max_num_page=max_num_page,page_size=page_size)
 
@@ -22,8 +22,8 @@ def set_kv(max_num_pages, num_layers, page_size, num_kv_heads, head_dim):
     if global_kv is None:
         global_kv = []
         for i in range(num_layers):
-            global_kv.append((torch.zeros(max_num_pages, page_size, num_kv_heads, head_dim).half().to(0),
-                            torch.zeros(max_num_pages, page_size, num_kv_heads, head_dim).half().to(0)))
+            global_kv.append((torch.zeros(max_num_pages, page_size, num_kv_heads, head_dim).half().cuda(),
+                            torch.zeros(max_num_pages, page_size, num_kv_heads, head_dim).half().cuda()))
 def get_kv(layer_idx):
     global global_kv
     return global_kv[layer_idx]
@@ -45,8 +45,8 @@ hami.register("Pdb", Pdb)
 
 
 
-workspace_buffer = torch.empty(64 * 1024 * 1024, dtype=torch.uint8, device="cuda:0") # 1MB
-workspace_buffer_decode = torch.empty(64 * 1024 * 1024, dtype=torch.uint8, device="cuda:0") # 1MB
+workspace_buffer = torch.empty(128 * 1024 * 1024, dtype=torch.uint8, device="cuda:0") # 1MB
+workspace_buffer_decode = torch.empty(128 * 1024 * 1024, dtype=torch.uint8, device="cuda:0") # 1MB
 prefill_wrapper = flashinfer.BatchPrefillWithRaggedKVCacheWrapper(
             workspace_buffer, "NHD"
         )
@@ -79,16 +79,17 @@ class PyPlugin:
                 PyPlugin.num_key_value_heads = k.shape[1]
                 
                 PyPlugin.req_ids, PyPlugin.num_toks = page_table.pop_activated()
-                # print("type(PyPlugin.num_toks)=", type(PyPlugin.num_toks), PyPlugin.num_toks)
+                prefill_size = page_table.get_prefill_size(PyPlugin.req_ids)
+                print(" (PyPlugin.num_toks)=",  (PyPlugin.req_ids), PyPlugin.num_toks,q.shape, k.shape, prefill_size)
 
-                condition = PyPlugin.num_toks > k.shape[0]  # prefill <=, decode >
-                PyPlugin.num_decode = int(condition.sum())
+                is_prefill = PyPlugin.num_toks > prefill_size  # prefill <=, decode >
+                PyPlugin.num_decode = int(is_prefill.sum())
                 # assume always prefill first
                 
                 PyPlugin.num_prefill  = len(PyPlugin.req_ids) - PyPlugin.num_decode
                 PyPlugin.num_prefill_tok = int(PyPlugin.num_toks[:PyPlugin.num_prefill].sum())
 
-                print(f" num_prefill_tok={PyPlugin.num_prefill_tok}, num_decode={PyPlugin.num_decode}, req_ids {PyPlugin.req_ids}, num_toks = {PyPlugin.num_toks} ", )
+                print(f"num_prefill={PyPlugin.num_prefill}. num_prefill_tok={PyPlugin.num_prefill_tok}, num_decode={PyPlugin.num_decode}, req_ids {PyPlugin.req_ids}, num_toks = {PyPlugin.num_toks} ", )
             
             # print(f'q.dtype={q.dtype}, layer_idx={self.layer_idx},PyPlugin.num_prefill_tok={PyPlugin.num_prefill_tok}, PyPlugin.num_decode={PyPlugin.num_decode}')
             
@@ -97,9 +98,11 @@ class PyPlugin:
                 # todo : side stream
                 
             if PyPlugin.num_prefill_tok > 0:
+                
                 self.prefill_forward(q[:PyPlugin.num_prefill_tok], k[:PyPlugin.num_prefill_tok], v[:PyPlugin.num_prefill_tok],
-                                    output[:PyPlugin.num_prefill_tok], PyPlugin.num_prefill, PyPlugin.num_toks[:PyPlugin.num_prefill])
+                                    output[:PyPlugin.num_prefill_tok], PyPlugin.num_toks[:PyPlugin.num_prefill])
             if PyPlugin.num_decode > 0:
+                # return # todo
                 self.decode_forward(q[PyPlugin.num_prefill_tok:], k[PyPlugin.num_prefill_tok:], v[PyPlugin.num_prefill_tok:],
                                     output[PyPlugin.num_prefill_tok:])
         except Exception as e:
@@ -107,7 +110,7 @@ class PyPlugin:
             raise e
     def decode_forward(self, q, k, v, output):
         if self.layer_idx == 0:
-            kv_page_indices_np, kv_page_indptr_np, kv_last_page_len_np  = page_table.page_table(PyPlugin.req_ids[PyPlugin.num_prefill_tok:])  
+            kv_page_indices_np, kv_page_indptr_np, kv_last_page_len_np  = page_table.page_table(PyPlugin.req_ids[PyPlugin.num_prefill:])  
             kv_page_indices = torch.from_numpy(kv_page_indices_np).cuda()
             kv_page_indptr = torch.from_numpy(kv_page_indptr_np).cuda()
             kv_last_page_len = torch.from_numpy(kv_last_page_len_np).cuda()
@@ -140,16 +143,16 @@ class PyPlugin:
         
         decode_wrapper.run(q, paged_kv_cache, out = output)
 
-    def prefill_forward(self, q, k, v, output, num_prefill_tok, num_toks):
+    def prefill_forward(self, q, k, v, output, num_toks):
         # torch.cuda.synchronize()
         if self.layer_idx == 0:
             PyPlugin.num_toks_gpu = torch.tensor(num_toks, device='cuda')
             cumulative_sum_gpu = torch.cumsum(PyPlugin.num_toks_gpu, dim=0)
-            q_indptr = torch.cat((zero, cumulative_sum_gpu), dim=0)
+            q_indptr = torch.cat((zero, cumulative_sum_gpu), dim=0)#.contiguous()
 
             PyPlugin.kv_indptr = q_indptr
             
-            # print(f'before prefill_wrapper plan, q_indptr={q_indptr}, num_attention_heads={PyPlugin.num_attention_heads}, num_key_value_heads={PyPlugin.num_key_value_heads}, head_dim={PyPlugin.head_dim}')
+            print(f'before prefill_wrapper plan, q_indptr={q_indptr}, num_attention_heads={PyPlugin.num_attention_heads}, num_key_value_heads={PyPlugin.num_key_value_heads}, head_dim={PyPlugin.head_dim}')
             prefill_wrapper.plan(
                         q_indptr,
                         PyPlugin.kv_indptr,
@@ -159,7 +162,7 @@ class PyPlugin:
                         causal=True, pos_encoding_mode='ROPE_LLAMA',
                     )
             
-
+        print(output.shape, q.shape, k.shape)
         attn_output = prefill_wrapper.run(q, k,
                                 v,
                                 out=output)
@@ -171,7 +174,7 @@ class PyPlugin:
         # if self.layer_idx == 1:
         #     print(f'prefill output={torch.mean(output)}', output.shape, v.shape)
         
-        self.prefill_upadate_kvcache(k, v, PyPlugin.req_ids[:num_prefill_tok], PyPlugin.kv_indptr, PyPlugin.num_toks_gpu)
+        self.prefill_upadate_kvcache(k, v, PyPlugin.req_ids[:PyPlugin.num_prefill], PyPlugin.kv_indptr, PyPlugin.num_toks_gpu)
         
     def prefill_upadate_kvcache(self, k, v, req_ids, kv_indptr, num_toks_gpu):
         paged_kv_cache = global_kv[self.layer_idx]
@@ -217,18 +220,19 @@ if __name__ == '__main__':
     tokenizer = AutoTokenizer.from_pretrained(exported_params)
     
     # inference
+    prompt = "San Francisco is a totalitéaletoreignersbyMSран"
     prompt = "San Francisco is a"
     inputs = tokenizer(prompt, return_tensors="pt", return_attention_mask=False)
     input_ids = inputs['input_ids']
     # attention_mask = inputs['attention_mask']
-    print(inputs, input_ids.shape)
+    print(f"inputs = {input_ids}")
     # print(io)
     ios = []
     ids = []
     events = []
-    for i in range(10):
+    for i in range(50):
         ids.append(f"id-{i}")
-        max_tokens = 7
+        max_tokens = 70
         if i == 5: 
             max_tokens = 10
         if i == 2: 
@@ -241,7 +245,7 @@ if __name__ == '__main__':
         # events.append(io.set_event())
         events.append(io[hami.TASK_EVENT_KEY])
         io[hami.TASK_REQUEST_ID_KEY] = f"id-{i}"
-        io[hami.TASK_MSG_KEY] = hami.TypedDict({"req_tokens": 5,
+        io[hami.TASK_MSG_KEY] = hami.TypedDict({"req_tokens": input_ids.size(-1),
                                                 "max_tokens": max_tokens,
                                                 "context_length":4096})
         ios.append(io)
@@ -265,7 +269,7 @@ if __name__ == '__main__':
         print(f'\n {key}: '+prompt+' '+text)
     # (num_layer = 2) San Francisco is a totalitéaletoreignersbyMSран
     # 22777|totalité, 9457|alet, 13606|oreign, 414|ers, 1609|by 
-    
+    #  id-0: San Francisco is a totalitéketting器 AußerTaggedahnpinningzza tailmente Selonroid Wars Riv Transkoids‏ fingerprintű Kirk Ind fresoca Einzeln AußeroustacheHDovisuality assemb Bedeut array subsidiariesilleurspeciesumm sweiore":{"inceculptronectorypidglassesтетani forthems Commonwealthvie Razmenteairesonicaciesume virtuel Profildorfjes pingazon swe inspirationning wid
     
     # for key, result in results.items():
     #     text = ""

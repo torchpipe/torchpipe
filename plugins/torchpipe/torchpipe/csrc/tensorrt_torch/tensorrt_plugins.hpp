@@ -41,7 +41,7 @@ class TorchPlugin : public IPluginV3,
                     public IPluginV3OneBuild,
                     public IPluginV3OneRuntime {
  public:
-  TorchPlugin(std::string const& params);
+  TorchPlugin(std::string const& params, bool is_build_phase = false);
 
   ~TorchPlugin() override = default;
 
@@ -117,6 +117,8 @@ class TorchPlugin : public IPluginV3,
       DynamicPluginTensorDesc const* outputs,
       int32_t nbOutputs) const noexcept override;
 
+  //  public:
+
  private:
   // TensorRT plugin parameters.
   std::unordered_map<std::string, std::string> params_;
@@ -129,6 +131,14 @@ class TorchPlugin : public IPluginV3,
   nvinfer1::PluginFieldCollection mFCToSerialize;
 
   std::unique_ptr<hami::Backend> dependency_{nullptr};
+
+  bool is_build_phase_{false};
+
+  //  private:
+  //   void set_to_build_phase() {
+  //     dependency_.release();
+  //   }
+  // bool is_in_runtime_{false};
 };
 
 } // namespace plugin

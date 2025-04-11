@@ -13,17 +13,18 @@ next = "contiguous_batching"
 node_entrypoint = "Register[IoC[ContiguousBatching(target=node.batchable);Loop(batch_queue,target=ContiguousBatching)]]"
 # req CBStatus Loop(src_queue,target="") TASK_MSG_KEY xieyi / pool
 # 
-max = 5
+max = 128
 # node_entrypoint
 
 [batchable]
 append_index_selector = -1 
 backend = 'S[StreamGuard[TensorrtTensor],HasKey(finish_reason)[Send2Queue(batch_queue),Add(restart:embed_token)],Send2Queue(net_out)]' # Pdb,
-max = 5 
+batching_timeout = 0 
+max = 128 
 model = 'exported_params/batchable.onnx' 
 'model::cache' = 'exported_params/batchable.trt' 
 node_entrypoint = "Register[Reflect[backend]]" 
-post_processor = "SoftmaxArgMaxTensor" 
+post_processor = "S[PrintTensor,SoftmaxArgMaxTensor]" 
 # pre_processor = "PrintTensor" 
 # [pre_decode_stage]
 # # node_entrypoint = "Register[Forward[node.contiguous_batching]]"

@@ -86,6 +86,7 @@ class ThreadSafeSlots {
 class PageTable {
  public:
   struct PageInfo {
+    int init_size{0};
     std::vector<int> kv_page_indices; // 页位置
     int kv_last_page_len = 0; // 最后一个页的长度
   };
@@ -154,6 +155,9 @@ class PageTable {
   }
   std::pair<std::vector<id_type>, std::vector<int>> pop_activated();
   std::pair<std::vector<id_type>, std::vector<int>> get_activated();
+
+  // std::vector<int> get_prefill_size(std::vector<id_type> ids);
+  std::vector<int> get_prefill_size(const std::vector<id_type>& ids);
 
   const PageInfo& page_info(const id_type& id) const {
     std::lock_guard<std::mutex> lock(page_infos_lock_);

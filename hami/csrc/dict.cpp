@@ -418,9 +418,23 @@ void init_dict(py::module_& m) {
           "add_more_page",
           &PageTable::add_more_page,
           py::arg("num_added_slots"))
-      .def("available_pages", &PageTable::available_pages)
-      .def("get_num_tok", &PageTable::get_num_tok)
-      .def("available_ids", &PageTable::available_ids)
+      .def(
+          "available_pages",
+          &PageTable::available_pages,
+          pybind11::call_guard<pybind11::gil_scoped_release>())
+      .def(
+          "get_num_tok",
+          &PageTable::get_num_tok,
+          pybind11::call_guard<pybind11::gil_scoped_release>())
+      .def(
+          "get_prefill_size",
+          &PageTable::get_prefill_size,
+          py::arg("id"),
+          pybind11::call_guard<pybind11::gil_scoped_release>())
+      .def(
+          "available_ids",
+          &PageTable::available_ids,
+          pybind11::call_guard<pybind11::gil_scoped_release>())
       // .def("pop_activated", &PageTable::pop_activated)
       .def(
           "pop_activated",

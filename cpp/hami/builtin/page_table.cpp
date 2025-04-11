@@ -20,7 +20,11 @@ bool PageTable::reset(const hami::id_type& name, size_t num_tok) {
     SPDLOG_WARN("extend: total >= num_tok");
     return true;
   }
-  SPDLOG_INFO("PageTable::reset {}, now={}, required={}", name, total, num_tok);
+  SPDLOG_INFO(
+      "PageTable::reset failed - {}, now={}, required={}",
+      name,
+      total,
+      num_tok);
 
   std::lock_guard<std::mutex> lock(page_infos_lock_);
   auto& info = page_infos_.at(name);
@@ -93,6 +97,23 @@ std::pair<std::vector<id_type>, std::vector<int>> PageTable::pop_activated() {
 
     re.second.push_back(
         item.kv_last_page_len + page_size_ * (item.kv_page_indices.size() - 1));
+  }
+
+  return re;
+}
+std::vector<int> PageTable::get_prefill_size(const std::vector<id_type>& ids) {
+  std::vector<int> re;
+  std::lock_guard<std::mutex> lock(page_infos_lock_);
+
+  for (const id_type& id : ids) {
+    auto iter = page_infos_.find(id);
+    HAMI_FATAL_ASSERT(
+        iter != page_infos_.end(),
+        id + " not found. Size = " + std::to_string(page_infos_.size()) +
+            " name = " + page_infos_.begin()->first);
+    const auto& item = iter->second;
+
+    re.push_back(item.init_size);
   }
 
   return re;
@@ -227,7 +248,7 @@ bool PageTable::alloc(const hami::id_type& name, size_t num_tok) {
       page_table_.alloc((num_tok + page_size_ - 1) / page_size_);
   info.kv_last_page_len =
       (num_tok % page_size_) == 0 ? num_tok : (num_tok % page_size_);
-
+  info.init_size = num_tok;
   if (info.kv_page_indices.empty()) {
     page_infos_.erase(name);
     return false;

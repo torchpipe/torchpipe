@@ -27,7 +27,8 @@
 namespace nvinfer1 {
 namespace plugin {
 
-TorchPlugin::TorchPlugin(const std::string& params) : serialization_(params) {
+TorchPlugin::TorchPlugin(const std::string& params, bool is_build_phase)
+    : serialization_(params), is_build_phase_(is_build_phase) {
   params_ = hami::str::map_split(params, '=', ';');
 
   hami::str::try_update(params_, "num_output", torch_params_.num_output);
@@ -55,13 +56,15 @@ TorchPlugin::TorchPlugin(const std::string& params) : serialization_(params) {
   initFieldsToSerialize();
 
   [[maybe_unused]] static auto _ = [this]() {
-    SPDLOG_INFO("name={}", torch_params_.name);
+    SPDLOG_INFO("torch plugin: name={}", torch_params_.name);
     return 1;
   }();
 
-  // dependency_ = HAMI_INSTANCE_GET(hami::Backend, torch_params_.name);
-  dependency_ = hami::init_backend(torch_params_.name, params_);
-  HAMI_ASSERT(dependency_);
+  if (!is_build_phase) {
+    // dependency_ = HAMI_INSTANCE_GET(hami::Backend, torch_params_.name);
+    dependency_ = hami::init_backend(torch_params_.name, params_);
+    HAMI_ASSERT(dependency_);
+  }
 }
 
 void TorchPlugin::initFieldsToSerialize() {
@@ -98,7 +101,7 @@ IPluginV3* TorchPlugin::clone() noexcept {
   // For example, if the memory to allocate is insufficient, exceptions can be
   // thrown.
   try {
-    IPluginV3* const plugin{new TorchPlugin{serialization_}};
+    IPluginV3* const plugin{new TorchPlugin{serialization_, is_build_phase_}};
     return plugin;
   } catch (std::exception const& e) {
     SPDLOG_ERROR("Got exception: {}", e.what());
@@ -249,6 +252,7 @@ int32_t TorchPlugin::enqueue(
   at::cuda::CUDAEvent pre_event;
   std::unique_ptr<c10::cuda::CUDAStreamGuard> guard;
   if (at::cuda::getCurrentCUDAStream(device_id) != stream) {
+    SPDLOG_WARN("use External stream");
     guard = std::make_unique<c10::cuda::CUDAStreamGuard>(
         c10::cuda::getStreamFromExternal(stream, device_id));
     pre_event.record(guard->current_stream());
@@ -371,8 +375,8 @@ int32_t TorchPlugin::enqueue(
               .dtype(torch::kByte)
               .device(torch::kCUDA, device_id));
     }
-
-    dependency_->forward({io}); // 可能抛出Python异常
+    if (dependency_)
+      dependency_->forward({io}); // 可能抛出Python异常
   } catch (const pybind11::error_already_set& e) {
     SPDLOG_ERROR("Python error: {}", e.what());
     // e.restore(); // 保持Python错误状态
@@ -489,7 +493,7 @@ IPluginV3* TorchPluginCreator::createPlugin(
       // check
       // [[maybe_unused]] auto map_params = hami::str::str_split(params, ',');
 
-      TorchPlugin* const plugin{new TorchPlugin{params}};
+      TorchPlugin* const plugin{new TorchPlugin{params, true}};
       return plugin;
     } catch (std::exception const& e) {
       SPDLOG_ERROR("Got exception: {}", e.what());
@@ -508,7 +512,7 @@ IPluginV3* TorchPluginCreator::createPlugin(
       HAMI_ASSERT(fields[0].type == nvinfer1::PluginFieldType::kCHAR);
       params.resize(size_t(fields[0].length));
       memcpy(params.data(), fields[0].data, fields[0].length);
-      TorchPlugin* const plugin{new TorchPlugin{params}};
+      TorchPlugin* const plugin{new TorchPlugin{params, false}};
       return plugin;
     } catch (std::exception const& e) {
       SPDLOG_ERROR("Got exception: {}", e.what());

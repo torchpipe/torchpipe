@@ -9,12 +9,12 @@ using hami::dict;
 
 namespace torchpipe {
 
-class IndexSelectTensor : public hami::BackendOne {
+class IndexSelectTensor : public hami::Backend {
  private:
   void impl_init(
       const std::unordered_map<std::string, std::string>& config_param,
       const dict& kwargs) override;
-  void forward(const dict& input_output) override;
+  void impl_forward(const std::vector<dict>& ios) override;
 
  protected:
   //   ArgsKwargs args_kwargs_;
@@ -29,7 +29,7 @@ class IndexSelectTensor : public hami::BackendOne {
 };
 
 class EmbeddingTensor : public IndexSelectTensor {
-  void forward(const dict& input_output) override;
+  void impl_forward(const std::vector<dict>& ios) override;
   virtual std::string default_cls_name() const override {
     return "EmbeddingTensor";
   }

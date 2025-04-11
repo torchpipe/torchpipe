@@ -606,40 +606,53 @@ void ContiguousBatching::impl_forward(const std::vector<dict>& io) {
   if (req_status_.empty())
     return;
 
+  // int num_prefill = 0;
+  int avaliable_ids = page_table_->available_ids();
+  // sort
+  std::vector<id_type> sorted_ids;
+  sorted_ids.reserve(req_status_.size());
+
   // needed page
   int new_page_needed = 0;
   for (auto it = req_status_.begin(); it != req_status_.end(); ++it) {
     if (0 == it->second.new_tokens) // prefill
     {
+      if (avaliable_ids-- <= 0) {
+        continue;
+      }
+
       it->second.new_page_needed =
           (it->second.req_tokens + page_size_ - 1) / page_size_;
       new_page_needed += it->second.new_page_needed;
     } else if (
         1 == (it->second.req_tokens + it->second.new_tokens) % page_size_) {
-      it->second.new_page_needed = (1);
+      it->second.new_page_needed = 1;
       new_page_needed += 1;
-    } else
+    } else {
       it->second.new_page_needed = 0;
+    }
+    sorted_ids.push_back(it->first);
   }
 
-  // sort
-  std::vector<id_type> sorted_ids;
-  sorted_ids.reserve(req_status_.size());
-
-  std::transform(
-      req_status_.begin(),
-      req_status_.end(),
-      std::back_inserter(sorted_ids),
-      [](const auto& pair) { return pair.first; });
+  // std::transform(
+  //     req_status_.begin(),
+  //     req_status_.end(),
+  //     std::back_inserter(sorted_ids),
+  //     [](const auto& pair) { return pair.first; });
   std::sort(
       sorted_ids.begin(),
       sorted_ids.end(),
       [this](const id_type& a, const id_type& b) {
         return req_status_.at(a).time <= req_status_.at(b).time;
       });
-
+  SPDLOG_INFO(
+      "new_page_needed = {}, available_pages={}",
+      new_page_needed,
+      page_table_->available_pages());
   if (new_page_needed > page_table_->available_pages()) {
-    // sort by new_page_needed when available_pages is not enough
+    // sort by new_page_needed when available_pages  is not
+    // enough
+
     std::stable_sort(
         sorted_ids.begin(),
         sorted_ids.end(),
@@ -667,26 +680,27 @@ void ContiguousBatching::impl_forward(const std::vector<dict>& io) {
     if (batch_size > max_)
       break;
     if ((req_status_.at(id).new_page_needed) == 0) {
-      ids.push_back(id);
       SPDLOG_INFO("id = {} new_page_needed = 0", id);
-      page_table_->extend(id);
+      if (!page_table_->extend(id))
+        break;
+      ids.push_back(id);
     } else {
       SPDLOG_INFO(
           "id = {} new_page_needed = {}",
           id,
           req_status_.at(id).new_page_needed);
-      if (page_table_->alloc_or_reset(
+      if (!page_table_->alloc_or_reset(
               id,
               req_status_.at(id).req_tokens + req_status_.at(id).new_tokens)) {
-        ids.push_back(id);
-      } else {
+        SPDLOG_WARN(" not enough pages. ");
         break;
       }
+      ids.push_back(id);
     }
   }
   if (ids.empty()) {
     SPDLOG_WARN(
-        "returned. wired. empty ids. No memory? new_page_needed = {}, num_ids= {}, available_pages = {} available_ids = {}",
+        "returned. wired. empty ids. No memory or id? new_page_needed = {}, num_ids= {}, available_pages = {} available_ids = {}",
         new_page_needed,
         req_status_.size(),
         page_table_->available_pages(),

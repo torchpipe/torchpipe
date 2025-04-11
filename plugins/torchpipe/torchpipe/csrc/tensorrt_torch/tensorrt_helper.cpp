@@ -743,7 +743,7 @@ std::unique_ptr<nvinfer1::IHostMemory> onnx2trt(OnnxParams& params) {
   // build engine
   SPDLOG_INFO(
       "Building engine with {} profiles and precision={}... (this may take "
-      "some time)",
+      "some time)\n\n",
       profile_num,
       params.precision);
 
