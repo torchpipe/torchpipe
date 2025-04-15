@@ -7,6 +7,7 @@
 
 #include "hami/core/any.hpp"
 #include "hami/core/event.hpp"
+#include "hami/csrc/py_helper.hpp"
 
 namespace hami {
 
@@ -34,6 +35,26 @@ void init_event(py::module_& m) {
       .def("set", &Event::set, "Set the event.")
       .def("is_set", &Event::is_set, "Check if the event is set.")
       .def("set_callback", &Event::set_callback, "Set a callback function.")
+      .def(
+          "set_exception_callback",
+          [](Event& self, py::function py_callback) {
+            auto p_cb = python::make_shared(py_callback);
+            self.set_exception_callback([p_cb](std::exception_ptr eptr) {
+              py::gil_scoped_acquire acquire; // 确保持有 GIL
+              try {
+                if (eptr) {
+                  std::rethrow_exception(eptr); // 重新抛出异常
+                }
+              } catch (const std::exception& e) {
+                // 将 C++ 异常转换为 Python 异常对象
+                py::object py_e = py::cast(e);
+                (*p_cb)(py_e); // 调用 Python 回调
+              } catch (...) {
+                (*p_cb)(py::cast("Unknown C++ exception"));
+              }
+              //   p_cb = nullptr;
+            });
+          })
       .def("try_throw", &Event::try_throw, "Try to throw an exception.")
       .def(
           "set_final_callback",

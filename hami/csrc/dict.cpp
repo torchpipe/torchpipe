@@ -427,8 +427,8 @@ void init_dict(py::module_& m) {
           &PageTable::get_num_tok,
           pybind11::call_guard<pybind11::gil_scoped_release>())
       .def(
-          "get_prefill_size",
-          &PageTable::get_prefill_size,
+          "get_prefill_num_req_toks",
+          &PageTable::get_prefill_num_req_toks,
           py::arg("id"),
           pybind11::call_guard<pybind11::gil_scoped_release>())
       .def(

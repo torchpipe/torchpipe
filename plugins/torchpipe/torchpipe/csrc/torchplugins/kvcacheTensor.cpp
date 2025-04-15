@@ -37,7 +37,7 @@ class FIAppendTensor : public hami::BackendOne {
       const std::unordered_map<string, string>& params,
       const dict& options) override {
     str::try_update(params, "max_num_req", max_num_req_);
-    max_num_page_ = str::update<size_t>(params, "max_num_page");
+    max_num_page_ = str::get<size_t>(params, "max_num_page");
     // str::try_update(params, "max_context_len", max_context_len_);
     // str::try_update(params, "num_layer", num_layer_);
     // str::try_update(params, "head_num", head_num_);

@@ -10,21 +10,38 @@ namespace hami {
 namespace python {
 namespace py = pybind11;
 
-struct PyObjectDeleter {
-  void operator()(py::object* obj) const {
-    py::gil_scoped_acquire acquire;
-    delete obj;
+template <typename T>
+struct Pybind11Deleter {
+  void operator()(T* obj) const {
+    if (obj) {
+      py::gil_scoped_acquire acquire;
+      delete obj;
+    }
   }
 };
 
-// Define a type alias for the smart pointer with custom deleter
-using unique_ptr = std::unique_ptr<py::object, PyObjectDeleter>;
-
-static inline unique_ptr make_unique(const py::object& obj) {
-  return unique_ptr(new py::object(obj));
+template <typename T>
+auto make_unique(const T& obj) {
+  return std::unique_ptr<T, Pybind11Deleter<T>>(new T(obj));
 }
 
-size_t get_num_params(const py::object& obj, const char* method, size_t* defaults_count = nullptr);
+template <typename T>
+auto make_shared(const T& obj) {
+  return std::shared_ptr<T>(new T(obj), Pybind11Deleter<T>{});
+}
 
-}  // namespace python
-}  // namespace hami
+// template <typename T, typename... Args>
+// auto make_unique(Args&&... args) {
+//   return std::unique_ptr<T, Pybind11Deleter<T>>{
+//       new T(std::forward<Args>(args)...), Pybind11Deleter<T>()};
+// }
+template <typename T = py::object>
+using unique_ptr = std::unique_ptr<T, Pybind11Deleter<T>>;
+
+size_t get_num_params(
+    const py::object& obj,
+    const char* method,
+    size_t* defaults_count = nullptr);
+
+} // namespace python
+} // namespace hami

@@ -13,7 +13,7 @@
 #include "hami/helper/macro.h"
 #include "hami/helper/string.hpp"
 #include "hami/helper/timer.hpp"
-
+#include "hami/core/parser.hpp"
 #include "hami/helper/timer.hpp"
 
 namespace hami {
@@ -33,7 +33,7 @@ void Loop::impl_init(
       timeout_);
   HAMI_ASSERT(args.size() >= 1);
   src_queue_ = &(default_queue(args[0]));
-  std::string name_dep = str::update<std::string>(kwargs, "target");
+  std::string name_dep = str::get<std::string>(kwargs, "target");
   Backend* dependency_ = HAMI_INSTANCE_GET(Backend, name_dep);
   HAMI_ASSERT(dependency_);
   HAMI_FATAL_ASSERT(dependency_->max() == std::numeric_limits<size_t>::max());
@@ -47,7 +47,9 @@ void Loop::impl_forward_sync(const std::vector<dict>& ios) {
   for (const auto& item : ios) {
     item->erase(TASK_RESULT_KEY);
   }
+  SPDLOG_INFO("impl_forward_sync start");
   injected_dependency_->forward(ios);
+  SPDLOG_INFO("impl_forward_sync end");
   return;
   std::vector<std::shared_ptr<Event>> events;
   for (const auto& item : ios) {
@@ -82,6 +84,8 @@ void Loop::run() {
 
   while (bInited_.load()) {
     const auto queue_size = src_queue_->size();
+    SPDLOG_INFO(
+        "input_data_size={}, queue_size={}", input_data_size, queue_size);
     if (input_data_size != 0 && queue_size != 0)
       SPDLOG_INFO(
           "loop, input_data_size = {}, queue_size = {}",
@@ -146,14 +150,18 @@ void Loop::run() {
     input_data_size = 0;
     timeout = (timeout_ == 0);
   }
+  SPDLOG_INFO("Loop exit.");
 }
 
 void Loop::impl_forward(const std::vector<dict>& inputs) {
   HasEventHelper helper(
       inputs); // add `event` (and wait for possible exception) if not exist
 
+  SPDLOG_INFO("src_queue_ puts inputs.size() = {}", inputs.size());
   src_queue_->puts(inputs);
+  SPDLOG_INFO("src_queue_ puts finish ");
   helper.wait();
+  SPDLOG_INFO("src_queue_ wait finish ");
 }
 
 HAMI_REGISTER_BACKEND(Loop);
@@ -472,8 +480,10 @@ void ContiguousBatching::impl_init(
     const dict& options) {
   auto [args, kwargs] =
       parser_v2::get_args_kwargs(this, "ContiguousBatching", params);
-  std::string target = str::update<std::string>(kwargs, "target");
-  max_ = str::update<int>(kwargs, "max");
+  std::string target = str::get<std::string>(kwargs, "target");
+  max_ = str::get<int>(kwargs, "max");
+  // auto no_page_table = str::get(kwargs, "no_page_table");
+  // no_page_table_ = init_backend(no_page_table, params, options);
   SPDLOG_INFO("contiguous batching, target = {}, max = {}", target, max_);
 
   dependency_ = HAMI_INSTANCE_GET(Backend, target);
@@ -520,13 +530,15 @@ void ContiguousBatching::impl_forward(const std::vector<dict>& io) {
         {
           iter_req->second.stop = true;
           iter_req->second.running = false;
-          // iter_req->second.data = item;
+          iter_req->second.data = item;
         }
-        SPDLOG_INFO("finish {}", pro.req_id);
+        SPDLOG_INFO("finishing {}", pro.req_id);
         continue;
       }
 
       HAMI_FATAL_ASSERT(iter_req == req_status_.find(pro.req_id));
+
+      SPDLOG_INFO("prefill: {} ", pro.req_id);
       // page_table_->alloc(pro.req_id, pro.req_tokens);
       pro.data = item;
       // pro.event = dict_get<std::shared_ptr<Event>>(item, TASK_EVENT_KEY);
@@ -534,6 +546,7 @@ void ContiguousBatching::impl_forward(const std::vector<dict>& io) {
       pro.time = helper::time_passed(start_time);
       req_status_.emplace(pro.req_id, std::move(pro));
       item->erase(iter);
+
     } else {
       // decode
       CBProtocol& pro = (iter_req->second);
@@ -692,7 +705,7 @@ void ContiguousBatching::impl_forward(const std::vector<dict>& io) {
       if (!page_table_->alloc_or_reset(
               id,
               req_status_.at(id).req_tokens + req_status_.at(id).new_tokens)) {
-        SPDLOG_WARN(" not enough pages. ");
+        SPDLOG_WARN("No Enough Pages. ");
         break;
       }
       ids.push_back(id);
@@ -807,4 +820,66 @@ void ContiguousBatching::parser_message(
 }
 
 HAMI_REGISTER_BACKEND(ContiguousBatching);
+
+void FakeInstance::impl_init(
+    const std::unordered_map<std::string, std::string>& params,
+    const dict& options) {
+  int instance_num = 1;
+  str::try_update(params, "instance_num", instance_num);
+  HAMI_ASSERT(instance_num == 1);
+
+  fake_instance_num_ = str::get<size_t>(params, "fake_instance_num");
+
+  auto dep_name = parser_v2::get_dependency_name(this, params);
+  parser_v2::Parser parser;
+  auto deps = parser.split_by_delimiter(dep_name, ',');
+  auto fake_instance_num_str = std::to_string(fake_instance_num_);
+
+  HAMI_ASSERT(deps.size() == 1 || deps.size() == fake_instance_num_);
+  dict new_options = options
+      ? options
+      : std::make_shared<std::unordered_map<std::string, any>>();
+
+  for (size_t i = 0; i < fake_instance_num_; ++i) {
+    auto new_params = params;
+    new_params["instance_num"] = fake_instance_num_str;
+    new_params[TASK_INDEX_KEY] = std::to_string(i);
+    auto backend = init_backend(
+        deps.size() == 1 ? deps[0] : deps[i], new_params, new_options);
+    backends_.push_back(std::move(backend));
+  }
+
+  std::vector<size_t> mins;
+  std::vector<size_t> maxs;
+  for (std::size_t i = 0; i < backends_.size(); ++i) {
+    mins.push_back(backends_[i]->min());
+    maxs.push_back(backends_[i]->max());
+  }
+  min_ = *std::min_element(mins.begin(), mins.end());
+  max_ = *std::max_element(maxs.begin(), maxs.end());
+
+  HAMI_ASSERT(min() <= max(), " min() = {} max() = {}", min(), max());
+
+  sorted_max_ = sort_indexes(backends_);
+}
+
+void FakeInstance::impl_forward(const std::vector<dict>& ios) {
+  const auto size = get_request_size(ios);
+
+  const auto index = get_best_match(size);
+  // SPDLOG_INFO("FakeInstance: size={} index={}", size, index);
+  // auto inputs = inputs_data;
+  if (size != ios.size()) {
+    IPIPE_ASSERT(index >= 0); // garentied
+    backends_[index]->forward(ios);
+  } else {
+    if (index < 0) {
+      backends_[0]->forward(ios);
+    } // todo: split?
+    else
+      backends_[index]->forward(ios);
+  }
+}
+HAMI_REGISTER_BACKEND(FakeInstance);
+
 } // namespace hami

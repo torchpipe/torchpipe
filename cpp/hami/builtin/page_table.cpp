@@ -21,10 +21,7 @@ bool PageTable::reset(const hami::id_type& name, size_t num_tok) {
     return true;
   }
   SPDLOG_INFO(
-      "PageTable::reset failed - {}, now={}, required={}",
-      name,
-      total,
-      num_tok);
+      "PageTable::reset - {}, now={}, required={}", name, total, num_tok);
 
   std::lock_guard<std::mutex> lock(page_infos_lock_);
   auto& info = page_infos_.at(name);
@@ -101,7 +98,8 @@ std::pair<std::vector<id_type>, std::vector<int>> PageTable::pop_activated() {
 
   return re;
 }
-std::vector<int> PageTable::get_prefill_size(const std::vector<id_type>& ids) {
+std::vector<int> PageTable::get_prefill_num_req_toks(
+    const std::vector<id_type>& ids) {
   std::vector<int> re;
   std::lock_guard<std::mutex> lock(page_infos_lock_);
 

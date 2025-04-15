@@ -20,13 +20,11 @@ BS::thread_pool<>& default_thread_pool(const std::string& tag, size_t size) {
 
   auto iter = pool_map.find(tag);
   if (iter == pool_map.end()) {
-    // 使用 try_emplace 避免拷贝（C++17 支持）
     auto [new_iter, _] =
         pool_map.try_emplace(tag, std::make_shared<BS::thread_pool<>>(size));
     return *new_iter->second;
   }
 
-  // 可选：检查现有线程池的 size 是否匹配传入参数
   if (size != 0 && iter->second->get_thread_count() != size) {
     throw std::invalid_argument("Thread pool size mismatch for tag: " + tag);
   }
@@ -34,4 +32,4 @@ BS::thread_pool<>& default_thread_pool(const std::string& tag, size_t size) {
   return *iter->second;
 }
 
-}  // namespace hami::thread_pool
+} // namespace hami::thread_pool

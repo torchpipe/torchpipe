@@ -148,7 +148,7 @@ class SetTensorRequestSize : public hami::BackendOne {
 
     const size_t req_size = data.at(0).size(0);
     SPDLOG_INFO(
-        "SetTensorRequestSize: {}, req_size={}", print_tensor(data), req_size);
+        "SetTensorRequestSize: req_size={}", req_size); // print_tensor(data),
     io->erase(TASK_DATA_KEY);
     (*io)[TASK_REQUEST_SIZE_KEY] = int(req_size);
     if (data.size() == 1)

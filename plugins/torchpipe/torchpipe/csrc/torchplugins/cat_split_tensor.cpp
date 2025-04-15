@@ -145,7 +145,7 @@ void SplitTensor::impl_forward(const std::vector<dict>& input_dict) {
     }
   }
 
-  std::vector<std::vector<torch::Tensor>> results(input_dict.size());
+   std::vector<std::vector<torch::Tensor>> results(input_dict.size());
   for (auto index = input_dict.size() - 1; index >= 1; --index) {
     // const size_t req_size =
     //     dict_get<int>(input_dict[index], TASK_REQUEST_SIZE_KEY);

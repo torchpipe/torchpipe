@@ -7,13 +7,16 @@ import hami
 from transformers import AutoTokenizer, AutoModelForCausalLM, AutoConfig
 from typing import List
 
+
+
+
 class CustomBackendEngine(BackendEngine):
     def __init__(self, *args, **kwargs):
         super().__init__()
         
         from plain_llama2 import PyPlugin
         hami.register("TorchPlugin", PyPlugin)
-        hami.register("py_instance", self)
+        hami.register("custom_backend_engine", self)
         
         exported_params = "./exported_params"
         self.tokenizer = AutoTokenizer.from_pretrained(exported_params)
@@ -106,7 +109,7 @@ class CustomBackendEngine(BackendEngine):
         output.outputs = [seq]
         
         if output.finished:
-            print("d")
+            print(f"finish: {request_id}")
             self.finish_batching(request_id)
             print("finished")
             
@@ -117,9 +120,17 @@ class CustomBackendEngine(BackendEngine):
         io = hami.Dict({})
         io[hami.TASK_REQUEST_ID_KEY] = req_id
         io[hami.TASK_MSG_KEY] = hami.TypedDict({"finish": True})
-        
+        ev = io.set_event()
+        ev.set_exception_callback(lambda e: self.python_callback(e)) # would not happen
         self.contiguous_batching(io)
-        
+
+    def python_callback(self, e):
+        if isinstance(e, RuntimeError):
+            print(f"Fatal RuntimeError: {e}")
+        else:
+            print(f"Fatal unknown exception: {e}")
+            
+            
 register_engine("llama2", CustomBackendEngine())
 
 if __name__ == '__main__':

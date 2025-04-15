@@ -12,7 +12,7 @@ void Register::impl_init(
     const dict& kwargs) {
   parser_v2::ArgsKwargs args_kwargs =
       parser_v2::get_args_kwargs(this, "Register", params);
-  std::string node_name = str::update(args_kwargs.second, "node_name");
+  std::string node_name = str::get(args_kwargs.second, "node_name");
   std::string backend_name =
       parser_v2::get_dependency_name(this, args_kwargs.second, "Register");
   auto* dep = HAMI_CREATE(Backend, backend_name, "node." + node_name);

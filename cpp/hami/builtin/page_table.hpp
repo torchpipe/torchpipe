@@ -156,8 +156,8 @@ class PageTable {
   std::pair<std::vector<id_type>, std::vector<int>> pop_activated();
   std::pair<std::vector<id_type>, std::vector<int>> get_activated();
 
-  // std::vector<int> get_prefill_size(std::vector<id_type> ids);
-  std::vector<int> get_prefill_size(const std::vector<id_type>& ids);
+  // std::vector<int> get_prefill_num_req_toks(std::vector<id_type> ids);
+  std::vector<int> get_prefill_num_req_toks(const std::vector<id_type>& ids);
 
   const PageInfo& page_info(const id_type& id) const {
     std::lock_guard<std::mutex> lock(page_infos_lock_);

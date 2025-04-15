@@ -112,7 +112,7 @@ class HAMI_EXPORT Identities : public Backend {
   void impl_init(
       const std::unordered_map<std::string, std::string>& config,
       const dict& kwargs) override final {
-    max_ = str::update<size_t>(config, "max");
+    max_ = str::get<size_t>(config, "max");
   }
   void impl_forward(const std::vector<dict>& input_output) override final {
     for (const auto& item : input_output) {

@@ -38,7 +38,8 @@ HasEventHelper::HasEventHelper(const std::vector<dict>& data) : dicts_(data) {
       });
 
   if (none_have_event) {
-    SPDLOG_INFO("HasEventHelper: none_have_event");
+    SPDLOG_INFO(
+        "HasEventHelper: none_have_event. data.size() = {}", data.size());
     event_ = make_event(data.size());
     for (auto& item : data) {
       (*item)[TASK_EVENT_KEY] = event_;

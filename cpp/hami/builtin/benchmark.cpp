@@ -30,7 +30,7 @@ void Benchmark::impl_init(
 
   str::try_update(config, "num_clients", num_clients_);
   str::try_update(config, "request_batch", request_batch_);
-  total_number_ = str::update<size_t>(config, "total_number");
+  total_number_ = str::get<size_t>(config, "total_number");
   str::try_update(config, "num_warm_up", num_warm_up_);
 
   if (total_number_ % request_batch_ != 0) {

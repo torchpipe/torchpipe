@@ -317,7 +317,7 @@ template <typename>
 struct always_false : std::false_type {};
 
 template <typename T = std::string>
-T update(const str::str_map& config, const std::string& key) {
+T get(const str::str_map& config, const std::string& key) {
   auto iter = config.find(key);
   if (iter == config.end()) {
     throw std::invalid_argument("Parameter '" + key + "' not found");
@@ -418,7 +418,8 @@ void try_update(
 
     if (ec != std::errc() || ptr != value.data() + value.size()) {
       throw std::invalid_argument(
-          "Failed to parse " + key + " as " + typeid(T).name() + ": " + value);
+          "Failed to parse " + key + " as " + typeid(T).name() +
+          ". value=" + value);
     }
     default_value = parsed_value;
 

@@ -203,9 +203,66 @@ class ContiguousBatching : public Backend {
   int page_size_{0};
   int max_{std::numeric_limits<int>::max()};
   // std::unordered_set<id_type> need_stop_;
+  std::unique_ptr<Backend> no_page_table_;
 };
 
 // #  CBStatus Loop(src_queue)[ContiguousBatching] TASK_MSG_KEY
-// xieyi
 
+class FakeInstance : public Backend {
+ private:
+  void impl_init(
+      const std::unordered_map<std::string, std::string>& config,
+      const dict& dict_config) override;
+
+  void impl_forward(const std::vector<dict>& ios);
+
+  [[nodiscard]] size_t impl_max() const override {
+    return max_;
+  }
+
+  [[nodiscard]] size_t impl_min() const override {
+    return min_;
+  }
+
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
+  // 先销毁消费线程， 确保销毁顺序
+  ~FakeInstance() {
+    backends_.clear();
+  }
+#endif
+ private:
+  // from
+  // https://stackoverflow.com/questions/1577475/c-sorting-and-keeping-track-of-indexes
+  template <typename T>
+  std::vector<std::size_t> sort_indexes(const std::vector<T>& v) {
+    std::vector<size_t> idx(v.size());
+    std::iota(idx.begin(), idx.end(), 0);
+
+    std::stable_sort(idx.begin(), idx.end(), [&v](size_t i1, size_t i2) {
+      return v[i1]->max() <= v[i2]->max();
+    });
+
+    return idx;
+  }
+  int get_best_match(std::size_t size_of_input) {
+    for (auto item : sorted_max_) {
+      if (size_of_input >= backends_[item]->min() &&
+          (size_of_input <= backends_[item]->max())) {
+        return item;
+      }
+    }
+    return -1;
+  }
+
+ private:
+  std::vector<std::unique_ptr<Backend>> backends_;
+
+  size_t fake_instance_num_;
+  size_t max_{0};
+  size_t min_{0};
+
+  std::vector<std::size_t> sorted_max_;
+
+  // std::unordered_map<std::string, std::string> config_;
+};
 } // namespace hami

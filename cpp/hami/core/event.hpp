@@ -274,19 +274,22 @@ class HAMI_EXPORT Event {
     std::lock_guard<std::mutex> lk(mut);
     num_task += num;
   }
-  void try_callback(std::exception_ptr except = nullptr) {
+  void try_callback() {
     bool should_try = false;
+    std::vector<std::function<void(std::exception_ptr)>> excep_cb;
     {
       std::lock_guard<std::mutex> lk(mut);
       should_try = (ref_count == num_task);
+      std::swap(excep_cb, exception_callbacks_);
     }
 
     if (should_try) {
-      if (except) {
-        while (!exception_callbacks_.empty()) {
-          exception_callbacks_.back()(except); // Execute the last callback
-          exception_callbacks_.pop_back(); // Remove the last callback
+      if (eptr_ && !excep_cb.empty()) { // no need to lock the eptr_ now
+        while (!excep_cb.empty()) {
+          excep_cb.back()(eptr_); // Execute the last callback
+          excep_cb.pop_back(); // Remove the last callback
         }
+        eptr_ = nullptr;
       }
       while (!callbacks_.empty()) {
         callbacks_.back()(); // Execute the last callback
@@ -308,7 +311,7 @@ class HAMI_EXPORT Event {
         eptr_ = eptr;
       ref_add();
     }
-    try_callback(eptr);
+    try_callback();
 
     data_cond.notify_all();
   }
@@ -329,7 +332,7 @@ class HAMI_EXPORT Event {
   }
 
   void set_exception_callback(
-      std::function<void(std::exception_ptr)> callback) {
+      const std::function<void(std::exception_ptr)>& callback) {
     std::lock_guard<std::mutex> lk(mut);
     // assert(!callback_);
     {

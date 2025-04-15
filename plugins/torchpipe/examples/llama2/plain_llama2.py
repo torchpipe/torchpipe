@@ -10,8 +10,9 @@ import flashinfer
 from models import hf_helper
 
 max_num_req=10
-max_num_page=10
+max_num_page=4096
 page_size=16
+num_layers = 2
 page_table = hami.default_page_table().init(max_num_req=max_num_req, max_num_page=max_num_page,page_size=page_size)
 
 
@@ -28,7 +29,15 @@ def get_kv(layer_idx):
     global global_kv
     return global_kv[layer_idx]
 
-set_kv(max_num_page, 32, page_size, 32, 128)
+set_kv(max_num_page, num_layers, page_size, 32, 128)
+
+current_memory = torch.cuda.memory_allocated()  
+print(f"当前显存占用: {current_memory / 1024**2:.2f} MB")
+
+
+cached_memory = torch.cuda.memory_reserved()  
+print(f"缓存显存: {cached_memory / 1024**2:.2f} MB")
+
 ### --------------------------------------------------- ########## 
 
 import hami
@@ -79,7 +88,7 @@ class PyPlugin:
                 PyPlugin.num_key_value_heads = k.shape[1]
                 
                 PyPlugin.req_ids, PyPlugin.num_toks = page_table.pop_activated()
-                prefill_size = page_table.get_prefill_size(PyPlugin.req_ids)
+                prefill_size = page_table.get_prefill_num_req_toks(PyPlugin.req_ids)
                 print(" (PyPlugin.num_toks)=",  (PyPlugin.req_ids), PyPlugin.num_toks,q.shape, k.shape, prefill_size)
 
                 is_prefill = PyPlugin.num_toks > prefill_size  # prefill <=, decode >
@@ -230,7 +239,7 @@ if __name__ == '__main__':
     ios = []
     ids = []
     events = []
-    for i in range(50):
+    for i in range(11):
         ids.append(f"id-{i}")
         max_tokens = 70
         if i == 5: 
@@ -239,6 +248,7 @@ if __name__ == '__main__':
             max_tokens = 4
         if i == 0:
             max_tokens += 12
+        max_tokens = 128
              
         io = hami.Dict({'data':input_ids.squeeze(0),"node_name":'embed_token'})
         io[hami.TASK_EVENT_KEY] = hami.Event() 
@@ -265,8 +275,9 @@ if __name__ == '__main__':
         id = data['request_id']
         results[id] += data['data']
     for key, result in results.items():
+        finish_reason = results.pop("finish_reason", None) 
         text = tokenizer.decode(result, skip_special_tokens=True)
-        print(f'\n {key}: '+prompt+' '+text)
+        print(f'\n {key}: '+prompt+' '+text + f"-{finish_reason}")
     # (num_layer = 2) San Francisco is a totalitéaletoreignersbyMSран
     # 22777|totalité, 9457|alet, 13606|oreign, 414|ers, 1609|by 
     #  id-0: San Francisco is a totalitéketting器 AußerTaggedahnpinningzza tailmente Selonroid Wars Riv Transkoids‏ fingerprintű Kirk Ind fresoca Einzeln AußeroustacheHDovisuality assemb Bedeut array subsidiariesilleurspeciesumm sweiore":{"inceculptronectorypidglassesтетani forthems Commonwealthvie Razmenteairesonicaciesume virtuel Profildorfjes pingazon swe inspirationning wid

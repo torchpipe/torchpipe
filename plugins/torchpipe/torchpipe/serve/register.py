@@ -3,12 +3,18 @@
 
 import os, sys
 from abc import ABC, abstractmethod
-
+import hami
+from typing import List
 
 class BackendEngine(ABC):
     @abstractmethod
     async def forward_async(self, *args, **kwargs):
         pass
+    
+    @abstractmethod
+    def forward(self, ios:List[hami.Dict]):
+        pass
+
     
 _registered_engines = {}
 

@@ -108,7 +108,7 @@ class PyInstance : public Backend {
   }
 
  private:
-  hami::python::unique_ptr obj_;
+  hami::python::unique_ptr<> obj_;
   size_t max_ = 1;
   size_t min_ = 1;
   size_t init_default_params_ = 0;
