@@ -18,7 +18,7 @@ import numpy as np
 # # Test function
 def test_DecodeTensor():
     # Initialize the DecodeTensor model
-    model = hami._C.init("S_v0[DecodeTensor,StreamGuard]")
+    model = hami._C.init("DecodeTensor")
 
     img = Image.fromarray(np.zeros((1140, 1200, 3), dtype=np.uint8))
     img_byte_arr = BytesIO()

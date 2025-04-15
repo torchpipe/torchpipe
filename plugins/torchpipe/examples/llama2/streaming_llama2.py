@@ -108,10 +108,10 @@ class CustomBackendEngine(BackendEngine):
             
         output.outputs = [seq]
         
-        if output.finished:
-            print(f"finish: {request_id}")
-            self.finish_batching(request_id)
-            print("finished")
+        # if output.finished:
+        #     print(f"finish: {request_id}")
+        #     self.finish_batching(request_id)
+        #     print("finished")
             
         request_callback(output)
         io[0]['result'] = io[0]['data']

@@ -8,6 +8,10 @@ python models/export_onnx_v2.py --num_layers=2
 
 ## run
 ```
+python -c "import torch; print(torch.__version__, torch.version.cuda)"
+pip install flashinfer-python -i https://flashinfer.ai/whl/cu128/torch2.7
+
+
 python plain_llama2.py
 # num_layers = 2:
 # San Francisco is a totalitéaletoreignersbyMSран 

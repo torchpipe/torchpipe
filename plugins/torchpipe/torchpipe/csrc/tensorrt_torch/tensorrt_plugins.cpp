@@ -19,10 +19,10 @@
 #include "tensorrt_torch/tensorrt_helper.hpp"
 #include "tensorrt_torch/tensorrt_plugins.hpp"
 
+#include <ATen/cuda/CUDAEvent.h>
 #include <c10/cuda/CUDAStream.h> // 必须包含此头文件
 #include <torch/torch.h>
 #include "c10/cuda/CUDAGuard.h"
-#include <ATen/cuda/CUDAEvent.h>
 
 namespace nvinfer1 {
 namespace plugin {
@@ -217,7 +217,7 @@ int32_t TorchPlugin::getOutputShapes(
     DimsExprs* outputs,
     int32_t nbOutputs,
     IExprBuilder& exprBuilder) noexcept {
-  SPDLOG_INFO("getOutputShapes called. ");
+  // SPDLOG_INFO("getOutputShapes called. ");
 
   for (size_t i = 0; i < nbOutputs; ++i) {
     outputs[i].nbDims = inputs[0].nbDims;

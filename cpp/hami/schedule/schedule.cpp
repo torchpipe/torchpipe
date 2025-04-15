@@ -6,14 +6,13 @@
 #include "hami/builtin/proxy.hpp"
 #include "hami/core/event.hpp"
 #include "hami/core/helper.hpp"
+#include "hami/core/parser.hpp"
 #include "hami/core/queue.hpp"
 #include "hami/core/reflect.h"
 #include "hami/core/task_keys.hpp"
 #include "hami/helper/base_logging.hpp"
 #include "hami/helper/macro.h"
 #include "hami/helper/string.hpp"
-#include "hami/helper/timer.hpp"
-#include "hami/core/parser.hpp"
 #include "hami/helper/timer.hpp"
 
 namespace hami {
@@ -159,9 +158,9 @@ void Loop::impl_forward(const std::vector<dict>& inputs) {
 
   SPDLOG_INFO("src_queue_ puts inputs.size() = {}", inputs.size());
   src_queue_->puts(inputs);
-  SPDLOG_INFO("src_queue_ puts finish ");
+  // SPDLOG_INFO("src_queue_ puts finish ");
   helper.wait();
-  SPDLOG_INFO("src_queue_ wait finish ");
+  // SPDLOG_INFO("src_queue_ wait finish ");
 }
 
 HAMI_REGISTER_BACKEND(Loop);
