@@ -160,7 +160,7 @@ class InstanceDispatcher : public Backend {
 // IOC[instancedd, executor]
 class ContiguousBatching : public Backend {
  public:
-  struct CBProtocol {
+  struct BatchInfo {
     // enum struct Action { Stop, Cancel };
     id_type req_id;
 
@@ -194,10 +194,10 @@ class ContiguousBatching : public Backend {
   Backend* dependency_{nullptr};
   void parser_message(
       const std::shared_ptr<TypedDict>& msg,
-      CBProtocol& protocol);
+      BatchInfo& protocol);
 
  private:
-  std::unordered_map<id_type, CBProtocol> req_status_;
+  std::unordered_map<id_type, BatchInfo> req_status_;
   // std::mutex req_status_mutex_;
   PageTable* page_table_{nullptr};
   int page_size_{0};

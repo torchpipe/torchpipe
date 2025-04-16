@@ -49,6 +49,8 @@ constexpr auto TASK_INDEX_KEY = "_independent_index";
 
 constexpr auto TASK_RESTART_KEY = "restart";
 constexpr auto TASK_REQUEST_ID_KEY = "request_id";
+constexpr auto TASK_WAITING_EVENT_KEY = "waiting_event";
+
 using id_type = std::string;
 
 constexpr auto TASK_DEFAULT_NODE_NAME_KEY = "default_node_name";

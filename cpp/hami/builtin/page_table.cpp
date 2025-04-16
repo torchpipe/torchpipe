@@ -6,7 +6,7 @@
 #include "hami/builtin/page_table.hpp"
 #include "hami/helper/macro.h"
 #include "hami/helper/base_logging.hpp"
-#include "hami/helper/macro.h"
+#include "hami/helper/timer.hpp"
 
 namespace hami {
 
@@ -45,6 +45,11 @@ bool PageTable::reset(const hami::id_type& name, size_t num_tok) {
       ? need_new_tok
       : (need_new_tok % page_size_);
   return true;
+}
+
+float PageTable::get_time() {
+  static const auto start_time = helper::now();
+  return helper::time_passed(start_time);
 }
 
 bool PageTable::extend(const hami::id_type& name) {
@@ -247,6 +252,7 @@ bool PageTable::alloc(const hami::id_type& name, size_t num_tok) {
   info.kv_last_page_len =
       (num_tok % page_size_) == 0 ? num_tok : (num_tok % page_size_);
   info.init_size = num_tok;
+  info.time = get_time();
   if (info.kv_page_indices.empty()) {
     page_infos_.erase(name);
     return false;

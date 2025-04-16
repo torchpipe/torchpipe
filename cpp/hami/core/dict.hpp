@@ -200,6 +200,15 @@ T get(const TypedDict& data, const std::string& key) {
   return std::get<T>(iter->second);
 }
 
+template <typename T>
+T try_get(const TypedDict& data, const std::string& key) {
+  auto iter = data.data.find(key);
+  if (iter == data.data.end()) {
+    return T();
+  }
+  return std::get<T>(iter->second);
+}
+
 template <>
 inline bool get<bool>(const TypedDict& data, const std::string& key) {
   auto iter = data.data.find(key);

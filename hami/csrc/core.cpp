@@ -57,6 +57,7 @@ void init_core(py::module_& m) {
   m.attr("TASK_NODE_NAME_KEY") = py::cast(TASK_NODE_NAME_KEY);
   m.attr("TASK_MSG_KEY") = py::cast(TASK_MSG_KEY);
   m.attr("TASK_REQUEST_ID_KEY") = py::cast(TASK_REQUEST_ID_KEY);
+  m.attr("TASK_WAITING_EVENT_KEY") = py::cast(TASK_WAITING_EVENT_KEY);
   m.attr("TASK_REQUEST_SIZE_KEY") = py::cast(TASK_REQUEST_SIZE_KEY);
   m.attr("TASK_EVENT_KEY") = py::cast(TASK_EVENT_KEY);
 

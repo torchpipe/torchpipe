@@ -10,7 +10,7 @@ import flashinfer
 from models import hf_helper
 
 max_num_req=10
-max_num_page=4096
+max_num_page=4096//16
 page_size=16
 num_layers = 2
 page_table = hami.default_page_table().init(max_num_req=max_num_req, max_num_page=max_num_page,page_size=page_size)

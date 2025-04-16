@@ -89,17 +89,20 @@ class PageTable {
     int init_size{0};
     std::vector<int> kv_page_indices; // 页位置
     int kv_last_page_len = 0; // 最后一个页的长度
+    float time{0}; // 最初时间
   };
   PageTable() = default;
   PageTable(size_t max_num_req, size_t max_num_page, size_t page_size)
       : max_num_req_(max_num_req),
         page_size_(page_size),
+        max_num_page_(max_num_page),
         page_table_(max_num_page) {
     page_infos_.reserve(max_num_req);
   }
   void init(size_t max_num_req, size_t max_num_page, size_t page_size) {
     max_num_req_ = (max_num_req);
     page_size_ = (page_size);
+    max_num_page_ = max_num_page;
     page_table_.init(max_num_page);
     page_infos_.reserve(max_num_req);
   }
@@ -170,10 +173,17 @@ class PageTable {
   int page_size() const {
     return page_size_;
   }
+  int max_num_page() const {
+    return max_num_page_;
+  }
+
+ private:
+  float get_time();
 
  private:
   size_t max_num_req_{0};
   int page_size_{0};
+  int max_num_page_{0};
   ThreadSafeSlots page_table_;
 
   mutable std::mutex page_infos_lock_;

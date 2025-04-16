@@ -13,7 +13,7 @@ node_entrypoint = "Register[IoC[ContiguousBatching(target=node.batchable);Loop(b
 # req CBStatus Loop(batch_queue,target="") TASK_MSG_KEY xieyi / pool
 # 
 # node_entrypoint
-max = 128
+max = 4096
 
 [batchable]
 append_index_selector = -1 
