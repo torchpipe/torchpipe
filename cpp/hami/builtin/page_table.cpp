@@ -21,7 +21,10 @@ bool PageTable::reset(const hami::id_type& name, size_t num_tok) {
     return true;
   }
   SPDLOG_INFO(
-      "PageTable::reset - {}, now={}, required={}", name, total, num_tok);
+      "PageTable::reset(tokens): id={},now={},required={}",
+      name,
+      total,
+      num_tok);
 
   std::lock_guard<std::mutex> lock(page_infos_lock_);
   auto& info = page_infos_.at(name);
@@ -158,7 +161,6 @@ std::tuple<std::vector<int>, std::vector<int>, std::vector<int>> PageTable::
 
   std::lock_guard<std::mutex> lock(page_infos_lock_);
   for (size_t i = 0; i < id.size(); ++i) {
-    SPDLOG_INFO("id = {}", id[i]);
     total += page_infos_.at(id[i]).kv_page_indices.size();
   }
 
@@ -183,7 +185,7 @@ std::tuple<std::vector<int>, std::vector<int>, std::vector<int>> PageTable::
 void PageTable::activate(std::vector<id_type> ids) {
   std::lock_guard<std::mutex> lock(page_infos_lock_);
   for (const auto& item : ids) {
-    HAMI_ASSERT(page_infos_.find(item) != page_infos_.end());
+    HAMI_ASSERT(page_infos_.find(item) != page_infos_.end(), "no" + item);
   }
   ids_.push(std::move(ids));
 }

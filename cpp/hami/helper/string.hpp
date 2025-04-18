@@ -355,6 +355,22 @@ static inline std::string get_str(
   return iter->second;
 }
 
+template <typename T1, typename T>
+std::string join(
+    const std::vector<std::pair<T1, T>>& container,
+    char sep = ',') {
+  std::ostringstream oss;
+  bool first = true;
+  for (const auto& s : container) {
+    if (!first) {
+      oss << sep;
+    }
+    oss << s.first;
+    first = false;
+  }
+  return oss.str();
+}
+
 template <typename Container>
 static inline std::string join(const Container& container, char sep = ',') {
   static_assert(

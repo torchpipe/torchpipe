@@ -9,8 +9,9 @@
 namespace hami {
 class DagDispatcher : public HasEventForwardGuard {
  private:
-  void impl_init(const std::unordered_map<std::string, std::string>& config,
-                 const dict& kwargs) override final;
+  void impl_init(
+      const std::unordered_map<std::string, std::string>& config,
+      const dict& kwargs) override final;
 
  public:
   void evented_forward(const std::vector<dict>& input_output) override final;
@@ -65,12 +66,16 @@ class DagDispatcher : public HasEventForwardGuard {
   std::atomic_bool bInited_{true};
   void task_loop(std::size_t thread_index, ThreadSafeQueue<dict>* pqueue);
 
-  void on_start_node(dict tmp_data, std::size_t task_queue_index);
+  std::string on_start_node(const dict& tmp_data, std::size_t task_queue_index);
+  void on_start_nodes(
+      const std::vector<dict>& tmp_data,
+      std::size_t task_queue_index);
   void on_finish_node(dict tmp_data, std::shared_ptr<Stack> pstack);
 
   void map_or_filter_data(std::string node_name, std::shared_ptr<Stack> pstack);
-  void execute(std::string node_name,
-               std::shared_ptr<Stack> pstack,
-               dict curr_data);
+  void execute(
+      std::string node_name,
+      std::shared_ptr<Stack> pstack,
+      dict curr_data);
 };
-}  // namespace hami
+} // namespace hami

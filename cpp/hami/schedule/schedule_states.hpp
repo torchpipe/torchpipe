@@ -20,9 +20,9 @@ constexpr auto TASK_REQUEST_STATE_KEY = "_request_state";
 // class ResourceState {
 //    public:
 //     // @return handle
-//     virtual std::optional<size_t> wait_avaliable(size_t req_size,
+//     virtual std::optional<size_t> wait_available(size_t req_size,
 //                                                  size_t timeout,
-//                                                  bool erase_avaliable) = 0;
+//                                                  bool erase_available) = 0;
 // };
 
 class InstancesState {
@@ -32,13 +32,13 @@ class InstancesState {
   void add(size_t handle) {
     {
       std::unique_lock<std::mutex> lock(mtx_);
-      avaliable_instances_.insert(handle);
+      available_instances_.insert(handle);
     }
 
     cv_.notify_all();
   }
 
-  std::optional<size_t> query_avaliable(
+  std::optional<size_t> query_available(
       size_t req_size,
       size_t timeout,
       bool lock_queried);
@@ -46,8 +46,8 @@ class InstancesState {
   void remove_lock(size_t handle) {
     {
       std::lock_guard<std::mutex> lock(mtx_);
-      locked_avaliable_instances_.erase(handle);
-      avaliable_instances_.insert(handle);
+      locked_available_instances_.erase(handle);
+      available_instances_.insert(handle);
     }
     cv_.notify_all();
   }
@@ -61,8 +61,8 @@ class InstancesState {
 
   std::condition_variable cv_;
 
-  std::unordered_set<size_t> avaliable_instances_;
-  std::unordered_set<size_t> locked_avaliable_instances_;
+  std::unordered_set<size_t> available_instances_;
+  std::unordered_set<size_t> locked_available_instances_;
   std::unordered_map<size_t, std::pair<size_t, size_t>> instances_;
 };
 

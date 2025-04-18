@@ -9,12 +9,16 @@ import flashinfer
 
 from models import hf_helper
 
-max_num_req=10
-max_num_page=4096//16
+max_num_req=20
 page_size=16
 num_layers = 2
-page_table = hami.default_page_table().init(max_num_req=max_num_req, max_num_page=max_num_page,page_size=page_size)
 
+page_table = None
+def get_page_table(max_num_page=4096//page_size):
+    if page_table is None:
+        page_table = hami.default_page_table().init(max_num_req=max_num_req, max_num_page=max_num_page,page_size=page_size)
+        set_kv(max_num_page, num_layers, page_size, 32, 128)
+    return page_table
 
 ### -------------  k v cache -------------------------- ##########
 global_kv = None
@@ -28,8 +32,6 @@ def set_kv(max_num_pages, num_layers, page_size, num_kv_heads, head_dim):
 def get_kv(layer_idx):
     global global_kv
     return global_kv[layer_idx]
-
-set_kv(max_num_page, num_layers, page_size, 32, 128)
 
 current_memory = torch.cuda.memory_allocated()  
 print(f"当前显存占用: {current_memory / 1024**2:.2f} MB")
@@ -239,9 +241,9 @@ if __name__ == '__main__':
     ios = []
     ids = []
     events = []
-    for i in range(11):
+    for i in range(20):
         ids.append(f"id-{i}")
-        max_tokens = 70
+        max_tokens = 700
         if i == 5: 
             max_tokens = 10
         if i == 2: 

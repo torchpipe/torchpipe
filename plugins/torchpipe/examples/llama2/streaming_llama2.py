@@ -43,10 +43,10 @@ class CustomBackendEngine(BackendEngine):
     def __init__(self, *args, **kwargs):
         super().__init__()
         
-        from plain_llama2 import PyPlugin, page_table, page_size
+        from plain_llama2 import PyPlugin, get_page_table, page_size
         hami.register("TorchPlugin", PyPlugin)
         hami.register("custom_backend_engine", self)
-        self.page_table = page_table
+        self.page_table = get_page_table()
         self.page_size = page_size
         exported_params = "./exported_params"
         self.tokenizer = AutoTokenizer.from_pretrained(exported_params)

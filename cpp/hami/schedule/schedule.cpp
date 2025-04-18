@@ -16,7 +16,17 @@
 #include "hami/helper/timer.hpp"
 
 namespace hami {
-
+namespace {
+template <typename T>
+std::unordered_map<T, std::string> pair2map(
+    const std::vector<std::pair<T, std::string>>& config) {
+  std::unordered_map<T, std::string> result;
+  for (const auto& pair : config) {
+    result[pair.first] = pair.second;
+  }
+  return result;
+}
+} // namespace
 void Loop::impl_init(
     const std::unordered_map<string, string>& params,
     const dict& options) {
@@ -310,7 +320,7 @@ void InstanceDispatcher::impl_forward(const std::vector<dict>& inputs) {
   //
   std::optional<size_t> index;
   do {
-    index = instances_state_->query_avaliable(req_size, 100, true);
+    index = instances_state_->query_available(req_size, 100, true);
   } while (!index);
   size_t valid_index{*index};
 
@@ -492,6 +502,179 @@ void ContiguousBatching::impl_init(
   page_size_ = page_table_->page_size();
   HAMI_ASSERT(page_size_ > 0);
 }
+std::pair<std::vector<id_type>, std::unordered_map<id_type, std::string>>
+ContiguousBatching::get_activated_ids() {
+  std::vector<std::pair<id_type, std::string>> will_finish_ids;
+  std::vector<id_type> wont_finish_ids;
+  std::vector<id_type> prefill_ids;
+  std::unordered_map<id_type, int> new_page_needed;
+  int will_finish_ids_new_pages{0}, wont_finish_ids_new_pages{0},
+      wont_finish_ids_new_pages_next_round{0}; // decode
+  int available_ids = page_table_->available_ids();
+  int available_pages = page_table_->available_pages();
+  for (auto it = req_status_.begin(); it != req_status_.end(); ++it) {
+    const auto& info = it->second;
+    SPDLOG_INFO(
+        "id={} req_tokens={},new_tokens={}, context_length={}, max_tokens={}",
+        it->first,
+        info.req_tokens,
+        info.new_tokens,
+        info.context_length,
+        info.max_tokens);
+
+    if ((info.req_tokens + info.new_tokens + 1 == info.context_length) ||
+        info.new_tokens + 1 == info.max_tokens) {
+      will_finish_ids.push_back({it->first, "length"});
+      new_page_needed[it->first] =
+          (info.req_tokens + page_size_ - 1) / page_size_;
+      will_finish_ids_new_pages += new_page_needed[it->first];
+    } else if (it->second.new_tokens == 0) { // prefill
+      prefill_ids.push_back(it->first);
+      new_page_needed[it->first] =
+          (info.req_tokens + page_size_ - 1) / page_size_;
+    } else {
+      wont_finish_ids.push_back(it->first);
+      new_page_needed[it->first] =
+          (1 == (info.req_tokens + info.new_tokens) % page_size_);
+      wont_finish_ids_new_pages += new_page_needed[it->first];
+      wont_finish_ids_new_pages_next_round +=
+          (1 == (info.req_tokens + info.new_tokens + 1) % page_size_);
+    }
+  }
+  int num_decodes = wont_finish_ids.size() + will_finish_ids.size();
+  wont_finish_ids_new_pages_next_round += wont_finish_ids_new_pages;
+
+  // limited by number of id
+  stable_sort_by_time(prefill_ids);
+  if (available_ids < prefill_ids.size())
+    prefill_ids.resize(available_ids);
+  // limited by number of page for prefill
+  if (wont_finish_ids_new_pages_next_round + will_finish_ids_new_pages >=
+      available_pages) {
+    prefill_ids.clear();
+  } else {
+    auto max_prefill_pages =
+        (available_pages - wont_finish_ids_new_pages_next_round -
+         will_finish_ids_new_pages);
+    int max_prefill_size = 0;
+    for (const auto& id : prefill_ids) {
+      auto max_token = req_status_[id].max_tokens != 0
+          ? req_status_[id].max_tokens + req_status_[id].req_tokens
+          : req_status_[id].context_length;
+      if (max_prefill_pages >= max_token % page_size_) {
+        max_prefill_pages -= max_token % page_size_;
+        max_prefill_size++;
+      }
+    }
+    if (max_prefill_size < prefill_ids.size()) {
+      prefill_ids.resize(max_prefill_size);
+    }
+  }
+  // limited by `max`(max batch size of the network) for prefill (prefill first
+  // for batch size limitation)
+  size_t valid_count = 0;
+  int max_prefill_batch_size = 0;
+  for (const auto& id : prefill_ids) {
+    if (max_prefill_batch_size + req_status_[id].req_tokens > max_) {
+      break; // 停止累加后续 ID
+    }
+    max_prefill_batch_size += req_status_[id].req_tokens;
+    valid_count++;
+  }
+  prefill_ids.resize(valid_count);
+
+  // limited by `max`(max batch size of the network) for decode
+  int max_decode_batch_size = max_ - max_prefill_batch_size;
+  if (max_decode_batch_size < will_finish_ids.size()) {
+    will_finish_ids.resize(max_decode_batch_size);
+    wont_finish_ids.clear();
+  } else if (
+      max_decode_batch_size < will_finish_ids.size() + wont_finish_ids.size()) {
+    wont_finish_ids.resize(max_decode_batch_size - will_finish_ids.size());
+  }
+
+  // limited by number of page for decode
+  std::vector<id_type> paused_decode_ids;
+  if (will_finish_ids_new_pages + wont_finish_ids_new_pages > available_pages) {
+    HAMI_ASSERT(prefill_ids.empty());
+    {
+      stable_sort_by_time(will_finish_ids);
+      for (auto iter = will_finish_ids.begin();
+           iter != will_finish_ids.end();) {
+        if (new_page_needed[iter->first] == 0) {
+          iter++;
+          continue;
+        }
+        HAMI_FATAL_ASSERT(new_page_needed[iter->first] == 1);
+        if (available_pages == 0) {
+          paused_decode_ids.push_back(iter->first);
+          iter = will_finish_ids.erase(iter);
+
+        } else {
+          available_pages--;
+        }
+      }
+    }
+    {
+      stable_sort_by_time(wont_finish_ids);
+      for (auto iter = wont_finish_ids.begin();
+           iter != wont_finish_ids.end();) {
+        if (new_page_needed[*iter] == 0) {
+          iter++;
+          continue;
+        }
+        HAMI_FATAL_ASSERT(new_page_needed[*iter] == 1);
+        if (available_pages == 0) {
+          paused_decode_ids.push_back(*iter);
+          iter = wont_finish_ids.erase(iter);
+        } else {
+          available_pages--;
+        }
+      }
+    }
+  }
+  SPDLOG_INFO(
+      "paused: decode_ids={}; activated: will_finish_ids={}; prefill_ids={};",
+      str::join(paused_decode_ids),
+      str::join(will_finish_ids),
+      str::join(prefill_ids));
+
+  // Controls Droping mechanism for unfinished inference tasks (wont_finish_ids)
+  // when insufficient memory pages exist for future processing.
+
+  /* Drop Strategy Options:
+   * -------------------------
+   * [Trigger Condition] When should we drop (offload to CPU or trigger
+   * re-computation)?
+   *
+   * Option A: drop one when available_pages == 0 for the next round
+   *
+   * Option B: drop one when paused decode ids(because of no pages) > 0.4 of
+   * total decodes
+   *
+   * Implementation Note:
+   * Hybrid approach recommended: Use Option B as primary strategy
+   * with Option A as fallback safeguard. (todo)
+   */
+  const float alpha = 0.4;
+  if (will_finish_ids.empty() && prefill_ids.empty() &&
+      paused_decode_ids.size() >= num_decodes * alpha) {
+    HAMI_FATAL_ASSERT(wont_finish_ids.size() > 1);
+    will_finish_ids.push_back({wont_finish_ids.back(), "no_page"});
+    wont_finish_ids.pop_back();
+  }
+
+  // combine final result
+  prefill_ids.reserve(
+      prefill_ids.size() + wont_finish_ids.size() + will_finish_ids.size());
+  prefill_ids.insert(
+      prefill_ids.end(), wont_finish_ids.begin(), wont_finish_ids.end());
+  for (const auto& id : will_finish_ids) {
+    prefill_ids.push_back(id.first);
+  }
+
+  return {prefill_ids, pair2map(will_finish_ids)};
+}
 
 void ContiguousBatching::impl_forward(const std::vector<dict>& io) {
   // only one thread can call this funciton
@@ -519,7 +702,6 @@ void ContiguousBatching::impl_forward(const std::vector<dict>& io) {
         // std::lock_guard<std::mutex> lock(req_status_mutex_);
         HAMI_FATAL_ASSERT(iter_req != req_status_.end(), "id=" + req_id);
         {
-          iter_req->second.stop = true;
           iter_req->second.running = false;
           iter_req->second.data = item;
         }
@@ -551,8 +733,8 @@ void ContiguousBatching::impl_forward(const std::vector<dict>& io) {
   }
 
   for (auto iter = req_status_.begin(); iter != req_status_.end();) {
-    if (iter->second.stop && !iter->second.running) {
-      SPDLOG_INFO("Contiguous Batching stoped: {}", iter->first);
+    if (iter->second.finish && !iter->second.running) {
+      // SPDLOG_INFO("Contiguous Batching stoped: {}", iter->first);
       notify_event({iter->second.data});
       // iter->second.event->notify_all();
       SPDLOG_INFO("Contiguous Batching stoped(notify_event): {}", iter->first);
@@ -578,196 +760,43 @@ void ContiguousBatching::impl_forward(const std::vector<dict>& io) {
         "contiguous batching: not all ready: " + str::join(not_ready_ids));
     return;
   }
-
-  // remove stoped id and finished id
-  std::unordered_set<std::string> will_stop_ids;
-  for (auto it = req_status_.begin(); it != req_status_.end();) {
-    SPDLOG_INFO(
-        "id={} req_tokens={},new_tokens={}, context_length={}, max_tokens={}",
-        it->first,
-        it->second.req_tokens,
-        it->second.new_tokens,
-        it->second.context_length,
-        it->second.max_tokens);
-    {
-      if ((it->second.req_tokens + it->second.new_tokens + 1 ==
-           it->second.context_length) ||
-          it->second.new_tokens + 1 == it->second.max_tokens) {
-        will_stop_ids.insert(it->first);
-      }
-      ++it;
-    }
-  }
   if (req_status_.empty())
     return;
 
-  // int num_prefill = 0;
-  int avaliable_ids = page_table_->available_ids();
-  // sort
-  std::vector<id_type> sorted_ids;
-  sorted_ids.reserve(req_status_.size());
-
-  // needed page
-  int new_page_needed = 0;
-  int new_page_needed_for_decode = 0;
-
-  // decode
-  for (auto it = req_status_.begin(); it != req_status_.end(); ++it) {
-    if (0 != it->second.new_tokens) {
-      if (1 == (it->second.req_tokens + it->second.new_tokens) % page_size_) {
-        it->second.new_page_needed = 1;
-        new_page_needed += 1;
-        new_page_needed_for_decode++;
-      } else {
-        it->second.new_page_needed = 0;
-      }
-      sorted_ids.push_back(it->first);
-    }
-  }
-
-  // prefill
-  std::vector<id_type> prefill_ids;
-  for (auto it = req_status_.begin(); it != req_status_.end(); ++it) {
-    if (0 == it->second.new_tokens) {
-      if (avaliable_ids-- <= 0) {
-        continue;
-      }
-      prefill_ids.push_back(it->first);
-    }
-  }
-
-  std::sort(
-      prefill_ids.begin(),
-      prefill_ids.end(),
-      [this](const id_type& a, const id_type& b) {
-        return req_status_.at(a).time <= req_status_.at(b).time;
-      });
-  for (const auto& id : prefill_ids) {
-    auto& req = req_status_.at(id);
-    if (page_table_->available_pages() < new_page_needed +
-            (req.req_tokens + req.max_tokens + page_size_ - 1) / page_size_) {
-      SPDLOG_INFO(
-          "skip prefill: page_table_->available_pages()={},history_page_needed={} this req need page = {}",
-          page_table_->available_pages(),
-          new_page_needed,
-          (req.req_tokens + req.max_tokens) / page_size_);
-      break;
-    }
-    req.new_page_needed = (req.req_tokens + page_size_ - 1) / page_size_;
-    new_page_needed += req.new_page_needed;
-    sorted_ids.push_back(id);
-  }
-
-  std::sort(
-      sorted_ids.begin(),
-      sorted_ids.end(),
-      [this](const id_type& a, const id_type& b) {
-        return req_status_.at(a).time <= req_status_.at(b).time;
-      });
-  SPDLOG_INFO(
-      "new_page_needed = {}, new_page_needed_for_decode={}, available_pages={}",
-      new_page_needed,
-      new_page_needed_for_decode,
-      page_table_->available_pages());
-  // bool need_abort_req =
-  //     (new_page_needed_for_decode >= page_table_->available_pages()); // todo
-  // if (need_abort_req)
-  //   HAMI_FATAL_ASSERT(
-  //       new_page_needed == new_page_needed_for_decode); // no prefill
-  if (new_page_needed >= page_table_->available_pages()) {
-    // sort by new_page_needed when only a little available_pages
-
-    std::stable_sort(
-        sorted_ids.begin(),
-        sorted_ids.end(),
-        [this](const id_type& a, const id_type& b) {
-          const auto a_p = req_status_.at(a).new_page_needed;
-          const auto b_p = req_status_.at(b).new_page_needed;
-          if (a_p <= b_p)
-            return true;
-          return false;
-        });
-  } else {
-    // prefill first when available_pages is enough
-    std::stable_sort(
-        sorted_ids.begin(),
-        sorted_ids.end(),
-        [this](const id_type& a, const id_type& b) {
-          return (req_status_.at(a).new_tokens == 0);
-        });
-  }
-  int batch_size = 0;
-  std::vector<id_type> ids;
-  for (const auto& id : sorted_ids) {
-    batch_size +=
-        req_status_.at(id).new_tokens == 0 ? req_status_.at(id).req_tokens : 1;
-    if (batch_size > max_)
-      break;
-    if ((req_status_.at(id).new_page_needed) == 0) {
-      SPDLOG_INFO("id = {} new_page_needed = 0", id);
-      if (!page_table_->extend(id))
-        break;
-      ids.push_back(id);
-    } else {
-      SPDLOG_INFO(
-          "id = {} new_page_needed = {}",
-          id,
-          req_status_.at(id).new_page_needed);
-      if (!page_table_->alloc_or_reset(
-              id,
-              req_status_.at(id).req_tokens + req_status_.at(id).new_tokens)) {
-        SPDLOG_WARN("No Enough Pages. ");
-        break;
-      }
-      ids.push_back(id);
-    }
-  }
-  if (ids.empty()) {
+  auto [activad_ids, finish_ids] = get_activated_ids();
+  if (activad_ids.empty()) {
     SPDLOG_WARN(
-        "returned. wired. empty ids. No memory or id? new_page_needed = {}, num_ids= {}, available_pages = {} available_ids = {}",
-        new_page_needed,
+        "returned. wired. empty ids. No memory or id?  num_ids= {}, available_pages = {} available_ids = {}",
+
         req_status_.size(),
         page_table_->available_pages(),
         page_table_->available_ids());
     return;
   }
-
-  // prefill first
-  std::stable_sort(
-      ids.begin(), ids.end(), [this](const id_type& a, const id_type& b) {
-        return (req_status_.at(a).new_tokens == 0);
-      });
-
-  page_table_->activate(ids);
-  SPDLOG_INFO(
-      "activated id: {}; unactivated id size: {}",
-      str::join(ids),
-      sorted_ids.size() - ids.size());
-
-  bool need_abort = false;
-  if (ids.size() >= page_table_->available_pages() && will_stop_ids.empty()) {
-    need_abort = true;
+  for (const auto& id : activad_ids) {
+    page_table_->alloc_or_reset(
+        id, req_status_.at(id).req_tokens + req_status_.at(id).new_tokens);
   }
-  // !will_stop_ids.empty();
+
+  page_table_->activate(activad_ids);
+  SPDLOG_INFO(
+      "activated id: {}, available pages={}",
+      str::join(activad_ids),
+      page_table_->available_pages());
+
   std::vector<dict> new_ios;
-  for (const auto& id : ids) {
+  for (const auto& id : activad_ids) {
     new_ios.emplace_back(req_status_.at(id).data);
     req_status_.at(id).running = true;
-    if (will_stop_ids.count(id) > 0) {
-      static const std::string finish_reason = "length";
-      new_ios.back()->insert({"finish_reason", finish_reason});
-      req_status_.at(id).stop = true;
-    }
-    if (need_abort && id == ids.back()) {
-      static const std::string finish_reason = "no_page";
-      new_ios.back()->insert({"finish_reason", finish_reason});
-      req_status_.at(id).stop = true;
+    auto iter = finish_ids.find(id);
+    if (iter != finish_ids.end()) {
+      new_ios.back()->insert({"finish_reason", iter->second});
+      req_status_.at(id).finish = true;
     }
   }
 
-  // dependency_->forward(new_ios);
-  impl_forward_handle_except(new_ios, ids);
-  SPDLOG_INFO(" {} finished one step.", str::join(ids));
+  impl_forward_handle_except(new_ios, activad_ids);
+  SPDLOG_INFO(" {} finished one step.", str::join(activad_ids));
 }
 
 void ContiguousBatching::impl_forward_handle_except(
@@ -814,7 +843,6 @@ void ContiguousBatching::impl_forward_handle_except(
 void ContiguousBatching::parser_message(
     const std::shared_ptr<TypedDict>& msg,
     BatchInfo& pro) {
-  // pro.stop = get<bool>(*msg, "stop");
   pro.finish = try_get<std::string>(*msg, "action") == "finish";
   if (pro.finish)
     return;

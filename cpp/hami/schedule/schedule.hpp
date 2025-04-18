@@ -80,7 +80,7 @@ class Batching : public Dependency {
       const std::vector<dict>& input_output,
       size_t req_size,
       size_t timeout) {
-    if (instances_state_->query_avaliable(req_size, timeout, false)) {
+    if (instances_state_->query_available(req_size, timeout, false)) {
       injected_dependency_->forward(input_output);
       return true;
     }
@@ -168,7 +168,7 @@ class ContiguousBatching : public Backend {
     int context_length{0};
     int max_tokens{0};
 
-    bool stop{false}; // error, cancel //stop by error or cancel
+    // bool stop{false}; // error, cancel //stop by error or cancel
     bool finish{false};
 
     int new_tokens{0};
@@ -197,6 +197,26 @@ class ContiguousBatching : public Backend {
       BatchInfo& protocol);
 
  private:
+  std::pair<std::vector<id_type>, std::unordered_map<id_type, std::string>>
+  get_activated_ids();
+
+  void stable_sort_by_time(std::vector<id_type>& ids) {
+    std::stable_sort(
+        ids.begin(), ids.end(), [this](const id_type& a, const id_type& b) {
+          return req_status_.at(a).time <= req_status_.at(b).time;
+        });
+  }
+
+  template <typename T>
+  void stable_sort_by_time(std::vector<std::pair<id_type, T>>& ids) {
+    std::stable_sort(
+        ids.begin(),
+        ids.end(),
+        [this](const std::pair<id_type, T>& a, const std::pair<id_type, T>& b) {
+          return req_status_.at(a.first).time <= req_status_.at(b.first).time;
+        });
+  }
+
   std::unordered_map<id_type, BatchInfo> req_status_;
   // std::mutex req_status_mutex_;
   PageTable* page_table_{nullptr};

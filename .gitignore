@@ -18,4 +18,4 @@ wheelhouse/
 .eggs/
 VERSION.txt
 *.trt
-plugins/torchpipe/examples/resnet/log.txt
+log.txt

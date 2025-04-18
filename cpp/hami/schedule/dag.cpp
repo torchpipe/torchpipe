@@ -57,10 +57,7 @@ void DagDispatcher::evented_forward(const std::vector<dict>& inputs) {
   for (auto& item : inputs) {
     HAMI_FATAL_ASSERT(item->find(TASK_STACK_KEY) == item->end());
   }
-  // task_queues_[queue_index]->push(inputs);
-  for (const auto& item : inputs) {
-    on_start_node(item, queue_index);
-  }
+  on_start_nodes(inputs, queue_index);
 }
 
 void DagDispatcher::task_loop(
@@ -82,7 +79,38 @@ void DagDispatcher::task_loop(
   return;
 };
 
-void DagDispatcher::on_start_node(dict tmp_data, std::size_t task_queue_index) {
+void DagDispatcher::on_start_nodes(
+    const std::vector<dict>& tmp_data,
+    std::size_t task_queue_index) {
+  std::vector<std::string> node_names;
+  for (const auto& io : tmp_data) {
+    auto node_name = on_start_node(io, task_queue_index);
+    node_names.push_back(node_name);
+  }
+  bool all_equal =
+      std::adjacent_find(
+          node_names.begin(), node_names.end(), std::not_equal_to<>{}) ==
+      node_names.end();
+  if (all_equal) {
+    base_dependencies_.at("node." + node_names.front())->forward(tmp_data);
+    SPDLOG_INFO(
+        "all_equal. node name = {}, size = {}",
+        node_names.front(),
+        node_names.size());
+  } else {
+    for (size_t i = 0; i < node_names.size(); ++i) {
+      const auto& name = node_names[i];
+      if (name.empty())
+        continue;
+      const auto& data = tmp_data[i]; // 取出对应的数据
+      base_dependencies_.at("node." + name)->forward({data}); // 单数据转发
+    }
+  }
+}
+
+std::string DagDispatcher::on_start_node(
+    const dict& tmp_data,
+    std::size_t task_queue_index) {
   std::shared_ptr<DagDispatcher::Stack> pstack =
       std::make_shared<DagDispatcher::Stack>();
 
@@ -100,7 +128,7 @@ void DagDispatcher::on_start_node(dict tmp_data, std::size_t task_queue_index) {
       pstack->input_event->set_exception_and_notify_all(std::make_exception_ptr(
           std::runtime_error("DagDispatcher: `node_name` not found in input. "
                              "Please set it to specify the target node.")));
-      return;
+      return "";
     } else {
       node_name = (*roots.begin());
       // SPDLOG_WARN(
@@ -130,7 +158,8 @@ void DagDispatcher::on_start_node(dict tmp_data, std::size_t task_queue_index) {
   });
 
   tmp_data->erase(TASK_RESULT_KEY);
-  base_dependencies_.at("node." + node_name)->forward({tmp_data});
+  return node_name;
+  // base_dependencies_.at("node." + node_name)->forward({tmp_data});
 }
 
 void DagDispatcher::on_finish_node(

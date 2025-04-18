@@ -26,9 +26,9 @@ def get_trt_path():
     
     cuda_version = torch.version.cuda.split('.')[0]  # 获取主版本号
     if cuda_version == "11":
-        trt_path = TrtAddr["cuda11.8"]
+        trt_path = TrtAddr["cuda11.8/trt109"]
     elif cuda_version == "12":
-        trt_path = TrtAddr["cuda12.8"]
+        trt_path = TrtAddr["cuda12.8/trt109"]
     else:
         raise NotImplementedError(f"TensorRT not supported for CUDA version {cuda_version}")
     return trt_path
@@ -117,9 +117,9 @@ def download_and_install_trt(
     # Get TensorRT download URL
     if cuda_version:
         if cuda_version.startswith("11"):
-            trt_path = TrtAddr["cuda11.8"]
+            trt_path = TrtAddr["cuda11.8/trt109"]
         elif cuda_version.startswith("12"):
-            trt_path = TrtAddr["cuda12.8"]
+            trt_path = TrtAddr["cuda12.8/trt109"]
         else:
             raise ValueError("cuda_version must be 11 or 12")
     else:
