@@ -42,31 +42,6 @@ test on ShareGPT dataset, qps=2, requests=500, llama2-7b, A10-24G
 - Feasible solution: Automatically handle linear layers with AI compiler, temporarily delegate attention layer to third-party kernel library (flashinfer); utilize general serving framework for target-agnostic scheduling at upper level
 
 
-```bash
-qps=2, torchpipe
-============ Serving Benchmark Result ============
-Successful requests:                     500       
-Benchmark duration (s):                  277.20    
-Total input tokens:                      117316    
-Total generated tokens:                  119503    
-Request throughput (req/s):              1.80      
-Input token throughput (tok/s):          423.21    
-Output token throughput (tok/s):         431.10    
----------------Time to First Token----------------
-Mean TTFT (ms):                          95.50     
-Median TTFT (ms):                        69.14     
-P99 TTFT (ms):                           623.87    
------Time per Output Token (excl. 1st token)------
-Mean TPOT (ms):                          39.77     
-Median TPOT (ms):                        39.28     
-P99 TPOT (ms):                           57.79     
----------------Inter-token Latency----------------
-Mean ITL (ms):                           45.88     
-Median ITL (ms):                         41.20     
-P99 ITL (ms):                            179.10    
-==================================================
-
-```
 
 <!-- https://github.com/dreaming-panda/MagicEnc/blob/0d05cec01cdff53d51daa7402fa267595e3bc12b/llama.py#L66 -->
 
