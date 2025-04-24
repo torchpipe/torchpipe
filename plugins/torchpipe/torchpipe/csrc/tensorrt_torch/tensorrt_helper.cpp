@@ -118,13 +118,14 @@ void force_layernorn_fp32(nvinfer1::INetworkDefinition* network) {
         if (index != target.size() - 1) {
           target[index]->setOutputType(0, nvinfer1::DataType::kFLOAT);
         }
-        std::string info =
-            "LayerNorm: The following layers were set to fp32 mode: ";
-        for (const auto& item : parsed) {
-          info += item + ' ';
-        }
-        SPDLOG_INFO(info);
       }
+
+      std::string info =
+          "LayerNorm: The following layers were set to fp32 mode: ";
+      for (const auto& item : parsed) {
+        info += item + ' ';
+      }
+      SPDLOG_INFO(info);
       SPDLOG_INFO("*****************************");
     }
   }

@@ -111,7 +111,7 @@ class AsyncEngine:
             return output_stream.put(output)
 
         try:
-            await self.backend.forward_async(**{'prompt': prompt, 'priority': priority,
+            self.backend.add_request(**{'prompt': prompt, 'priority': priority,
                                         'stream': stream, 'callback': callback,
                                         "image_url": image_url,
                                         'sampling_params': sampling_params})
@@ -139,7 +139,7 @@ class AsyncEngine:
         #     prompt, sampling_params, priority, stream, callback
         # )
         try:
-            await self.backend.forward_async(**{'message': message, 'priority': priority,
+            self.backend.add_request(**{'message': message, 'priority': priority,
                                         'stream': stream, 'callback': callback,
                                         'sampling_params': sampling_params})
         except Exception as e:

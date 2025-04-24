@@ -31,6 +31,7 @@ cc_library(
     source.cpp
     control_plane.cpp
     page_table.cpp
+    log.cpp
   DEPS
     :spdlog
     :core

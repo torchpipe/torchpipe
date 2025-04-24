@@ -147,7 +147,7 @@ class Send2Queue : public BackendOne {
     while (!queue_->try_put(
         data, queue_max_, std::chrono::milliseconds(SHUTDOWN_TIMEOUT))) {
     };
-    SPDLOG_INFO("Send2Queue {} ", queue_->size());
+    // SPDLOG_INFO("Send2Queue {} ", queue_->size());
     if (keep_result_) {
       (*input)[TASK_RESULT_KEY] = input->at(TASK_DATA_KEY);
     }

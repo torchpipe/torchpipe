@@ -8,7 +8,7 @@ from typing import List
 
 class BackendEngine(ABC):
     @abstractmethod
-    async def forward_async(self, *args, **kwargs):
+    def add_request(self, *args, **kwargs):
         pass
     
     @abstractmethod

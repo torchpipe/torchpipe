@@ -25,7 +25,7 @@ def get_includes() -> str:  # noqa: ARG001
     in_directories.append(installed_path if os.path.exists(installed_path) else source_path)
     
     curr = os.path.join(DIR, "../")
-    assert os.path.exists(os.path.join(curr, "hami", "csrc"))
+    assert os.path.exists(os.path.join(curr, "hami", "csrc")), curr
     in_directories.append(curr)
     
     third = os.path.join(curr, "./third_party/spdlog/include/")

@@ -8,7 +8,8 @@ from transformers import AutoTokenizer, AutoModelForCausalLM, AutoConfig
 from typing import List, Callable, Any
 from dataclasses import dataclass, astuple, field
 import torch
-
+from tokenizers.decoders import ByteFallback, DecodeStream
+import tokenizers
 
 @dataclass
 class RequestState:
@@ -22,7 +23,8 @@ class RequestState:
     # 有默认值的字段放在后面，用 field 处理可变类型
     req_tokens: List = field(default_factory=list)
     new_tokens: List = field(default_factory=list)
-    pause: bool = False
+    dropped: bool = False
+    decode_stream: DecodeStream = field(default_factory=lambda: DecodeStream(skip_special_tokens=True))
     
     def astuple(self):
         return astuple(self)
@@ -43,36 +45,88 @@ class CustomBackendEngine(BackendEngine):
     def __init__(self, *args, **kwargs):
         super().__init__()
         
-        from plain_llama2 import PyPlugin, get_page_table, page_size
+        from plain_llama2 import PyPlugin, page_size, get_num_layers
         hami.register("TorchPlugin", PyPlugin)
         hami.register("custom_backend_engine", self)
-        self.page_table = get_page_table()
+        self.page_table =  hami.default_page_table()
         self.page_size = page_size
         exported_params = "./exported_params"
-        self.tokenizer = AutoTokenizer.from_pretrained(exported_params)
+        self.old_tokenizer = AutoTokenizer.from_pretrained(exported_params, use_fast=True)
+        self.tokenizer=tokenizers.Tokenizer.from_file(exported_params + "/tokenizer.json")
+        print(self.tokenizer)
+        self.eos_token_id = self.old_tokenizer.eos_token_id
+        # self.eos_token_id = self.tokenizer.get_vocab()["</s>"]
+
+        # import pdb; pdb.set_trace()
         self.model = hami.init_from_file('config/streaming_llama2.toml')
         self.request_status = {}
         
         self.contiguous_batching  = hami.get("node.contiguous_batching")
         
+        self.index = hami._C.AtomicInt()
+        
+        # memory
+        
+        left_mem = torch.cuda.mem_get_info()[0]/(1024.0**2)
+        self.total_mem = torch.cuda.mem_get_info()[1]/(1024.0**2)
+        
+        self.factor = 0.05
+        self.need_more_pages = left_mem >= self.total_mem *self.factor
+        self.mem_per_page = 2 * self.page_size * 32 * 128 * 2/(1024.0**2) * get_num_layers()
+        
+        print(f"+---------------------+")
+        print(f"| {'Free Memory':<14} | {left_mem:>10.2f} MB |")
+        print(f"| {'Total Memory':<14} | {self.total_mem:>10.2f} MB |")
+        print(f"| {'Memory per Page':<14} | {self.mem_per_page:>10.2f} MB |")
+        print(f"| {'Factor':<14} | {self.factor:>10.2f} |")
+        print(f"+---------------------+")
+        
+        self.need_more_pages = False # todo
+        
+        
        
         
 
-    async def forward_async(self, *args, **kwargs):
+    def add_request(self, *args, **kwargs):
         # Implement the logic to handle the request asynchronously
-        print('CustomBackendEngine: ', args, kwargs)
-        request_callback = kwargs.pop("callback")
-        request_id = f"cmpl-{shortuuid.random()}"
+        
+        request_callback = kwargs["callback"]
+        request_id = kwargs.pop("request_id", None)
+        if request_id is None:
+            id = self.index.increment()
+            request_id = f'{id}'#f"cmpl-{shortuuid.random()}"
+        else:
+            print(f"reusing request_id: {request_id}")
+        
+        old_request_id = kwargs.pop("old_request_id", None)
+        if old_request_id:
+            print('restarted: CustomBackendEngine: ', args, kwargs, request_id)
+        
+        if  self.need_more_pages and self.page_table.available_pages() < 4096/self.page_size:
+            free_mem = torch.cuda.mem_get_info()[0]/(1024.0**2)
+            mem_can_use = (free_mem - self.total_mem *self.factor)
+            self.need_more_pages = mem_can_use >= 0
+            if self.need_more_pages:
+                
+                new_pages = mem_can_use / (self.mem_per_page)
+                print(f"mem_can_use: {mem_can_use} MB, new_pages={new_pages}")
+                self.page_table.add_more_page(int(new_pages))
+                
+                current_memory = torch.cuda.memory_allocated()  
+                print(f"当前显存占用: {current_memory / 1024**2:.2f} MB")
+                cached_memory = torch.cuda.memory_reserved()  
+                print(f"缓存显存: {cached_memory / 1024**2:.2f} MB")
         
         input_ids = kwargs.pop("input_ids", None)
+        sampling_params: SamplingParams = kwargs.pop("sampling_params") 
         if input_ids is None:
             prompt = kwargs.pop("prompt")
-            sampling_params: SamplingParams = kwargs.pop("sampling_params") 
             
-            inputs = self.tokenizer(prompt, return_tensors="pt", return_attention_mask=False)
+            inputs = self.old_tokenizer(prompt, return_tensors="pt", return_attention_mask=False)
             input_ids = inputs['input_ids'][0]
+            # input_ids = torch.Tensor(self.tokenizer.encode(prompt).ids)
             
-        print(f'input_ids ', type(input_ids))
+        # print(f'input_ids ', type(input_ids))
         event = hami.Event()
         io = hami.Dict({
             'data': input_ids,
@@ -83,7 +137,7 @@ class CustomBackendEngine(BackendEngine):
         io[hami.TASK_MSG_KEY] = hami.TypedDict({"req_tokens": len(input_ids),
                                                 "max_tokens": sampling_params.max_tokens,
                                                 "context_length":4096})
-        print("io ", io)
+        # print("io ", io)
         
         self.request_status[request_id] = RequestState(event, request_callback, sampling_params, args, kwargs, input_ids, [])
 
@@ -93,7 +147,6 @@ class CustomBackendEngine(BackendEngine):
 
         
     def final_callback(self, request_id):
-        print('final_callback in')
         status = self.request_status.pop(request_id)
         
         output = RequestOutput()
@@ -101,43 +154,48 @@ class CustomBackendEngine(BackendEngine):
         try:
             status.event.try_throw()
         except Exception as e:
-            print('into exception handle')
+            hami.print('into exception handle')
             
             output.status = Status(StatusCode.UNKNOWN, str(e))
             output.usage = None
             output.finished = True
-            print("ERROR MSG: \n", e)
+            hami.print(f"ERROR MSG: \n{e}")
             # no need
             # self.finish_contiguous_batching(request_id)
             status.request_callback(output)
         else:
-            print('no exception')
+            hami.print('no exception')
 
             self.contiguous_batching_action(request_id)
-            if status.pause:
-                status.kwargs["input_ids"] = status.req_tokens + status.new_tokens
+            if status.dropped:
+                # print(type(status.req_tokens), type(status.new_tokens), flush=True)
+                status.req_tokens = torch.cat([status.req_tokens]+status.new_tokens)
+                # print( (status.req_tokens.shape),  (status.new_tokens.shape), flush=True)
+                status.kwargs["input_ids"] = status.req_tokens
                 if status.sampling_params.max_tokens != 0:
-                    status.sampling_params.max_tokens -= len(status.req_tokens)
+                    assert status.sampling_params.max_tokens > len(status.new_tokens),  f'{status.sampling_params.max_tokens} >{ len(status.new_tokens)}'
+                    status.sampling_params.max_tokens -= len(status.new_tokens)
                 status.kwargs['sampling_params'] = status.sampling_params
-                self.forward_async(*status.args, **status.kwargs)
-                print("status.pause")
-        
-        # del self.request_status[request_id]
-        print("finish final callback")
-        
+                # status.kwargs['request_id'] = request_id
+                print(f"status.dropped restarted: {request_id}")
+                status.kwargs['old_request_id'] = request_id
+                self.add_request(*status.args, **status.kwargs)
         
     def forward(self, ios: List[hami.Dict]):
         
         for io in ios:
             request_id = io['request_id']#.decode('utf-8')
-            data = io['data']#.cpu()
-            text = self.tokenizer.decode(data, skip_special_tokens=True)
-            
-            print(io, 'forward', request_id)
-            
-            # _, request_callback, sampling_params 
+             # _, request_callback, sampling_params 
             status = self.request_status[request_id]
+            
+            data = io['data'].cpu()
             status.new_tokens.append(data)
+            data_item = data.item()
+            
+            decode_stream = status.decode_stream
+            # text = self.tokenizer.decode(io['data'], skip_special_tokens=True)
+            text = decode_stream.step(self.tokenizer, data_item)
+            
             
             seq = SequenceOutput()
             output = RequestOutput()
@@ -145,12 +203,15 @@ class CustomBackendEngine(BackendEngine):
             output.usage = None
             
             finish_reason = None
-            
-            if text in status.sampling_params.stop_token_ids:
+            # print(f'{status.sampling_params.stop_token_ids} status.sampling_params.stop_token_ids')
+            #if not text:
+                #text = "0"
+            if data_item in status.sampling_params.stop_token_ids or data_item == self.eos_token_id: # eos
+                finish_reason = "stop"
                 seq.finish_reason = "stop"
                 output.finished = True
-                finish_reason = seq.finish_reason
-                print("STOP TOKEN ID: \n", text)
+                seq.text = ""
+                print("STOP TOKEN ID: \n", data_item)
             elif "finish_reason" in io:
                 finish_reason = io["finish_reason"]
                 if finish_reason == "length":
@@ -158,12 +219,21 @@ class CustomBackendEngine(BackendEngine):
                     output.finished = True
                 elif finish_reason == "no_page":
                     output.finished = False 
-                    status.pause = True
+                    status.dropped = True
                 else:
                     raise RuntimeError("unsupported reason: "+finish_reason)
-                print(f"finish because {seq.finish_reason}")
+                hami.print(f"{request_id} - finish/restart because of `{finish_reason}`")
                 assert not io.contains("restart")  
-                seq.text = text
+                if text is None:
+                    seq.text = ""
+                else:
+                    seq.text = text
+            
+            elif text is None:
+                hami.print(f"id={request_id} - tok={data_item} - no text")
+                # todo: 29871? SPIECE_UNDERLINE / 
+                output.finished = False 
+                seq.text = ''
             else:
                 output.finished = False 
                 seq.text = text
@@ -176,16 +246,6 @@ class CustomBackendEngine(BackendEngine):
             
             io['result'] = io['data']
         
-        
-
-                
-        
-    
-    # def waiting_event(self, req_id, ev):
-    #     io = hami.Dict({})
-    #     io[hami.TASK_REQUEST_ID_KEY] = req_id
-    #     io[hami.TASK_WAITING_EVENT_KEY] = ev
-    #     self.contiguous_batching(io)
     
     def contiguous_batching_action(self, req_id): # finish pause2prefill pause decode2prefill
         io = hami.Dict({})
@@ -212,11 +272,22 @@ class CustomBackendEngine(BackendEngine):
     def free_pages(self):
         pass
             
-register_engine("llama2", CustomBackendEngine())
 
-if __name__ == '__main__':
-    import fire
+def main(num_layers = 2, max_num_page = 0):
     os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
+    
+    from plain_llama2 import set_num_layers, set_page_table, page_size
+    set_num_layers(num_layers)
+    
+    if max_num_page == 0:
+        per_page_mem =  2 * page_size * 32 * 128 * 2/(1024.0**2) * num_layers
+        free_mem = torch.cuda.mem_get_info()[0]/(1024.0**2)
+        max_num_page = int(free_mem* 0.2 / per_page_mem)
+        hami._C.print(f"max_num_page: {max_num_page}")
+    page_table = set_page_table(max_num_page)
+    
+    register_engine("llama2", CustomBackendEngine())
+
     # fire.Fire(main)
     import sys
     sys.argv = [
@@ -227,5 +298,10 @@ if __name__ == '__main__':
         "--port", "8000",
         "--log_level", "info",
     ]
-    from torchpipe.serve.openai.openai_server_api import main
-    main()
+    from torchpipe.serve.openai.openai_server_api import main as server_main
+    server_main()
+    
+if __name__ == '__main__':
+    
+    import fire
+    fire.Fire(main)

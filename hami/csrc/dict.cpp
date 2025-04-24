@@ -329,6 +329,12 @@ void init_dict(py::module_& m) {
     py::register_exception<hami::queue::QueueFullException>(m, "Full");
   }
 
+  m.def("print", [](const std::string& info) {
+    py::gil_scoped_release release;
+
+    hami::default_logger_raw()->info(info);
+  });
+
   m.def(
       "default_queue",
       &default_queue,

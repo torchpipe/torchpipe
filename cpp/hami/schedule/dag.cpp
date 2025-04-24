@@ -93,7 +93,7 @@ void DagDispatcher::on_start_nodes(
       node_names.end();
   if (all_equal) {
     base_dependencies_.at("node." + node_names.front())->forward(tmp_data);
-    SPDLOG_INFO(
+    SPDLOG_DEBUG(
         "all_equal. node name = {}, size = {}",
         node_names.front(),
         node_names.size());
@@ -209,7 +209,7 @@ void DagDispatcher::on_finish_node(
     }
   }
 
-  SPDLOG_INFO("processed node_name = {}", node_name);
+  SPDLOG_DEBUG("processed node_name = {}", node_name);
   pstack->dag.processed[node_name] = tmp_data;
 
   if (pstack->exception) { // todo check

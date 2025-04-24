@@ -5,8 +5,9 @@
 namespace str = hami::str;
 namespace {
 [[maybe_unused]] void check_nvjpeg_result(nvjpegStatus_t _e) {
-  HAMI_ASSERT(_e == NVJPEG_STATUS_SUCCESS,
-              ("nvjpeg error: nvjpegStatus_t = " + std::to_string(int(_e))));
+  HAMI_ASSERT(
+      _e == NVJPEG_STATUS_SUCCESS,
+      ("nvjpeg error: nvjpegStatus_t = " + std::to_string(int(_e))));
 }
 
 #define CHECK_NVJPEG_RESULT(EVAL)                                           \
@@ -18,12 +19,13 @@ namespace {
     }                                                                       \
   }
 
-bool decode(const std::string& data,
-            nvjpegHandle_t handle,
-            nvjpegJpegState_t state,
-            torch::Tensor& image_tensor,
-            const std::string& color,
-            const std::string& data_format) {
+bool decode(
+    const std::string& data,
+    nvjpegHandle_t handle,
+    nvjpegJpegState_t state,
+    torch::Tensor& image_tensor,
+    const std::string& color,
+    const std::string& data_format) {
   const auto* blob = (const unsigned char*)data.data();
   int nComponents;
   nvjpegChromaSubsampling_t subsampling;
@@ -33,9 +35,10 @@ bool decode(const std::string& data,
   auto re = nvjpegGetImageInfo(
       handle, blob, data.length(), &nComponents, &subsampling, widths, heights);
   if (NVJPEG_STATUS_SUCCESS != re) {
-    SPDLOG_WARN("nvjpegGetImageInfo failed. data.length() = {} result = {}",
-                data.length(),
-                int(re));
+    SPDLOG_WARN(
+        "nvjpegGetImageInfo failed. data.length() = {} result = {}",
+        data.length(),
+        int(re));
     return false;
   }
 
@@ -110,20 +113,21 @@ bool decode(const std::string& data,
   }
 
   if (NVJPEG_STATUS_SUCCESS !=
-      nvjpegDecode(handle,
-                   state,
-                   blob,
-                   data.length(),
-                   target_color,
-                   &nv_image,
-                   c10::cuda::getCurrentCUDAStream())) {
+      nvjpegDecode(
+          handle,
+          state,
+          blob,
+          data.length(),
+          target_color,
+          &nv_image,
+          c10::cuda::getCurrentCUDAStream())) {
     SPDLOG_WARN("nvjpegDecode failed");
     return false;
   }
 
   return true;
 }
-}  // namespace
+} // namespace
 
 namespace torchpipe {
 
@@ -142,15 +146,20 @@ void DecodeTensor::impl_init(
 
   auto tmp =
       torch::empty({1, 1}, torch::TensorOptions().device(torch::kCUDA, -1));
-  //   nvjpegDevAllocator_t dev_allocator = {&torch_malloc, &torch_free};
-  nvjpegDevAllocatorV2_t dev_allocator_async = {&torch_malloc_async,
-                                                &torch_free_async};
-  nvjpegPinnedAllocatorV2_t pinned_allocator = {&torch_pinned_malloc_async,
-                                                &torch_pinned_free_async};
   nvjpegBackend_t backend = NVJPEG_BACKEND_DEFAULT;
+//
+#if NVJPEG_VER_MAJOR == 11 && NVJPEG_VER_MINOR <= 6
+  // nvjpegDevAllocator_t dev_allocator = {&torch_malloc, &torch_free};
+  CHECK_NVJPEG_RESULT(nvjpegCreateEx(backend, nullptr, nullptr, 0, &handle_));
+#else
+  nvjpegDevAllocatorV2_t dev_allocator_async = {
+      &torch_malloc_async, &torch_free_async};
+  nvjpegPinnedAllocatorV2_t pinned_allocator = {
+      &torch_pinned_malloc_async, &torch_pinned_free_async};
   // todo nvjpegDevAllocatorV2_t nvjpegCreateExV2
   CHECK_NVJPEG_RESULT(nvjpegCreateExV2(
       backend, &dev_allocator_async, &pinned_allocator, 0, &handle_));
+#endif
 
   CHECK_NVJPEG_RESULT(nvjpegJpegStateCreate(handle_, &state_));
 
@@ -166,8 +175,9 @@ void DecodeTensor::forward(const hami::dict& input_dict) {
   auto& input = *input_dict;
 
   if (typeid(std::string) != input[TASK_DATA_KEY].type()) {
-    SPDLOG_ERROR(std::string("DecodeTensor:  unsupported the input type: ") +
-                 c10::demangle(input[TASK_DATA_KEY].type().name()));
+    SPDLOG_ERROR(
+        std::string("DecodeTensor:  unsupported the input type: ") +
+        c10::demangle(input[TASK_DATA_KEY].type().name()));
     throw std::runtime_error(
         std::string("DecodeTensor: unsupported the input type: ") +
         c10::demangle(input[TASK_DATA_KEY].type().name()));
@@ -186,4 +196,4 @@ void DecodeTensor::forward(const hami::dict& input_dict) {
 }
 
 HAMI_REGISTER(hami::Backend, DecodeTensor, "DecodeTensor");
-}  // namespace torchpipe
+} // namespace torchpipe

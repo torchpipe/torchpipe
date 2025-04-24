@@ -20,6 +20,7 @@ class ThreadSafeSlots {
  public:
   ThreadSafeSlots() = default;
   ThreadSafeSlots(size_t max_num) : max_num_(max_num) {
+    std::lock_guard<std::mutex> lock(mutex_);
     free_slots_.reserve(max_num);
     std::generate_n(
         std::back_inserter(free_slots_), max_num, [n = 0]() mutable {
@@ -27,6 +28,7 @@ class ThreadSafeSlots {
         });
   }
   void init(size_t max_num) {
+    std::lock_guard<std::mutex> lock(mutex_);
     max_num_ = max_num;
     free_slots_.clear();
     free_slots_.reserve(max_num);
@@ -96,14 +98,14 @@ class PageTable {
       : max_num_req_(max_num_req),
         page_size_(page_size),
         max_num_page_(max_num_page),
-        page_table_(max_num_page) {
+        slots_(max_num_page) {
     page_infos_.reserve(max_num_req);
   }
   void init(size_t max_num_req, size_t max_num_page, size_t page_size) {
     max_num_req_ = (max_num_req);
     page_size_ = (page_size);
     max_num_page_ = max_num_page;
-    page_table_.init(max_num_page);
+    slots_.init(max_num_page);
     page_infos_.reserve(max_num_req);
   }
 
@@ -120,7 +122,7 @@ class PageTable {
     if (iter == page_infos_.end()) {
       return false;
     }
-    page_table_.free(iter->second.kv_page_indices);
+    slots_.free(iter->second.kv_page_indices);
     page_infos_.erase(iter);
     return true;
   }
@@ -135,11 +137,11 @@ class PageTable {
   }
 
   void add_more_page(size_t num_added_slots) {
-    page_table_.add_more_slots(num_added_slots);
+    slots_.add_more_slots(num_added_slots);
   }
 
   size_t available_pages() {
-    return page_table_.available_size();
+    return slots_.available_size();
   }
   size_t available_ids() {
     std::lock_guard<std::mutex> lock(page_infos_lock_);
@@ -184,7 +186,7 @@ class PageTable {
   size_t max_num_req_{0};
   int page_size_{0};
   int max_num_page_{0};
-  ThreadSafeSlots page_table_;
+  ThreadSafeSlots slots_;
 
   mutable std::mutex page_infos_lock_;
   std::unordered_map<id_type, PageInfo> page_infos_;

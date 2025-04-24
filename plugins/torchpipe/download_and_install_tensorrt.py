@@ -16,8 +16,7 @@ TrtAddr = {
     "cuda12.8/trt109": "https://developer.nvidia.com/downloads/compute/machine-learning/tensorrt/10.9.0/tars/TensorRT-10.9.0.34.Linux.x86_64-gnu.cuda-12.8.tar.gz"
 }
 
-
-POSSIBLE_TENSORRT_LIB_DIR = set({"/usr/lib/x86_64-linux-gnu/"})
+POSSIBLE_TENSORRT_LIB_DIR = set({"/usr/lib/x86_64-linux-gnu/", '/usr/lib'})
 POSSIBLE_TENSORRT_INCLUDE_DIR = set({"/usr/include/", '/usr/include/x86_64-linux-gnu/'})
 def get_trt_path():
     """Get TensorRT download URL based on CUDA version."""
@@ -34,13 +33,26 @@ def get_trt_path():
     return trt_path
 
 def download_with_progress(url, local_path):
-    """Download file with progress bar."""
+    """Download file with progress bar, skip if local file exists and size matches."""
     import requests
+    # 检查本地文件是否存在
+    if os.path.exists(local_path):
+        local_size = os.path.getsize(local_path)
+        # 获取远程文件大小（避免下载完整内容）
+        response = requests.head(url, allow_redirects=True)
+        remote_size = int(response.headers.get('content-length', 0))
+        
+        # 如果大小一致，直接跳过
+        if local_size == remote_size and remote_size != 0:
+            print(f"File already exists and size matches, skipping download: {local_path}")
+            return
+    
+    # 如果文件不存在或大小不匹配，执行下载
     response = requests.get(url, stream=True)
     total_size = int(response.headers.get('content-length', 0))
     
     with open(local_path, "wb") as f, tqdm(
-        desc="Downloading TensorRT",
+        desc=f"Downloading {os.path.basename(local_path)}",
         total=total_size,
         unit='iB',
         unit_scale=True,
@@ -82,6 +94,7 @@ def download_and_install_trt(
         TENSORRT_INCLUDE, TENSORRT_LIB = exist_return(install_dir)
         if TENSORRT_INCLUDE and TENSORRT_LIB:
             return TENSORRT_INCLUDE, TENSORRT_LIB
+    
         
     for dir_path in POSSIBLE_TENSORRT_INCLUDE_DIR:
         if os.path.exists(os.path.join(dir_path, "NvInfer.h")):
@@ -157,10 +170,10 @@ def download_and_install_trt(
     
     # Copy lib files
     lib_dst = os.path.join(install_dir, "lib")
-    assert os.path.exists(os.path.join(lib_dst, 'libnvinfer_plugin.so'))
-        
+
     os.makedirs(lib_dst, exist_ok=True)
     shutil.copytree(os.path.join(trt_source_dir, "lib"), lib_dst, dirs_exist_ok=True)
+    assert os.path.exists(os.path.join(lib_dst, 'libnvinfer_plugin.so'))
     
     # Set environment variables
     print("\nTensorRT installation complete!")

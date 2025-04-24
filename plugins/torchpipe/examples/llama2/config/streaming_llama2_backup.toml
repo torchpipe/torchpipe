@@ -17,20 +17,19 @@ max = 4096
 
 [batchable]
 append_index_selector = -1 
-backend = 'S[FakeInstance[TensorrtTensor],Forward[custom_backend_engine],StreamGuard,NotHasKey(finish_reason)[Add(restart:embed_token)]]' # Pdb,
+backend = 'S[FakeInstance[TensorrtTensor],StreamGuard,Forward[custom_backend_engine],NotHasKey(finish_reason)[Add(restart:embed_token)]]' # Pdb,
 batching_timeout = 0 
 fake_instance_num = 5 
 max = "64;128;256;1024;4096" 
 min = "1;65;129;256;1024" 
-# max = 10
-model = 'exported_params/batchable.onnx'
-'model::cache' = 'exported_params/batchable.trt'
-post_processor = "SoftmaxArgMaxTensor"
+model = 'exported_params/batchable.onnx' 
+'model::cache' = 'exported_params/batchable.trt' 
+post_processor = "SoftmaxArgMaxTensor" 
 # [pre_decode_stage]
 # # node_entrypoint = "Register[Forward[node.contiguous_batching]]"
 # backend=""
 # the tensorrt plugin 
 #
-force_layer_norm_pattern_fp32 = 1
+force_layer_norm_pattern_fp32=0
 # [decoding]
 # backend = "IoC[StreamGuard[PyDecodeTensor];SyncLoop(net_out,target=StreamGuard)]"

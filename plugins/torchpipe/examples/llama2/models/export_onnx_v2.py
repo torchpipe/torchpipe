@@ -185,16 +185,21 @@ def export_batchable(model,  out_dir = 'model_files/', use_index_select = True):
 
     llama_model = model.model
     _modify_decode_layers(llama_model.layers) 
+    num_layers = len(llama_model.layers)
+    # need_sim = num_layers < 16
+    need_sim = True
     _modify_llama_model(llama_model)
     
     _modify_causal_llm(model)
     
     os.makedirs(out_dir, exist_ok=True)
     out_path = os.path.join(out_dir, "batchable.onnx")
-    out_tmp_dir = os.path.join(out_dir, ".temp/")
-    os.makedirs(out_tmp_dir, exist_ok = True)
-    out_tmp_path = os.path.join(out_tmp_dir, "batchable.onnx")
-    
+    if need_sim:
+        out_tmp_dir = os.path.join(out_dir, ".temp/")
+        os.makedirs(out_tmp_dir, exist_ok = True)
+        out_tmp_path = os.path.join(out_tmp_dir, "batchable.onnx")
+    else:
+        out_tmp_path = out_path
 
     def _export_batchable(llm):
         if use_index_select:
@@ -222,9 +227,10 @@ def export_batchable(model,  out_dir = 'model_files/', use_index_select = True):
                         # custom_opsets={"CustomTorchOps": 1}
 
         # raise RuntimeError(out_tmp_path)
-        assert 0 == subprocess.call(["onnxsim", out_tmp_path, out_path])
+        if need_sim:
+            assert 0 == subprocess.call(["onnxslim", out_tmp_path, out_path])
 
-        shutil.rmtree(out_tmp_dir)
+            shutil.rmtree(out_tmp_dir)
         
         print(f'Batchable: {out_path} saved.')
         # def repair_prefix(model_path):
@@ -446,11 +452,14 @@ def save_embed_tokens(model, out_dir = 'model_files/'):
     print(f"Embedding tokens saved to {save_name}")
 
 def export_all(model_id='meta-llama/Llama-2-7b-chat-hf', num_layers=2, out_dir = 'exported_params/'):
-    model, tokenizer, num_layers = hf_helper.get_hf_model(model_id, num_layers=2, use_flashinfer=False)
-    result = hf_helper.generate_text(model, tokenizer, "San Francisco is a", 7)
+    model, tokenizer, num_layers = hf_helper.get_hf_model(model_id, num_layers=num_layers, use_flashinfer=False)
+    prompt = "San Francisco is a"
+    prompt = "Tell me the first 10 Fermat prime numbers"
+    result = hf_helper.generate_text(model, tokenizer, prompt, 37)
     print(f"\nnum_layers = {num_layers}, Generated text: {result}")
-    # num_layers = 2, Generated text: San Francisco is a totalitéaletoreignersbyMSран
-    
+    #exit(0)
+    # num_layers = 2, Generated text: San Francisco is a totalitéaletoreignersbyMSран /or/ totalitéketting器 AußerTagged
+    # num_layers = 32, Generated text: San Francisco is a city in Northern California that is known
     export_batchable(model, out_dir = out_dir, use_index_select = True)
     export_batchless_prefilling(model, out_dir=out_dir)
     export_batchless_decoding(model, out_dir=out_dir)

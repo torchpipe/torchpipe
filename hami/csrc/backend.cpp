@@ -43,7 +43,7 @@ class PyInstance : public Backend {
           "No `init` method found in the python backend. You may need to "
           "use Forward[yourpython].");
     }
-    SPDLOG_INFO(
+    SPDLOG_DEBUG(
         "(python)initialization, init_method = {}, init_num_params = {}, init_default_params = {} ",
         init_method,
         init_num_params_,
@@ -81,11 +81,13 @@ class PyInstance : public Backend {
       py::gil_scoped_acquire gil;
       obj_->attr("forward")(py_input_output);
     }
+#ifdef DEBUG
     for (const auto& item : input_output) {
       if (item->find(TASK_RESULT_KEY) == item->end()) {
-        SPDLOG_WARN("find no result in io from python side.");
+        SPDLOG_DEBUG("find no result in io from python side.");
       }
     }
+#endif
   }
   size_t impl_max() const override final {
     return max_;

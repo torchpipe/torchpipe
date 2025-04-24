@@ -147,7 +147,7 @@ class SetTensorRequestSize : public hami::BackendOne {
     auto data = dict_gets<torch::Tensor>(io, TASK_DATA_KEY);
 
     const size_t req_size = data.at(0).size(0);
-    SPDLOG_INFO(
+    SPDLOG_DEBUG(
         "SetTensorRequestSize: req_size={}", req_size); // print_tensor(data),
     io->erase(TASK_DATA_KEY);
     (*io)[TASK_REQUEST_SIZE_KEY] = int(req_size);

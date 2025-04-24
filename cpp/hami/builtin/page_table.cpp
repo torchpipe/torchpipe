@@ -20,11 +20,11 @@ bool PageTable::reset(const hami::id_type& name, size_t num_tok) {
     SPDLOG_WARN("extend: total >= num_tok");
     return true;
   }
-  SPDLOG_INFO(
-      "PageTable::reset(tokens): id={},now={},required={}",
-      name,
-      total,
-      num_tok);
+  // SPDLOG_INFO(
+  //     "PageTable::reset(tokens): id={},now={},required={}",
+  //     name,
+  //     total,
+  //     num_tok);
 
   std::lock_guard<std::mutex> lock(page_infos_lock_);
   auto& info = page_infos_.at(name);
@@ -36,8 +36,13 @@ bool PageTable::reset(const hami::id_type& name, size_t num_tok) {
   //   PageInfo new_info;
   auto need_new_tok = num_tok - (page_size_ - info.kv_last_page_len + total);
   auto kv_page_indices =
-      page_table_.alloc((need_new_tok + page_size_ - 1) / page_size_);
+      slots_.alloc((need_new_tok + page_size_ - 1) / page_size_);
   if (kv_page_indices.empty()) {
+    SPDLOG_WARN(
+        "slots_.alloc failed. num_tok={}, need_new_tok={}, total={}",
+        num_tok,
+        need_new_tok,
+        total);
     return false;
   }
   info.kv_page_indices.insert(
@@ -70,7 +75,7 @@ bool PageTable::extend(const hami::id_type& name) {
     return true;
   }
   //   PageInfo new_info;
-  auto kv_page_indices = page_table_.alloc(1);
+  auto kv_page_indices = slots_.alloc(1);
   if (kv_page_indices.empty()) {
     return false;
   }
@@ -185,7 +190,7 @@ std::tuple<std::vector<int>, std::vector<int>, std::vector<int>> PageTable::
 void PageTable::activate(std::vector<id_type> ids) {
   std::lock_guard<std::mutex> lock(page_infos_lock_);
   for (const auto& item : ids) {
-    HAMI_ASSERT(page_infos_.find(item) != page_infos_.end(), "no" + item);
+    HAMI_ASSERT(page_infos_.find(item) != page_infos_.end(), "id=" + item);
   }
   ids_.push(std::move(ids));
 }
@@ -229,6 +234,11 @@ bool PageTable::alloc_or_reset(const hami::id_type& name, size_t num_tok) {
     std::unique_lock<std::mutex> lock(page_infos_lock_);
     find_id = page_infos_.find(name) != page_infos_.end();
   }
+  // SPDLOG_INFO(
+  //     "PageTable::alloc_or_reset(tokens): id={},find_id={},num_tok={}",
+  //     name,
+  //     find_id,
+  //     num_tok);
   // todo: lock
   if (find_id)
     return reset(name, num_tok);
@@ -239,6 +249,10 @@ bool PageTable::alloc_or_reset(const hami::id_type& name, size_t num_tok) {
 bool PageTable::alloc(const hami::id_type& name, size_t num_tok) {
   std::unique_lock<std::mutex> lock(page_infos_lock_);
   if (page_infos_.size() >= max_num_req_) {
+    SPDLOG_WARN(
+        "page_infos_.size(){} >= max_num_req_ {}",
+        page_infos_.size(),
+        max_num_req_);
     return false;
   }
 
@@ -249,14 +263,15 @@ bool PageTable::alloc(const hami::id_type& name, size_t num_tok) {
     return false;
   auto& info = iter->second;
 
-  info.kv_page_indices =
-      page_table_.alloc((num_tok + page_size_ - 1) / page_size_);
+  info.kv_page_indices = slots_.alloc((num_tok + page_size_ - 1) / page_size_);
   info.kv_last_page_len =
-      (num_tok % page_size_) == 0 ? num_tok : (num_tok % page_size_);
+      (num_tok % page_size_) == 0 ? page_size_ : (num_tok % page_size_);
   info.init_size = num_tok;
+  // SPDLOG_INFO("Alloc {}, {}", name, num_tok);
   info.time = get_time();
   if (info.kv_page_indices.empty()) {
     page_infos_.erase(name);
+    SPDLOG_WARN("slots_.alloc failed. num_tok={}", num_tok);
     return false;
   }
 

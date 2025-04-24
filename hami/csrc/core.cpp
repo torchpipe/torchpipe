@@ -10,6 +10,8 @@
 #include "hami/helper/exception.hpp"
 #include "hami/core/request_size.hpp"
 #include "hami/core/event.hpp"
+#include "hami/csrc/atomic_type.hpp"
+
 namespace py = pybind11;
 using hami::error::ExceptionHolder;
 
@@ -69,13 +71,29 @@ void init_core(py::module_& m) {
       .def("rethrow", &ExceptionHolder::rethrow);
 
   HAMI_ADD_HASH(std::exception_ptr);
-  // ([](const any& data) {
-  //     return py::cast(ExceptionHolder(any_cast<std::exception_ptr>(data)));
-  // });
 
-  // PYBIND11_MAKE_OPAQUE(std::vector<int>);
-  // PYBIND11_MAKE_OPAQUE(std::vector<float>);
-  // py::bind_vector<std::vector<int>>(m, "VectorInt");
-  // py::bind_vector<std::vector<float>>(m, "VectorFloat");
+  py::class_<AtomicType<int>>(m, "AtomicInt")
+      .def(py::init<int>(), py::arg("value") = 0)
+      .def("get", &AtomicType<int>::get)
+      .def("set", &AtomicType<int>::set)
+      // 正确绑定 += 操作符
+      .def(
+          "__iadd__",
+          &AtomicType<int>::operator+=,
+          py::return_value_policy::reference_internal,
+          py::arg("delta"))
+      // 明确区分前缀/后缀 ++
+      .def(
+          "increment",
+          [](AtomicType<int>& self) -> int { return (++self); },
+          py::return_value_policy::reference_internal)
+      .def(
+          "postfix_increment",
+          [](AtomicType<int>& self) -> int { return self++; })
+      .def(
+          "compare_exchange",
+          &AtomicType<int>::compare_exchange,
+          py::arg("expected"),
+          py::arg("desired"));
 }
 } // namespace hami

@@ -38,8 +38,8 @@ HasEventHelper::HasEventHelper(const std::vector<dict>& data) : dicts_(data) {
       });
 
   if (none_have_event) {
-    SPDLOG_INFO(
-        "HasEventHelper: none_have_event. data.size() = {}", data.size());
+    // SPDLOG_INFO(
+    //     "HasEventHelper: none_have_event. data.size() = {}", data.size());
     event_ = make_event(data.size());
     for (auto& item : data) {
       (*item)[TASK_EVENT_KEY] = event_;
@@ -231,7 +231,7 @@ void notify_event(const std::vector<dict>& io) {
       auto ev = any_cast<std::shared_ptr<Event>>(iter->second);
       // SPDLOG_INFO("event notified before");
       ev->notify_all();
-      SPDLOG_INFO("event notified");
+      // SPDLOG_INFO("event notified");
     }
   }
 }

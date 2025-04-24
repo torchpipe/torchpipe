@@ -27,7 +27,8 @@ void EventGuard::custom_forward_with_dep(
     }
   }
   if (data.empty()) {
-    SPDLOG_INFO("EVENT_GUARD: all has event. size = {}", evented_data.size());
+    // SPDLOG_INFO("EVENT_GUARD: all has event. size = {}",
+    // evented_data.size());
     dependency->forward(evented_data);
   } else {
     std::vector<std::shared_ptr<Event>> events(data.size());
