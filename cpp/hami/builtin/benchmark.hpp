@@ -27,10 +27,12 @@ struct ProfileState {
  * if not specified, the default queue will be used.
  */
 class Benchmark : public Backend {
-  void impl_init(const std::unordered_map<std::string, std::string>& config,
-                 const dict& kwargs) override;
-  void impl_forward_with_dep(const std::vector<dict>& input,
-                             Backend* dependency) override;
+  void impl_init(
+      const std::unordered_map<std::string, std::string>& config,
+      const dict& kwargs) override;
+  void impl_forward_with_dep(
+      const std::vector<dict>& input,
+      Backend& dependency) override;
   ~Benchmark() {
     bInited_.store(false);
     task_cv_.notify_all();
@@ -74,4 +76,4 @@ class Benchmark : public Backend {
   std::atomic_bool bInited_{false};
 };
 
-}  // namespace hami
+} // namespace hami

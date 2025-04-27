@@ -42,7 +42,7 @@ void RestartEvent::task_loop(
 
 void RestartEvent::custom_forward_with_dep(
     const std::vector<dict>& inputs,
-    Backend* dependency) {
+    Backend& dependency) {
   const size_t queue_index = std::rand() % task_queues_.size();
 
   for (auto& item : inputs) {
@@ -58,11 +58,11 @@ void RestartEvent::custom_forward_with_dep(
 void RestartEvent::on_start_node(
     dict tmp_data,
     std::size_t task_queue_index,
-    Backend* dependency) {
+    Backend& dependency) {
   std::shared_ptr<RestartEvent::Stack> pstack =
       std::make_shared<RestartEvent::Stack>();
 
-  pstack->dependency = dependency;
+  pstack->dependency = &dependency;
   pstack->task_queue_index = task_queue_index;
   pstack->input_event =
       any_cast<std::shared_ptr<Event>>(tmp_data->at(TASK_EVENT_KEY));
@@ -78,7 +78,7 @@ void RestartEvent::on_start_node(
     local_queue->push(tmp_data);
   });
 
-  dependency->forward({tmp_data});
+  dependency.forward({tmp_data});
 }
 
 void RestartEvent::on_finish_node(dict tmp_data) {
@@ -156,31 +156,4 @@ HAMI_REGISTER(Backend, RestartEvent);
 
 HAMI_PROXY_WITH_DEPENDENCY(Restart, "Aspect[EventGuard,RestartEvent]");
 
-// class Restart : public DependencyV0 {
-//  private:
-//   std::unique_ptr<Backend> owned_backend_;
-
-//  public:
-//   void pre_init(const std::unordered_map<string, string>& config,
-//                 const dict& kwargs) override final {
-//     auto new_conf = config;
-//     auto backend_config =
-//     str::flatten_brackets("Aspect[EventGuard,RestartEvent]"); if
-//     (backend_config.size() != 1 && backend_config.size() != 2)
-//       throw std::runtime_error(std::string("error dependency_setting: ") +
-//                                "Aspect[EventGuard,RestartEvent]");
-//     auto principal = backend_config.at(0);
-//     owned_backend_ = std::unique_ptr<Backend>(
-//         hami::ClassRegistryInstance<Backend>().DoCreateObject(principal));
-//     if (!owned_backend_) throw std::runtime_error(principal + " is not a
-//     valid backend name."); if (backend_config.size() > 1) {
-//       new_conf[principal + "::dependency"] = backend_config.at(1);
-//     }
-//     owned_backend_->init(new_conf, kwargs);
-//     inject_dependency(owned_backend_.get());
-//   }
-// };
-// static hami::ClassRegister<Backend> RestartRegistryTag(
-//     hami::ClassRegistry_NewObject<Backend, Restart>, "Restart", {"Restart"});
-// ;
 } // namespace hami

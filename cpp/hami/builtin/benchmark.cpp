@@ -55,14 +55,14 @@ void Benchmark::impl_init(
 
 void Benchmark::impl_forward_with_dep(
     const std::vector<dict>& input,
-    Backend* dependency) {
-  HAMI_ASSERT(input.size() > 1 && dependency);
+    Backend& dependency) {
+  HAMI_ASSERT(input.size() > 1);
 
   {
     // warm up
     std::unique_lock<std::mutex> lock(warm_up_mtx_);
 
-    warm_up_task_ = [this, input, dependency]() {
+    warm_up_task_ = [this, input, &dependency]() {
       int num_warm_up = num_warm_up_;
 
       while (num_warm_up-- > 0) {
@@ -71,7 +71,7 @@ void Benchmark::impl_forward_with_dep(
           warm_data.push_back(uniform_sample(input));
         }
         try {
-          dependency->forward(warm_data);
+          dependency.forward(warm_data);
         } catch (const std::exception& e) {
           SPDLOG_ERROR("Exception during warm-up forward: {}", e.what());
           break;
@@ -79,7 +79,7 @@ void Benchmark::impl_forward_with_dep(
       }
     };
 
-    main_task_ = [this, dependency](size_t client_index) {
+    main_task_ = [this, &dependency](size_t client_index) {
       while (bInited_.load()) {
         auto item = inputs_->try_get(SHUTDOWN_TIMEOUT_MS);
 
@@ -94,7 +94,7 @@ void Benchmark::impl_forward_with_dep(
           state.start_time = std::chrono::steady_clock::now();
           std::exception_ptr excep;
           try {
-            dependency->forward(state.data);
+            dependency.forward(state.data);
           } catch (...) {
             state.exception = (std::current_exception());
           }
@@ -270,7 +270,7 @@ class Profile : public Dependency {
     target_queue_ = &default_queue();
   }
 
-  void impl_forward_with_dep(const std::vector<dict>& io, Backend* dep)
+  void impl_forward_with_dep(const std::vector<dict>& io, Backend& dep)
       override {
     thread_local const std::string thread_id = std::to_string(
         std::hash<std::thread::id>()(std::this_thread::get_id()));
@@ -292,7 +292,7 @@ class Profile : public Dependency {
             .count();
 
     try {
-      dep->forward(io);
+      dep.forward(io);
     } catch (const std::exception& e) {
       SPDLOG_WARN("Exception during forward: {}", e.what());
       status.data["exception"] = std::string(e.what());

@@ -24,14 +24,11 @@ class HAMI_EXPORT DependencyV0 : public Backend {
 
   virtual void impl_forward(
       const std::vector<dict>& input_output) override final {
-    forward_with_dep(input_output, injected_dependency_);
+    forward_with_dep(input_output, *injected_dependency_);
   }
   virtual void impl_forward_with_dep(
       const std::vector<dict>& input_output,
-      Backend* dependency) override final {
-    if (dependency == nullptr) {
-      throw std::invalid_argument("null dependency is not allowed");
-    }
+      Backend& dependency) override final {
     custom_forward_with_dep(input_output, dependency);
   }
 
@@ -81,7 +78,7 @@ class HAMI_EXPORT DependencyV0 : public Backend {
  private:
   virtual void custom_forward_with_dep(
       const std::vector<dict>& input_output,
-      Backend* dependency);
+      Backend& dependency);
   std::string registered_name_{}; ///< The registered name of the backend.
   std::string dependency_name_{};
   std::shared_ptr<Backend> shared_owned_dependency_;
@@ -106,29 +103,23 @@ class HAMI_EXPORT Dependency : public Backend {
   void impl_inject_dependency(Backend* dependency) override;
 
  private:
-  virtual void impl_forward(
-      const std::vector<dict>& input_output) override final {
+  virtual void impl_forward(const std::vector<dict>& ios) override final {
     // Backend::forward_with_dep(input_output, injected_dependency_);
     if (!injected_dependency_)
       throw std::runtime_error("Dependency is not injected");
-    // injected_dependency_->forward(input_output);
-    forward_with_dep(input_output, injected_dependency_);
+    forward_with_dep(ios, *injected_dependency_);
   }
 
-  virtual void impl_forward_with_dep(
-      const std::vector<dict>& input_output,
-      Backend* dep) = 0;
+  virtual void impl_forward_with_dep(const std::vector<dict>& ios, Backend& dep)
+      override {
+    dep.forward(ios);
+  }
 
   [[nodiscard]] size_t impl_max() const override;
   [[nodiscard]] size_t impl_min() const override;
 
  protected:
   Backend* injected_dependency_{nullptr}; ///< The injected dependency.
-
-  //    private:
-  //     virtual void custom_forward_with_dep(const std::vector<dict>&
-  //     input_output,
-  //                               Backend* dependency);
 };
 
 /**

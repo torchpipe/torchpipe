@@ -20,7 +20,7 @@ class Condition : public DependencyV0 {
       const dict& kwargs) {}
   void custom_forward_with_dep(
       const std::vector<dict>& inputs,
-      Backend* dependency) override final {
+      Backend& dependency) override final {
     std::vector<dict> valid_inputs;
     for (auto& input : inputs) {
       if (condition_(input)) {
@@ -28,7 +28,7 @@ class Condition : public DependencyV0 {
       }
     }
     if (!valid_inputs.empty()) {
-      dependency->safe_forward(valid_inputs);
+      dependency.safe_forward(valid_inputs);
     }
   }
 

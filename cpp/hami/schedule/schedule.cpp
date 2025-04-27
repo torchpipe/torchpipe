@@ -162,12 +162,12 @@ void Loop::run() {
   SPDLOG_INFO("Loop exit.");
 }
 
-void Loop::impl_forward(const std::vector<dict>& inputs) {
+void Loop::impl_forward(const std::vector<dict>& ios) {
   HasEventHelper helper(
-      inputs); // add `event` (and wait for possible exception) if not exist
+      ios); // add `event` (and wait for possible exception) if not exist
 
-  // SPDLOG_INFO("src_queue_ puts inputs.size() = {}", inputs.size());
-  src_queue_->puts(inputs);
+  // SPDLOG_INFO("src_queue_ puts ios.size() = {}", ios.size());
+  src_queue_->puts(ios);
   // SPDLOG_INFO("src_queue_ puts finish ");
   helper.wait();
   // SPDLOG_INFO("src_queue_ wait finish ");
@@ -203,16 +203,15 @@ void Batching::impl_inject_dependency(Backend* dependency) {
 }
 
 void Batching::impl_forward_with_dep(
-    const std::vector<dict>& inputs,
-    Backend* dep) {
+    const std::vector<dict>& ios,
+    Backend& dep) {
   HasEventHelper helper(
-      inputs); // add `event` (and wait for possible exception) if not exist
-  HAMI_FATAL_ASSERT(dep);
+      ios); // add `event` (and wait for possible exception) if not exist
 
   if (bInited_.load())
-    input_queue_.push(inputs, get_request_size<dict>);
+    input_queue_.push(ios, get_request_size<dict>);
   else {
-    dep->forward(inputs);
+    dep.forward(ios);
   }
   helper.wait();
 }
@@ -314,9 +313,9 @@ void InstanceDispatcher::update_min_max(const std::vector<Backend*>& deps) {
   HAMI_ASSERT(min_ <= max_);
 }
 
-void InstanceDispatcher::impl_forward(const std::vector<dict>& inputs) {
-  HAMI_ASSERT(helper::none_or_all_has_key_and_unempty(inputs, TASK_EVENT_KEY));
-  const size_t req_size = get_request_size(inputs);
+void InstanceDispatcher::impl_forward(const std::vector<dict>& ios) {
+  HAMI_ASSERT(helper::none_or_all_has_key_and_unempty(ios, TASK_EVENT_KEY));
+  const size_t req_size = get_request_size(ios);
   //
   std::optional<size_t> index;
   do {
@@ -324,22 +323,22 @@ void InstanceDispatcher::impl_forward(const std::vector<dict>& inputs) {
   } while (!index);
   size_t valid_index{*index};
   // SPDLOG_INFO(
-  //     "InstanceDispatcher, num deps = {}, req_size = {}, inputs = {}",
+  //     "InstanceDispatcher, num deps = {}, req_size = {}, ios = {}",
   //     base_dependencies_.size(),
   //     req_size,
-  //     inputs.size());
+  //     ios.size());
 
   HAMI_FATAL_ASSERT(valid_index < base_dependencies_.size());
 
   std::shared_ptr<Event> event;
-  auto iter = inputs.back()->find(TASK_EVENT_KEY);
-  if (iter != inputs.back()->end()) {
+  auto iter = ios.back()->find(TASK_EVENT_KEY);
+  if (iter != ios.back()->end()) {
     event = any_cast<std::shared_ptr<Event>>(iter->second);
   }
   if (event) {
     event->append_callback(
         [this, valid_index]() { instances_state_->remove_lock(valid_index); });
-    base_dependencies_[valid_index]->forward(inputs);
+    base_dependencies_[valid_index]->forward(ios);
   } else {
     auto resource_guard = [this, valid_index](void*) {
       instances_state_->remove_lock(valid_index);
@@ -347,7 +346,7 @@ void InstanceDispatcher::impl_forward(const std::vector<dict>& inputs) {
     std::unique_ptr<void, decltype(resource_guard)> guard(
         nullptr, resource_guard);
 
-    base_dependencies_[valid_index]->forward(inputs);
+    base_dependencies_[valid_index]->forward(ios);
   }
 }
 
@@ -383,12 +382,12 @@ void BackgroundThread::impl_init(
       dependency_->max());
 }
 
-void BackgroundThread::impl_forward(const std::vector<dict>& inputs) {
-  HAMI_ASSERT(helper::all_has_key(inputs, TASK_EVENT_KEY));
-  batched_queue_.push(inputs);
+void BackgroundThread::impl_forward(const std::vector<dict>& ios) {
+  HAMI_ASSERT(helper::all_has_key(ios, TASK_EVENT_KEY));
+  batched_queue_.push(ios);
 }
 
-// void BackgroundThread::forward_task(const std::vector<dict>& inputs) {}
+// void BackgroundThread::forward_task(const std::vector<dict>& ios) {}
 void BackgroundThread::run() {
 #ifndef NCATCH_SUB
   try {
@@ -525,7 +524,7 @@ void FakeInstance::impl_forward(const std::vector<dict>& ios) {
 
   const auto index = get_best_match(size);
   // SPDLOG_INFO("FakeInstance: size={} index={}", size, index);
-  // auto inputs = inputs_data;
+  // auto ios = ios_data;
   if (size != ios.size()) {
     IPIPE_ASSERT(index >= 0); // garentied
     backends_[index]->forward(ios);

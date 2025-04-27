@@ -19,8 +19,8 @@ class ResultParser : public DependencyV0 {
       const dict& kwargs) {}
   void custom_forward_with_dep(
       const std::vector<dict>& inputs,
-      Backend* dependency) override final {
-    dependency->safe_forward(inputs);
+      Backend& dependency) override final {
+    dependency.safe_forward(inputs);
     for (const auto& item : inputs) {
       parser_(item);
     }

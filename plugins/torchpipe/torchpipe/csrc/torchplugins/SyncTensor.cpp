@@ -103,7 +103,7 @@ class TorchStreamPool : public hami::Backend {
       const dict& kwargs) override {}
   void impl_forward_with_dep(
       const std::vector<hami::dict>& io,
-      hami::Backend* dependency) override {}
+      hami::Backend& dependency) override {}
 
   [[nodiscard]] size_t impl_max() const override {
     return std::numeric_limits<size_t>::max();

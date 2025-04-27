@@ -12,8 +12,9 @@ namespace hami {
  */
 class GenerateBackend : public Backend {
  private:
-  void impl_init(const std::unordered_map<std::string, std::string>& config,
-                 const dict& kwargs) override;
+  void impl_init(
+      const std::unordered_map<std::string, std::string>& config,
+      const dict& kwargs) override;
 
   void impl_inject_dependency(Backend* dependency) override final {
     if (!proxy_backend_) {
@@ -22,8 +23,9 @@ class GenerateBackend : public Backend {
       proxy_backend_->inject_dependency(dependency);
   }
 
-  void impl_forward_with_dep(const std::vector<dict>& inputs,
-                             Backend* dependency) override {
+  void impl_forward_with_dep(
+      const std::vector<dict>& inputs,
+      Backend& dependency) override {
     proxy_backend_->forward_with_dep(inputs, dependency);
   }
 
@@ -39,8 +41,6 @@ class GenerateBackend : public Backend {
   }
 
  protected:
-  // Backend* dependency_{nullptr};
-  // Backend* proxy_backend_{nullptr};
   std::unique_ptr<Backend> proxy_backend_;
 
  private:
@@ -53,7 +53,7 @@ class GenerateBackend : public Backend {
   std::unordered_map<std::string, std::string> parse_order_config(
       const std::string& setting);
 };
-}  // namespace hami
+} // namespace hami
 
 // see also HAMI_PROXY
 #define HAMI_GENERATE_BACKEND(ClsName, main_backend, config)     \

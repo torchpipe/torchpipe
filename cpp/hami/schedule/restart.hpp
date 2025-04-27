@@ -10,7 +10,7 @@ class RestartEvent : public DependencyV0 {
       override final;
   void custom_forward_with_dep(
       const std::vector<dict>& inputs,
-      Backend* dependency) override final;
+      Backend& dependency) override final;
 
   ~RestartEvent() {
     bInited_.store(false);
@@ -34,7 +34,7 @@ class RestartEvent : public DependencyV0 {
   void on_start_node(
       dict tmp_data,
       std::size_t task_queue_index,
-      Backend* dependency);
+      Backend& dependency);
   void on_finish_node(dict tmp_data);
 
  private:
@@ -42,9 +42,5 @@ class RestartEvent : public DependencyV0 {
   std::vector<std::unique_ptr<ThreadSafeQueue<dict>>> task_queues_;
   std::vector<std::thread> threads_;
   std::atomic_bool bInited_{true};
-  //   std::unique_ptr<Backend> owned_backend_;
-  //   Backend* backend_;
-  //   std::unique_ptr<Params> params_;
-  //   std::string continue_;
 };
 } // namespace hami

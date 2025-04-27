@@ -74,8 +74,8 @@ void DependencyV0::impl_inject_dependency(Backend* dependency) {
 }
 void DependencyV0::custom_forward_with_dep(
     const std::vector<dict>& input_output,
-    Backend* dependency) {
-  dependency->safe_forward(input_output);
+    Backend& dependency) {
+  dependency.safe_forward(input_output);
 }
 
 DependencyV0::~DependencyV0() {
@@ -323,23 +323,18 @@ void List::impl_forward(const std::vector<dict>& input_output) {
 
 HAMI_REGISTER(Backend, List, "List,Tuple");
 
-void BackendOne::impl_forward(const std::vector<dict>& input_output) {
-  HAMI_ASSERT(
-      input_output.size() == 1, "BackendOne only supports single input");
+void BackendOne::impl_forward(const std::vector<dict>& ios) {
+  HAMI_ASSERT(ios.size() == 1, "BackendOne only supports single input");
 
-  // HAMI_ASSERT(input_output[0]->find(TASK_DATA_KEY) !=
-  // input_output[0]->end());
-  forward(input_output[0]);
+  forward(ios[0]);
 }
 
 void BackendOne::impl_forward_with_dep(
     const std::vector<dict>& ios,
-    Backend* dep) {
+    Backend& dep) {
   HAMI_ASSERT(ios.size() == 1, "BackendOne only supports single input");
-  if (dep)
-    forward_with_dep(ios[0], *dep);
-  else
-    forward(ios[0]);
+
+  forward_with_dep(ios[0], dep);
 }
 
 class ReadFile : public BackendOne {

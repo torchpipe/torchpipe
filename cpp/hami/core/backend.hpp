@@ -115,10 +115,7 @@ class HAMI_EXPORT Backend {
    * @param io Input/output data to be processed.
    * @param dependency Pointer to the backend dependency.
    */
-  void forward_with_dep(const std::vector<dict>& io, Backend* dependency) {
-    if (dependency == nullptr) {
-      throw std::invalid_argument("dependency cannot be nullptr");
-    }
+  void forward_with_dep(const std::vector<dict>& io, Backend& dependency) {
     impl_forward_with_dep(io, dependency);
   }
 
@@ -167,15 +164,15 @@ class HAMI_EXPORT Backend {
   virtual void impl_init(
       const std::unordered_map<string, string>& params,
       const dict& options) {}
-  virtual void impl_forward(const std::vector<dict>& io) {
-    throw std::runtime_error("forward(io) not supported by default");
+  virtual void impl_forward(const std::vector<dict>& ios) {
+    impl_forward_with_dep(ios, *this);
   }
 
   virtual void impl_forward_with_dep(
-      const std::vector<dict>& io,
-      Backend* dependency) {
+      const std::vector<dict>& ios,
+      Backend& dependency) {
     throw std::runtime_error(
-        "forward(io, dependency) not supported by default");
+        "Neither impl_forward nor impl_forward_with_dep is implemented");
   }
 
   [[nodiscard]] virtual size_t impl_min() const {
@@ -213,8 +210,9 @@ class HAMI_EXPORT BackendOne : public Backend {
    * @param io Single input/output data to be processed.
    */
   virtual void forward(const dict& io) {
-    throw std::runtime_error("Not Implemented");
+    forward_with_dep(io, *this);
   }
+
   virtual void forward_with_dep(const dict& io, Backend& dep) {
     throw std::runtime_error("Not Implemented");
   }
@@ -227,7 +225,7 @@ class HAMI_EXPORT BackendOne : public Backend {
    */
   void impl_forward(const std::vector<dict>& io) override final;
 
-  void impl_forward_with_dep(const std::vector<dict>& ios, Backend* dep)
+  void impl_forward_with_dep(const std::vector<dict>& ios, Backend& dep)
       override final;
 };
 

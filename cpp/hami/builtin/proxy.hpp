@@ -33,14 +33,13 @@ class Proxy : public Backend {
       proxy_backend_->inject_dependency(dependency);
   }
 
-  void impl_forward_with_dep(
-      const std::vector<dict>& inputs,
-      Backend* dependency) override {
-    proxy_backend_->forward_with_dep(inputs, dependency);
+  void impl_forward_with_dep(const std::vector<dict>& ios, Backend& dependency)
+      override {
+    proxy_backend_->forward_with_dep(ios, dependency);
   }
 
-  void impl_forward(const std::vector<dict>& inputs) override {
-    proxy_backend_->forward(inputs);
+  void impl_forward(const std::vector<dict>& ios) override {
+    proxy_backend_->forward(ios);
   }
   [[nodiscard]] virtual size_t impl_max() const override {
     return proxy_backend_->max();
@@ -51,7 +50,6 @@ class Proxy : public Backend {
   }
 
  protected:
-  // Backend* dependency_{nullptr};
   Backend* proxy_backend_{nullptr};
   std::unique_ptr<Backend> owned_backend_;
 };
@@ -120,7 +118,7 @@ class ProxyV2 : public Backend {
 
   void impl_forward_with_dep(
       const std::vector<dict>& inputs,
-      Backend* dependency) override {
+      Backend& dependency) override {
     proxy_backend_->forward_with_dep(inputs, dependency);
   }
 

@@ -15,7 +15,7 @@ namespace hami {
 
 void EventGuard::custom_forward_with_dep(
     const std::vector<dict>& input_output,
-    Backend* dependency) {
+    Backend& dependency) {
   std::vector<dict> evented_data;
   std::vector<dict> data;
 
@@ -29,7 +29,7 @@ void EventGuard::custom_forward_with_dep(
   if (data.empty()) {
     // SPDLOG_INFO("EVENT_GUARD: all has event. size = {}",
     // evented_data.size());
-    dependency->forward(evented_data);
+    dependency.forward(evented_data);
   } else {
     std::vector<std::shared_ptr<Event>> events(data.size());
     std::generate_n(events.begin(), data.size(), []() {
@@ -39,7 +39,7 @@ void EventGuard::custom_forward_with_dep(
       (*data[i])[TASK_EVENT_KEY] = events[i];
     }
 
-    dependency->forward(input_output);
+    dependency.forward(input_output);
     // parse exception
     std::vector<std::exception_ptr> exceps;
     for (size_t i = 0; i < events.size(); i++) {
@@ -100,14 +100,14 @@ class ThreadPoolExecutor : public Dependency {
   }
 
   // [[nodiscard]] size_t impl_max() const { return max_workers_; }
-  void impl_forward_with_dep(const std::vector<dict>& input, Backend* dep)
+  void impl_forward_with_dep(const std::vector<dict>& input, Backend& dep)
       override {
     (void)pool_->submit_task(
-        [this, input, dep]() { impl_forward_with_dep_async(input, dep); });
+        [this, input, &dep]() { impl_forward_with_dep_async(input, dep); });
   }
   void impl_forward_with_dep_async(
       const std::vector<dict>& input,
-      Backend* dep) {
+      Backend& dep) {
     HAMI_ASSERT(input.size() == 1);
     Queue* queue = dict_get<Queue*>(input[0], TASK_DATA_KEY);
     HAMI_ASSERT(queue && pool_);
@@ -120,9 +120,9 @@ class ThreadPoolExecutor : public Dependency {
         continue;
       // SPDLOG_INFO("queue :  {}, {} {}", queue->size(),
       // pool_->get_tasks_total(), pool_->get_tasks_queued());
-      pool_->detach_task([this, dep, data, queue]() {
+      pool_->detach_task([this, &dep, data, queue]() {
         try {
-          dep->forward({*data});
+          dep.forward({*data});
         } catch (...) {
           // queue->set_error();
           (*(*data))["exception"] = std::current_exception();
