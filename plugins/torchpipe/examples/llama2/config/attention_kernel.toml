@@ -1,0 +1,10 @@
+
+
+[prefill]
+
+model = "exported_params/batchless_prefilling.onnx"
+"model::cache" = "exported_params/batchless_prefilling.trt"
+[decode]
+
+# TorchStreamPool(target=(a,b,c,d,c);) cpu 异步
+# With[TorchStreamPool, Forward[python_backend]]

@@ -203,9 +203,7 @@ class CustomBackendEngine(BackendEngine):
             output.usage = None
             
             finish_reason = None
-            # print(f'{status.sampling_params.stop_token_ids} status.sampling_params.stop_token_ids')
-            #if not text:
-                #text = "0"
+
             if data_item in status.sampling_params.stop_token_ids or data_item == self.eos_token_id: # eos
                 finish_reason = "stop"
                 seq.finish_reason = "stop"
@@ -283,7 +281,7 @@ def main(num_layers = 2, max_num_page = 0):
         per_page_mem =  2 * page_size * 32 * 128 * 2/(1024.0**2) * num_layers
         free_mem = torch.cuda.mem_get_info()[0]/(1024.0**2)
         max_num_page = int(free_mem* 0.2 / per_page_mem)
-        hami._C.print(f"max_num_page: {max_num_page}")
+        hami.print(f"max_num_page: {max_num_page}")
     page_table = set_page_table(max_num_page)
     
     register_engine("llama2", CustomBackendEngine())

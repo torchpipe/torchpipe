@@ -100,22 +100,12 @@ class PyPlugin:
                 
                 PyPlugin.req_ids, PyPlugin.num_toks = page_table.pop_activated()
                 prefill_size = page_table.get_prefill_num_req_toks(PyPlugin.req_ids)
-                # print(" (PyPlugin.num_toks)=",  (PyPlugin.req_ids), PyPlugin.num_toks,q.shape, k.shape, prefill_size)
-                # print(f"id={PyPlugin.req_ids}, num_toks={PyPlugin.num_toks}, prefill_size={prefill_size}")
+ 
                 is_prefill = PyPlugin.num_toks > prefill_size  # prefill <=, decode >
                 PyPlugin.num_decode = int(is_prefill.sum())
-                # assume always prefill first
                 
                 PyPlugin.num_prefill  = len(PyPlugin.req_ids) - PyPlugin.num_decode
                 PyPlugin.num_prefill_tok = int(PyPlugin.num_toks[:PyPlugin.num_prefill].sum())
-
-                # print(f"num_prefill={PyPlugin.num_prefill}. num_prefill_tok={PyPlugin.num_prefill_tok}, num_decode={PyPlugin.num_decode}, req_ids {PyPlugin.req_ids}, num_toks = {PyPlugin.num_toks} ", )
-            
-            # print(f'q.dtype={q.dtype}, layer_idx={self.layer_idx},PyPlugin.num_prefill_tok={PyPlugin.num_prefill_tok}, PyPlugin.num_decode={PyPlugin.num_decode}')
-            
-            # if PyPlugin.num_prefill_tok > 0 and PyPlugin.num_decode > 0:
-            #     assert False
-                # todo : side stream
                 
             if PyPlugin.num_prefill_tok > 0:
                 
@@ -153,7 +143,7 @@ class PyPlugin:
             kv_page_indices, kv_page_indptr, kv_last_page_len, kv_page_indices_np, kv_page_indptr_np, kv_last_page_len_np, index_a, index_b = PyPlugin.decode_page_table
         
         paged_kv_cache = global_kv[self.layer_idx]
-        # print(f"index_a, index_b = {index_a.shape}, {index_b.shape} layer_idx = {self.layer_idx} k={k.shape}, num_prefill_tok={PyPlugin.num_prefill_tok}")
+
         paged_kv_cache[index_a, 0, index_b] = k
         paged_kv_cache[index_a, 1, index_b] = v
         # todo: https://github.com/NVIDIA/TensorRT-LLM/blob/a2fad51011a48f2cbfee7172047daec74fb0b1b6/tensorrt_llm/_torch/attention_backend/flashinfer.py#L259
@@ -195,9 +185,9 @@ class PyPlugin:
             kv_page_indptr = torch.from_numpy(kv_page_indptr).cuda()
             kv_last_page_len = torch.from_numpy(kv_last_page_len).cuda()
             
-            seq =  num_toks_gpu# flashinfer.get_seq_lens(kv_page_indptr, kv_last_page_len, 16)
+            # flashinfer.get_seq_lens(kv_page_indptr, kv_last_page_len, 16)
             
-            batch_indices, positions = flashinfer.get_batch_indices_positions(kv_indptr, seq, k.shape[0])
+            batch_indices, positions = flashinfer.get_batch_indices_positions(kv_indptr, num_toks_gpu, k.shape[0])
             
             PyPlugin.prefill_page_table = (batch_indices, positions, kv_page_indices, kv_page_indptr, kv_last_page_len)
         else:
@@ -212,8 +202,6 @@ class PyPlugin:
             kv_page_indptr,
             kv_last_page_len
         )
-        # print(kv_page_indptr, kv_last_page_len)
-
         
 def main(num_layers = 2):
     set_num_layers(num_layers)
@@ -256,7 +244,7 @@ def main(num_layers = 2):
              
         io = hami.Dict({'data':in_id.squeeze(0),"node_name":'embed_token'})
         io[hami.TASK_EVENT_KEY] = hami.Event() 
-        # events.append(io.set_event())
+
         events.append(io[hami.TASK_EVENT_KEY])
         io[hami.TASK_REQUEST_ID_KEY] = f"id-{i}"
         io[hami.TASK_MSG_KEY] = hami.TypedDict({"req_tokens": in_id.size(-1),

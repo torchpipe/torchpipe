@@ -49,3 +49,15 @@ test on ShareGPT dataset, qps=2, requests=500, llama2-7b, A10-24G
 ## todo
 
 https://github.com/NVIDIA/TensorRT-LLM/issues/967
+
+
+> Warning: This is a research project and may not be a production-ready solution. Use at your own risk.
+
+
+- MagicPiG
+- FastDecode
+- PipeThreader: Software-Defined Pipelining for Efficient DNN Execution (osdi25)
+- NeuStream: Bridging Deep Learning Serving and Stream Processing
+https://dl.acm.org/doi/pdf/10.1145/3689031.3717489
+- https://chengyupku.github.io/publications/
+https://yangzhihome.github.io/

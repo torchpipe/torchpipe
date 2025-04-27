@@ -212,7 +212,12 @@ class HAMI_EXPORT BackendOne : public Backend {
    *
    * @param io Single input/output data to be processed.
    */
-  virtual void forward(const dict& io) = 0;
+  virtual void forward(const dict& io) {
+    throw std::runtime_error("Not Implemented");
+  }
+  virtual void forward_with_dep(const dict& io, Backend& dep) {
+    throw std::runtime_error("Not Implemented");
+  }
 
   /**
    * @brief Processes input/output data with single input.
@@ -222,21 +227,8 @@ class HAMI_EXPORT BackendOne : public Backend {
    */
   void impl_forward(const std::vector<dict>& io) override final;
 
-  void impl_forward_with_dep(const std::vector<dict>& io, Backend* dep)
-      override {
-    Backend::forward_with_dep(io, dep);
-  }
-
-  /**
-   * @brief Overrides inject_dependency to disallow setting dependencies.
-   *
-   * @param dependency Pointer to the backend dependency (ignored).
-   * @throws std::runtime_error Always, as BackendOne does not support
-   * dependencies.
-   */
-  void impl_inject_dependency(Backend* dependency) override final {
-    throw std::runtime_error("BackendOne does not support inject dependency");
-  }
+  void impl_forward_with_dep(const std::vector<dict>& ios, Backend* dep)
+      override final;
 };
 
 /**

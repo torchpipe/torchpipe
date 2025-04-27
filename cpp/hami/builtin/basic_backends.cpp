@@ -332,6 +332,16 @@ void BackendOne::impl_forward(const std::vector<dict>& input_output) {
   forward(input_output[0]);
 }
 
+void BackendOne::impl_forward_with_dep(
+    const std::vector<dict>& ios,
+    Backend* dep) {
+  HAMI_ASSERT(ios.size() == 1, "BackendOne only supports single input");
+  if (dep)
+    forward_with_dep(ios[0], *dep);
+  else
+    forward(ios[0]);
+}
+
 class ReadFile : public BackendOne {
   void forward(const dict& input_output) override {
     std::string file_path = dict_get<std::string>(input_output, TASK_DATA_KEY);

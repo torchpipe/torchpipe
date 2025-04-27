@@ -2,7 +2,7 @@ include(cc_library)
 include(cc_test)
 
 cc_library(
-  NAME 
+  NAME
     schedule
   HDRS
     restart.hpp
@@ -10,6 +10,7 @@ cc_library(
     restart.cpp
     event_guard.cpp
     schedule.cpp
+    contiguous_batching.cpp
     dag.cpp
     schedule_states.cpp
   DEPS

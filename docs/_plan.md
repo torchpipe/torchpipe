@@ -200,3 +200,4 @@ KVCache -> k x v -> (max_num_page, head_num, head_dim) * 2 * num_layer
 
 - ContiguousBatching 中心dispatcher
 - relation with actor
+- With
