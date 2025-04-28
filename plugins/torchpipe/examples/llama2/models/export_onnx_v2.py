@@ -256,7 +256,7 @@ def export_batchable(model,  out_dir = 'model_files/', use_index_select = True):
     _export_batchable(model)
     # exit(0)
 
-def export_batchless_prefilling(model, out_dir = 'model_files/'):
+def export_batchless_prefill(model, out_dir = 'model_files/'):
     llama_model = model.model
     
     from transformers.models.llama.modeling_llama import apply_rotary_pos_emb, repeat_kv
@@ -266,18 +266,15 @@ def export_batchless_prefilling(model, out_dir = 'model_files/'):
         assert query_states.shape[0] == bsz
         q_len = query_states.shape[-2]
 
-        # input_shape = hidden_states.shape[:-1]
-        # hidden_shape = (*input_shape, -1, self.head_dim)
-
         query_states = query_states.view(bsz, q_len, self.config.num_attention_heads, self.head_dim).transpose(1, 2)
         key_states = key_states.view(bsz, q_len, self.config.num_key_value_heads, self.head_dim).transpose(1, 2)
-        past_value = value_states.view(bsz, q_len, self.config.num_key_value_heads, self.head_dim)
-        value_states = past_value.transpose(1, 2)
+        value_states = value_states.view(bsz, q_len, self.config.num_key_value_heads, self.head_dim)
+        value_states = value_states.transpose(1, 2)
 
         query_states, key_states = apply_rotary_pos_emb(query_states, key_states, cos, sin)
             
-        # past_key, past_value = key_states, value_states
-        past_key = key_states.transpose(1, 2)
+        past_key, past_value = key_states, value_states
+        # past_key = key_states.transpose(1, 2)
 
         key_states = repeat_kv(key_states, self.num_key_value_groups)
         value_states = repeat_kv(value_states, self.num_key_value_groups)
@@ -323,10 +320,8 @@ def export_batchless_prefilling(model, out_dir = 'model_files/'):
                     'value_states': {1: 'seq_len'}, 
                     'attn_output': {1: 'seq_len'}, 'cos': {1: 'seq_len'},
                     'sin': {1: 'seq_len'},'attention_mask': {2: 'seq_len',3: 'seq_len'}}
-    dynamic_axes.update({'past_key_output':{1: 'seq_len'}, 'past_value_output':{1: 'seq_len'}})
-    out_path = os.path.join(out_dir,"./batchless_prefilling.onnx")
-    
-    
+    dynamic_axes.update({'past_key_output':{2: 'seq_len'}, 'past_value_output':{2: 'seq_len'}})
+    out_path = os.path.join(out_dir,"./batchless_prefill.onnx")
 
     torch.onnx.export(llama_model.layers[0].self_attn,
                     args=(query_states,key_states, value_states, cos, sin, attention_mask),
@@ -347,7 +342,7 @@ def export_batchless_prefilling(model, out_dir = 'model_files/'):
     llama_model.layers[0].self_attn.forward = origin_forward
 
 
-def export_batchless_decoding(llm, out_dir = 'model_files/'):
+def export_batchless_decode(llm, out_dir = 'model_files/'):
     model = llm.model
     # 获取模块名
     module_name = llm.__module__
@@ -428,7 +423,7 @@ def export_batchless_decoding(llm, out_dir = 'model_files/'):
     sin = torch.zeros((bsz, q_len, hidden_size//num_attention_heads), dtype=torch.float16, device=device)
     attention_mask = torch.zeros((1,1, q_len, q_len_with_past), dtype=torch.float16, device=device)
 
-    out_path = os.path.join(out_dir,"batchless_decoding.onnx")
+    out_path = os.path.join(out_dir,"batchless_decode.onnx")
      
     dynamic_axes={'past_key': {2: 'past'}, 'past_value': {2: 'past'},
                    'attention_mask': {3: 'q_len_with_past'}}
@@ -461,8 +456,8 @@ def export_all(model_id='meta-llama/Llama-2-7b-chat-hf', num_layers=2, out_dir =
     # num_layers = 2, Generated text: San Francisco is a totalitéaletoreignersbyMSран /or/ totalitéketting器 AußerTagged
     # num_layers = 32, Generated text: San Francisco is a city in Northern California that is known
     export_batchable(model, out_dir = out_dir, use_index_select = True)
-    export_batchless_prefilling(model, out_dir=out_dir)
-    export_batchless_decoding(model, out_dir=out_dir)
+    export_batchless_prefill(model, out_dir=out_dir)
+    export_batchless_decode(model, out_dir=out_dir)
     save_embed_tokens(model, out_dir=out_dir)
     tokenizer.save_pretrained(out_dir)
 

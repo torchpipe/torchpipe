@@ -61,3 +61,5 @@ https://github.com/NVIDIA/TensorRT-LLM/issues/967
 https://dl.acm.org/doi/pdf/10.1145/3689031.3717489
 - https://chengyupku.github.io/publications/
 https://yangzhihome.github.io/
+- A SYSTEM FOR MICROSERVING OF LLMS
+- https://www.themoonlight.io/en/review/a-system-for-microserving-of-llms

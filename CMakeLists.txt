@@ -90,7 +90,7 @@ include(static_analyzers)
 # include(sanitizers)
 
 if(UNIX)
-  set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Og")
+  # set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Og")
 endif()
 
 

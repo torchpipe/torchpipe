@@ -31,7 +31,7 @@ PyDict::PyDict(const py::dict& data) {
     const std::string key = py::cast<std::string>(item.first);
     auto second = object2any(py::reinterpret_borrow<py::object>(item.second));
     if (second == std::nullopt) {
-      throw py::type_error("hami.Any: The input type is unknown.");
+      throw py::type_error("hami.Any: The input type is unknown. (PyDict)");
     }
     data_->insert_or_assign(key, *second);
   }
@@ -433,8 +433,8 @@ void init_dict(py::module_& m) {
           &PageTable::get_num_tok,
           pybind11::call_guard<pybind11::gil_scoped_release>())
       .def(
-          "get_prefill_num_req_toks",
-          &PageTable::get_prefill_num_req_toks,
+          "get_prefill_size",
+          &PageTable::get_prefill_size,
           py::arg("id"),
           pybind11::call_guard<pybind11::gil_scoped_release>())
       .def(

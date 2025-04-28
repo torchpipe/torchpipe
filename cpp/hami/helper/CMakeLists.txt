@@ -13,6 +13,7 @@ cc_library(
     params.hpp
     symbol.hpp
     threadsafe_sized_queue.hpp
+    resource_pool.hpp
   SRCS
     string.cpp
     base_logging.cpp

@@ -111,6 +111,10 @@ void TensorrtInferTensor::impl_forward(
     const auto& name_str = *info_.second[j].name;
     const auto* name = name_str.c_str();
     const auto infer_dims = context_->getTensorShape(name);
+    HAMI_FATAL_ASSERT(
+        infer_dims.nbDims > 0,
+        "TensorRT output tensor shape is empty. "
+        "Please check the model and the input shape.");
 
     if (predefined_size > j) {
       HAMI_ASSERT(outputs[j].is_contiguous());

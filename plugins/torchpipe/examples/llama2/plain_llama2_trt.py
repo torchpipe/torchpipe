@@ -7,32 +7,31 @@ from transformers import AutoTokenizer, AutoModelForCausalLM, AutoConfig
 import numpy as np
 import flashinfer
 import random
-from models import hf_helper
+from models.cos_sin_attention_mask import  generate_cos_sin_attention_mask
 
 max_num_req=64
 page_size=16
 g_num_layers = 2
 
 def set_num_layers(num_layers):
-    global g_num_layers 
+    global g_num_layers
     g_num_layers = num_layers
 
 def get_num_layers():
-    return g_num_layers 
-     
+    return g_num_layers
 
 ### -------------  k v cache -------------------------- ##########
-global_kv = None
-def set_kv(max_num_pages, num_layers, page_size, num_kv_heads, head_dim):
-    global global_kv
-    if global_kv is None:
-        global_kv = []
-        for i in range(num_layers):
-            global_kv.append(torch.zeros(max_num_pages, 2,  page_size, num_kv_heads, head_dim).half().cuda())
-            # todo: use cuMemAddressReserve
-def get_kv(layer_idx):
-    global global_kv
-    return global_kv[layer_idx]
+# global_kv = None
+# def set_kv(max_num_pages, num_layers, page_size, num_kv_heads, head_dim):
+#     global global_kv
+#     if global_kv is None:
+#         global_kv = []
+#         for i in range(num_layers):
+#             global_kv.append(torch.zeros(max_num_pages, 2,  page_size, num_kv_heads, head_dim).half().cuda())
+#             # todo: use cuMemAddressReserve
+# def get_kv(layer_idx):
+#     global global_kv
+#     return global_kv[layer_idx]
 
 
 page_table = None
@@ -42,11 +41,20 @@ def set_page_table(max_num_page=4096//page_size):
     
     if page_table is None:
         page_table = hami.default_page_table().init(max_num_req=max_num_req, max_num_page=max_num_page,page_size=page_size)
-        set_kv(max_num_page, g_num_layers, page_size, 32, 128)
+        # set_kv(max_num_page, g_num_layers, page_size, 32, 128)
     return page_table
 
 
+from dataclasses import dataclass, astuple, field
 
+@dataclass
+class RequestStatus:
+    kvcache: Tuple[torch.Tensor]
+    cos: torch.Tensor
+    sin : torch.Tensor
+    att_mask: torch.Tensor
+    
+request_status = {}
 
 ### --------------------------------------------------- ########## 
 
@@ -63,17 +71,10 @@ hami.register("Pdb", Pdb)
 
 
 
-workspace_buffer = torch.empty(128 * 1024 * 1024, dtype=torch.uint8, device="cuda:0") # 1MB
-workspace_buffer_decode = torch.empty(128 * 1024 * 1024, dtype=torch.uint8, device="cuda:0") # 1MB
-prefill_wrapper = flashinfer.BatchPrefillWithRaggedKVCacheWrapper(
-            workspace_buffer, "NHD"
-        )
-decode_wrapper = flashinfer.BatchDecodeWithPagedKVCacheWrapper(
-                workspace_buffer_decode, "NHD")
-     
 zero = torch.tensor([0], device='cuda', dtype=torch.int32)
 
-   
+attention_kernel = hami.init_from_file('config/attention_kernel.toml')
+
 class PyPlugin:
     def init(self, params):
         self.params = params
@@ -88,7 +89,8 @@ class PyPlugin:
 
     def forward(self, io: List[hami.Dict]):
 
-        try:
+        # try:
+        if True:
             q, k, v = io[0]['data']
                     
             assert q.dtype == torch.float16
@@ -99,25 +101,72 @@ class PyPlugin:
                 PyPlugin.num_key_value_heads = k.shape[1]
                 
                 PyPlugin.req_ids, PyPlugin.num_toks = page_table.pop_activated()
-                prefill_size = page_table.get_prefill_size(PyPlugin.req_ids)
- 
-                is_decode = PyPlugin.num_toks > prefill_size  # prefill <=, decode >
-                PyPlugin.num_decode = int(is_decode.sum())
                 
-                PyPlugin.num_prefill  = len(PyPlugin.req_ids) - PyPlugin.num_decode
+                PyPlugin.cumsum = torch.cumsum(torch.from_numpy(PyPlugin.num_toks), 0)
+                PyPlugin.split_indices = PyPlugin.cumsum[:-1]
+                prefill_size = page_table.get_prefill_size(PyPlugin.req_ids)
+                
+                PyPlugin.is_prefill = PyPlugin.num_toks == prefill_size  # prefill <=, decode >
+                PyPlugin.num_prefill = int(PyPlugin.is_prefill.sum())
+                
+                PyPlugin.num_decode  = len(PyPlugin.req_ids) - PyPlugin.num_prefill
                 PyPlugin.num_prefill_tok = int(PyPlugin.num_toks[:PyPlugin.num_prefill].sum())
+                
+                for id, is_prefill, num_tok in zip(PyPlugin.req_ids, PyPlugin.is_prefill, PyPlugin.num_toks):
+                    if is_prefill:
+                        cos, sin, att_mask = generate_cos_sin_attention_mask(num_tok, num_tok, is_prefill)
+                        request_status[id] = RequestStatus(kvcache=[None]*g_num_layers, cos=cos, sin=sin, att_mask=att_mask)
+                    else:
+                        cos, sin, att_mask = generate_cos_sin_attention_mask(1, num_tok, is_prefill)    
+                        status = request_status[id]
+                        status.cos = cos    
+                        status.sin = sin
+                        status.att_mask = att_mask
+            
+            q_split = torch.tensor_split(q, PyPlugin.split_indices)
+            k_split = torch.tensor_split(k, PyPlugin.split_indices)
+            v_split = torch.tensor_split(v, PyPlugin.split_indices)
+            o_split = torch.tensor_split(output, PyPlugin.split_indices)
+            
+            for id, qs, ks, vs, os, is_prefill, num_tok in zip(PyPlugin.req_ids, q_split, k_split, v_split, o_split, PyPlugin.is_prefill, PyPlugin.num_toks):
+                status = request_status[id]
+                if is_prefill:
+                    hami.print(f"prefill: {id}, {self.layer_idx}, s={qs.shape}, status.cos, status.sin, status.att_mask shape = {status.cos.shape}, {status.sin.shape}, {status.att_mask.shape}")
+                    shape = qs.shape
+                    inputs = [qs.view(1, shape[0], shape[1]*shape[2]), ks.view(1, shape[0], shape[1]*shape[2]), vs.view(1, shape[0], shape[1]*shape[2]), status.cos, status.sin, status.att_mask]
+                    
+                    ios = hami.Dict({'data':inputs,"node_name": 'prefill', "output":os.view(1, shape[0], shape[1]*shape[2])})
+                    attention_kernel(ios)
+                    k, v = ios['result'][1], ios['result'][2]
+                    status.kvcache[self.layer_idx] = (k, v)
+                    # import pdb; pdb.set_trace()
+                else:
+                    k, v = status.kvcache[self.layer_idx]
+                    status.kvcache[self.layer_idx] = None
+                    hami.print(f"decode: {id}, s={qs.shape}, {self.layer_idx}, status.cos, status.sin, status.att_mask shape = {status.cos.shape}, {status.sin.shape}, {status.att_mask.shape}")
+                    shape = qs.shape
+                    
+                    inputs = [qs.view(1, shape[0], shape[1]*shape[2]), ks.view(1, shape[0], shape[1]*shape[2]), vs.view(1, shape[0], shape[1]*shape[2]), status.cos, status.sin, status.att_mask, k, v]
+                    ios = hami.Dict({'data':inputs,"node_name":'decode', "output":os.view(1, shape[0], shape[1]*shape[2])})
+                    attention_kernel(ios)
+                    import pdb; pdb.set_trace()
+                
+                
+            
+            assert q_split[0].data_ptr() == q.data_ptr()
+            print(f"q_split={len(q_split)}, k_split={len(k_split)}, v_split={len(v_split)}, o_split={len(o_split)}")
+            print(f"q_split[0].shape={q_split[0].shape}, k_split[0].shape={k_split[0].shape}, v_split[0].shape={v_split[0].shape}, o_split[0].shape={o_split[0].shape}")
+            # exit(0)
+  
                 
             if PyPlugin.num_prefill_tok > 0:
                 
-                self.prefill_forward(q[:PyPlugin.num_prefill_tok], k[:PyPlugin.num_prefill_tok], v[:PyPlugin.num_prefill_tok],
-                                    output[:PyPlugin.num_prefill_tok], PyPlugin.num_toks[:PyPlugin.num_prefill])
+                pass
             if PyPlugin.num_decode > 0:
-                # return # todo
-                self.decode_forward(q[PyPlugin.num_prefill_tok:], k[PyPlugin.num_prefill_tok:], v[PyPlugin.num_prefill_tok:],
-                                    output[PyPlugin.num_prefill_tok:])
-        except Exception as e:
-            hami.print(f"error {e}", flush=True)
-            raise e
+                pass
+        # except Exception as e:
+        #     hami.print(f"error {e}")
+        #     raise e
     def decode_forward(self, q, k, v, output):
         if self.layer_idx == 0:
             kv_page_indices_np, kv_page_indptr_np, kv_last_page_len_np  = page_table.page_table(PyPlugin.req_ids[PyPlugin.num_prefill:])  
@@ -218,7 +267,7 @@ def main(num_layers = 2):
     # inference
     # prompt = "San Francisco is a totalitéaletoreignersbyMSран"
     prompts = ["San Francisco is a", "Explain quantum computing in simple terms", "Tell me the first 10 Fermat prime numbers"]
-    prompts = [prompts[2]]
+    prompts = [prompts[0]]
     input_ids = []
     for prompt in prompts:
         inputs = tokenizer(prompt, return_tensors="pt", return_attention_mask=False)

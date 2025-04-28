@@ -6,6 +6,9 @@
 #include <pybind11/pybind11.h>
 #include "hami/core/any.hpp"
 #include "hami/helper/macro.h"
+#include "hami/csrc/py_register.hpp"
+
+#define HAMI_MAKE_UNIQUE(base) HAMI_CONCAT(base, __LINE__)
 
 namespace hami {
 namespace py = pybind11;
@@ -26,25 +29,24 @@ converterRegistryInstance<any, pybind11::object>();
 // Base class for converter registry
 template <typename From, typename To>
 class HAMI_EXPORT ConverterRegistryBase {
-   public:
-    using ConverterFunc = std::function<std::optional<To>(const From&)>;
+ public:
+  using ConverterFunc = std::function<std::optional<To>(const From&)>;
 
-    void add_converter(ConverterFunc converter) {
-        converters_.push_back(std::move(converter));
-    }
+  void add_converter(ConverterFunc converter) {
+    converters_.push_back(std::move(converter));
+  }
 
-    const std::vector<ConverterFunc>& get_converters() const {
-        return converters_;
-    }
+  const std::vector<ConverterFunc>& get_converters() const {
+    return converters_;
+  }
 
-   protected:
-    ConverterRegistryBase() = default;
+ protected:
+  ConverterRegistryBase() = default;
 
-   private:
-    friend ConverterRegistryBase<From, To>&
-    converterRegistryInstance<From, To>();
+ private:
+  friend ConverterRegistryBase<From, To>& converterRegistryInstance<From, To>();
 
-    std::vector<ConverterFunc> converters_;
+  std::vector<ConverterFunc> converters_;
 };
 
 // template <typename From, typename To>
@@ -59,42 +61,41 @@ class HAMI_EXPORT ConverterRegistryBase {
 // }
 
 static inline std::optional<any> convert_py2any(const pybind11::handle& data) {
-    std::optional<any> result;
-    for (const auto& converter :
-         converterRegistryInstance<pybind11::handle, any>().get_converters()) {
-        result = converter(data);
-        if (result) return result;
-    }
-    return std::nullopt;
+  std::optional<any> result;
+  for (const auto& converter :
+       converterRegistryInstance<pybind11::handle, any>().get_converters()) {
+    result = converter(data);
+    if (result)
+      return result;
+  }
+  return std::nullopt;
 }
 
 // Converter register class
 template <typename From, typename To>
 class ConverterRegister {
-   public:
-    using ConverterFunc =
-        typename ConverterRegistryBase<From, To>::ConverterFunc;
+ public:
+  using ConverterFunc = typename ConverterRegistryBase<From, To>::ConverterFunc;
 
-    explicit ConverterRegister(ConverterFunc converter) {
-        converterRegistryInstance<From, To>().add_converter(
-            std::move(converter));
-    }
+  explicit ConverterRegister(ConverterFunc converter) {
+    converterRegistryInstance<From, To>().add_converter(std::move(converter));
+  }
 
-    // explicit ConverterRegister(std::type_index type_id) {
-    //   converterRegistryInstance<From, To>().add_hash(type_id);
-    // }
+  // explicit ConverterRegister(std::type_index type_id) {
+  //   converterRegistryInstance<From, To>().add_hash(type_id);
+  // }
 
-    ~ConverterRegister() = default;
+  ~ConverterRegister() = default;
 };
 
-}  // namespace hami
+} // namespace hami
 
 // Register Python to C++ converter
-#define HAMI_ADD_PY2CPP(converter_func)                         \
-    static hami::ConverterRegister<pybind11::handle, hami::any> \
-        _hami_add_py2cpp_static##__LINE__(converter_func)
+#define HAMI_ADD_PY2CPP(converter_func)                       \
+  static hami::ConverterRegister<pybind11::handle, hami::any> \
+  HAMI_MAKE_UNIQUE(_hami_add_py2cpp_static_)(converter_func)
 
 // Register C++ to Python converter
-#define HAMI_ADD_CPP2PY(converter_func)                         \
-    static hami::ConverterRegister<hami::any, pybind11::object> \
-        _hami_add_cpp2py_static##__LINE__(converter_func)
+#define HAMI_ADD_CPP2PY(converter_func)                       \
+  static hami::ConverterRegister<hami::any, pybind11::object> \
+      _hami_add_cpp2py_static_##__COUNTER__##_##__func__(converter_func)

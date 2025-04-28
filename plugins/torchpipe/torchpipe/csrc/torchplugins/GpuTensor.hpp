@@ -23,14 +23,14 @@ class IndexSelectTensor : public hami::Backend {
   torch::Device device_{"cuda"};
 
  private:
-  virtual std::string default_cls_name() const {
+  virtual std::string reflect_cls_name() const {
     return "NotExistName";
   }
 };
 
 class EmbeddingTensor : public IndexSelectTensor {
   void impl_forward(const std::vector<dict>& ios) override;
-  virtual std::string default_cls_name() const override {
+  virtual std::string reflect_cls_name() const override {
     return "EmbeddingTensor";
   }
 };

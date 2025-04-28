@@ -11,3 +11,8 @@
 //     const std::string& instance_name);
 
 // }
+
+// namespace torchpipe {
+
+//     Queue& default_torch_stream(const std::string& tag = "");
+// }

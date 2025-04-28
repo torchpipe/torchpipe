@@ -86,7 +86,8 @@ class InstancesRegister : public Backend {
       HAMI_ASSERT(ec == std::errc(), "invalid instance_num: " + iter->second);
     }
 
-    auto sub_kwargs = kwargs ? kwargs : make_dict();
+    // auto sub_kwargs = kwargs ? kwargs : make_dict();
+    auto sub_kwargs = copy_dict(kwargs);
     auto sub_config = config;
     for (size_t i = 0; i < instance_num; ++i) {
       owned_backend_ =

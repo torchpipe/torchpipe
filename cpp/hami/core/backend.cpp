@@ -231,6 +231,12 @@ bool get_backend_name(const Backend* obj_ptr, std::string& cls_name) {
   return false;
 }
 
+std::string get_backend_name(const Backend* obj_ptr) {
+  auto name = HAMI_OBJECT_NAME(Backend, obj_ptr);
+  HAMI_ASSERT(name, "this instance was not created via reflection");
+  return *name;
+}
+
 std::optional<std::string> get_opt_dependency_name(
     const Backend* this_ptr,
     const std::unordered_map<std::string, std::string>& config) {

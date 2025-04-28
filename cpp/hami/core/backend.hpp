@@ -155,7 +155,7 @@ class HAMI_EXPORT Backend {
    *
    * @return The default class name of the backend.
    */
-  virtual std::string default_cls_name() const {
+  virtual std::string reflect_cls_name() const {
     return "UnReflectClassIDontKnowTheClassName";
   }
 
@@ -307,6 +307,7 @@ std::string get_dependency_name(
 namespace hami::parser_v2 {
 
 bool get_backend_name(const Backend* obj_ptr, std::string& cls_name);
+std::string get_backend_name(const Backend* obj_ptr);
 
 std::string get_dependency_name(
     const Backend* this_ptr,

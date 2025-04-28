@@ -29,8 +29,8 @@ void IoCV0::impl_init(
   }
   auto config = in_config;
   auto iter = config.find(*name + "::dependency");
-  HAMI_ASSERT(iter != config.end(),
-              "Dependency configuration missing for " + *name);
+  HAMI_ASSERT(
+      iter != config.end(), "Dependency configuration missing for " + *name);
 
   auto backend_setting = iter->second;
   SPDLOG_INFO("IoCV0: {}", backend_setting);
@@ -40,7 +40,7 @@ void IoCV0::impl_init(
   HAMI_ASSERT(phases.size() == 2, "IoCV0 requires two phases separated by ';'");
 
   auto kwargs = in_kwargs ? in_kwargs : make_dict();
-  init_phase(phases[0], config, kwargs);  // Initialization phase
+  init_phase(phases[0], config, kwargs); // Initialization phase
 
   // std::unordered_map<std::string, Backend*> backend_map;
   std::unordered_set<std::string> keys;
@@ -62,8 +62,8 @@ void IoCV0::impl_init(
       if (reg_backends.find(base_dependencies_[i].get()) ==
           reg_backends.end()) {
         register_name = "ioc." + main_backend +
-                        "." +  // std::to_string(i) + "." +
-                        std::to_string(get_unique_index());
+            "." + // std::to_string(i) + "." +
+            std::to_string(get_unique_index());
         HAMI_INSTANCE_REGISTER(
             Backend, register_name, base_dependencies_[i].get());
         reg_backends[base_dependencies_[i].get()] = register_name;
@@ -83,10 +83,11 @@ void IoCV0::impl_init(
   //     backend->inject_dependency(item.second);
   // }
   post_init(config, kwargs);
-  SPDLOG_INFO("IoCV0, forward phase: {}, [{}, {}]",
-              phases[1],
-              forward_backend_->min(),
-              forward_backend_->max());
+  SPDLOG_INFO(
+      "IoCV0, forward phase: {}, [{}, {}]",
+      phases[1],
+      forward_backend_->min(),
+      forward_backend_->max());
 }
 
 void IoCV0::init_phase(
@@ -95,8 +96,8 @@ void IoCV0::init_phase(
     const dict& kwargs) {
   SPDLOG_INFO("Ioc init phase: {}", phase_config);
   auto backend_names = str::items_split(phase_config, ',', '[', ']');
-  HAMI_ASSERT(backend_names.size() >= 1,
-              "Container: backend_names.size() should >= 1");
+  HAMI_ASSERT(
+      backend_names.size() >= 1, "Container: backend_names.size() should >= 1");
 
   std::vector<Backend*> backends;
   for (std::size_t i = 0; i < backend_names.size(); ++i) {
@@ -104,7 +105,7 @@ void IoCV0::init_phase(
 
     std::string prefix_str, post_str;
     auto backend =
-        str::prefix_parentheses_split(engine_name, prefix_str);  // (params1=a)A
+        str::prefix_parentheses_split(engine_name, prefix_str); // (params1=a)A
 
     auto pre_config = str::auto_config_split(prefix_str, "filter");
     auto new_config = config;
@@ -116,10 +117,11 @@ void IoCV0::init_phase(
       for (auto& [key, value] : post_config) {
         new_config[key] = value;
       }
-      SPDLOG_INFO("backend : {} pre: `{}` post: `size={}`",
-                  engine_name,
-                  prefix_str,
-                  new_config.size());
+      SPDLOG_INFO(
+          "backend : {} pre: `{}` post: `size={}`",
+          engine_name,
+          prefix_str,
+          new_config.size());
     }
     auto main_backend = str::brackets_split(backend, new_config);
     // HAMI_ASSERT(new_config.find("backend") != new_config.end());
@@ -154,8 +156,8 @@ class IoC : public ControlPlane {
 
     // forward phase
     std::unordered_map<void*, std::string> reg_backends;
-    std::unordered_set<std::string> main_backends_set(main_backends_.begin(),
-                                                      main_backends_.end());
+    std::unordered_set<std::string> main_backends_set(
+        main_backends_.begin(), main_backends_.end());
     HAMI_ASSERT(main_backends_set.size() == main_backends_.size());
 
     auto& forward_backend = backend_cfgs_.back();
@@ -170,8 +172,8 @@ class IoC : public ControlPlane {
         auto iter_reg = reg_backends.find(backends_[i].get());
         if (iter_reg == reg_backends.end()) {
           register_name = "ioc." + main_backend +
-                          "." +  // std::to_string(i) + "." +
-                          std::to_string(get_unique_index());
+              "." + // std::to_string(i) + "." +
+              std::to_string(get_unique_index());
           HAMI_INSTANCE_REGISTER(Backend, register_name, backends_[i].get());
           reg_backends[backends_[i].get()] = register_name;
         } else {
@@ -205,7 +207,9 @@ class IoC : public ControlPlane {
 
  private:
   // Default class name if the instance is not create via reflection.
-  virtual std::string default_cls_name() const override { return "IoC"; }
+  // virtual std::string default_cls_name() const override {
+  //   return "IoC";
+  // }
 
   std::vector<std::unique_ptr<Backend>> backends_;
 
@@ -218,4 +222,48 @@ class IoC : public ControlPlane {
   }
 };
 HAMI_REGISTER_BACKEND(IoC);
-}  // namespace hami
+
+class With : public ControlPlane {
+  virtual void impl_custom_init(
+      const std::unordered_map<std::string, std::string>& params,
+      const dict& options) override {
+    backends_.resize(backend_cfgs_.size());
+    HAMI_ASSERT(backend_cfgs_.size() == 2);
+    size_t num_semicolon =
+        std::count(delimiters_.begin(), delimiters_.end(), ',');
+    HAMI_ASSERT((num_semicolon == 1 && delimiters_.back() == ','));
+
+    // initialization phase
+    for (size_t i = 0; i < backend_cfgs_.size(); ++i) {
+      std::unique_ptr<Backend> backend =
+          init_backend(backend_cfgs_[i], params, options);
+      backends_[i] = std::move(backend);
+    }
+    HAMI_ASSERT(
+        backends_.front()->max() >= backends_.back()->max(),
+        std::to_string(backends_.front()->max()) + " Vs. " +
+            std::to_string(backends_.back()->max()));
+  }
+
+  void impl_forward(const std::vector<dict>& ios) {
+    backends_.front()->forward_with_dep(ios, *(backends_.back().get()));
+  }
+
+  void update_min_max() override {
+    min_ = backends_.back()->min();
+    max_ = backends_.back()->max();
+  }
+
+ private:
+  std::vector<std::unique_ptr<Backend>> backends_;
+
+ public:
+  ~With() {
+    // order is important here
+    while (!backends_.empty()) {
+      backends_.pop_back();
+    }
+  }
+};
+HAMI_REGISTER_BACKEND(With);
+} // namespace hami

@@ -584,11 +584,15 @@ void fix_tensor_shape(
     }
   }
 
-  bool in_error = false;
+  // bool in_error = false;
+  std::string err_msg;
   if (sizes.size() == min.nbDims) {
     for (size_t i = 0; i < sizes.size(); ++i) {
       if (sizes[i] < min.d[i] || sizes[i] > max.d[i]) {
-        in_error = true;
+        // in_error = true;
+        err_msg = std::to_string(sizes[i]) + " is not in range [" +
+            std::to_string(min.d[i]) + ", " + std::to_string(max.d[i]) +
+            "]. index=" + std::to_string(i);
         break;
       }
     }
@@ -600,10 +604,10 @@ void fix_tensor_shape(
       return;
     }
   }
-  if (in_error)
+  if (!err_msg.empty())
     throw std::invalid_argument(
         "fix_tensor_shape: invalid tensor shape : " +
-        hami::str::vec2str(data.sizes().vec()));
+        hami::str::vec2str(data.sizes().vec()) + " err_msg: " + err_msg);
 }
 
 // Function to convert NetIOInfo::Device to torch::Device
@@ -768,13 +772,14 @@ void check_batched_inputs(
 bool match(NetIOInfo::Dims64* dst, const torch::Tensor& src) {
   if (dst->nbDims != src.sizes().size())
     return false;
+  bool shape_is_match = true;
   for (size_t i = 0; i < dst->nbDims; ++i) {
     if (dst->d[i] != src.sizes()[i]) {
       dst->d[i] = src.sizes()[i];
-      return false;
+      shape_is_match = false; // no break!
     }
   }
-  return true;
+  return shape_is_match;
 }
 
 } // namespace torchpipe

@@ -111,8 +111,7 @@ std::pair<std::vector<id_type>, std::vector<int>> PageTable::pop_activated() {
 
   return re;
 }
-std::vector<int> PageTable::get_prefill_num_req_toks(
-    const std::vector<id_type>& ids) {
+std::vector<int> PageTable::get_prefill_size(const std::vector<id_type>& ids) {
   std::vector<int> re;
   std::lock_guard<std::mutex> lock(page_infos_lock_);
 

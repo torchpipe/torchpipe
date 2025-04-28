@@ -84,7 +84,7 @@ void IndexSelectTensor::impl_init(
     const std::unordered_map<std::string, std::string>& params,
     const dict& options) {
   parser_v2::ArgsKwargs args_kwargs =
-      parser_v2::get_args_kwargs(this, default_cls_name(), params);
+      parser_v2::get_args_kwargs(this, reflect_cls_name(), params);
   HAMI_ASSERT(
       args_kwargs.first.size() == 1,
       "Requires exactly 1 argument. Usage: "

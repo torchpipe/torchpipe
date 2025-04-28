@@ -144,6 +144,8 @@ void Container::impl_init(
 
     // std::reverse(backend_names.begin(), backend_names.end());
     std::vector<Backend*> backends(backend_names.size());
+    // auto new_kwargs = copy_dict(kwargs);
+    const auto& new_kwargs = kwargs;
     for (std::size_t index = 0; index < backend_names.size(); ++index) {
       auto i = lazy_init ? index : order[index];
       const auto& engine_name = backend_names[i];
@@ -185,11 +187,11 @@ void Container::impl_init(
               "instance name and you forgot to use it with Forward[*]");
       if (lazy_init) {
         auto* pbackend_ptr = backend_ptr.get();
-        lazy_init_func_.emplace_back([new_config, kwargs, pbackend_ptr]() {
-          pbackend_ptr->init(new_config, kwargs);
+        lazy_init_func_.emplace_back([new_config, new_kwargs, pbackend_ptr]() {
+          pbackend_ptr->init(new_config, new_kwargs);
         });
       } else {
-        backend_ptr->init(new_config, kwargs);
+        backend_ptr->init(new_config, new_kwargs);
       }
 
       backends[i] = (backend_ptr.get());

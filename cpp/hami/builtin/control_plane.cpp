@@ -8,8 +8,8 @@ namespace hami {
 void ControlPlane::impl_init(
     const std::unordered_map<std::string, std::string>& params,
     const dict& options) {
-  std::string cls_name = default_cls_name();
-  parser_v2::get_backend_name(this, cls_name);
+  //   std::string cls_name = default_cls_name();
+  auto cls_name = parser_v2::get_backend_name(this);
 
   parser_v2::Parser parser;
 
@@ -25,8 +25,8 @@ void ControlPlane::impl_init(
   std::pair<std::vector<char>, std::vector<std::string>> sub_config =
       parser.split_by_delimiters(iter->second, ',', ';');
   delimiters_ = sub_config.first;
-  HAMI_ASSERT(sub_config.second.size() >= 1,
-              "backend_names.size() should >= 1");
+  HAMI_ASSERT(
+      sub_config.second.size() >= 1, "backend_names.size() should >= 1");
 
   for (auto sub_iter = sub_config.second.begin();
        sub_iter != sub_config.second.end();
@@ -47,4 +47,4 @@ void ControlPlane::impl_init(
   impl_custom_init(params, options);
   update_min_max();
 }
-}  // namespace hami
+} // namespace hami
