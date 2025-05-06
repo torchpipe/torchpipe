@@ -380,6 +380,16 @@ void init_dict(py::module_& m) {
       .def_readwrite(
           "kv_last_page_len", &PageTable::PageInfo::kv_last_page_len);
 
+  // py::class_<std::vector<int>>(m, "IntVector")
+  //     .def("__len__", [](const std::vector<int>& v) { return v.size(); })
+  //     .def("__iter__", [](std::vector<int>& v) {
+  //       return py::make_iterator(v.begin(), v.end());
+  //     });
+  // py::class_<std::vector<int>>(m, "IntVector")
+  //     .def("__array__", [](const std::vector<int>& v) { return to_numpy(v);
+  //     });
+  // py::implicitly_convertible<std::vector<int>, py::array_t<int>>();
+
   // Main PageTable class binding
   py::class_<PageTable, std::shared_ptr<PageTable>>(m, "PageTable")
       .def(py::init<>())
@@ -434,8 +444,17 @@ void init_dict(py::module_& m) {
           pybind11::call_guard<pybind11::gil_scoped_release>())
       .def(
           "get_prefill_size",
-          &PageTable::get_prefill_size,
-          py::arg("id"),
+          [](PageTable& self, const std::vector<id_type>& ids) {
+            return to_numpy_with_no_gil(self.get_prefill_size(ids));
+          },
+          py::arg("ids"),
+          pybind11::call_guard<pybind11::gil_scoped_release>())
+      .def(
+          "get_current_size",
+          [](PageTable& self, const std::vector<id_type>& ids) {
+            return to_numpy_with_no_gil(self.get_current_size(ids));
+          },
+          py::arg("ids"),
           pybind11::call_guard<pybind11::gil_scoped_release>())
       .def(
           "available_ids",

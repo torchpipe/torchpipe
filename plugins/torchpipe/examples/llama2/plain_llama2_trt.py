@@ -70,9 +70,6 @@ class Pdb:
 hami.register("Pdb", Pdb)
 
 
-
-zero = torch.tensor([0], device='cuda', dtype=torch.int32)
-
 attention_kernel = hami.init_from_file('config/attention_kernel.toml')
 
 class PyPlugin:
@@ -88,9 +85,8 @@ class PyPlugin:
         PyPlugin.req_ids = None
 
     def forward(self, io: List[hami.Dict]):
-
-        # try:
-        if True:
+        try:
+        # if True:
             q, k, v = io[0]['data']
                     
             assert q.dtype == torch.float16
@@ -102,12 +98,17 @@ class PyPlugin:
                 
                 PyPlugin.req_ids, PyPlugin.num_toks = page_table.pop_activated()
                 
-                PyPlugin.cumsum = torch.cumsum(torch.from_numpy(PyPlugin.num_toks), 0)
-                PyPlugin.split_indices = PyPlugin.cumsum[:-1]
                 prefill_size = page_table.get_prefill_size(PyPlugin.req_ids)
                 
                 PyPlugin.is_prefill = PyPlugin.num_toks == prefill_size  # prefill <=, decode >
                 PyPlugin.num_prefill = int(PyPlugin.is_prefill.sum())
+                
+                adjusted_sizes = np.where(PyPlugin.is_prefill, prefill_size, 1)
+
+                PyPlugin.cumsum = torch.cumsum(torch.from_numpy(adjusted_sizes), 0)
+                PyPlugin.split_indices = PyPlugin.cumsum[:-1]
+                hami.print(f"current_size={adjusted_sizes}, split_indices={PyPlugin.split_indices} {PyPlugin.is_prefill}")
+                
                 
                 PyPlugin.num_decode  = len(PyPlugin.req_ids) - PyPlugin.num_prefill
                 PyPlugin.num_prefill_tok = int(PyPlugin.num_toks[:PyPlugin.num_prefill].sum())
@@ -135,122 +136,48 @@ class PyPlugin:
                     shape = qs.shape
                     inputs = [qs.view(1, shape[0], shape[1]*shape[2]), ks.view(1, shape[0], shape[1]*shape[2]), vs.view(1, shape[0], shape[1]*shape[2]), status.cos, status.sin, status.att_mask]
                     
-                    ios = hami.Dict({'data':inputs,"node_name": 'prefill', "output":os.view(1, shape[0], shape[1]*shape[2])})
+                    dtype = qs.dtype
+                    device = qs.device
+
+                    new_shape = (1, 32, shape[0], 128)
+
+                    out_k = torch.empty(new_shape, dtype=dtype, device=device)
+                    out_v = torch.empty(new_shape, dtype=dtype, device=device)
+                    # print(f'out_k = {out_k.shape}/{out_v.shape}')
+                    # torch.cuda.synchronize()
+
+                    ios = hami.Dict({'data':inputs,"node_name": 'prefill', "output":[os.view(1, shape[0], shape[1]*shape[2]), out_k, out_v]}) # , out_k, out_v
+                    # assert False, "TODO: pre-defined outputs for k v cache"
                     attention_kernel(ios)
-                    k, v = ios['result'][1], ios['result'][2]
-                    status.kvcache[self.layer_idx] = (k, v)
+                    out_k, out_v = ios['result'][1], ios['result'][2]
+                    status.kvcache[self.layer_idx] = (out_k, out_v)
                     # import pdb; pdb.set_trace()
                 else:
                     k, v = status.kvcache[self.layer_idx]
                     status.kvcache[self.layer_idx] = None
-                    hami.print(f"decode: {id}, s={qs.shape}, {self.layer_idx}, status.cos, status.sin, status.att_mask shape = {status.cos.shape}, {status.sin.shape}, {status.att_mask.shape}")
+                    hami.print(f"decode: {id}, q={qs.shape}, {self.layer_idx}, status.cos, status.sin, status.att_mask shape = {status.cos.shape}, {status.sin.shape}, {status.att_mask.shape}, num_toks={PyPlugin.num_toks}")
                     shape = qs.shape
                     
+                    dtype = qs.dtype
+                    device = qs.device
+
+                    new_shape = (1, 32, k.shape[-2]+1, 128)
+
+                    out_k = torch.empty(new_shape, dtype=dtype, device=device)
+                    out_v = torch.empty(new_shape, dtype=dtype, device=device)
+                    
                     inputs = [qs.view(1, shape[0], shape[1]*shape[2]), ks.view(1, shape[0], shape[1]*shape[2]), vs.view(1, shape[0], shape[1]*shape[2]), status.cos, status.sin, status.att_mask, k, v]
-                    ios = hami.Dict({'data':inputs,"node_name":'decode', "output":os.view(1, shape[0], shape[1]*shape[2])})
+                    ios = hami.Dict({'data':inputs,"node_name":'decode', "output":[os.view(1, shape[0], shape[1]*shape[2]), out_k, out_v]}) #, out_k, out_v
                     attention_kernel(ios)
-                    import pdb; pdb.set_trace()
-                
-                
+                    # status.kvcache[self.layer_idx] = (ios['result'][1], ios['result'][2])
+                    status.kvcache[self.layer_idx] = (out_k, out_v)
+                    # import pdb; pdb.set_trace()
             
             assert q_split[0].data_ptr() == q.data_ptr()
-            print(f"q_split={len(q_split)}, k_split={len(k_split)}, v_split={len(v_split)}, o_split={len(o_split)}")
-            print(f"q_split[0].shape={q_split[0].shape}, k_split[0].shape={k_split[0].shape}, v_split[0].shape={v_split[0].shape}, o_split[0].shape={o_split[0].shape}")
-            # exit(0)
-  
-                
-            if PyPlugin.num_prefill_tok > 0:
-                
-                pass
-            if PyPlugin.num_decode > 0:
-                pass
-        # except Exception as e:
-        #     hami.print(f"error {e}")
-        #     raise e
-    def decode_forward(self, q, k, v, output):
-        if self.layer_idx == 0:
-            kv_page_indices_np, kv_page_indptr_np, kv_last_page_len_np  = page_table.page_table(PyPlugin.req_ids[PyPlugin.num_prefill:])  
-            kv_page_indices = torch.from_numpy(kv_page_indices_np).cuda()
-            kv_page_indptr = torch.from_numpy(kv_page_indptr_np).cuda()
-            kv_last_page_len = torch.from_numpy(kv_last_page_len_np).cuda()
             
-            index_a=kv_page_indices[kv_page_indptr[1:]-1]
-            index_b=kv_last_page_len-1
-            PyPlugin.decode_page_table = kv_page_indices, kv_page_indptr, kv_last_page_len, kv_page_indices_np, kv_page_indptr_np, kv_last_page_len_np, index_a, index_b
-            decode_wrapper.plan(
-                    kv_page_indptr,
-                    kv_page_indices,
-                    kv_last_page_len,
-                    PyPlugin.num_attention_heads,
-                    PyPlugin.num_key_value_heads,
-                    PyPlugin.head_dim,
-                    self.page_size,
-                    pos_encoding_mode="ROPE_LLAMA",
-                    data_type=torch.float16
-                )
-        else:
-            kv_page_indices, kv_page_indptr, kv_last_page_len, kv_page_indices_np, kv_page_indptr_np, kv_last_page_len_np, index_a, index_b = PyPlugin.decode_page_table
-        
-        paged_kv_cache = global_kv[self.layer_idx]
-
-        paged_kv_cache[index_a, 0, index_b] = k
-        paged_kv_cache[index_a, 1, index_b] = v
-        # todo: https://github.com/NVIDIA/TensorRT-LLM/blob/a2fad51011a48f2cbfee7172047daec74fb0b1b6/tensorrt_llm/_torch/attention_backend/flashinfer.py#L259
-        
-        decode_wrapper.run(q, paged_kv_cache, out = output)
-
-    def prefill_forward(self, q, k, v, output, num_toks):
-        if self.layer_idx == 0:
-            PyPlugin.num_toks_gpu = torch.tensor(num_toks, device='cuda')
-            cumulative_sum_gpu = torch.cumsum(PyPlugin.num_toks_gpu, dim=0)
-            q_indptr = torch.cat((zero, cumulative_sum_gpu), dim=0)#.contiguous()
-
-            PyPlugin.kv_indptr = q_indptr
-            
-            prefill_wrapper.plan(
-                        q_indptr,
-                        PyPlugin.kv_indptr,
-                        PyPlugin.num_attention_heads,
-                        PyPlugin.num_key_value_heads,
-                        PyPlugin.head_dim,
-                        causal=True, pos_encoding_mode='ROPE_LLAMA',
-                    )
-            
-        attn_output = prefill_wrapper.run(q, k,
-                                v,
-                                out=output)
-        assert attn_output is output
-        assert attn_output.data_ptr() == output.data_ptr() 
-        
-        self.prefill_upadate_kvcache(k, v, PyPlugin.req_ids[:PyPlugin.num_prefill], PyPlugin.kv_indptr, PyPlugin.num_toks_gpu)
-        
-    def prefill_upadate_kvcache(self, k, v, req_ids, kv_indptr, num_toks_gpu):
-        paged_kv_cache = global_kv[self.layer_idx]
-        
-        if self.layer_idx == 0:
-            kv_page_indices, kv_page_indptr, kv_last_page_len  = page_table.page_table(req_ids)  
-
-            kv_page_indices = torch.from_numpy(kv_page_indices).cuda()
-            kv_page_indptr = torch.from_numpy(kv_page_indptr).cuda()
-            kv_last_page_len = torch.from_numpy(kv_last_page_len).cuda()
-            
-            # flashinfer.get_seq_lens(kv_page_indptr, kv_last_page_len, 16)
-            
-            batch_indices, positions = flashinfer.get_batch_indices_positions(kv_indptr, num_toks_gpu, k.shape[0])
-            
-            PyPlugin.prefill_page_table = (batch_indices, positions, kv_page_indices, kv_page_indptr, kv_last_page_len)
-        else:
-            batch_indices, positions, kv_page_indices, kv_page_indptr, kv_last_page_len = PyPlugin.prefill_page_table
-        flashinfer.append_paged_kv_cache(
-            k,
-            v,
-            batch_indices,
-            positions,
-            paged_kv_cache,
-            kv_page_indices,
-            kv_page_indptr,
-            kv_last_page_len
-        )
+        except Exception as e:
+            hami.print(f"error {e}")
+            raise e
         
 def main(num_layers = 2):
     set_num_layers(num_layers)
@@ -267,7 +194,7 @@ def main(num_layers = 2):
     # inference
     # prompt = "San Francisco is a totalitéaletoreignersbyMSран"
     prompts = ["San Francisco is a", "Explain quantum computing in simple terms", "Tell me the first 10 Fermat prime numbers"]
-    prompts = [prompts[0]]
+    prompts = [prompts[0], prompts[1]]
     input_ids = []
     for prompt in prompts:
         inputs = tokenizer(prompt, return_tensors="pt", return_attention_mask=False)
@@ -279,7 +206,7 @@ def main(num_layers = 2):
     ios = []
     ids = []
     events = []
-    for i in range(1):
+    for i in range(10):
         in_id = random.choice(input_ids)
         ids.append(f"id-{i}")
         max_tokens = 27

@@ -164,6 +164,8 @@ class PageTable {
   // std::vector<int> get_prefill_size(std::vector<id_type> ids);
   std::vector<int> get_prefill_size(const std::vector<id_type>& ids);
 
+  std::vector<int> get_current_size(const std::vector<id_type>& ids);
+
   const PageInfo& page_info(const id_type& id) const {
     std::lock_guard<std::mutex> lock(page_infos_lock_);
     return page_infos_.at(id);

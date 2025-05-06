@@ -111,6 +111,30 @@ std::pair<std::vector<id_type>, std::vector<int>> PageTable::pop_activated() {
 
   return re;
 }
+
+std::vector<int> PageTable::get_current_size(const std::vector<id_type>& ids) {
+  std::vector<int> re;
+  std::lock_guard<std::mutex> lock(page_infos_lock_);
+
+  for (const id_type& id : ids) {
+    auto iter = page_infos_.find(id);
+    HAMI_FATAL_ASSERT(
+        iter != page_infos_.end(),
+        id + " not found. Size = " + std::to_string(page_infos_.size()) +
+            " name = " + page_infos_.begin()->first);
+    const auto& item = iter->second;
+
+    int total =
+        item.kv_last_page_len + page_size_ * (item.kv_page_indices.size() - 1);
+    if (total == item.init_size)
+      re.push_back(total);
+    else
+      re.push_back(total - item.init_size);
+  }
+
+  return re;
+}
+
 std::vector<int> PageTable::get_prefill_size(const std::vector<id_type>& ids) {
   std::vector<int> re;
   std::lock_guard<std::mutex> lock(page_infos_lock_);

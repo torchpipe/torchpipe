@@ -15,7 +15,7 @@
 # throughput and lantecy test
 from __future__ import annotations
 
-version = "20241030"
+version = "20250429"
 
 """! @package test-tools
 # update 0.0.1 2022-03-15 整理出基础版本。 by zsy
@@ -42,11 +42,13 @@ version = "20241030"
 # update 2024-05-22  使用batch_size取代request_batch参数。但保持兼容性
 # update 2024-10-30  fix test_thrift_from_raw_file 读图过多耗时过长的问题
 # update 2024-10-30   移除batch_size参数 
+# update 2025-04-29   移除 num_preload 参数 
+
 """
 
 
 # from curses import flash
-# import torch
+
 from timeit import default_timer as timer
 
 # import cv2
@@ -56,14 +58,8 @@ import os
 import threading
 import numpy as np
 
-# sys.path.insert(0, os.path.join("..", os.path.dirname(__file__)))
-# sys.path.insert(0, os.path.join(".", os.path.dirname(__file__)))
-
-# from ..device_tools import install_package
-
-from typing import List, Union, Callable, Tuple
-
-# from .Sampler import Sampler, RandomSampler, preload, SequentialSampler, FileSampler
+from typing import List, Union, Callable, Tuple, Any
+import math
 
 from typing import List, Tuple
 import random, os
@@ -159,11 +155,15 @@ class FileSampler(LoopSampler):
         raise RuntimeError("Requires users to implement this function")
 
 class Identity:
-    def forward(self, data):
+    def __init__(self, request_batch):
+        self.request_batch = request_batch
+    def __call__(self, data):
         return data
+    def batchsize(self):
+        return self.request_batch
 
 def preload(
-    file_dir, num_preload=1000, recursive=True, ext=[".jpg", ".JPG", ".jpeg", ".JPEG"]
+    file_dir, recursive=True, ext=[".jpg", ".JPG", ".jpeg", ".JPEG"]
 ) -> List[Tuple[str, bytes]]:
     if not os.path.exists(file_dir):
         raise RuntimeError(file_dir + " not exists")
@@ -182,14 +182,9 @@ def preload(
         list_images = [os.path.join(file_dir, x) for x in list_images]
 
     for file_path in list_images:
-        if num_preload <= 0:
-            file_bytes = None
-        else:
-            with open(file_path, "rb") as f:
-                file_bytes = f.read()
-        result.append((file_path, file_bytes))
-        if len(result) == num_preload:
-            break
+  
+        result.append(file_path)
+
     if len(result) == 0:
         raise RuntimeError("find no vaild files. ext = " + ext)
 
@@ -210,8 +205,6 @@ class TestParams:
         self.num_clients = num_clients
 
 
-# TestParams = namedtuple("TestParams", ["lock", "total_number", "num_clients", "finish_condition", "result"])
-# LocalResult = namedtuple("LocalResult", ["latency", "start_time", "end_time"])
 class LocalResult:
     def __init__(self) -> None:
         self.latency = []
@@ -229,7 +222,7 @@ class InferThreadData(threading.Thread):
 
         self.start_index = 0
         self.should_stop = False
-        self.update_local_data()
+        self.update_local_data() # keep this
         self.local_result = LocalResult()
 
     def update_local_data(self):
@@ -237,6 +230,8 @@ class InferThreadData(threading.Thread):
             if self.params.total_number <= 0:
                 self.should_stop = True
                 return
+            elif self.params.total_number%2000 == 1999:
+                print(f"{self.params.total_number}... left", flush=True)
 
             if self.params.total_number >= self.batch_size:
                 self.params.total_number -= self.batch_size
@@ -244,6 +239,7 @@ class InferThreadData(threading.Thread):
             else:
                 self.params.total_number -= self.batch_size
                 self.start_index = 0
+            # print(f'{self.params.total_number}, {self.batch_size}')
 
     def onFinish(self):
         self.local_result.end_time = timer()
@@ -262,7 +258,6 @@ class InferThreadData(threading.Thread):
                 self.params.finish_condition.notify_all()
         with self.params.lock:
             self.params.result[self.index] = self.local_result
-            # print("self.onFinish()", self.params.result.keys(), flush=True)
 
     def run(self):
         self.local_result.start_time = timer()
@@ -288,6 +283,7 @@ class InferThreadData(threading.Thread):
     def forward(self, start_index):
         start = timer()
 
+        # print(f'self.forward_class={self.forward_class}')
         self.forward_class(start_index)
 
         result_time = timer() - start
@@ -321,35 +317,7 @@ class GpuInfo(object):
             self.need_record_index = int(CUDA_VISIBLE_DEVICES[0])
         else:
             raise RuntimeError("CUDA_VISIBLE_DEVICES: only support single gpu")
-        # while self.need_record_index < 0:
-        #     i += 1
-        #     if i >= gpuDeviceCount:
-        #         assert(False, "node gpu not found")
-        #         break
-        #     print(i, gpuDeviceCount, type(torch.cuda.current_device()))
-        #     handle = pynvml.nvmlDeviceGetHandleByIndex(
-        #         i
-        #     )  # 获取GPU i的handle，后续通过handle来处理
-        #     # info = pynvml.nvmlDeviceGetMemoryInfo(handle)#通过handle获取GPU i的信息
-        #     ## gpu_memory_total = info.total #GPU i的总显存
-        #     # gpu_memory_used = info.used / NUM_EXPAND #转为MB单位
-        #     # all_gpu_used.append(gpu_memory_used) #添加进list
-
-        #     ###还可以直接针对pid的gpu消耗进行统计
-        #     info_list = pynvml.nvmlDeviceGetComputeRunningProcesses(
-        #         handle
-        #     )  # 获取所有GPU上正在运行的进程信息
-        #     # print(info_list)
-        #     # import pdb; pdb.set_trace()
-        #     info_list_len = len(info_list)
-        #     gpu_memory_used = 0
-        #     if info_list_len > 0:  # 0表示没有正在运行的进程
-        #         for info_i in info_list:
-        #             # print(info_i.pid, pid)
-        #             if info_i.pid == pid:  # 如果与需要记录的pid一致
-        #                 # gpu_memory_used += info_i.usedGpuMemory / NUM_EXPAND #统计某pid使用的总显存
-        #                 self.need_record_index = info_i
-        #                 break
+       
         self.handle = pynvml.nvmlDeviceGetHandleByIndex(self.need_record_index)
         util = pynvml.nvmlDeviceGetUtilizationRates(self.handle).gpu
 
@@ -395,55 +363,6 @@ class GpuInfo(object):
         # self.pynvml.nvmlShutdown()
 
 
-class ProcessAdaptor:
-    def __init__(self, class_def, args):
-        from multiprocessing import Process, Queue, Event
-
-        self.class_def = class_def
-        self.args = args
-
-        self.queue = Queue()
-        self.event = Event()
-        self.instance = Process(target=self.run)
-        self.alive = Event()
-
-        self.instance.start()
-
-    def forward(self, data):
-        self.queue.put(data)
-        # while not self.queue.empty():
-        self.event.wait()
-        self.event.clear()
-
-    def run(self):
-        self.target = self.class_def(self.args)
-        while not self.alive.is_set():
-            try:
-                p = self.queue.get(block=True, timeout=2)
-                if p is None:
-                    continue
-            except:
-                continue
-            self.target.forward(p)
-            self.event.set()
-
-    def close(self):
-        self.alive.set()
-        self.instance.join()
-
-    @staticmethod
-    def close_all(clients):
-
-        from concurrent.futures import ThreadPoolExecutor
-
-        def close_client(client):
-            if hasattr(client, "close"):
-                client.close()
-                print("client closed")
-
-        # Assuming clients is a list of your client objects
-        with ThreadPoolExecutor() as executor:
-            executor.map(close_client, clients)
 
 
 # note 如果待测试函数有返回值，比如cuda上的tensor，有一定概率会copy到cpu并打印出来（初始概率下约打印10次，后续如果打印对象太大，则相应递减概率，但通常对性能影响小于千分之三
@@ -484,11 +403,6 @@ class ResourceThread(threading.Thread):
         except Exception as e:
             print("gpu info not available: ", e)
             self.gpu = None
-        # try:
-        #     self.gpu = GpuInfo(pid)
-        #     self.gpu.get_gpu_device()
-        # except Exception as e:
-        #     print(" pynvml :", e)
 
     def get_cpu_mem(self):
         return self.p.cpu_percent(), self.p.memory_percent()
@@ -691,27 +605,26 @@ def test(sample: Union[Sampler, List[Sampler]], total_number=10000):
     result["gpu_usage"] = gpu_
     return result
 
-def test_from_toml(
-    toml_path,
-    file_dir: str,
-    num_clients=10,
-    request_batch=1,
-    total_number=10000,
-    num_preload=1000,
-    recursive=True,
-    ext=[".jpg", ".JPG", ".jpeg", ".JPEG"],
-):
-    import torchpipe
-
-    model = torchpipe.Pipe("vila.toml")
-
-    def run(inputs):
-        path_img, img = inputs[0]
-        input = {'data':img}
-        model(input)
-    return test_from_raw_file(run, file_dir, num_clients, 1, 1, total_number, num_preload, recursive, ext)
-
+def test_from_ids(forward_function: Union[
+        Callable[[List[int]]], List[Callable[[List[int]]]]
+    ],
+    ids: List[int],
+    request_batch=1):
     
+    assert isinstance(forward_function, list)
+    assert len(ids) > 0 
+    assert isinstance(ids[0], int)
+    total_number = len(ids)
+    num_clients = len(forward_function)
+    print(f'total_number={total_number}, num_clients={num_clients}')
+    
+    forwards = [LoopSampler(ids, request_batch) for i in range(num_clients)]
+    for i in range(num_clients):
+        forwards[i].forward = forward_function[i]
+
+    return test(forwards, total_number)
+
+
 def test_from_raw_file(
     forward_function: Union[
         Callable[[List[tuple[str, bytes]]]], List[Callable[[List[tuple[str, bytes]]]]]
@@ -720,7 +633,6 @@ def test_from_raw_file(
     num_clients=10,
     request_batch=1,
     total_number=10000,
-    num_preload=0,
     recursive=True,
     ext=[".jpg", ".JPG", ".jpeg", ".JPEG"],
 ):
@@ -729,13 +641,12 @@ def test_from_raw_file(
     It can be used to test the performance of a function that processes a single image, or a function that processes a batch of images.
     """
     data = preload(
-        file_dir=file_dir, recursive=recursive, num_preload=num_preload, ext=ext
+        file_dir=file_dir, recursive=recursive, ext=ext
     )
-
 
     print(f"file_dir = {file_dir}, num_clients = {num_clients}, request_batch = {request_batch}, total_number = {total_number}")
     assert len(data) > 0
-    if num_preload <= 0:
+    if total_number == 0:
         total_number = len(data)
 
     assert total_number > 0
@@ -745,13 +656,9 @@ def test_from_raw_file(
     else:
         forward_function = [forward_function] * num_clients
 
-    if num_preload > 0:
-        forwards = [RandomSampler(data, request_batch) for i in range(num_clients)]
-        for i in range(num_clients):
-            forwards[i].forward = forward_function[i]
-    else:
-        data = [x for x, _ in data]
-        forwards = [Identity() for i in range(num_clients)]
+    forwards = [LoopSampler(data, request_batch) for i in range(num_clients)]
+    for i in range(num_clients):
+        forwards[i].forward = forward_function[i]
 
     return test(forwards, total_number)
 
@@ -770,7 +677,6 @@ def test_function(
     :param total_number: total number of data.
     :return: None
     """
-
 
     class FunctionSampler:
         def __init__(self, function, batchsize) -> None:
@@ -792,101 +698,27 @@ def test_function(
     ]
     return test(forwards, total_number)
 
-
-# import torchpipe
-
-class ProcessAdaptor:
-    def __init__(self, class_def, args):
-        from multiprocessing import Process, Queue, Event
-
-        self.class_def = class_def
-        self.args = args
-
-        self.queue = Queue()
-        self.event = Event()
-        self.instance = Process(target=self.run)
-        self.alive = Event()
-
-        self.instance.start()
-
-    def forward(self, data):
-        self.queue.put(data)
-        # while not self.queue.empty():
-        self.event.wait()
-        self.event.clear()
-
-    def run(self):
-        self.target = self.class_def(self.args)
-        while not self.alive.is_set():
-            try:
-                p = self.queue.get(block=True, timeout=2)
-                if p is None:
-                    continue
-            except:
-                continue
-            self.target.forward(p)
-            self.event.set()
-
-    def close(self):
-        self.alive.set()
-        self.instance.join()
-
-    @staticmethod
-    def close_all(clients):
-
-        from concurrent.futures import ThreadPoolExecutor
-
-        def close_client(client):
-            if hasattr(client, "close"):
-                client.close()
-
-        # Assuming clients is a list of your client objects
-        with ThreadPoolExecutor() as executor:
-            executor.map(close_client, clients)
-
-
-def parse_arguments(argv):
-    import argparse
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--port", type=int, help="Port to listen.", default=8095)
-    parser.add_argument(
-        "--host", type=str, help="Host to run service", default="localhost"
-    )
-    parser.add_argument(
-        "--img_dir",
-        type=str,
-        help=f"img path. 预读取该目录以及子目录下至多1000张图片",
-        default="img/",
-    )
-    parser.add_argument("--batch_size", type=int, help="单次请求的数据量", default=1)
-    parser.add_argument("--num_clients", type=int, help="并发请求数", default=10)
-    return parser.parse_args(argv)
-
-
-if __name__ == "__main__":
-    total_number = 10000
-
-    args = parse_arguments(sys.argv[1:])
-
-    class ThriftInfer:
+def example_mutil_clients_speed_test(host, port, num_clients, file_dir, total_number):
+    class Client:
         """wrapper for thrift's python API. You may need to re-implement this class."""
-
-        def __init__(self, host, port, batch_size) -> None:
+        def __init__(self, host, port, request_batch, id2data) -> None:
             """
-
             :param host: ip
             :type host: str
             :param port: port
             :type port: int
-            :param batch_size: size of sended data in batches.
-            :type batch_size: int
+            :param request_batch: size of sended data in batches.
+            :type request_batch: int
             """
-            from serve import InferenceService
-            from serve.ttypes import InferenceParams
+            ## example thrift service:
+            import sys
+            sys.path.append("src")
+            from api import InferenceService
+
+            from api.ttypes import InferenceParams
 
             self.InferenceParams = InferenceParams
-
+            
             from thrift.transport import TSocket
             from thrift.transport import TTransport
             from thrift.protocol import TBinaryProtocol
@@ -900,48 +732,111 @@ if __name__ == "__main__":
             # Connect!
             self.transport.open()
             self.client.ping()
-            self.batch_size = batch_size
+            self.request_batch = request_batch
+            self.id2data=id2data
 
-        def infer(self, data):
+        def forward(self, ids: List[int]) :
             """batch processing
-
-            :param data: batched data
-            :type data: List[(str, bytes)]
-            :return:
-            :rtype: Any
             """
-            return self.client.infer_batch([self.InferenceParams(*x) for x in data])
+            assert len(ids) == 1, "right now only support bs = 1"
+            
+            ids[0] = self.id2data[ids[0]]
+            
+            result = self.client.infer_batch([self.InferenceParams(*x) for x in ids])
+            
 
         def __del__(self):
             self.transport.close()
+        
+    # prepare_data
+    ext = [".jpg", ".JPG", ".jpeg", ".JPEG"]
+    list_images = [
+            x for x in os.listdir(file_dir) if os.path.splitext(x)[-1] in ext
+        ]
+    list_images = [os.path.join(file_dir, x) for x in list_images]
+    if len(list_images) > 1000:
+        list_images = list_images[:1000] # not enough memory. todo cal mem online
+    id2data = {}
+    for i in range(len(list_images)):
+        with open(list_images[i], 'rb') as f:
+            id2data[i] = (list_images[i], f.read())
+    print(f'{len(id2data)} file readed')
+    ids = list(range(len(list_images)))
+    repeats = math.ceil(total_number / len(ids))
+    ids = (ids * repeats)[:total_number]
+    
+    instances = [Client(host, port, 1, id2data) for i in range(num_clients)]
+    
+    test_from_ids(
+        forward_function=[x.forward for x in instances],
+        ids=ids)
 
-    def test_thrift_from_raw_file(
-        img_dir,
-        host="localhost",
-        port=8095,
-        num_clients=10,
-        request_batch = 1,
-        total_number=10000,
-        num_preload=0,
-    ):
 
+def example_mutil_clients_inference(host, port, num_clients, file_dir):
+    final_result = {}
+    class Client:
+        """wrapper for thrift's python API. You may need to re-implement this class."""
+        def __init__(self, host, port, request_batch, data) -> None:
+            """
+            :param host: ip
+            :type host: str
+            :param port: port
+            :type port: int
+            :param request_batch: size of sended data in batches.
+            :type request_batch: int
+            """
+            ## example thrift service:
+            import sys
+            sys.path.append("src")
+            from api import InferenceService
 
-        instances_ = [ThriftInfer(host, port, request_batch) for i in range(num_clients)]
+            from api.ttypes import InferenceParams
 
-        test_from_raw_file(
-            [x.infer for x in instances_],
-            img_dir,
-            num_clients,
-            request_batch=request_batch,
-            total_number=total_number,
-            num_preload=num_preload,
-        )
+            self.InferenceParams = InferenceParams
+            
+            from thrift.transport import TSocket
+            from thrift.transport import TTransport
+            from thrift.protocol import TBinaryProtocol
 
-    test_thrift_from_raw_file(
-        args.img_dir,
-        host=args.host,
-        port=args.port,
-        num_clients=args.num_clients,
-        request_batch=args.request_batch,
-        total_number=total_number,
+            self.transport = TSocket.TSocket(host, port)
+            self.transport = TTransport.TBufferedTransport(self.transport)
+            self.protocol = TBinaryProtocol.TBinaryProtocol(self.transport)
+
+            self.client = InferenceService.Client(self.protocol)
+
+            # Connect!
+            self.transport.open()
+            self.client.ping()
+            self.request_batch = request_batch
+            self.data = data
+
+        def forward(self, data: List[int]) :
+            """batch processing
+            """
+            assert len(data) == 1, "right now only support bs = 1"
+            
+            file_path = self.data[data[0]]
+            with open(file_path, "rb") as f:
+                data[0] = (file_path, f.read())
+            result = self.client.infer_batch([self.InferenceParams(*x) for x in data])
+            
+            final_result[data[0][0]] = result[0]
+
+        def __del__(self):
+            self.transport.close()
+        
+    # prepare_data
+    ext = [".jpg", ".JPG", ".jpeg", ".JPEG"]
+    list_images = [
+            x for x in os.listdir(file_dir) if os.path.splitext(x)[-1] in ext
+        ]
+    list_images = [os.path.join(file_dir, x) for x in list_images]
+    
+    instances = [Client(host, port, 1, list_images) for i in range(num_clients)]
+    
+    test_from_ids(
+        forward_function=[x.forward for x in instances],
+        ids=list(range(len(list_images)))
     )
+    return final_result
+  

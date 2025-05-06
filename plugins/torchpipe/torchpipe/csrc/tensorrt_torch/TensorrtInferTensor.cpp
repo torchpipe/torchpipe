@@ -106,6 +106,12 @@ void TensorrtInferTensor::impl_forward(
         hami::dict_gets<torch::Tensor>(input_output[0], hami::TASK_OUTPUT_KEY);
 
   size_t predefined_size = outputs.size();
+  // if (predefined_size != 0 && predefined_size != info_.second.size()) {
+  //   SPDLOG_INFO(
+  //       "predefined_size={}, info_.second.size()= {}",
+  //       predefined_size,
+  //       info_.second.size());
+  // }
 
   for (unsigned j = 0; j < info_.second.size(); j++) {
     const auto& name_str = *info_.second[j].name;
@@ -137,7 +143,7 @@ void TensorrtInferTensor::impl_forward(
           torch::MemoryFormat::Contiguous));
     }
 
-    HAMI_ASSERT(context_->setTensorAddress(name, outputs.back().data_ptr()));
+    HAMI_ASSERT(context_->setTensorAddress(name, outputs.at(j).data_ptr()));
   }
 
   // memory && execute
