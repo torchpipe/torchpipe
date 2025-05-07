@@ -41,7 +41,7 @@ HAMI_REGISTER(Backend, Register, "Register,Node");
 
 class InstancesRegister : public Backend {
  private:
-  std::shared_ptr<Backend> owned_backend_;
+  // std::shared_ptr<Backend> owned_backend_;
 
  public:
   void impl_init(
@@ -90,20 +90,22 @@ class InstancesRegister : public Backend {
     auto sub_kwargs = copy_dict(kwargs);
     auto sub_config = config;
     for (size_t i = 0; i < instance_num; ++i) {
-      owned_backend_ =
+      auto owned_backend =
           std::shared_ptr<Backend>(HAMI_CREATE(Backend, dependency_name));
       HAMI_ASSERT(
-          owned_backend_, "`" + iter->second + "` is not a valid backend");
+          owned_backend, "`" + iter->second + "` is not a valid backend");
       sub_config[TASK_INDEX_KEY] = std::to_string(i);
-      owned_backend_->init(sub_config, sub_kwargs);
+      owned_backend->init(sub_config, sub_kwargs);
 
       HAMI_INSTANCE_REGISTER(
-          Backend, node_name + "." + std::to_string(i), owned_backend_);
+          Backend, node_name + "." + std::to_string(i), owned_backend);
     }
+    // owned_backend_ = nullptr;
   }
 
   void impl_forward(const std::vector<dict>& inputs) override final {
-    owned_backend_->forward(inputs);
+    HAMI_ASSERT(false, "Not Impl.");
+    // owned_backend_->forward(inputs);
   }
 };
 

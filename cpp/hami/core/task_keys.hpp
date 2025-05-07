@@ -59,6 +59,7 @@ constexpr auto TASK_CONFIG_KEY = "config";
 constexpr auto TASK_NEXT_KEY = "next";
 constexpr auto TASK_MAP_KEY = "map";
 constexpr auto TASK_OR_KEY = "or";
+constexpr auto TASK_STREAM_KEY = "stream";
 
 static inline const std::unordered_map<string, string> TASK_KEY_MAP(
     {{"TASK_RESULT_KEY", TASK_RESULT_KEY},

@@ -25,6 +25,7 @@ using hami::TASK_GLOBAL_KEY;
 using hami::TASK_INDEX_KEY;
 using hami::TASK_RESTART_KEY;
 using hami::TASK_RESULT_KEY;
+using hami::TASK_STREAM_KEY;
 using hami::TASK_TMP_KEY;
 
 // using dict = hami::dict;

@@ -71,6 +71,8 @@ hami.register("Pdb", Pdb)
 
 
 attention_kernel = hami.init_from_file('config/attention_kernel.toml')
+prefill_attn = hami.get('prefill.0')
+decode_attn = hami.get('decode.0')
 
 class PyPlugin:
     def init(self, params):
@@ -148,7 +150,7 @@ class PyPlugin:
 
                     ios = hami.Dict({'data':inputs,"node_name": 'prefill', "output":[os.view(1, shape[0], shape[1]*shape[2]), out_k, out_v]}) # , out_k, out_v
                     # assert False, "TODO: pre-defined outputs for k v cache"
-                    attention_kernel(ios)
+                    prefill_attn(ios)
                     k2 = ios['result'][2]
                     hami.print(f'out_v={out_v.shape}, k2={k2.shape}, {out_v.data_ptr() == k2.data_ptr()}')
                     # out_k, out_v = ios['result'][1], ios['result'][2]
@@ -170,7 +172,7 @@ class PyPlugin:
                     
                     inputs = [qs.view(1, shape[0], shape[1]*shape[2]), ks.view(1, shape[0], shape[1]*shape[2]), vs.view(1, shape[0], shape[1]*shape[2]), status.cos, status.sin, status.att_mask, k, v]
                     ios = hami.Dict({'data':inputs,"node_name":'decode', "output":[os.view(1, shape[0], shape[1]*shape[2]), out_k, out_v]}) #, out_k, out_v
-                    attention_kernel(ios)
+                    decode_attn(ios)
                     # status.kvcache[self.layer_idx] = (ios['result'][1], ios['result'][2])
                     status.kvcache[self.layer_idx] = (out_k, out_v)
                     # import pdb; pdb.set_trace()

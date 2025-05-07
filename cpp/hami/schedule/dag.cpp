@@ -24,9 +24,14 @@ void DagDispatcher::impl_init(
     if (item.first == TASK_GLOBAL_KEY)
       continue;
     Backend* back = HAMI_INSTANCE_GET(Backend, "node." + item.first);
-    HAMI_ASSERT(
-        back,
-        "DagDispatcher: instance(" + ("node." + item.first) + ") not found");
+    if (!back) {
+      SPDLOG_WARN(
+          "DagDispatcher: instance(" + ("node." + item.first) + ") not found");
+      continue;
+    }
+    // HAMI_ASSERT(
+    //     back,
+    //     "DagDispatcher: instance(" + ("node." + item.first) + ") not found");
     base_dependencies_["node." + item.first] = back;
 
     auto dag_backend = init_backend(
