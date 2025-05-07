@@ -1,7 +1,7 @@
 
 
 [prefill]
-backend = "With[TorchStreamPool, TensorrtTensor]"
+node_entrypoint = "Register[With[TorchStreamPool, TensorrtTensor]]"
 instance_num = 1
 max = '1x4096x4096,1x4096x4096,1x4096x4096,1x4096x128,1x4096x128,1x1x4096x4096'
 min = '1x1x4096,1x1x4096,1x1x4096,1x1x128,1x1x128,1x1x1x1'
@@ -12,7 +12,7 @@ model = "exported_params/batchless_prefill.onnx"
 "model::cache" = "exported_params/batchless_prefill.trt"
 
 [decode]
-backend = "With[TorchStreamPool,TensorrtTensor]"
+node_entrypoint = "Register[With[TorchStreamPool,TensorrtTensor]]"
 instance_num = 1
 max = '1x1x4096,1x1x4096,1x1x4096,1x1x128,1x1x128,1x1x1x4096,1x32x4095x128,1x32x4095x128'
 min = '1x1x4096,1x1x4096,1x1x4096,1x1x128,1x1x128,1x1x1x1,1x32x1x128,1x32x1x128'
