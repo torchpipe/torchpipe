@@ -16,13 +16,15 @@ void SyncTensor::impl_init(
   const auto cls_name = hami::get_cls_name(this, "SyncTensor");
 
   auto iter = config.find(TASK_INDEX_KEY);
+  HAMI_ASSERT(
+      iter != config.end(),
+      "You are not in an independent thread mode(TASK_INDEX_KEY was not detected. Maybe use `With[StreamPool, *]` instead");
   if (iter != config.end()) {
     independent_thread_index_ = std::stoi(iter->second);
     HAMI_ASSERT(independent_thread_index_ >= 0);
   } else {
     SPDLOG_WARN(
-        "You are using an independent CUDA stream, "
-        "but not in an independent thread mode(TASK_INDEX_KEY was not "
+        "You are not in an independent thread mode(TASK_INDEX_KEY was not "
         "detected). ");
     HAMI_ASSERT(
         dep,
@@ -42,7 +44,10 @@ void SyncTensor::impl_init(
   if (independent_thread_index_ >= 0) {
     bNeedSync_ = torch_not_use_default_stream(device_id_int, true);
     // Schedule保证了init和forward在同一个线程
-    SPDLOG_INFO("SyncTensor: sync enabled={}", bNeedSync_);
+    HAMI_ASSERT(
+        bNeedSync_,
+        "This backend can only be used in default current stream. may be use `With[StreamPool,*]` instead.");
+    // SPDLOG_INFO("SyncTensor: sync enabled={}", bNeedSync_);
   } else if (
       c10::cuda::getCurrentCUDAStream(device_id_int) ==
       c10::cuda::getDefaultCUDAStream(device_id_int)) {
@@ -120,6 +125,8 @@ class TorchStreamPool : public hami::Backend {
       const std::vector<hami::dict>& ios,
       hami::Backend& dep) override {
     auto index = stream_pool_->acquire();
+    hami::pool::ResourcePool<size_t>::lease_guard guard(
+        stream_pool_.get(), index);
     auto& se = stream_event_.at(index);
     auto original_stream = c10::cuda::getCurrentCUDAStream(-1);
     if (se.stream != original_stream) {
@@ -152,6 +159,5 @@ class TorchStreamPool : public hami::Backend {
   std::unique_ptr<hami::pool::ResourcePool<size_t>> stream_pool_;
 };
 
-HAMI_REGISTER_BACKEND(TorchStreamPool);
-
+HAMI_REGISTER(hami::Backend, TorchStreamPool, "TorchStreamPool, StreamPool");
 } // namespace torchpipe

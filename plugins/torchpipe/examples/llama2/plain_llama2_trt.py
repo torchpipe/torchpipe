@@ -149,7 +149,9 @@ class PyPlugin:
                     ios = hami.Dict({'data':inputs,"node_name": 'prefill', "output":[os.view(1, shape[0], shape[1]*shape[2]), out_k, out_v]}) # , out_k, out_v
                     # assert False, "TODO: pre-defined outputs for k v cache"
                     attention_kernel(ios)
-                    out_k, out_v = ios['result'][1], ios['result'][2]
+                    k2 = ios['result'][2]
+                    hami.print(f'out_v={out_v.shape}, k2={k2.shape}, {out_v.data_ptr() == k2.data_ptr()}')
+                    # out_k, out_v = ios['result'][1], ios['result'][2]
                     status.kvcache[self.layer_idx] = (out_k, out_v)
                     # import pdb; pdb.set_trace()
                 else:
@@ -195,6 +197,7 @@ def main(num_layers = 2):
     # prompt = "San Francisco is a totalitéaletoreignersbyMSран"
     prompts = ["San Francisco is a", "Explain quantum computing in simple terms", "Tell me the first 10 Fermat prime numbers"]
     prompts = [prompts[0], prompts[1]]
+    # prompts = [prompts[1]]
     input_ids = []
     for prompt in prompts:
         inputs = tokenizer(prompt, return_tensors="pt", return_attention_mask=False)

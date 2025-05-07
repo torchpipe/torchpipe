@@ -96,8 +96,8 @@ class ResourcePool final {
 
   class lease_guard {
    public:
-    explicit lease_guard(ResourcePool& pool, id_type id) noexcept
-        : pool_(&pool), id_(id), released_(false) {}
+    explicit lease_guard(ResourcePool* pool, id_type id) noexcept
+        : pool_(pool), id_(id), released_(false) {}
 
     ~lease_guard() {
       if (!released_.load(std::memory_order_acquire)) {
@@ -129,6 +129,14 @@ class ResourcePool final {
     id_type id_;
     std::atomic<bool> released_;
   };
+
+  lease_guard acquire_with_lease_guard() {
+    std::unique_lock lock(mutex_);
+    cv_.wait(lock, [this] { return available_count_ > 0; });
+
+    id_type id = free_ids_[--available_count_];
+    return lease_guard(this, id);
+  }
 
  private:
   const size_type capacity_;
