@@ -197,7 +197,7 @@ def main(num_layers = 2):
     # prompt = "San Francisco is a totalitéaletoreignersbyMSран"
     prompts = ["San Francisco is a", "Explain quantum computing in simple terms", "Tell me the first 10 Fermat prime numbers"]
     prompts = [prompts[0], prompts[1]]
-    # prompts = [prompts[1]]
+    prompts = [prompts[0]]
     input_ids = []
     for prompt in prompts:
         inputs = tokenizer(prompt, return_tensors="pt", return_attention_mask=False)
@@ -209,7 +209,7 @@ def main(num_layers = 2):
     ios = []
     ids = []
     events = []
-    for i in range(10):
+    for i in range(1):
         in_id = random.choice(input_ids)
         ids.append(f"id-{i}")
         max_tokens = 27
