@@ -5,3 +5,5 @@ exported_params/*
 **/*.pt
 **/*.model
 **/*.json
+app.log
+.tmp/
