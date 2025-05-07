@@ -134,7 +134,7 @@ class PyPlugin:
             for id, qs, ks, vs, os, is_prefill, num_tok in zip(PyPlugin.req_ids, q_split, k_split, v_split, o_split, PyPlugin.is_prefill, PyPlugin.num_toks):
                 status = request_status[id]
                 if is_prefill:
-                    hami.print(f"prefill: {id}, {self.layer_idx}, s={qs.shape}, status.cos, status.sin, status.att_mask shape = {status.cos.shape}, {status.sin.shape}, {status.att_mask.shape}")
+                    #  hami.print(f"prefill: {id}, {self.layer_idx}, s={qs.shape}, status.cos, status.sin, status.att_mask shape = {status.cos.shape}, {status.sin.shape}, {status.att_mask.shape}")
                     shape = qs.shape
                     inputs = [qs.view(1, shape[0], shape[1]*shape[2]), ks.view(1, shape[0], shape[1]*shape[2]), vs.view(1, shape[0], shape[1]*shape[2]), status.cos, status.sin, status.att_mask]
                     
@@ -151,15 +151,15 @@ class PyPlugin:
                     ios = hami.Dict({'data':inputs,"node_name": 'prefill', "output":[os.view(1, shape[0], shape[1]*shape[2]), out_k, out_v]}) # , out_k, out_v
                     # assert False, "TODO: pre-defined outputs for k v cache"
                     prefill_attn(ios)
-                    k2 = ios['result'][2]
-                    hami.print(f'out_v={out_v.shape}, k2={k2.shape}, {out_v.data_ptr() == k2.data_ptr()}')
+                    # k2 = ios['result'][2]
+                    # hami.print(f'out_v={out_v.shape}, k2={k2.shape}, {out_v.data_ptr() == k2.data_ptr()}')
                     # out_k, out_v = ios['result'][1], ios['result'][2]
                     status.kvcache[self.layer_idx] = (out_k, out_v)
                     # import pdb; pdb.set_trace()
                 else:
                     k, v = status.kvcache[self.layer_idx]
                     status.kvcache[self.layer_idx] = None
-                    hami.print(f"decode: {id}, q={qs.shape}, {self.layer_idx}, status.cos, status.sin, status.att_mask shape = {status.cos.shape}, {status.sin.shape}, {status.att_mask.shape}, num_toks={PyPlugin.num_toks}")
+                    # hami.print(f"decode: {id}, q={qs.shape}, {self.layer_idx}, status.cos, status.sin, status.att_mask shape = {status.cos.shape}, {status.sin.shape}, {status.att_mask.shape}, num_toks={PyPlugin.num_toks}")
                     shape = qs.shape
                     
                     dtype = qs.dtype
@@ -199,7 +199,7 @@ def main(num_layers = 2):
     # prompt = "San Francisco is a totalitéaletoreignersbyMSран"
     prompts = ["San Francisco is a", "Explain quantum computing in simple terms", "Tell me the first 10 Fermat prime numbers"]
     prompts = [prompts[0], prompts[1]]
-    prompts = [prompts[0]]
+    # prompts = [prompts[0]]
     input_ids = []
     for prompt in prompts:
         inputs = tokenizer(prompt, return_tensors="pt", return_attention_mask=False)
@@ -211,7 +211,7 @@ def main(num_layers = 2):
     ios = []
     ids = []
     events = []
-    for i in range(1):
+    for i in range(10):
         in_id = random.choice(input_ids)
         ids.append(f"id-{i}")
         max_tokens = 27
