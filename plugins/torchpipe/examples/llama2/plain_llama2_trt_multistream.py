@@ -75,9 +75,18 @@ hami.register("Pdb", Pdb)
 
 attention_kernel = hami.init_from_file('config/attention_kernel_streams.toml')
 prefill_attn = hami.get('prefill.0')
-# decode_attn = hami.get('decode.0')
-decode_attn = hami.init("Pool(decode0.0, decode1.0)")
-
+decode_attns = [hami.get(f'decode{i}.0') for i in range(2)]
+# decode_attn = hami.init("Pool(decode0.0, decode1.0)")
+# https://docs.pytorch.org/docs/stable/notes/cuda.html#cuda-semantics
+streams = [torch.cuda.Stream() for i in range(2)]
+def decode_attn(ios, index):
+    index = index%len(streams)
+    s = streams[index]
+    s.wait_stream(torch.cuda.current_stream())  # NEW!
+    with torch.cuda.stream(s):
+        decode_attns[index](ios)
+    torch.cuda.current_stream().wait_stream(s)
+    
 class PyPlugin:
     def init(self, params):
         self.params = params
@@ -135,7 +144,9 @@ class PyPlugin:
             v_split = torch.tensor_split(v, PyPlugin.split_indices)
             o_split = torch.tensor_split(output, PyPlugin.split_indices)
             
+            index = 0
             for id, qs, ks, vs, os, is_prefill, num_tok in zip(PyPlugin.req_ids, q_split, k_split, v_split, o_split, PyPlugin.is_prefill, PyPlugin.num_toks):
+                index += 1
                 status = request_status[id]
                 if is_prefill:
                     #  hami.print(f"prefill: {id}, {self.layer_idx}, s={qs.shape}, status.cos, status.sin, status.att_mask shape = {status.cos.shape}, {status.sin.shape}, {status.att_mask.shape}")
@@ -176,7 +187,7 @@ class PyPlugin:
                     
                     inputs = [qs.view(1, shape[0], shape[1]*shape[2]), ks.view(1, shape[0], shape[1]*shape[2]), vs.view(1, shape[0], shape[1]*shape[2]), status.cos, status.sin, status.att_mask, k, v]
                     ios = hami.Dict({'data':inputs,"node_name":'decode', "output":[os.view(1, shape[0], shape[1]*shape[2]), out_k, out_v]}) #, out_k, out_v
-                    decode_attn(ios)
+                    decode_attn(ios, index)
                     # status.kvcache[self.layer_idx] = (ios['result'][1], ios['result'][2])
                     status.kvcache[self.layer_idx] = (out_k, out_v)
                     # import pdb; pdb.set_trace()

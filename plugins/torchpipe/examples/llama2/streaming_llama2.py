@@ -48,7 +48,7 @@ class CustomBackendEngine(BackendEngine):
         # from plain_llama2 import PyPlugin, page_size, get_num_layers
         use_trt = kwargs.get("use_trt", False)
         if use_trt:
-            from plain_llama2_trt import PyPlugin, page_size, get_num_layers, clean_up
+            from plain_llama2_trt_multistream import PyPlugin, page_size, get_num_layers, clean_up
         else:
             from plain_llama2 import PyPlugin, page_size, get_num_layers, clean_up
             
@@ -286,7 +286,7 @@ def main(num_layers = 2, max_num_page = 0, use_trt=False):
     
     if use_trt:
         print('use tensorrt for attn')
-        from plain_llama2_trt import set_num_layers, set_page_table, page_size
+        from plain_llama2_trt_multistream import set_num_layers, set_page_table, page_size
     else:
         from plain_llama2 import set_num_layers, set_page_table, page_size
     set_num_layers(num_layers)
