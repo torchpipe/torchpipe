@@ -157,14 +157,13 @@ class CustomBackendEngine(BackendEngine):
     def final_callback(self, request_id):
         status = self.request_status.pop(request_id)
         
-        self.clean_up(request_id)
-        
         output = RequestOutput()
         
         try:
             status.event.try_throw()
         except Exception as e:
             hami.print('into exception handle')
+            self.clean_up(request_id)
             
             output.status = Status(StatusCode.UNKNOWN, str(e))
             output.usage = None
@@ -175,6 +174,7 @@ class CustomBackendEngine(BackendEngine):
             status.request_callback(output)
         else:
             hami.print('no exception')
+            self.clean_up(request_id)
 
             self.contiguous_batching_action(request_id)
             if status.dropped:
