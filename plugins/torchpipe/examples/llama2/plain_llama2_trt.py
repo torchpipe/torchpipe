@@ -56,6 +56,8 @@ class RequestStatus:
     
 request_status = {}
 
+def clean_up(req_id):
+    del request_status[req_id]
 ### --------------------------------------------------- ########## 
 
 import hami

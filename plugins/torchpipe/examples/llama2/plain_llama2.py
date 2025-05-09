@@ -20,6 +20,8 @@ def set_num_layers(num_layers):
 def get_num_layers():
     return g_num_layers 
      
+def clean_up(req_id):
+    pass
 
 ### -------------  k v cache -------------------------- ##########
 global_kv = None

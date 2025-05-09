@@ -48,9 +48,9 @@ class CustomBackendEngine(BackendEngine):
         # from plain_llama2 import PyPlugin, page_size, get_num_layers
         use_trt = kwargs.get("use_trt", False)
         if use_trt:
-            from plain_llama2_trt import PyPlugin, page_size, get_num_layers
+            from plain_llama2_trt import PyPlugin, page_size, get_num_layers, clean_up
         else:
-            from plain_llama2 import PyPlugin, page_size, get_num_layers
+            from plain_llama2 import PyPlugin, page_size, get_num_layers, clean_up
             
         hami.register("TorchPlugin", PyPlugin)
         hami.register("custom_backend_engine", self)
@@ -88,6 +88,8 @@ class CustomBackendEngine(BackendEngine):
         print(f"+---------------------+")
         
         self.need_more_pages = False # todo
+        
+        self.clean_up = clean_up
         
         
        
@@ -154,6 +156,8 @@ class CustomBackendEngine(BackendEngine):
         
     def final_callback(self, request_id):
         status = self.request_status.pop(request_id)
+        
+        self.clean_up(request_id)
         
         output = RequestOutput()
         
