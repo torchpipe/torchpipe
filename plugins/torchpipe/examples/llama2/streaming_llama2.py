@@ -45,7 +45,13 @@ class CustomBackendEngine(BackendEngine):
     def __init__(self, *args, **kwargs):
         super().__init__()
         
-        from plain_llama2 import PyPlugin, page_size, get_num_layers
+        # from plain_llama2 import PyPlugin, page_size, get_num_layers
+        use_trt = kwargs.get("use_trt", False)
+        if use_trt:
+            from plain_llama2_trt import PyPlugin, page_size, get_num_layers
+        else:
+            from plain_llama2 import PyPlugin, page_size, get_num_layers
+            
         hami.register("TorchPlugin", PyPlugin)
         hami.register("custom_backend_engine", self)
         self.page_table =  hami.default_page_table()
@@ -271,10 +277,14 @@ class CustomBackendEngine(BackendEngine):
         pass
             
 
-def main(num_layers = 2, max_num_page = 0):
+def main(num_layers = 2, max_num_page = 0, use_trt=False):
     os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
     
-    from plain_llama2 import set_num_layers, set_page_table, page_size
+    if use_trt:
+        print('use tensorrt for attn')
+        from plain_llama2_trt import set_num_layers, set_page_table, page_size
+    else:
+        from plain_llama2 import set_num_layers, set_page_table, page_size
     set_num_layers(num_layers)
     
     if max_num_page == 0:
@@ -284,7 +294,7 @@ def main(num_layers = 2, max_num_page = 0):
         hami.print(f"max_num_page: {max_num_page}")
     page_table = set_page_table(max_num_page)
     
-    register_engine("llama2", CustomBackendEngine())
+    register_engine("llama2", CustomBackendEngine(use_trt=use_trt))
 
     # fire.Fire(main)
     import sys
