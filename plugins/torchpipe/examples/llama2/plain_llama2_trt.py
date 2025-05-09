@@ -111,7 +111,7 @@ class PyPlugin:
 
                 PyPlugin.cumsum = torch.cumsum(torch.from_numpy(adjusted_sizes), 0)
                 PyPlugin.split_indices = PyPlugin.cumsum[:-1]
-                hami.print(f"current_size={adjusted_sizes}, split_indices={PyPlugin.split_indices} {PyPlugin.is_prefill}")
+                # hami.print(f"current_size={adjusted_sizes}, split_indices={PyPlugin.split_indices} {PyPlugin.is_prefill}")
                 
                 
                 PyPlugin.num_decode  = len(PyPlugin.req_ids) - PyPlugin.num_prefill
