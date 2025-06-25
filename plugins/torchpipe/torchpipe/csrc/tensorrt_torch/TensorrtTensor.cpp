@@ -7,7 +7,7 @@ constexpr auto INIT_STR =
     "ModelLoadder[(.onnx)Onnx2Tensorrt,(.trt)LoadTensorrtEngine], "
     "TensorrtInferTensor";
 constexpr auto FORWARD_STR =
-    "CatSplit[S_v0[FixTensor,CatTensor],S_v0[ContiguousTensor,"
+    "CatSplit[S[FixTensor,CatTensor],S[ContiguousTensor,"
     "Reflect[pre_processor,Identity],Forward[TensorrtInferTensor],Reflect[post_processor,Identity]],"
     "SplitTensor]";
 const auto BACKEND_STR =
@@ -15,4 +15,6 @@ const auto BACKEND_STR =
 
 HAMI_GENERATE_BACKEND(TensorrtTensor, BACKEND_STR, "");
 
+// IoC[ModelLoadder[(.onnx)Onnx2Tensorrt,(.trt)LoadTensorrtEngine],TensorrtInferTensor;
+// CatSplit[S[FixTensor,CatTensor],S[ContiguousTensor,Reflect[pre_processor,Identity],Forward[TensorrtInferTensor],Reflect[post_processor,Identity]],SplitTensor]]]
 } // namespace torchpipe

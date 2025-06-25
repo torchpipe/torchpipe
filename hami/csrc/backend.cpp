@@ -19,7 +19,7 @@
 
 namespace hami {
 using namespace hami::python;
-class PyInstance : public Backend {
+class HAMI_EXPORT PyInstance : public Backend {
  private:
   void impl_init(
       const std::unordered_map<string, string>& config,

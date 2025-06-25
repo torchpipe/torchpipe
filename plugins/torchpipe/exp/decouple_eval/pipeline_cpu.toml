@@ -1,0 +1,110 @@
+batching_timeout = 10 #默认的凑batch的超时时间
+instance_num = 5 
+precision = "fp16" 
+#### main graph ####
+[jpg_decoder]
+backend = "Sequential[DecodeMat,(result2other)CvtColorMat,ResizePadMat,Mat2Tensor,SyncTensor]"
+color = "bgr"
+instance_num = 16
+max_h = 416
+max_w = 416
+
+next = "detect"
+
+[detect]
+backend = "S[TensorrtTensor,SyncTensor]" 
+batching_timeout = 5 #默认的凑batch的超时时间
+instance_num = 4 
+max = "8" 
+model = "../../../examples/yolox/yolox_tiny.onnx" 
+"model::cache" = "./yolox_tiny.trt" 
+net_h = 416 
+net_w = 416 
+# postprocessor = "BatchingPostProcYolox_45_30" 
+"model::timingcache" = "./yolox_tiny.timingcache"
+
+next = "post_det"
+[post_det]
+backend = "SyncTensor[PostProcYolox]" 
+instance_num = 8 
+net_h = 416 
+net_w = 416 # for PostProcYolox
+next = "sub_graph" 
+
+[sub_graph]
+map = "jpg_decoder[other:data,color:color],post_det[TASK_BOX_KEY:TASK_BOX_KEY]"
+
+backend = "MapReduce"
+jump = "cls_preprocess"
+
+merge = "score_1,score_2,result,cls_1_result"
+split = "TASK_BOX_KEY"
+
+instance_num = 8
+next = "final"
+
+[final]
+
+#### sub graph ####
+[cls_preprocess]
+backend = "Sequential[CropMat,ResizeMat,CvtColorMat,Mat2Tensor,SyncTensor]"
+color = "rgb"
+instance_num = 12
+resize_h = 224
+resize_w = 224
+# save_dir="./"
+
+next = "cls_1,cls_2"
+
+#### branch 1 ####
+# SoftmaxArgMaxTensor
+[cls_1]
+backend = "S[TensorrtTensor,SyncTensor]" 
+max = 8 
+mean = "123.675, 116.28, 103.53" # 255*"0.485, 0.456, 0.406"
+model = "./resnet18.onnx" 
+"model::cache" = "./resnet18.trt" 
+"model::timingcache" = "resnet18.timingcache" 
+std = "58.395, 57.120, 57.375" # 255*"0.229, 0.224, 0.225"
+
+instance_num = 4
+postprocessor = "SoftmaxArgMax"
+
+next = "post_cls_1"
+
+[post_cls_1]
+filter = "filter_score"
+
+backend = "S[TensorrtTensor,SyncTensor]" 
+max = 8 
+mean = "123.675, 116.28, 103.53" # 255*"0.485, 0.456, 0.406"
+model = "././resnet50.onnx" 
+"model::cache" = "./resnet50.trt" 
+"model::timingcache" = "resnet50.timingcache" 
+std = "58.395, 57.120, 57.375" # 255*"0.229, 0.224, 0.225"
+
+instance_num = 4
+postprocessor = "SoftmaxArgMax"
+
+next = "subgraph_final"
+
+#### branch 2 ####
+
+[cls_2]
+
+backend = "S[TensorrtTensor,SyncTensor]" 
+max = "8" 
+mean = "123.675, 116.28, 103.53" # 255*"0.485, 0.456, 0.406"
+model = "././fastervit_0_224_224.onnx" 
+"model::cache" = "./fastervit_0_224_224.trt" 
+"model::timingcache" = "fastervit_0_224_224.timingcache" 
+std = "58.395, 57.120, 57.375" # 255*"0.229, 0.224, 0.225"
+
+batching_timeout = 10
+instance_num = 6
+postprocessor = "SoftmaxArgMax"
+
+next = "subgraph_final"
+
+[subgraph_final]
+map = "post_cls_1[score:score_1,result:cls_1_result],cls_2[score:score_2,result:data]"

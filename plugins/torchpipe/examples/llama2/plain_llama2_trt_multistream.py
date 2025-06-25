@@ -81,11 +81,14 @@ decode_attns = [hami.get(f'decode{i}.0') for i in range(2)]
 streams = [torch.cuda.Stream() for i in range(2)]
 def decode_attn(ios, index):
     index = index%len(streams)
-    s = streams[index]
-    s.wait_stream(torch.cuda.current_stream())  # NEW!
-    with torch.cuda.stream(s):
-        decode_attns[index](ios)
-    torch.cuda.current_stream().wait_stream(s)
+    if index == 0:
+        decode_attns[0](ios)
+    else:
+        s = streams[index]
+        s.wait_stream(torch.cuda.current_stream())  # NEW!
+        with torch.cuda.stream(s):
+            decode_attns[index](ios)
+        torch.cuda.current_stream().wait_stream(s)
     
 class PyPlugin:
     def init(self, params):

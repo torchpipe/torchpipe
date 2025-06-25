@@ -36,9 +36,10 @@ python chat_client.py --prompt="Do you know the book Traction by Gino Wickman?" 
 test on ShareGPT dataset, qps=2, requests=500, llama2-7b, A10-24G
 
 | Option | Median TTFT(ms) | Median TPOT | Input throughput (tok/s) | Output | Generated tokens |
-| ------ | --------------- | ----------- | ------------------------ | ------ | ---------------- |
-| vLLM   | 68              | 51          | 421                      | 380    | 105794           |
-| our    | 68              | 43          | 423                      | 383    | 106175           |
+| ------ | --------------- | ----------- | ---------- | ------ | ----- |
+| vLLM   | 68              | 51          | 421 | 380    | 105794           |
+| our    | 68              | 43          | 423  | 383    | 106175           |
+| our/trt-attn  | 138690 | 248          | 160 | 383    | 105702           |
 
 trt-attn:
 ============ Serving Benchmark Result ============
@@ -89,3 +90,9 @@ https://dl.acm.org/doi/pdf/10.1145/3689031.3717489
 https://yangzhihome.github.io/
 - A SYSTEM FOR MICROSERVING OF LLMS
 - https://www.themoonlight.io/en/review/a-system-for-microserving-of-llms
+
+
+
+todo:
+
+修复时间戳，将recomputation加在最前面

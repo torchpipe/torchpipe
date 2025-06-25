@@ -42,7 +42,8 @@ void SequentialV0::impl_forward(const std::vector<dict>& io) {
         } else {
           dicts_guard.erase(TASK_RESULT_KEY);
           throw std::runtime_error(
-              "SequentialV0: no result in " + base_config_[i].at("backend"));
+              "SequentialV0: no result in " +
+              base_config_[i - 1].at("backend"));
           break_index.insert(j);
           if (break_index.size() == io.size())
             return;
@@ -101,6 +102,9 @@ void Sequential::update_min_max() {
   if (num_one == backends_.size()) {
     max_ = 1;
   }
+  // else if (num_one != 0 && max_ == std::numeric_limits<size_t>::max()) {
+  //   max_ = 1;
+  // }
   // if (num_one != 0 && max_ == std::numeric_limits<size_t>::max()) {
   //   max_ = 1;
   // }
@@ -137,7 +141,7 @@ void Sequential::impl_forward(const std::vector<dict>& io) {
         } else {
           // dicts_guard.erase(TASK_RESULT_KEY);
           throw std::runtime_error(
-              "Sequential: no result in " + backend_cfgs_.at(i));
+              "Sequential: no result in " + backend_cfgs_.at(i - 1));
           break_index.insert(j);
           if (break_index.size() == io.size())
             return;

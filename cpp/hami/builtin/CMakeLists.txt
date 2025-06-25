@@ -24,6 +24,7 @@ cc_library(
     proxy.cpp
     cat_split.cpp
     ioc.cpp
+    box.cpp
     generate_backend.cpp
     result_queue.cpp
     benchmark.cpp

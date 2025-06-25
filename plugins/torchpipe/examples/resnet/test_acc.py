@@ -57,7 +57,7 @@ def get_model(toml_path) :
 #     import torchpipe.utils.model_helper as model_helper
     
 #     model, preprocessor = model_helper.get_classification_model("resnet50", 224, 224)
-#     onnx_path = model_helper.export_x3hw(model, 224, 224)
+#     onnx_path = model_helper.export_n3hw(model, 224, 224)
     
 #     onnx_model = OnnxModel(onnx_path)
 #     all_result = {}

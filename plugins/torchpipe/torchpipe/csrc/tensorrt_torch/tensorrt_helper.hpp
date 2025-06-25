@@ -28,11 +28,29 @@ inline nvinfer1::DataType convert2trt(const std::string& type_name) {
     return nvinfer1::DataType::kBF16;
   } else if (type_name == "int64") {
     return nvinfer1::DataType::kINT64;
-  } else if (type_name == "int4") {
-    return nvinfer1::DataType::kINT4;
+    //  } else if (type_name == "int4") {
+    //    return nvinfer1::DataType::kINT4;
   } else {
     throw std::invalid_argument("Unsupported data type: " + type_name);
   }
+}
+
+inline NetIOInfo::Dims64 convert_dims(const nvinfer1::Dims& dims) {
+  NetIOInfo::Dims64 dims64;
+  dims64.nbDims = dims.nbDims;
+  for (int i = 0; i < dims.nbDims; ++i) {
+    dims64.d[i] = static_cast<int64_t>(dims.d[i]);
+  }
+  return dims64;
+}
+
+inline nvinfer1::Dims convert_dims(const NetIOInfo::Dims64& dims64) {
+  nvinfer1::Dims dims;
+  dims.nbDims = dims64.nbDims;
+  for (int i = 0; i < dims64.nbDims; ++i) {
+    dims.d[i] = dims64.d[i];
+  }
+  return dims;
 }
 
 constexpr auto TASK_ENGINE_KEY = "_engine";

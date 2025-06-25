@@ -448,44 +448,44 @@ void try_update(
 namespace hami {
 
 namespace str {
-
 template <typename... Args>
 std::string format(const std::string& fmt, Args&&... args) {
   std::ostringstream oss;
-  std::string remaining_fmt = fmt; // 引入一个非 const 的局部变量
-  size_t index = 0;
-  size_t pos = 0;
+  std::string remaining_fmt = fmt;
+  size_t current_index = 0; // 当前要替换的参数索引
 
-  // 使用 lambda 捕获参数包
-  auto format_arg = [&](const auto& arg) {
-    // 如果索引超过参数的数量，直接返回
-    if (index >= sizeof...(Args)) {
-      return;
-    }
+  // 遍历所有参数
+  auto replace_placeholder = [&](const auto& arg) {
+    // 构造当前占位符，如 "{0}", "{1}", ...
+    std::string placeholder = "{" + std::to_string(current_index) + "}";
+    size_t pos = remaining_fmt.find(placeholder);
 
-    std::string placeholder = "{" + std::to_string(index) + "}";
-    size_t current_pos = remaining_fmt.find(placeholder, pos);
-    if (current_pos != std::string::npos) {
-      // 将当前占位符之前的部分添加到 ostringstream
-      oss << remaining_fmt.substr(0, current_pos);
-      // 添加参数
-      oss << arg;
-      // 更新剩余格式字符串
-      remaining_fmt = remaining_fmt.substr(current_pos + placeholder.length());
-      pos = 0; // 重置位置，以确保后续搜索从头开始
+    if (pos != std::string::npos) {
+      // 找到占位符，替换它
+      oss << remaining_fmt.substr(0, pos); // 写入占位符之前的部分
+      oss << arg; // 写入参数
+      remaining_fmt =
+          remaining_fmt.substr(pos + placeholder.length()); // 更新剩余字符串
     } else {
-      // 如果没有找到占位符，直接添加剩余部分
-      oss << remaining_fmt;
-      remaining_fmt.clear();
+      // 没有找到占位符，直接写入参数（可能多余，取决于需求）
+      // 这里选择忽略多余的参数（不写入）
+      // 如果需要严格检查，可以抛出异常
     }
-    index++;
+
+    current_index++; // 移动到下一个参数
   };
 
-  // 依次处理每个参数
-  (format_arg(std::forward<Args>(args)), ...);
+  // 先替换所有占位符对应的参数
+  (replace_placeholder(std::forward<Args>(args)), ...);
 
-  // 添加剩余部分
+  // 如果还有剩余未替换的 `{N}` 占位符（如 `{3}` 但只有 2 个参数），可以选择：
+  // 1. 忽略（当前实现）
+  // 2. 抛出异常（更严格）
+  // 3. 保留原占位符（不推荐）
+
+  // 最后写入剩余未解析的字符串（如普通文本）
   oss << remaining_fmt;
+
   return oss.str();
 }
 

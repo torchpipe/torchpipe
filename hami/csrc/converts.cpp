@@ -90,6 +90,7 @@ std::optional<any> object2any_dict_base_type(
     }
     return re;
   }
+  SPDLOG_INFO("object2any_dict_base_type failed. ");
   return std::nullopt;
 }
 

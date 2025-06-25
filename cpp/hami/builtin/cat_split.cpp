@@ -9,11 +9,11 @@ namespace hami {
 void CatSplit::post_init(
     const std::unordered_map<std::string, std::string>& config,
     const dict& kwargs) {
-  HAMI_ASSERT(base_dependencies_.size() == EXPECTED_DEPENDENCIES,
-              "CatSplit requires exactly " +
-                  std::to_string(EXPECTED_DEPENDENCIES) +
-                  " comma-separated backends, but received " +
-                  std::to_string(base_dependencies_.size()));
+  HAMI_ASSERT(
+      base_dependencies_.size() == EXPECTED_DEPENDENCIES,
+      "CatSplit requires exactly " + std::to_string(EXPECTED_DEPENDENCIES) +
+          " comma-separated backends, but received " +
+          std::to_string(base_dependencies_.size()));
 
   HAMI_ASSERT(
       base_dependencies_[0]->max() == std::numeric_limits<size_t>::max(),
@@ -30,16 +30,18 @@ void CatSplit::impl_forward(const std::vector<dict>& data) {
   // first stage: concatenate
   base_dependencies_[0]->forward(data);
   auto iter = data[0]->find(TASK_RESULT_KEY);
-  HAMI_ASSERT(iter != data[0]->end(),
-              "CatSplit requires a result key in the first input");
+  HAMI_ASSERT(
+      iter != data[0]->end(),
+      "CatSplit requires a result key in the first input");
   (*data[0])[TASK_DATA_KEY] = iter->second;
   data[0]->erase(TASK_RESULT_KEY);
 
   // second stage: batching inference
   base_dependencies_.at(1)->forward({data.at(0)});
   iter = data[0]->find(TASK_RESULT_KEY);
-  HAMI_ASSERT(iter != data[0]->end(),
-              "CatSplit requires a result key in the second input");
+  HAMI_ASSERT(
+      iter != data[0]->end(),
+      "CatSplit requires a result key in the second input");
   (*data[0])[TASK_DATA_KEY] = iter->second;
   data[0]->erase(TASK_RESULT_KEY);
 
@@ -59,4 +61,4 @@ std::vector<size_t> CatSplit::set_init_order(size_t max_range) const {
 
 HAMI_REGISTER_BACKEND(CatSplit);
 
-}  // namespace hami
+} // namespace hami

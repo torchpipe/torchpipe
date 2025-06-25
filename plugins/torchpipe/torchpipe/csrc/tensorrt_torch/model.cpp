@@ -10,13 +10,13 @@ namespace {
 
 #if NV_TENSORRT_MAJOR > 10 || \
     (NV_TENSORRT_MAJOR == 10 && NV_TENSORRT_MINOR >= 7)
-#define USE_TENSORRT_STREAMER_V2
+#define USE_TENSORRT_STREAMER
 #endif
 
-#ifdef USE_TENSORRT_STREAMER_V2
+#ifdef USE_TENSORRT_STREAMER
 class LocalFileStreamReader : public nvinfer1::IStreamReaderV2
 #else
-class LocalFileStreamReader : public nvinfer1::IStreamReader
+class LocalFileStreamReader //: public nvinfer1::IStreamReader
 #endif
 {
  private:
@@ -57,13 +57,13 @@ class LocalFileStreamReader : public nvinfer1::IStreamReader
     return buffer;
   }
 
+#ifdef USE_TENSORRT_STREAMER
   ~LocalFileStreamReader() override {
     if (file_stream.is_open()) {
       file_stream.close();
     }
   }
 
-#ifdef USE_TENSORRT_STREAMER_V2
   bool seek(int64_t offset, nvinfer1::SeekPosition where) noexcept override
       final {
     switch (where) {
@@ -120,13 +120,13 @@ class LocalFileStreamReader : public nvinfer1::IStreamReader
     file_stream.seekg(0);
   }
 #else
-  int64_t read(void* destination, int64_t nbBytes) override {
-    if (!file_stream.good()) {
-      return -1;
-    }
-    file_stream.read(static_cast<char*>(destination), nbBytes);
-    return file_stream.gcount();
-  }
+  // int64_t read(void* destination, int64_t nbBytes) override {
+  //   if (!file_stream.good()) {
+  //     return -1;
+  //   }
+  //   file_stream.read(static_cast<char*>(destination), nbBytes);
+  //   return file_stream.gcount();
+  // }
 #endif
 };
 
@@ -170,8 +170,10 @@ void LoadTensorrtEngine::impl_init(
   LocalFileStreamReader reader(config.at("model"));
   runtime_ = std::unique_ptr<nvinfer1::IRuntime>(
       nvinfer1::createInferRuntime(*get_trt_logger()));
+#if (NV_TENSORRT_MAJOR >= 10)
   allocator_ = std::make_unique<TorchAsyncAllocator>();
   runtime_->setGpuAllocator(allocator_.get());
+#endif
   auto data = reader.read(); // core dump if directly use reader...
   auto* engine_ptr = runtime_->deserializeCudaEngine(data.data(), data.size());
   engine_ = std::unique_ptr<nvinfer1::ICudaEngine>(engine_ptr);
@@ -202,8 +204,10 @@ void Onnx2Tensorrt::impl_init(
   // set runtime && allocator
   runtime_ = std::unique_ptr<nvinfer1::IRuntime>(
       nvinfer1::createInferRuntime(*get_trt_logger()));
+#if (NV_TENSORRT_MAJOR >= 10)
   allocator_ = std::make_unique<TorchAsyncAllocator>();
   runtime_->setGpuAllocator(allocator_.get());
+#endif
 
   // initialize converter, get std::shared_ptr<ICudaEngine>
   HAMI_ASSERT(

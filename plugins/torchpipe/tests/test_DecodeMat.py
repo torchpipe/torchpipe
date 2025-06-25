@@ -16,14 +16,16 @@ import numpy as np
 #         pytest.skip(f"Skipping test due to failure in fetching image: {e}")
 
 # # Test function
+
+
 def test_DecodeTensor():
     # Initialize the DecodeTensor model
-    model = hami._C.init("S_v0[DecodeMat,Mat2Tensor]", {"color": "rgb"})
+    model = hami._C.init("S[DecodeMat,Mat2Tensor]", {"color": "rgb"})
 
     img = np.ones((1, 1, 3), dtype=np.uint8)*5
-    img[0,0,0] = 0
-    img[0,0,1] = 0
-    img[0,0,2] = 255
+    img[0, 0, 0] = 0
+    img[0, 0, 1] = 0
+    img[0, 0, 2] = 255
     img = Image.fromarray(img)
     img_byte_arr = BytesIO()
     img.save(img_byte_arr, format="JPEG")
@@ -39,9 +41,10 @@ def test_DecodeTensor():
     assert input["result"].shape == (1, 1, 3)
     # print(input["result"].shape)
     # print(input["result"][0,0,:])
-    assert input["result"][0,0,-1] == 0
-    
+    assert input["result"][0, 0, -1] == 0
+
+
 if __name__ == "__main__":
-    import time 
+    import time
     time.sleep(5)
     test_DecodeTensor()

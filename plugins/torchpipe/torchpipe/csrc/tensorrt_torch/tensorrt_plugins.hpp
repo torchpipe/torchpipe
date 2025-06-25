@@ -36,6 +36,7 @@ struct TorchPluginParameters {
   std::string name{"TorchPlugin"};
 };
 
+#if NV_TENSORRT_MAJOR >= 10
 class TorchPlugin : public IPluginV3,
                     public IPluginV3OneCore,
                     public IPluginV3OneBuild,
@@ -140,13 +141,14 @@ class TorchPlugin : public IPluginV3,
   //   }
   // bool is_in_runtime_{false};
 };
-
+#endif
 } // namespace plugin
 } // namespace nvinfer1
 
 namespace nvinfer1 {
 namespace plugin {
 
+#if NV_TENSORRT_MAJOR >= 10
 // Plugin factory class.
 class TorchPluginCreator : public nvinfer1::IPluginCreatorV3One {
  public:
@@ -180,6 +182,7 @@ class TorchPluginCreator : public nvinfer1::IPluginCreatorV3One {
   std::vector<nvinfer1::PluginField> mPluginAttributes;
 };
 
+#endif
 } // namespace plugin
 } // namespace nvinfer1
 #endif // TENSORRT_PLUGIN_PLUGIN_H

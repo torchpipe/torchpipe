@@ -1,0 +1,8 @@
+tritonclient[grpc] 
+py3nvml 
+psutil 
+opencv-python-headless 
+torch==2.7.1
+timm==1.0.15 
+onnxsim==0.4.36
+nvidia-ml-py

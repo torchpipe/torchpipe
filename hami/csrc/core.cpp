@@ -71,6 +71,9 @@ void init_core(py::module_& m) {
       .def("rethrow", &ExceptionHolder::rethrow);
 
   HAMI_ADD_HASH(std::exception_ptr);
+  HAMI_ADD_HASH(std::pair<int, int>);
+  HAMI_ADD_HASH(std::pair<float, float>);
+  HAMI_ADD_HASH(std::pair<std::string, std::string>);
 
   py::class_<AtomicType<int>>(m, "AtomicInt")
       .def(py::init<int>(), py::arg("value") = 0)

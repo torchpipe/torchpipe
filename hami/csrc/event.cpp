@@ -8,6 +8,7 @@
 #include "hami/core/any.hpp"
 #include "hami/core/event.hpp"
 #include "hami/csrc/py_helper.hpp"
+#include "hami/helper/timer.hpp"
 
 namespace hami {
 
@@ -63,6 +64,10 @@ void init_event(py::module_& m) {
       .attr("type_hash") = typeid(std::shared_ptr<Event>).hash_code();
 
   m.attr("TASK_EVENT_KEY") = py::cast(TASK_EVENT_KEY);
+  m.def(
+      "timestamp",
+      &helper::timestamp,
+      pybind11::call_guard<pybind11::gil_scoped_release>());
 }
 
 } // namespace hami

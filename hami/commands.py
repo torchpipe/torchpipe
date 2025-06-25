@@ -4,36 +4,49 @@ import os
 import importlib
 
 DIR = os.path.abspath(os.path.dirname(__file__))
+print(f'Hami DIR: {DIR}, __file__: {__file__}')
+
 
 def get_C_path() -> str:
-    
-    hami_dir =  os.path.join(DIR, "../")
-    ext_suffix = importlib.machinery.EXTENSION_SUFFIXES[0]  
+
+    hami_dir = os.path.join(DIR, "../")
+    ext_suffix = importlib.machinery.EXTENSION_SUFFIXES[0]
     hami_C_so = (os.path.join(hami_dir, "hami", f'_C{ext_suffix}'))
     return hami_C_so
-    
+
+
 def get_root() -> str:
     return os.path.join(DIR, "../")
+
 
 def get_includes() -> str:  # noqa: ARG001
     """
     Return the path to the hami include directories.
     """
     in_directories = []
-    installed_path = os.path.join(DIR, "../cpp")
+    installed_path = os.path.join(DIR, "include")
+    if not os.path.exists(installed_path):
+        installed_path = os.path.join(DIR, "../cpp/")
+        assert os.path.exists(installed_path), installed_path
+    re = [installed_path,  os.path.join(
+        DIR, "./"),  os.path.join(DIR, "../third_party/spdlog/include/")]
+    re += [os.path.join(DIR, "../")]
+    return re
     source_path = os.path.join(os.path.dirname(DIR), "include")
-    in_directories.append(installed_path if os.path.exists(installed_path) else source_path)
-    
+    in_directories.append(installed_path if os.path.exists(
+        installed_path) else source_path)
+
     curr = os.path.join(DIR, "../")
     assert os.path.exists(os.path.join(curr, "hami", "csrc")), curr
     in_directories.append(curr)
-    
+
     third = os.path.join(curr, "./third_party/spdlog/include/")
     assert os.path.exists(third)
     in_directories.append(third)
     return in_directories
 
-def get_library_dir() -> str: # noqa: ARG001
+
+def get_library_dir() -> str:  # noqa: ARG001
     lib_path = os.path.join(DIR, ".")
     so_path = os.path.join(lib_path, "libhami.so")
     if not os.path.exists(so_path):
@@ -41,8 +54,9 @@ def get_library_dir() -> str: # noqa: ARG001
         so_path = os.path.join(lib_path, "libhami.so")
     if not os.path.exists(so_path):
         raise RuntimeError(f"{so_path} not exist")
-        
+
     return lib_path
+
 
 def get_cmake_dir() -> str:
     """

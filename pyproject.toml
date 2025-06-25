@@ -54,7 +54,7 @@ dependencies = {file = "requirements.txt"}
 # version = {file = "VERSION"}
 
 [tool.setuptools.exclude-package-data]
-"*" = ["*.h", "*.cc", "*.bak", "*.in", "csrc/*", "CMakeLists.txt", "hami/csrc/"]
+"*" = ["*.cc", "*.bak", "*.in", "CMakeLists.txt"]
 
 # [tool.setuptools.cmdclass]
 # build_ext = "setup.CMakeBuild"

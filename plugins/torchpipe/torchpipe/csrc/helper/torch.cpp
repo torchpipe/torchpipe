@@ -769,13 +769,13 @@ void check_batched_inputs(
   }
 }
 
-bool match(NetIOInfo::Dims64* dst, const torch::Tensor& src) {
-  if (dst->nbDims != src.sizes().size())
+bool match(NetIOInfo::Dims64& dst, const torch::Tensor& src) {
+  if (dst.nbDims != src.sizes().size())
     return false;
   bool shape_is_match = true;
-  for (size_t i = 0; i < dst->nbDims; ++i) {
-    if (dst->d[i] != src.sizes()[i]) {
-      dst->d[i] = src.sizes()[i];
+  for (size_t i = 0; i < dst.nbDims; ++i) {
+    if (dst.d[i] != src.sizes()[i]) {
+      dst.d[i] = src.sizes()[i];
       shape_is_match = false; // no break!
     }
   }

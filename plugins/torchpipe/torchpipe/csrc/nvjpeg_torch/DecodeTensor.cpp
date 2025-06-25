@@ -10,13 +10,13 @@ namespace {
       ("nvjpeg error: nvjpegStatus_t = " + std::to_string(int(_e))));
 }
 
-#define CHECK_NVJPEG_RESULT(EVAL)                                           \
-  {                                                                         \
-    nvjpegStatus_t _e = EVAL;                                               \
-    if (_e != NVJPEG_STATUS_SUCCESS) {                                      \
-      throw std::runtime_error(str::format(                                 \
-          "nvjpeg error: nvjpegStatus_t = {}, EVAL = {}", int(_e), #EVAL)); \
-    }                                                                       \
+#define CHECK_NVJPEG_RESULT(EVAL)                                             \
+  {                                                                           \
+    nvjpegStatus_t _e = EVAL;                                                 \
+    if (_e != NVJPEG_STATUS_SUCCESS) {                                        \
+      throw std::runtime_error(str::format(                                   \
+          "nvjpeg error: nvjpegStatus_t = {0}, EVAL = {1}", int(_e), #EVAL)); \
+    }                                                                         \
   }
 
 bool decode(
@@ -147,6 +147,7 @@ void DecodeTensor::impl_init(
   auto tmp =
       torch::empty({1, 1}, torch::TensorOptions().device(torch::kCUDA, -1));
   nvjpegBackend_t backend = NVJPEG_BACKEND_DEFAULT;
+  // backend = NVJPEG_BACKEND_GPU_HYBRID;
 //
 #if NVJPEG_VER_MAJOR == 11 && NVJPEG_VER_MINOR <= 6
   // nvjpegDevAllocator_t dev_allocator = {&torch_malloc, &torch_free};

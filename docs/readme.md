@@ -194,7 +194,7 @@ Interperter:
 
 # 三个位置调度 （before dag/ batching）
 Aspect[Restart, DagDispatcher,Batching, InstanceDispatcher] 
-Aspect[Restart, DagDispatcher;ContiguousBatching, InstanceDispatcher]
+Aspect[Restart, DagDispatcher;ContinuousBatching, InstanceDispatcher]
 entry = Aspect[Restart,Dag]() => (Container, schedule = DI_v0[Batching, InstanceDispatcher])
 
 

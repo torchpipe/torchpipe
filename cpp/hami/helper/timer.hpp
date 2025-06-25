@@ -33,6 +33,13 @@ inline std::chrono::steady_clock::time_point now() {
   return std::chrono::steady_clock::now();
 }
 
+std::chrono::steady_clock::time_point start_time();
+
+inline float timestamp() {
+  std::chrono::duration<float, std::milli> fp_ms = now() - start_time();
+  return fp_ms.count();
+}
+
 inline float time_passed(decltype(now()) time_old) {
   std::chrono::duration<float, std::milli> fp_ms = now() - time_old;
   return fp_ms.count();

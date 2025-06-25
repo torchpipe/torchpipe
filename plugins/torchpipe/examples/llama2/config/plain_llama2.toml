@@ -5,11 +5,11 @@ entrypoint = "Restart[DagDispatcher]"
 backend = "S[EmbeddingTensor(exported_params/embed_tokens.pt),StreamGuard,SetTensorRequestSize]"
 # Add(jump:batchless_prefill)
 # ,Send2Queue(batchless_prefill,keep_result=1) SetTensorMsg UpdateTensorMsg
-next = "contiguous_batching"
+next = "continuous_batching"
 
-[contiguous_batching]
-# node_entrypoint = "List[Register(cb)[ContiguousBatching(queue)], Register[S[CBTensorStatus,Forward[cb]]]]"
-node_entrypoint = "Register[IoC[ContiguousBatching(target=node.batchable);Loop(batch_queue,target=ContiguousBatching)]]"
+[continuous_batching]
+# node_entrypoint = "List[Register(cb)[ContinuousBatching(queue)], Register[S[CBTensorStatus,Forward[cb]]]]"
+node_entrypoint = "Register[IoC[ContinuousBatching(target=node.batchable);Loop(batch_queue,target=ContinuousBatching)]]"
 # req CBStatus Loop(batch_queue,target="") TASK_MSG_KEY xieyi / pool
 # 
 max = 4096
@@ -28,7 +28,7 @@ post_processor = "SoftmaxArgMaxTensor"
 # pre_processor = "PrintTensor" 
 fake_instance_num = 5
 # [pre_decode_stage]
-# # node_entrypoint = "Register[Forward[node.contiguous_batching]]"
+# # node_entrypoint = "Register[Forward[node.continuous_batching]]"
 # backend=""
 # the tensorrt plugin 
 #

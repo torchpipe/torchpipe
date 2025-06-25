@@ -194,7 +194,11 @@ void Batching::impl_inject_dependency(Backend* dependency) {
   const size_t max_bs = dependency->max();
   if (batching_timeout_ > 0 && max_bs > 1) {
     bInited_.store(true);
-    thread_ = std::thread(&Batching::run, this);
+    thread_ = std::thread(&Batching::run, this, max_bs);
+    SPDLOG_INFO(
+        "Batching impl_inject_dependency. node_name = `{}`  Max Batch Size = `{}`",
+        node_name_,
+        max_bs);
   } else {
     SPDLOG_INFO(
         "Batching thread not inited because batching_timeout_ = 0 or "
@@ -216,10 +220,10 @@ void Batching::impl_forward_with_dep(
   helper.wait();
 }
 
-void Batching::run() {
+void Batching::run(size_t max_bs) {
   while (bInited_.load() && !input_queue_.wait_for(batching_timeout_)) {
   };
-  const size_t max_bs = max();
+  // const size_t max_bs = max();
   SPDLOG_INFO(
       "Batching thread inited. node_name = `{}` Timeout = `{}` Max Batch Size = `{}`",
       node_name_,

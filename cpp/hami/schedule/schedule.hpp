@@ -10,6 +10,8 @@
 #include "hami/helper/threadsafe_sized_queue.hpp"
 #include "hami/schedule/schedule_states.hpp"
 #include "hami/builtin/page_table.hpp"
+#include "hami/helper/base_logging.hpp"
+
 namespace hami {
 
 class Loop : public Backend {
@@ -62,7 +64,7 @@ class Batching : public Dependency {
       override final;
   void impl_forward_with_dep(const std::vector<dict>& input, Backend& dep)
       override final;
-  virtual void run();
+  virtual void run(size_t max_bs);
   void impl_inject_dependency(Backend* dependency) override;
 
  public:
@@ -81,6 +83,9 @@ class Batching : public Dependency {
       size_t req_size,
       size_t timeout) {
     if (instances_state_->query_available(req_size, timeout, false)) {
+      // SPDLOG_INFO(
+      //     "Batching::try_forward, node_name = {}, req_size = {} io size =
+      //     {}", node_name_, req_size, input_output.size());
       injected_dependency_->forward(input_output);
       return true;
     }

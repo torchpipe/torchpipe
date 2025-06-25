@@ -10,7 +10,7 @@ cc_library(
     restart.cpp
     event_guard.cpp
     schedule.cpp
-    contiguous_batching.cpp
+    continuous_batching.cpp
     dag.cpp
     schedule_states.cpp
   DEPS

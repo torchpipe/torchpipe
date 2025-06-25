@@ -1,0 +1,18 @@
+[mix]
+node_entrypoint = 'Register[Random(0.5)[node.cpu_preproc,node.gpu_preproc]]'
+
+[cpu_preproc]
+backend = "S[DecodeMat,ResizeMat,CvtColorMat,Mat2Tensor,StreamGuard]"
+color = 'rgb'
+resize_h = 224
+resize_w = 224
+
+instance_num = 8
+
+[gpu_preproc]
+backend = "S[DecodeTensor,ResizeTensor,CvtColorTensor,StreamGuard]"
+color = 'rgb'
+resize_h = 224
+resize_w = 224
+
+instance_num = 8

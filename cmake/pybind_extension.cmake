@@ -147,7 +147,10 @@ function(pybind_extension)
 #   "-Wl,--no-whole-archive"
 # )
 
- 
+ add_compile_options(-Wno-error=attributes)
+  add_compile_options(-Wno-attributes)
+add_compile_options(-fvisibility=default)  # Linux/macOS
+
   target_link_libraries(${PY_NAME}
     PUBLIC ${PY_DEPS}
     PRIVATE ${PY_LINKOPTS}
@@ -163,15 +166,22 @@ function(pybind_extension)
   # -fvisibility=hidden is required to allow multiple modules compiled against
   # different pybind versions to work properly, and for some features (e.g.
   # py::module_local). 
-  if(NOT DEFINED CMAKE_CXX_VISIBILITY_PRESET)
-    set_target_properties(${PY_NAME} PROPERTIES CXX_VISIBILITY_PRESET "hidden")
-  endif()
+  # if(NOT DEFINED CMAKE_CXX_VISIBILITY_PRESET)
+  #   # set_target_properties(${PY_NAME} PROPERTIES CXX_VISIBILITY_PRESET "hidden")
+  #   set_target_properties(${PY_NAME} PROPERTIES CXX_VISIBILITY_PRESET "default")
+  # endif()
+  set(CMAKE_CXX_VISIBILITY_PRESET default)
+  set(CMAKE_VISIBILITY_INLINES_HIDDEN OFF)
 
   if(NOT DEFINED CMAKE_CUDA_VISIBILITY_PRESET)
     set_target_properties(${PY_NAME} PROPERTIES CUDA_VISIBILITY_PRESET "hidden")
   endif()
 
-  set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/hami)
+# if no CMAKE_LIBRARY_OUTPUT_DIRECTORY
+  if(NOT DEFINED CMAKE_LIBRARY_OUTPUT_DIRECTORY)
+    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/hami)
+  endif()
+  
 
   set_target_properties(
     ${PY_NAME}
@@ -182,6 +192,7 @@ function(pybind_extension)
   
   # # 确保静态链接的库不会被动态链接
   target_link_options(${PY_NAME} PRIVATE -Wl,--exclude-libs,ALL)
+target_link_libraries(${PY_NAME} PRIVATE pybind11::module)
 
 
 set_target_properties(${PY_NAME} PROPERTIES

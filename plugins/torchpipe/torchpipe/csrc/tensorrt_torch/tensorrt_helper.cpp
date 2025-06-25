@@ -222,9 +222,7 @@ void print_colored_net(
   std::stringstream ss;
 
   // Header
-  ss << hami::colored(
-            "\n==================== Network Inputs ====================")
-     << "\n";
+  ss << hami::colored("\n====== Network Inputs =====") << "\n";
 
   // Print each input's name and dimensions
   for (std::size_t i = 0; i < net_inputs_ordered_dims.size(); ++i) {
@@ -250,12 +248,6 @@ void print_colored_net(
             "max/min) for "
             "profiles.")
      << "\n";
-  // if (input_reorder.size() > 1)
-  // {
-  //     ss << hami::colored(
-  //               "2. Reset the input order by modifying `input_reorder`.")
-  //        << "\n";
-  // }
 
   // Print the final output
   SPDLOG_INFO(ss.str());
@@ -526,11 +518,22 @@ void update_min_max_setting(
 
         if (current_net_dim == -1) {
           // Handle dynamic dimensions
-          if (min_profile[i][d] == -1) {
-            min_profile[i][d] = 1;
-          }
-          if (max_profile[i][d] == -1) {
-            max_profile[i][d] = 1;
+          if (d == 0) {
+            if (min_profile[i][d] == -1) {
+              min_profile[i][d] = 1;
+            }
+            if (max_profile[i][d] == -1) {
+              max_profile[i][d] = 1;
+            }
+          } else {
+            if (min_profile[i][d] == -1) {
+              HAMI_ASSERT(max_profile[i][d] != -1);
+              min_profile[i][d] = max_profile[i][d];
+            }
+            if (max_profile[i][d] == -1) {
+              HAMI_ASSERT(min_profile[i][d] != -1);
+              max_profile[i][d] = min_profile[i][d];
+            }
           }
         } else {
           // Use network's dimension as default if not configured
@@ -682,12 +685,25 @@ std::unique_ptr<nvinfer1::IHostMemory> onnx2trt(OnnxParams& params) {
     HAMI_ASSERT(params.mins[index_p].size() == network->getNbInputs());
     HAMI_ASSERT(params.maxs[index_p].size() == network->getNbInputs());
 
+    std::stringstream ss;
+    ss << "==================== Engine Profiles ====================\n";
     for (int i = 0; i < input_reorder.size(); ++i) {
       if (network->getInput(input_reorder[i])->isShapeTensor()) {
         auto& min_dim = params.mins[index_p][i];
         auto& max_dim = params.maxs[index_p][i];
 
-        // todo check input dims match
+        ss << "Input " << network->getInput(input_reorder[i])->getName()
+           << " (Shape Tensor):\n";
+        ss << "  Min: ";
+        for (const auto& dim : min_dim) {
+          ss << dim << " ";
+        }
+        ss << "\n  Max: ";
+        for (const auto& dim : max_dim) {
+          ss << dim << " ";
+        }
+        ss << "\n";
+
         HAMI_ASSERT(profile->setShapeValues(
             network->getInput(input_reorder[i])->getName(),
             nvinfer1::OptProfileSelector::kMIN,
@@ -709,6 +725,24 @@ std::unique_ptr<nvinfer1::IHostMemory> onnx2trt(OnnxParams& params) {
       auto net_shape = network->getInput(input_reorder[i])->getDimensions();
       auto min_dim = infer_shape(params.mins[index_p][i], net_shape);
       auto max_dim = infer_shape(params.maxs[index_p][i], net_shape);
+
+      ss << "Input " << network->getInput(input_reorder[i])->getName() << ":\n";
+      ss << "  Min: [";
+      for (int j = 0; j < min_dim.nbDims; ++j) {
+        ss << min_dim.d[j];
+        if (j != min_dim.nbDims - 1) {
+          ss << ", ";
+        }
+      }
+      ss << "]\n  Max: [";
+      for (int j = 0; j < max_dim.nbDims; ++j) {
+        ss << max_dim.d[j];
+        if (j != max_dim.nbDims - 1) {
+          ss << ", ";
+        }
+      }
+      ss << "]\n";
+
       profile->setDimensions(
           network->getInput(input_reorder[i])->getName(),
           nvinfer1::OptProfileSelector::kMIN,
@@ -733,6 +767,7 @@ std::unique_ptr<nvinfer1::IHostMemory> onnx2trt(OnnxParams& params) {
       }
       // todo dynamic batch size check
     }
+    SPDLOG_INFO(ss.str());
     config->addOptimizationProfile(profile);
   }
 
@@ -869,7 +904,7 @@ static NetIOInfo::DataType convert_type(const nvinfer1::DataType& data_type) {
 NetIOInfos get_context_shape(
     nvinfer1::IExecutionContext* context,
     size_t profile_index) {
-  static_assert(sizeof(nvinfer1::Dims) == sizeof(NetIOInfo::Dims64));
+  // static_assert(sizeof(nvinfer1::Dims) == sizeof(NetIOInfo::Dims64));
   // NetIOInfos io_info;
   const nvinfer1::ICudaEngine& engine = context->getEngine();
   const auto num_inputsOutputs = engine.getNbIOTensors();
@@ -889,7 +924,8 @@ NetIOInfos get_context_shape(
       nvinfer1::Dims min_dims = engine.getProfileShape(
           name, profile_index, nvinfer1::OptProfileSelector::kMIN);
       HAMI_ASSERT(context->setInputShape(name, min_dims));
-      memcpy(&io_infos[j].min, &min_dims, sizeof(nvinfer1::Dims));
+      io_infos[j].min = convert_dims(min_dims);
+
       num_input++;
     }
   }
@@ -898,7 +934,8 @@ NetIOInfos get_context_shape(
     const auto tensorType = engine.getTensorIOMode(name);
     if (tensorType == nvinfer1::TensorIOMode::kOUTPUT) {
       nvinfer1::Dims dims = context->getTensorShape(name);
-      memcpy(&io_infos[j].min, &dims, sizeof(nvinfer1::Dims));
+      // memcpy(&io_infos[j].min, &dims, sizeof(nvinfer1::Dims));
+      io_infos[j].min = convert_dims(dims);
     }
   }
   for (int j = 0; j < num_inputsOutputs; j++) {
@@ -908,7 +945,8 @@ NetIOInfos get_context_shape(
       nvinfer1::Dims max_dims = engine.getProfileShape(
           name, profile_index, nvinfer1::OptProfileSelector::kMAX);
       HAMI_ASSERT(context->setInputShape(name, max_dims));
-      memcpy(&io_infos[j].max, &max_dims, sizeof(nvinfer1::Dims));
+      // memcpy(&io_infos[j].max, &max_dims, sizeof(nvinfer1::Dims));
+      io_infos[j].max = convert_dims(max_dims);
     }
   }
   for (int j = 0; j < num_inputsOutputs; j++) {
@@ -916,7 +954,8 @@ NetIOInfos get_context_shape(
     const auto tensorType = engine.getTensorIOMode(name);
     if (tensorType == nvinfer1::TensorIOMode::kOUTPUT) {
       nvinfer1::Dims dims = context->getTensorShape(name);
-      memcpy(&io_infos[j].max, &dims, sizeof(nvinfer1::Dims));
+      // memcpy(&io_infos[j].max, &dims, sizeof(nvinfer1::Dims));
+      io_infos[j].max = convert_dims(dims);
     }
   }
   return {
@@ -942,7 +981,8 @@ std::unique_ptr<nvinfer1::IExecutionContext> create_context(
 
 #else
   std::unique_ptr<nvinfer1::IExecutionContext> context =
-      unique_ptr<nvinfer1::IExecutionContext>(engine->createExecutionContext());
+      std::unique_ptr<nvinfer1::IExecutionContext>(
+          engine->createExecutionContext());
 #endif
 
   context->setOptimizationProfileAsync(

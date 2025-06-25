@@ -24,6 +24,8 @@ function(cc_dynamic_library)
   else()
     set(CC_DYNAMIC_LIB_IS_INTERFACE 0)
   endif()
+  
+  add_compile_options(-fvisibility=default)  # Linux/macOS
 
   if(NOT CC_DYNAMIC_LIB_IS_INTERFACE)
     add_library(${CC_DYNAMIC_LIB_NAME} SHARED)
@@ -31,10 +33,14 @@ function(cc_dynamic_library)
     set_target_properties(${CC_DYNAMIC_LIB_NAME} PROPERTIES OUTPUT_NAME ${LIB_NAME_WITHOUT_PREFIX})
 
     # Set the output directory for the library
+    if(NOT DEFINED CMAKE_LIBRARY_OUTPUT_DIRECTORY)
+      set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/hami)
+    endif()
     set_target_properties(${CC_DYNAMIC_LIB_NAME} PROPERTIES
-      LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/hami"
+      LIBRARY_OUTPUT_DIRECTORY "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}"
       LINK_FLAGS "-Wl,--enable-new-dtags,-rpath,\\$ORIGIN"
     )
+    
 
     target_sources(${CC_DYNAMIC_LIB_NAME} 
       PRIVATE ${CC_DYNAMIC_LIB_SRCS} ${CC_DYNAMIC_LIB_HDRS})

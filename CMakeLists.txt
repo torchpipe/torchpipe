@@ -132,6 +132,7 @@ endif()
 # Important Note: Always invoke find_package for other dependencies
  # unexpected linker errors.
 
+add_compile_options(-fvisibility=default)  # Linux/macOS
 
 if (USE_CXX11_ABI)
 add_compile_definitions(_GLIBCXX_USE_CXX11_ABI=1)

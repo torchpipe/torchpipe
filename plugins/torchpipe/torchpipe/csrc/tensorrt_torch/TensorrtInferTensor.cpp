@@ -46,7 +46,7 @@ void TensorrtInferTensor::impl_init(
         "In multi-instance mode, the default stream is prohibited. "
         "Please use a dedicated CUDA stream with StreamGuard: "
         "e.g., StreamGuard[X], "
-        "or S_v0[X1, X2, StreamGuard]");
+        "or S[X1, X2, StreamGuard]");
   }
 
   auto iter = kwargs->find(TASK_ENGINE_KEY);
@@ -61,8 +61,13 @@ void TensorrtInferTensor::impl_init(
 
   (*kwargs)[TASK_IO_INFO_KEY] = std::make_shared<NetIOInfos>(info_);
 
-  if (mem_size_ == 0)
+  if (mem_size_ == 0) {
+#if NV_TENSORRT_MAJOR < 10
+    mem_size_ = engine_->getDeviceMemorySize();
+#else
     mem_size_ = context_->updateDeviceMemorySizeForShapes();
+#endif
+  }
 
   HAMI_ASSERT(
       cudaSuccess ==
@@ -87,11 +92,12 @@ void TensorrtInferTensor::impl_forward(
     const auto& name_str = *info_.first[j].name;
     const auto* name = name_str.c_str();
 
-    nvinfer1::Dims infer_dims = context_->getTensorShape(name);
-    static_assert(sizeof(nvinfer1::Dims) == sizeof(NetIOInfo::Dims64));
-    if (!match((NetIOInfo::Dims64*)(&infer_dims), inputs[j])) {
+    nvinfer1::Dims infer_dims_nv = context_->getTensorShape(name);
+    auto infer_dims = convert_dims(infer_dims_nv);
+    // static_assert(sizeof(nvinfer1::Dims) == sizeof(NetIOInfo::Dims64));
+    if (!match(infer_dims, inputs[j])) {
       // should_change_shape_[j] = true;
-      context_->setInputShape(name, infer_dims);
+      context_->setInputShape(name, convert_dims(infer_dims));
       mem_size_ = 0;
     }
 
@@ -116,7 +122,8 @@ void TensorrtInferTensor::impl_forward(
   for (unsigned j = 0; j < info_.second.size(); j++) {
     const auto& name_str = *info_.second[j].name;
     const auto* name = name_str.c_str();
-    const auto infer_dims = context_->getTensorShape(name);
+    const auto infer_dims_nv = context_->getTensorShape(name);
+    const auto infer_dims = convert_dims(infer_dims_nv);
     HAMI_FATAL_ASSERT(
         infer_dims.nbDims > 0,
         "TensorRT output tensor shape is empty. "
@@ -149,11 +156,11 @@ void TensorrtInferTensor::impl_forward(
   // memory && execute
 
 #if TRT_USER_MANAGED_MEM
-#if NV_TENSORRT_MAJOR == 10 && NV_TENSORRT_MINOR <= 7
+#if NV_TENSORRT_MAJOR < 10
 
   // context_->getEngine().getDeviceMemorySizeForProfile(instance_index_);
   if (mem_size_ == 0)
-    mem_size_ = context_->updateDeviceMemorySizeForShapes();
+    mem_size_ = engine_->getDeviceMemorySize();
 
 #else
 
@@ -176,7 +183,7 @@ void TensorrtInferTensor::impl_forward(
     // SPDLOG_INFO("model context memory size: {} MB", mem_size_mb);
     mem = torch_allocate(mem_size_);
     mem_ptr = mem.data_ptr();
-#if NV_TENSORRT_MAJOR < 10 && NV_TENSORRT_MINOR < 1
+#if NV_TENSORRT_MAJOR < 10
     context_->setDeviceMemory(mem_ptr);
 #else
     // if (use_v2)

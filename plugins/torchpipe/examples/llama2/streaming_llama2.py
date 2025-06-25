@@ -25,6 +25,7 @@ class RequestState:
     new_tokens: List = field(default_factory=list)
     dropped: bool = False
     decode_stream: DecodeStream = field(default_factory=lambda: DecodeStream(skip_special_tokens=True))
+    time: float = 0.0
     
     def astuple(self):
         return astuple(self)
@@ -48,7 +49,7 @@ class CustomBackendEngine(BackendEngine):
         # from plain_llama2 import PyPlugin, page_size, get_num_layers
         use_trt = kwargs.get("use_trt", False)
         if use_trt:
-            from plain_llama2_trt_multistream import PyPlugin, page_size, get_num_layers, clean_up
+            from plain_llama2_trt import PyPlugin, page_size, get_num_layers, clean_up
         else:
             from plain_llama2 import PyPlugin, page_size, get_num_layers, clean_up
             
@@ -57,6 +58,7 @@ class CustomBackendEngine(BackendEngine):
         self.page_table =  hami.default_page_table()
         self.page_size = page_size
         exported_params = "./exported_params"
+        assert os.path.exists(exported_params), f"dir exported_params not found: {exported_params}"
         self.old_tokenizer = AutoTokenizer.from_pretrained(exported_params, use_fast=True)
         self.tokenizer=tokenizers.Tokenizer.from_file(exported_params + "/tokenizer.json")
         print(self.tokenizer)
@@ -67,7 +69,7 @@ class CustomBackendEngine(BackendEngine):
         self.model = hami.init_from_file('config/streaming_llama2.toml')
         self.request_status = {}
         
-        self.contiguous_batching  = hami.get("node.contiguous_batching")
+        self.continuous_batching  = hami.get("node.continuous_batching")
         
         self.index = hami._C.AtomicInt()
         
@@ -106,10 +108,6 @@ class CustomBackendEngine(BackendEngine):
         else:
             print(f"reusing request_id: {request_id}")
         
-        old_request_id = kwargs.pop("old_request_id", None)
-        if old_request_id:
-            print('restarted: CustomBackendEngine: ', args, kwargs, request_id)
-        
         if  self.need_more_pages and self.page_table.available_pages() < 4096/self.page_size:
             free_mem = torch.cuda.mem_get_info()[0]/(1024.0**2)
             mem_can_use = (free_mem - self.total_mem *self.factor)
@@ -133,6 +131,15 @@ class CustomBackendEngine(BackendEngine):
             inputs = self.old_tokenizer(prompt, return_tensors="pt", return_attention_mask=False)
             input_ids = inputs['input_ids'][0]
             # input_ids = torch.Tensor(self.tokenizer.encode(prompt).ids)
+        
+        
+        timestamp = 0.0
+        old_request_id = kwargs.pop("old_request_id", None)
+        if old_request_id:
+            print('restarted: CustomBackendEngine: ', args, kwargs, request_id)
+            timestamp = kwargs.pop("timestamp", hami.timestamp())
+        else:
+            timestamp = hami.timestamp()
             
         # print(f'input_ids ', type(input_ids))
         event = hami.Event()
@@ -144,11 +151,13 @@ class CustomBackendEngine(BackendEngine):
         io[hami.TASK_REQUEST_ID_KEY] = request_id
         io[hami.TASK_MSG_KEY] = hami.TypedDict({"req_tokens": len(input_ids),
                                                 "max_tokens": sampling_params.max_tokens,
-                                                "context_length":4096})
+                                                "context_length":4096,
+                                                "timestamp":timestamp})
         # print("io ", io)
         
         self.request_status[request_id] = RequestState(event, request_callback, sampling_params, args, kwargs, input_ids, [])
-
+        self.request_status[request_id].time = timestamp
+            
         event.set_final_callback(lambda : self.final_callback(request_id))
         self.model(io)
     
@@ -170,13 +179,13 @@ class CustomBackendEngine(BackendEngine):
             output.finished = True
             hami.print(f"ERROR MSG: \n{e}")
             # no need
-            # self.finish_contiguous_batching(request_id)
+            # self.finish_continuous_batching(request_id)
             status.request_callback(output)
         else:
             hami.print('no exception')
             self.clean_up(request_id)
 
-            self.contiguous_batching_action(request_id)
+            self.continuous_batching_action(request_id)
             if status.dropped:
                 # print(type(status.req_tokens), type(status.new_tokens), flush=True)
                 status.req_tokens = torch.cat([status.req_tokens]+status.new_tokens)
@@ -189,6 +198,7 @@ class CustomBackendEngine(BackendEngine):
                 # status.kwargs['request_id'] = request_id
                 print(f"status.dropped restarted: {request_id}")
                 status.kwargs['old_request_id'] = request_id
+                status.kwargs['timestamp'] = status.time
                 self.add_request(*status.args, **status.kwargs)
         
     def forward(self, ios: List[hami.Dict]):
@@ -255,21 +265,21 @@ class CustomBackendEngine(BackendEngine):
             io['result'] = io['data']
         
     
-    def contiguous_batching_action(self, req_id): # finish pause2prefill pause decode2prefill
+    def continuous_batching_action(self, req_id): # finish pause2prefill pause decode2prefill
         io = hami.Dict({})
         io[hami.TASK_REQUEST_ID_KEY] = req_id
         io[hami.TASK_MSG_KEY] = hami.TypedDict({"action": "finish"})
         ev = io.set_event()
         ev.set_exception_callback(lambda e: self.python_callback(e)) # would not happen
-        self.contiguous_batching(io)
+        self.continuous_batching(io)
 
-    # def finish_contiguous_batching(self, req_id):
+    # def finish_continuous_batching(self, req_id):
     #     io = hami.Dict({})
     #     io[hami.TASK_REQUEST_ID_KEY] = req_id
     #     io[hami.TASK_MSG_KEY] = hami.TypedDict({"action": "finish"})
     #     ev = io.set_event()
     #     ev.set_exception_callback(lambda e: self.python_callback(e)) # would not happen
-    #     self.contiguous_batching(io)
+    #     self.continuous_batching(io)
 
     def python_callback(self, e):
         # if isinstance(e, RuntimeError):
@@ -286,7 +296,7 @@ def main(num_layers = 2, max_num_page = 0, use_trt=False):
     
     if use_trt:
         print('use tensorrt for attn')
-        from plain_llama2_trt_multistream import set_num_layers, set_page_table, page_size
+        from plain_llama2_trt import set_num_layers, set_page_table, page_size
     else:
         from plain_llama2 import set_num_layers, set_page_table, page_size
     set_num_layers(num_layers)

@@ -17,7 +17,21 @@ void Interpreter::impl_init(
     init(config, new_kwargs);
     return;
   }
-  str::mapmap dual_config = any_cast<str::mapmap>(iter->second);
+
+  str::mapmap dual_config;
+  if (iter->second.type() == typeid(str::mapmap)) {
+    dual_config = any_cast<str::mapmap>(iter->second);
+  } else if (
+      iter->second.type() ==
+      typeid(std::unordered_map<std::string, std::string>)) {
+    dual_config[TASK_GLOBAL_KEY] =
+        any_cast<std::unordered_map<std::string, std::string>>(iter->second);
+  } else {
+    HAMI_FATAL_ASSERT(
+        false,
+        "Interpreter: `config` should be a dict or a dict of dict, but got: {}",
+        iter->second.type().name());
+  }
 
   // parser configuration
   parser::broadcast_global(dual_config);

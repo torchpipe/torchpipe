@@ -2,10 +2,12 @@
 build/
 hami*.egg-info/
 dist/
+v0
 __pycache__/
 lib*.so
 *.cpython*.so
 core
+core.*
 !core/
 .tox
 version.py
@@ -19,3 +21,8 @@ wheelhouse/
 VERSION.txt
 *.trt
 log.txt
+.trunk
+*.swp
+hami/_build_info.py
+
+plugins/torchpipe/examples/yolo/dog_result.jpg

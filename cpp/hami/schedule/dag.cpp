@@ -88,16 +88,22 @@ void DagDispatcher::on_start_nodes(
     const std::vector<dict>& tmp_data,
     std::size_t task_queue_index) {
   std::vector<std::string> node_names;
+  std::vector<dict> valid_data;
   for (const auto& io : tmp_data) {
     auto node_name = on_start_node(io, task_queue_index);
-    node_names.push_back(node_name);
+    if (!node_name.empty()) {
+      node_names.push_back(node_name);
+      valid_data.push_back(io);
+    }
   }
+  if (valid_data.empty())
+    return;
   bool all_equal =
       std::adjacent_find(
           node_names.begin(), node_names.end(), std::not_equal_to<>{}) ==
       node_names.end();
   if (all_equal) {
-    base_dependencies_.at("node." + node_names.front())->forward(tmp_data);
+    base_dependencies_.at("node." + node_names.front())->forward(valid_data);
     SPDLOG_DEBUG(
         "all_equal. node name = {}, size = {}",
         node_names.front(),
@@ -107,7 +113,7 @@ void DagDispatcher::on_start_nodes(
       const auto& name = node_names[i];
       if (name.empty())
         continue;
-      const auto& data = tmp_data[i]; // 取出对应的数据
+      const auto& data = valid_data[i]; // 取出对应的数据
       base_dependencies_.at("node." + name)->forward({data}); // 单数据转发
     }
   }

@@ -55,6 +55,22 @@ class SyncTensor : public hami::Backend {
    */
   virtual void impl_forward(const std::vector<dict>& ios) override;
 
+  [[nodiscard]] size_t impl_max() const override {
+    if (owned_backend_) {
+      return owned_backend_->max();
+    } else {
+      return std::numeric_limits<size_t>::max(); // default
+    }
+  }
+
+  [[nodiscard]] size_t impl_min() const override {
+    if (owned_backend_) {
+      return owned_backend_->min();
+    } else {
+      return 1; // default
+    }
+  }
+
  private:
   void impl_dep_forward(const std::vector<dict>& ios) {
     if (owned_backend_)

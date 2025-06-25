@@ -1,7 +1,7 @@
 recursive-include cmake *
-recursive-include cpp *
-recursive-include third_party *
-recursive-include hami *
+recursive-include hami/utils/ *
+recursive-include hami/csrc/ *.hpp *.h
+
 
 include LICENSE
 include VERSION
@@ -11,3 +11,5 @@ global-exclude */__pycache__/*
 global-exclude *.pyc
 
 include hami/*.py
+include hami/*.hpp
+

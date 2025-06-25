@@ -26,7 +26,7 @@
 
 namespace nvinfer1 {
 namespace plugin {
-
+#if NV_TENSORRT_MAJOR >= 10
 TorchPlugin::TorchPlugin(const std::string& params, bool is_build_phase)
     : serialization_(params), is_build_phase_(is_build_phase) {
   params_ = hami::str::map_split(params, '=', ';');
@@ -427,13 +427,14 @@ size_t TorchPlugin::getWorkspaceSize(
     int32_t nbOutputs) const noexcept {
   return torch_params_.workspace_size;
 }
-
+#endif // NV_TENSORRT_MAJOR >= 10
 } // namespace plugin
 } // namespace nvinfer1
 
 namespace nvinfer1 {
 namespace plugin {
 
+#if NV_TENSORRT_MAJOR >= 10
 // This is not needed for plugin dynamic registration.
 REGISTER_TENSORRT_PLUGIN(TorchPluginCreator);
 
@@ -522,6 +523,6 @@ IPluginV3* TorchPluginCreator::createPlugin(
     return nullptr;
   }
 }
-
+#endif // NV_TENSORRT_MAJOR >= 10
 } // namespace plugin
 } // namespace nvinfer1

@@ -7,8 +7,10 @@ namespace torchpipe {
 
 // #if (NV_TENSORRT_MAJOR == 9 && NV_TENSORRT_MINOR < 3) || NV_TENSORRT_MAJOR <
 // 9
-#if (NV_TENSORRT_MAJOR == 10 && NV_TENSORRT_MINOR < 1) || NV_TENSORRT_MAJOR < 10
-#error Only support TensorRT 10.1 and above
+// #if (NV_TENSORRT_MAJOR == 10 && NV_TENSORRT_MINOR < 1) || NV_TENSORRT_MAJOR < 10
+// #error Only support TensorRT 10.1 and above
+#if (NV_TENSORRT_MAJOR == 9 && NV_TENSORRT_MINOR < 3) || NV_TENSORRT_MAJOR < 9
+#error Only support TensorRT >= 9.3
 #endif
 
 class LoadTensorrtEngine : public hami::Backend {

@@ -87,6 +87,8 @@ function(cc_library)
     )
     target_compile_definitions(${CC_LIB_NAME} INTERFACE ${CC_LIB_DEFINES})
   endif()
+  add_compile_options(-fvisibility=default)  # Linux/macOS
+
 
   # add alias for the library target
   add_library(:${CC_LIB_NAME} ALIAS ${CC_LIB_NAME})

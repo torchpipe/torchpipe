@@ -17,6 +17,7 @@ pybind_extension(
     csrc/py_helper.cpp
     csrc/register.cpp
     csrc/all2numpy.cpp
+    csrc/box.cpp
   HDRS
     csrc/any.hpp
     csrc/register.hpp
