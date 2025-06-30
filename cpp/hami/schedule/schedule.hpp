@@ -94,7 +94,7 @@ class Batching : public Dependency {
   }
 
   std::atomic_bool bInited_{false};
-  int batching_timeout_ = 0;
+  int batching_timeout_ = -1;
   std::thread thread_;
   ThreadSafeSizedQueue<dict> input_queue_;
   std::shared_ptr<InstancesState> instances_state_;

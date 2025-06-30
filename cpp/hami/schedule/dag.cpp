@@ -104,10 +104,10 @@ void DagDispatcher::on_start_nodes(
       node_names.end();
   if (all_equal) {
     base_dependencies_.at("node." + node_names.front())->forward(valid_data);
-    SPDLOG_DEBUG(
-        "all_equal. node name = {}, size = {}",
-        node_names.front(),
-        node_names.size());
+    // SPDLOG_DEBUG(
+    //     "all_equal. node name = {}, size = {}",
+    //     node_names.front(),
+    //     node_names.size());
   } else {
     for (size_t i = 0; i < node_names.size(); ++i) {
       const auto& name = node_names[i];
@@ -136,9 +136,11 @@ std::string DagDispatcher::on_start_node(
   if (iter_node_name == tmp_data->end()) {
     // SPDLOG_INFO("roots =  {}", roots.size());
     if (roots.size() != 1) {
-      pstack->input_event->set_exception_and_notify_all(std::make_exception_ptr(
-          std::runtime_error("DagDispatcher: `node_name` not found in input. "
-                             "Please set it to specify the target node.")));
+      pstack->input_event->set_exception_and_notify_all(
+          std::make_exception_ptr(
+              std::runtime_error(
+                  "DagDispatcher: `node_name` not found in input. "
+                  "Please set it to specify the target node.")));
       return "";
     } else {
       node_name = (*roots.begin());
@@ -220,7 +222,7 @@ void DagDispatcher::on_finish_node(
     }
   }
 
-  SPDLOG_DEBUG("processed node_name = {}", node_name);
+  // SPDLOG_DEBUG("processed node_name = {}", node_name);
   pstack->dag.processed[node_name] = tmp_data;
 
   if (pstack->exception) { // todo check
@@ -247,6 +249,11 @@ void DagDispatcher::on_finish_node(
     if (pstack->input_data != tmp_data) {
       std::swap(*pstack->input_data, *tmp_data);
     }
+
+    // SPDLOG_DEBUG("total = {}, waiting: {} has result {}", pstack->dag.total,
+    // pstack->dag.waiting_nodes.size(), pstack->input_data->find("result")!=
+    // pstack->input_data->end());
+
     pstack->input_data->erase(TASK_STACK_KEY);
     (*pstack->input_data)[TASK_EVENT_KEY] = pstack->input_event;
     pstack->input_event->notify_all();

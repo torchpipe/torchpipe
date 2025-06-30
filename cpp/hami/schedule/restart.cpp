@@ -112,8 +112,7 @@ void RestartEvent::on_finish_node(dict tmp_data) {
         pre_event->reset_exception());
     return;
   } else if (
-      tmp_data->find(TASK_RESTART_KEY) == tmp_data->end() ||
-      tmp_data->find(TASK_RESULT_KEY) == tmp_data->end()) {
+      tmp_data->find(TASK_RESTART_KEY) == tmp_data->end()|| tmp_data->find(TASK_RESULT_KEY) == tmp_data->end()) { // 
     static const std::unordered_set<std::string> ignore_keys = {
         TASK_STACK_KEY, TASK_EVENT_KEY, TASK_DATA_KEY};
     for (auto iter = tmp_data->begin(); iter != tmp_data->end(); ++iter) {
@@ -123,7 +122,7 @@ void RestartEvent::on_finish_node(dict tmp_data) {
       }
     }
     pstack->input_data->erase(TASK_STACK_KEY);
-    pstack->input_data->erase(TASK_RESULT_KEY);
+    // pstack->input_data->erase(TASK_RESULT_KEY);
 
     pstack->input_data->insert({TASK_EVENT_KEY, pstack->input_event});
     pstack->input_event->notify_all();

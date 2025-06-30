@@ -228,7 +228,7 @@ std::unordered_set<std::string> DagParser::get_subgraph(
   HAMI_ASSERT(
       dag_config_.find(root) != dag_config_.end(),
       "DagParser: " + root + " not found");
-  HAMI_ASSERT(dag_config_[root].previous.empty(), root + " is not a root node");
+  // HAMI_ASSERT(dag_config_[root].previous.empty(), root + " is not a root node");
 
   std::unordered_set<std::string> parsered;
 
@@ -248,13 +248,13 @@ std::unordered_set<std::string> DagParser::get_subgraph(
   }
 
   // check independency
-  for (const auto& item : parsered) {
-    for (const auto& pre : dag_config_[item].previous) {
-      HAMI_ASSERT(
-          parsered.find(pre) != parsered.end(),
-          "DagParser: " + pre + " is not in subgraph");
-    }
-  }
+  // for (const auto& item : parsered) {
+  //   for (const auto& pre : dag_config_[item].previous) {
+  //     HAMI_ASSERT(
+  //         parsered.find(pre) != parsered.end(),
+  //         "DagParser: " + pre + " is not in subgraph");
+  //   }
+  // }
   return parsered;
 }
 

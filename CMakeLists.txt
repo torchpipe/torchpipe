@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.25)
+cmake_minimum_required(VERSION 3.21)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 option(USE_CCACHE "Attempt using CCache to wrap the compilation" OFF)

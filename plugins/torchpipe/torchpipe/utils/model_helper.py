@@ -14,15 +14,17 @@ from typing import List, Union, Callable, Tuple, Any
 try:
     import cv2
 except ImportError:
-    print("OpenCV not found. Please install it to use this feature.")
+    pass
+    # print("OpenCV not found. Please install it to use this feature.")
 
 import torch
 import torch.nn as nn
 try:
     from torchvision import transforms
 except Exception as e:
-    print(
-        f"Torchvision not found. Please install it to use this feature. e = {e}")
+    pass
+    # print(
+    #     f"Torchvision not found. Please install it to use this feature. e = {e}")
 from PIL import Image
 import tempfile
 import logging

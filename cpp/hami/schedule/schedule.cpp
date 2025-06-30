@@ -181,7 +181,7 @@ void Batching::impl_init(
   str::try_update(config, "batching_timeout", batching_timeout_);
   str::try_update(config, "node_name", node_name_);
 
-  HAMI_ASSERT(batching_timeout_ >= 0);
+  HAMI_ASSERT((batching_timeout_ >= 0 || batching_timeout_ == -1));
 
   HAMI_ASSERT(kwargs);
   instances_state_ = dict_get<std::shared_ptr<InstancesState>>(
@@ -192,6 +192,12 @@ void Batching::impl_init(
 void Batching::impl_inject_dependency(Backend* dependency) {
   Dependency::impl_inject_dependency(dependency);
   const size_t max_bs = dependency->max();
+  if (batching_timeout_ < 0)
+    if (max_bs > 1)
+      batching_timeout_ = 4;
+    else {
+      batching_timeout_ = 0;
+    }
   if (batching_timeout_ > 0 && max_bs > 1) {
     bInited_.store(true);
     thread_ = std::thread(&Batching::run, this, max_bs);
