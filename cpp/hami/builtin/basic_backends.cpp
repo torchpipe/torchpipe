@@ -41,7 +41,7 @@ void DependencyV0::impl_init(
         "*::dependency not found, skipping "
         "dependency injection process");
   }
-  SPDLOG_INFO("Dependency dependency_name_ = {}", dependency_name_);
+  // SPDLOG_INFO("Dependency dependency_name_ = {}", dependency_name_);
   post_init(config, kwargs);
 }
 

@@ -94,6 +94,7 @@ py::object any2object_from_hash_register(const any& input) {
     // HAMI_ASSERT(iter->second.first);
     return iter->second.first(input);
   } else {
+    return py::cast(input);
   }
   throw py::type_error(
       "cpp2py: unregistered type: " + std::string(input.type().name()));
