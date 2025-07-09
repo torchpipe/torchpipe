@@ -79,6 +79,7 @@ class HAMI_EXPORT PyInstance : public Backend {
     if (py::hasattr(*obj_, "min")) {
       min_ = py::cast<size_t>(obj_->attr("min")());
     }
+    SPDLOG_DEBUG("Python instance: min={} max={}", min_, max_);
   }
   void impl_forward(const std::vector<dict>& input_output) override final {
     std::vector<PyDict> py_input_output;
@@ -89,7 +90,12 @@ class HAMI_EXPORT PyInstance : public Backend {
     }
     {
       py::gil_scoped_acquire gil;
-      obj_->attr("forward")(py_input_output);
+      try {
+        obj_->attr("forward")(py_input_output);
+      } catch (py::error_already_set& e) {
+        SPDLOG_ERROR("Python error: " + std::string(e.what()));
+        throw std::runtime_error("Python error: " + std::string(e.what()));
+      }
     }
 
     // SPDLOG_DEBUG("after forward -> py_input_output has result {}",
@@ -126,7 +132,7 @@ class HAMI_EXPORT PyInstance : public Backend {
 
  private:
   hami::python::unique_ptr<> obj_;
-  size_t max_ = 1;
+  size_t max_ = std::numeric_limits<size_t>::max();
   size_t min_ = 1;
   size_t init_default_params_ = 0;
   size_t init_num_params_ = 0;

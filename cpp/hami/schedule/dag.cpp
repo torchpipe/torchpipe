@@ -194,7 +194,7 @@ void DagDispatcher::on_finish_node(
       if (curr_event->wait_finish(SHUTDOWN_TIMEOUT)) {
         break;
       }
-      SPDLOG_WARN("wait need to much time");
+      SPDLOG_WARN("wait need to much time.");
     }
 
     tmp_data->erase(TASK_EVENT_KEY);
