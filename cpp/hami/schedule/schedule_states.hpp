@@ -43,6 +43,8 @@ class InstancesState {
       size_t timeout,
       bool lock_queried);
 
+  bool wait_for(size_t req_size, size_t timeout);
+
   void remove_lock(size_t handle) {
     {
       std::lock_guard<std::mutex> lock(mtx_);

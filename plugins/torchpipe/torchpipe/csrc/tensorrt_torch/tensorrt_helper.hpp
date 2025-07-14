@@ -31,7 +31,7 @@ inline nvinfer1::DataType convert2trt(const std::string& type_name) {
     //  } else if (type_name == "int4") {
     //    return nvinfer1::DataType::kINT4;
   } else {
-    throw std::invalid_argument("Unsupported data type: " + type_name);
+    throw std::invalid_argument("convert2trt(plugin): Unsupported data type: " + type_name);
   }
 }
 
@@ -75,6 +75,12 @@ void merge_mean_std(
     nvinfer1::INetworkDefinition* network,
     const std::vector<float>& mean,
     const std::vector<float>& std);
+// void add_anchor_plugins(
+//     nvinfer1::INetworkDefinition* network,
+//     const std::vector<std::string>& names,
+//     bool with_pre = true,
+//     bool with_post = true);
+
 bool initTrtPlugins();
 nvinfer1::Dims infer_shape(
     std::vector<int> config_shape,
