@@ -164,7 +164,7 @@ def get_config(args):
     config = {
         "jpg_decoder": preprocess,
         model_name: {
-            "backend": "S[TensorrtTensor, StreamGuard, LogTime(model)]",
+            "backend": "S[LogGPUTime(pre),TensorrtTensor, StreamGuard, LogTime(model)]",
             "instance_num": args.trt_instance_num,
             "max": args.max,
             "mean": "123.675, 116.28, 103.53",
