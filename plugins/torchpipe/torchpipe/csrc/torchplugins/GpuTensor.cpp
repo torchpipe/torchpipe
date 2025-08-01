@@ -269,7 +269,8 @@ class HAMI_EXPORT LogGPUTime : public hami::Backend {
   }
   void impl_forward(const std::vector<hami::dict>& input_output) override final {
     // float time = get_time();
-    float time = cuda_time();
+    c10::cuda::getCurrentCUDAStream().synchronize();
+    float time = hami::helper::timestamp();
     SPDLOG_INFO("timer: {} = {}", key_, time);
     for (const auto& item : input_output) {
       (*item)[TASK_RESULT_KEY] = item->at(TASK_DATA_KEY);
