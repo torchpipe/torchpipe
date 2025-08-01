@@ -164,6 +164,7 @@ float cuda_time() {
   // 记录GPU结束事件
   at::cuda::CUDAEvent stop_event;
   stop_event.record(get_current_stream());
+  stop_event.synchronize();
 
   // 计算GPU时间
   float gpu_ms = start_event().elapsed_time(stop_event);
