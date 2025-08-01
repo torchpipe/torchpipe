@@ -101,6 +101,8 @@ https://github.com/NVIDIA/DALI/issues/4581#issuecomment-1386888761
 
 https://github.com/triton-inference-server/tutorials/tree/main/Conceptual_Guide/Part_6-building_complex_pipelines
 
+pip install huggingface-hub==0.25.2
+
 ---------------- OLD EXPERIMENTS ----------------
 
 ```bash
