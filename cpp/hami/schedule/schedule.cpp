@@ -335,16 +335,10 @@ void InstanceDispatcher::impl_forward(const std::vector<dict>& ios) {
   //
   std::string node_name = dict_get<std::string>(ios[0],"node_name", true);
 
-  float time = helper::timestamp();
-  SPDLOG_DEBUG("InstanceDispatcher enter timer: {} {}", node_name, time);
-
   std::optional<size_t> index;
   do {
     index = instances_state_->query_available(req_size, 100, true, node_name);
   } while (!index);
-
-  time = helper::timestamp();
-  SPDLOG_DEBUG("InstanceDispatcher timer: {} {}", node_name, time);
 
   size_t valid_index{*index};
   // SPDLOG_INFO(
@@ -453,6 +447,11 @@ void BackgroundThread::run() {
         events.push_back(ti_p);
       }
     }
+    if (tasks.size() >= 1) {
+      float time = helper::timestamp();
+      SPDLOG_DEBUG("BackgroundThread  timer: {} {}", tasks.size(), time);
+    }
+
     HAMI_FATAL_ASSERT(
         events.size() == tasks.size(),
         "event: " + std::to_string(events.size()) +
