@@ -174,28 +174,6 @@ inline const at::cuda::CUDAEvent& start_event() {
 }
 
 
-float cuda_time(){
-    static const auto cpu_start = start_time(); // Your CPU start time
-    static at::cuda::CUDAEvent gpu_start;
-    static bool initialized = false;
-
-    if (!initialized) {
-      gpu_start.record(); // Record GPU start
-      initialized = true;
-    }
-
-    auto stream = torch.cuda.current_stream();
-     at::cuda::CUDAEvent stop_event;
-    stop_event.record(stream);
-
-    float gpu_ms = gpu_start.elapsed_time(stop_event);
-    auto cpu_now = now();
-    float cpu_ms =
-        std::chrono::duration<float, std::milli>(cpu_now - cpu_start).count();
-
-    // Optionally, you can return either GPU or CPU time, or both
-    return gpu_ms; // Or return cpu_ms if you prefer
-}
 
 /**
  * @brief switch_device async only for pinned_memory2gpu
