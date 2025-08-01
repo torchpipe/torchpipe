@@ -446,7 +446,14 @@ void BackgroundThread::run() {
         assert(tasks.empty());
         continue;
       }
-    }
+
+      float time = helper::timestamp();
+      SPDLOG_DEBUG(
+          "batched_queue_  timer: {} {} {}",
+          tasks.size(),
+          time,
+          batched_queue_.size());
+        }
 
     std::vector<std::shared_ptr<Event>> events;
     for (std::size_t i = 0; i < tasks.size(); ++i) {
