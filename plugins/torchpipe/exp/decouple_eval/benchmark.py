@@ -128,6 +128,7 @@ def get_cpu_preprocess_cfg(preprocess_instances):
         "resize_w": "224",
         "instance_num": preprocess_instances,
         "color": "rgb",
+        'batching_timeout': "0",
     }
 
 
