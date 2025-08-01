@@ -185,7 +185,7 @@ class cmake_build(setuptools.Command):
             cmake_args.append(f"-DCMAKE_BUILD_TYPE={CMAKE_BUILD_TYPE}")
             if _debug:
                 cmake_args.append(
-                    "-DCMAKE_CXX_FLAGS=-Wall -Werror -Wno-error=sign-compare"),
+                    "-DCMAKE_CXX_FLAGS=-Wall -Werror -Wno-error=sign-compare -O3"),
                 cmake_args.append(
                     "-DCMAKE_CXX_FLAGS_DEBUG=-UNDEBUG -O0 -DDEBUG -g")
             if WINDOWS:
