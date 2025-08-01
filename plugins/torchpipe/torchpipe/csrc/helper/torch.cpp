@@ -20,6 +20,7 @@
 #include "c10/cuda/CUDAStream.h"
 #endif
 #include <ATen/cuda/CUDAContext.h>
+#include <ATen/cuda/CUDAEvent.h>
 
 // #include "time_utils.hpp"
 // #include "base_logging.hpp"
