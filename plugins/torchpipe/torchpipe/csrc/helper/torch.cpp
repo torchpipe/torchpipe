@@ -147,6 +147,11 @@ bool is_any_cpu(hami::any data) {
   return true;
 }
 
+inline c10::cuda::CUDAStream get_current_stream() {
+  return c10::cuda::getCurrentCUDAStream();
+}
+
+// GPU事件初始化（线程安全版）
 inline const at::cuda::CUDAEvent& start_event() {
   static at::cuda::CUDAEvent ev;
   static std::once_flag flag;
@@ -154,27 +159,30 @@ inline const at::cuda::CUDAEvent& start_event() {
   return ev;
 }
 
-// 获取当前 CUDA 流的时间（毫秒），可选择对齐 CPU 时间
- float cuda_time() {
-  // 记录 GPU 结束事件
+// 获取当前CUDA流的时间（毫秒），对齐CPU时间
+inline float cuda_time() {
+  // 记录GPU结束事件
   at::cuda::CUDAEvent stop_event;
-  stop_event.record(torch::cuda::current_stream());
+  stop_event.record(get_current_stream());
 
-  // 计算 GPU 时间
+  // 计算GPU时间
   float gpu_ms = start_event().elapsed_time(stop_event);
 
-  static float time_offset = [] {
-      start_event().synchronize();
-      auto cpu_elapsed = hami::helper::timestamp();
-  
-      return cpu_elapsed - start_event().elapsed_time(stop_event);
-    }();
+  // 初始化时间偏移量（只执行一次）
+  static float time_offset = [&]() {
+    start_event().synchronize();
+    at::cuda::CUDAEvent sync_event;
+    sync_event.record(get_current_stream());
+    sync_event.synchronize();
 
-    // 返回对齐后的时间
-    return gpu_ms + time_offset;
+    auto cpu_elapsed =
+        std::chrono::duration<float, std::milli>(now() - start_time()).count();
+    return cpu_elapsed - start_event().elapsed_time(sync_event);
+  }();
+
+  // 返回对齐后的时间
+  return gpu_ms + time_offset;
 }
-
-
 
 /**
  * @brief switch_device async only for pinned_memory2gpu
