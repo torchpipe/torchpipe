@@ -1,7 +1,6 @@
 #include "hami/schedule/schedule.hpp"
 
 #include <charconv>
-
 #include "hami/builtin/aspect.hpp"
 #include "hami/builtin/proxy.hpp"
 #include "hami/core/event.hpp"
@@ -265,7 +264,14 @@ void Batching::run(size_t max_bs) {
         cached_data.push_back(input_queue_.pop());
       }
 
-      SPDLOG_DEBUG("scheduler: new pop: {}, cached: {}", new_pop, cached_size);
+      SPDLOG_DEBUG(
+          "scheduler: new pop: {}, cached: {} timestamp = {}",
+          new_pop,
+          cached_size,
+          static_cast<float>(
+              std::chrono::duration<double>(
+                  std::chrono::system_clock::now().time_since_epoch())
+                  .count()));
       if (!try_forward(cached_data, new_pop + cached_size, 1)) {
         instances_state_->wait_for(new_pop + cached_size, SHUTDOWN_TIMEOUT);
         continue;
