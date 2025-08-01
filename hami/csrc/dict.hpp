@@ -28,7 +28,9 @@ class PyDict {
     data_->erase(key);
   }
 
-  py::object pop(
+  py::object pop(const std::string& key, py::object default_val = py::none());
+
+  py::object pop_str(
       const std::string& key,
       std::optional<std::string> default_value = std::nullopt);
 

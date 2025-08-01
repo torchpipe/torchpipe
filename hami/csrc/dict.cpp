@@ -41,7 +41,29 @@ PyDict::PyDict(dict data) : data_(data) {
   HAMI_ASSERT(data_ != nullptr, "The input data is nullptr.");
 }
 
-py::object PyDict::pop(
+py::object PyDict::pop(const std::string& key, py::object default_val) {
+    if (data_->empty()) {
+        if (!default_val.is_none()) {
+            return default_val;
+        }
+        throw py::key_error("Key not found");
+    }
+
+    auto it = data_->find(key);
+    if (it != data_->end()) {
+        py::object value = any2object(it->second);
+        data_->erase(it);
+        return value;
+    }
+
+    if (!default_val.is_none()) {
+        return default_val;
+    }
+    throw py::key_error("Key not found: " + key);
+}
+
+
+py::object PyDict::pop_str(
     const std::string& key,
     std::optional<std::string> default_value) {
   auto it = data_->find(key);
@@ -131,8 +153,16 @@ void init_dict(py::module_& m) {
       .def("clear", &PyDict::clear, "Clear the dictionary")
       .def("set_event", &PyDict::set_event, "set and return the event")
       .def(
-          "pop",
-          &PyDict::pop,
+            "pop",
+            &PyDict::pop,
+            py::arg("key"),
+            py::arg("default") = py::none(),  // 默认值设为 None
+            "Remove specified key and return the corresponding value.\n"
+            "If key is not found, default is returned if given, otherwise KeyError is raised."
+        )
+      .def(
+          "pop_str",
+          &PyDict::pop_str,
           py::arg("key"),
           py::arg("default") = py::none(),
           "Remove specified key and return the corresponding value.\n"

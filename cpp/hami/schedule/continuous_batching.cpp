@@ -28,6 +28,72 @@ std::unordered_map<T, std::string> pair2map(
 }
 } // namespace
 
+void PlainContinuousBatching::impl_init(
+    const std::unordered_map<string, string>& params,
+    const dict& options) {
+  auto [args, kwargs] =
+      parser_v2::get_args_kwargs(this, "PlainContinuousBatching", params);
+  std::string target = str::get<std::string>(kwargs, "target");
+  // max_ = str::get<int>(kwargs, "max");
+  // auto no_page_table = str::get(kwargs, "no_page_table");
+  // no_page_table_ = init_backend(no_page_table, params, options);
+  SPDLOG_INFO("plain contiguous batching, target = {}", target);
+
+  dependency_ = HAMI_INSTANCE_GET(Backend, target);
+  HAMI_ASSERT(dependency_, target + " not found (PlainContinuousBatching).");
+  if (args.size() >= 1) {
+    src_queue_ = &(default_queue(args[0]));
+    SPDLOG_INFO("PlainContinuousBatching USE QUEUE: {}", args[0]);
+  } else {
+    SPDLOG_INFO("USE QUEUE: PlainContinuousBatching::Queue");
+    src_queue_ = &(default_queue("PlainContinuousBatching::Queue"));
+  }
+
+  thread_ = std::thread(&PlainContinuousBatching::task_loop, this);
+} // 异常 错误 共识
+
+void PlainContinuousBatching::task_loop() {
+  // while (bInited_.load()) {
+  //   // only one thread runing this loop
+  //   dict tmp_data = nullptr;
+  //   if (!src_queue_->wait_pop(tmp_data, 100)) {
+  //     continue;
+  //   }
+  //   std::string id = dict_get<std::string>(tmp_data, TASK_DATA_KEY);
+  //   auto time_now =  
+  //       std::chrono::duration<float>(
+  //           std::chrono::system_clock::now().time_since_epoch())
+  //           .count();
+  //   auto ev = dict_get<std::shared_ptr<Event>>(tmp_data, TASK_EVENT_KEY);
+  //   tmp_data->erase(TASK_EVENT_KEY);
+  //   receiving_data_[id] = TaskInfo({id, tmp_data, time_now, ev, 0, 0});
+  //   if (!all_received()){
+  //     continue;
+  //   }
+
+  //   for (auto& rec : receiving_data_) {
+  //     if (!cached_data_.contains(rec.first)){
+  //       cached_data_[rec.first] = rec.second;
+  //     }else{
+  //       rec.second.loop_index = cached_data_[rec.first].loop_index + 1;
+  //       rec.second.delay = cached_data_[rec.first].delay;
+  //       std::swap(cached_data_[rec.first], rec.second);
+  //     }
+  //   }
+  //   receiving_data_.clear();
+  //   std::vector<dict> datas ;
+  //   for (const auto& item : cached_data_){
+  //     auto data = make_dict();
+  //     (*data)["data"] = item.first;
+  //     (*data)["time"] = item.second.time;
+  //     datas.push_back(data);
+  //   }
+  //   dependency_->forward(datas);
+  // }
+}
+
+void PlainContinuousBatching::impl_forward(const std::vector<dict>& io) {}
+
 void ContinuousBatching::impl_init(
     const std::unordered_map<string, string>& params,
     const dict& options) {
@@ -139,8 +205,8 @@ ContinuousBatching::get_activated_ids() {
       prefill_ids.resize(max_prefill_size);
     }
   }
-  // limited by `max`(max batch size of the network) for prefill (prefill first
-  // for batch size limitation)
+  // limited by `max`(max batch size of the network) for prefill (prefill
+  // first for batch size limitation)
   size_t valid_count = 0;
   int max_prefill_batch_size = 0;
   for (const auto& id : prefill_ids) {
@@ -217,8 +283,9 @@ ContinuousBatching::get_activated_ids() {
         str::join(will_finish_ids),
         str::join(prefill_ids));
 
-  // Controls Droping mechanism for unfinished inference tasks (wont_finish_ids)
-  // when insufficient memory pages exist for future processing.
+  // Controls Droping mechanism for unfinished inference tasks
+  // (wont_finish_ids) when insufficient memory pages exist for future
+  // processing.
 
   /* Drop Strategy Options:
    * -------------------------
@@ -227,8 +294,8 @@ ContinuousBatching::get_activated_ids() {
    *
    * Option A: drop one when available_pages == 0 for the next round
    *
-   * Option B: drop one when dropped decode ids(because of no pages) > 0.4 of
-   * total decodes
+   * Option B: drop one when dropped decode ids(because of no pages) > 0.4
+   * of total decodes
    */
   if (will_finish_ids.empty() && prefill_ids.empty()) {
     HAMI_FATAL_ASSERT(
@@ -305,8 +372,8 @@ void ContinuousBatching::impl_forward(const std::vector<dict>& io) {
 
       HAMI_FATAL_ASSERT(iter_req == req_status_.find(pro.req_id));
 
-      // SPDLOG_INFO("prefill: {} req_tokens={}", pro.req_id, pro.req_tokens);
-      // page_table_->alloc(pro.req_id, pro.req_tokens);
+      // SPDLOG_INFO("prefill: {} req_tokens={}", pro.req_id,
+      // pro.req_tokens); page_table_->alloc(pro.req_id, pro.req_tokens);
       pro.data = item;
       // pro.event = dict_get<std::shared_ptr<Event>>(item, TASK_EVENT_KEY);
       if (pro.time <= 0)
@@ -410,9 +477,9 @@ void ContinuousBatching::impl_forward(const std::vector<dict>& io) {
 void ContinuousBatching::impl_forward_handle_except(
     const std::vector<dict>& ios,
     const std::vector<id_type>& ids) {
-  // We remove the event here to enforce synchronous semantics. Alternatively,
-  // asynchronous semantics can be maintained by setting the callback:
-  // ev->set_exception_callback()
+  // We remove the event here to enforce synchronous semantics.
+  // Alternatively, asynchronous semantics can be maintained by setting the
+  // callback: ev->set_exception_callback()
   std::vector<std::shared_ptr<Event>> events;
   for (const auto& item : ios) {
     auto iter = item->find(TASK_EVENT_KEY);

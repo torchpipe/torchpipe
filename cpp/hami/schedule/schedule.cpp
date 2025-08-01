@@ -192,8 +192,7 @@ void Batching::impl_init(
 void Batching::impl_inject_dependency(Backend* dependency) {
   Dependency::impl_inject_dependency(dependency);
   const size_t max_bs = dependency->max();
-  if (batching_timeout_ < 0)
-  {    
+  if (batching_timeout_ < 0) {
     if (max_bs > 1)
       batching_timeout_ = 4;
     else {
@@ -327,12 +326,14 @@ void InstanceDispatcher::update_min_max(const std::vector<Backend*>& deps) {
 }
 
 void InstanceDispatcher::impl_forward(const std::vector<dict>& ios) {
-  HAMI_ASSERT(helper::none_or_all_has_key_and_unempty(ios, TASK_EVENT_KEY));
+  HAMI_ASSERT(helper::none_or_all_has_key_and_unempty(ios, TASK_EVENT_KEY), std::to_string(ios.size()));
   const size_t req_size = get_request_size(ios);
   //
+  std::string node_name = dict_get<std::string>(ios[0],"node_name", true);
+
   std::optional<size_t> index;
   do {
-    index = instances_state_->query_available(req_size, 100, true);
+    index = instances_state_->query_available(req_size, 100, true, node_name);
   } while (!index);
   size_t valid_index{*index};
   // SPDLOG_INFO(
@@ -396,8 +397,12 @@ void BackgroundThread::impl_init(
 }
 
 void BackgroundThread::impl_forward(const std::vector<dict>& ios) {
-  HAMI_ASSERT(helper::all_has_key(ios, TASK_EVENT_KEY));
-  batched_queue_.push(ios);
+  if (helper::all_has_key(ios, TASK_EVENT_KEY)) {
+    batched_queue_.push(ios);
+    return;
+  }
+  HAMI_ASSERT(helper::none_has_key(ios, TASK_EVENT_KEY));
+  dependency_->forward(ios);
 }
 
 // void BackgroundThread::forward_task(const std::vector<dict>& ios) {}

@@ -41,7 +41,8 @@ class InstancesState {
   std::optional<size_t> query_available(
       size_t req_size,
       size_t timeout,
-      bool lock_queried);
+      bool lock_queried,
+      std::string node_name ="");
 
   bool wait_for(size_t req_size, size_t timeout);
 

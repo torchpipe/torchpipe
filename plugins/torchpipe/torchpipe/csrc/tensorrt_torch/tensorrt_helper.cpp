@@ -254,7 +254,8 @@ void print_colored_net(
 
   // ss.clear();
   // ss << "Network Info: " << '\n';
-  // for (std::size_t index_l = 0; index_l < network->getNbLayers(); ++index_l) {
+  // for (std::size_t index_l = 0; index_l < network->getNbLayers(); ++index_l)
+  // {
   //   nvinfer1::ILayer* layer = network->getLayer(index_l);
   //   const auto* name = layer->getName();
   //   ss << index_l << " " << name << '\n';
@@ -805,8 +806,9 @@ std::unique_ptr<nvinfer1::IHostMemory> onnx2trt(OnnxParams& params) {
   }
 #if (NV_TENSORRT_MAJOR == 10 && NV_TENSORRT_MINOR >= 3) || \
     (NV_TENSORRT_MAJOR >= 11)
-  SPDLOG_INFO("LIASED_PLUGIN_IO_10_03 enabled");
-  config->setPreviewFeature(nvinfer1::PreviewFeature::kALIASED_PLUGIN_IO_10_03,true); 
+  SPDLOG_INFO("ALIASED_PLUGIN_IO_10_03 enabled");
+  config->setPreviewFeature(
+      nvinfer1::PreviewFeature::kALIASED_PLUGIN_IO_10_03, true);
 #endif
 
 #if (NV_TENSORRT_MAJOR == 10 && NV_TENSORRT_MINOR >= 1) || \
@@ -907,7 +909,7 @@ OnnxParams config2onnxparams(
   // 处理 min 和 max shapes
   if (config.find("min") != config.end() && !config.at("min").empty()) {
     auto min_shapes = hami::str::str_split(config.at("min"), ';');
-    params.maxs = hami::str::str_split<int>(config.at("min"), 'x', ',', ';');
+    params.mins = hami::str::str_split<int>(config.at("min"), 'x', ',', ';');
   }
 
   if (config.find("max") != config.end() && !config.at("max").empty()) {
@@ -932,6 +934,8 @@ static NetIOInfo::DataType convert_type(const nvinfer1::DataType& data_type) {
       return NetIOInfo::DataType::FP16;
     case nvinfer1::DataType::kINT64:
       return NetIOInfo::DataType::INT64;
+    case nvinfer1::DataType::kBOOL:
+      return NetIOInfo::DataType::BOOL;
     default:
       break;
   }

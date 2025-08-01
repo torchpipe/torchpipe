@@ -50,6 +50,8 @@ void SyncTensor::impl_init(
 }
 
 void SyncTensor::impl_forward(const std::vector<dict>& ios) {
+  // std::string sync_stream = dict_get<std::string>(ios[0], "sync_stream",true);
+  
   if (owned_backend_) {
     static auto curr_stream = c10::cuda::getCurrentCUDAStream(-1);
     static auto default_stream = c10::cuda::getDefaultCUDAStream(-1);

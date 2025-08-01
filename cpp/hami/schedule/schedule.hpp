@@ -82,7 +82,8 @@ class Batching : public Dependency {
       const std::vector<dict>& input_output,
       size_t req_size,
       size_t timeout) {
-    if (instances_state_->query_available(req_size, timeout, false)) {
+    if (instances_state_->query_available(
+            req_size, timeout, false, node_name_)) {
       // SPDLOG_INFO(
       //     "Batching::try_forward, node_name = {}, req_size = {} io size =
       //     {}", node_name_, req_size, input_output.size());

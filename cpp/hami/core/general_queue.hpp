@@ -440,6 +440,29 @@ class ThreadSafeSizedQueue {
     return queue_.empty();
   }
 
+  bool wait_pop(T& item, double timeout) {
+    std::unique_lock<std::mutex> lock(mutex_);
+    if (!pushed_cond_.wait_for(
+            lock, std::chrono::duration<double>(timeout), [this] { // 移除 *
+              return !queue_.empty();
+            })) {
+      return false;
+    }
+
+    item = std::move(queue_.front().value); // 移除前面的 auto
+    totalSize_ -= queue_.front().size;
+    queue_.pop();
+    popped_cond_.notify_one();
+    return true;
+  }
+
+  // bool wait_pop(&T, int timeout_ms){
+  //   std::unique_lock<std::mutex> lock(mutex_);
+  //   if (pushed_cond_.wait_for(
+  //           lock, timeout_ms, [this]() { return totalSize_ > 0; })) {
+  //   }
+  // }
+
   // please note that there is no notify when get() called. So call it
   // by yourself.
   template <typename Rep, typename Period>

@@ -43,7 +43,8 @@ bool InstancesState::wait_for(size_t req_size, size_t timeout) {
 std::optional<size_t> InstancesState::query_available(
     size_t req_size,
     size_t timeout,
-    bool lock_queried) {
+    bool lock_queried,
+    std::string node_name) {
   std::unique_lock<std::mutex> lock(mtx_);
   std::optional<size_t> best_match;
   cv_.wait_for(
@@ -76,11 +77,12 @@ std::optional<size_t> InstancesState::query_available(
         ? 0
         : instances_.at(*available_instances_.begin()).second;
     SPDLOG_WARN(
-        "query_available timeout. req_size: {}, available_instances_: {} min={} max={}",
+        "query_available timeout. req_size: {}, available_instances_: {} min={} max={} node_name={}",
         req_size,
         available_instances_.size(),
         min_v,
-        max_v);
+        max_v,
+        node_name);
   }
   return best_match;
 }

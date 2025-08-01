@@ -58,6 +58,19 @@ class HAMI_EXPORT Event {
     }
   }
 
+  size_t reset(size_t num) {
+    {
+      std::unique_lock<std::mutex> lk(mut);
+      num_task = num;
+      std::swap(num_task, num);
+    }
+
+    try_callback();
+
+    data_cond.notify_all();
+    return num;
+  }
+
   bool wait_finish(size_t timeout_ms) {
     std::unique_lock<std::mutex> lk(mut);
 
@@ -279,7 +292,7 @@ class HAMI_EXPORT Event {
     std::vector<std::function<void(std::exception_ptr)>> excep_cb;
     {
       std::lock_guard<std::mutex> lk(mut);
-      should_try = (ref_count == num_task);
+      should_try = (ref_count >= num_task);
       std::swap(excep_cb, exception_callbacks_);
     }
 

@@ -40,9 +40,8 @@ void TensorrtInferTensor::impl_init(
 
   HAMI_ASSERT(instance_num_ >= 1 && instance_index_ >= 0);
 
-  if (instance_num_ > 1) {
-    HAMI_ASSERT(
-        !torch_is_using_default_stream(),
+  if (instance_num_ > 1 && torch_is_using_default_stream()) {
+    SPDLOG_WARN(
         "In multi-instance mode, the default stream is prohibited. "
         "Please use a dedicated CUDA stream with StreamGuard: "
         "e.g., StreamGuard[X], "
