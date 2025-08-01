@@ -265,6 +265,7 @@ void Batching::run(size_t max_bs) {
         cached_data.push_back(input_queue_.pop());
       }
 
+      SPDLOG_DEBUG("scheduler: new pop: {}, cached: {}", new_pop, cached_size);
       if (!try_forward(cached_data, new_pop + cached_size, 1)) {
         instances_state_->wait_for(new_pop + cached_size, SHUTDOWN_TIMEOUT);
         continue;
