@@ -160,7 +160,7 @@ inline const at::cuda::CUDAEvent& start_event() {
 }
 
 // 获取当前CUDA流的时间（毫秒），对齐CPU时间
-inline float cuda_time() {
+float cuda_time() {
   // 记录GPU结束事件
   at::cuda::CUDAEvent stop_event;
   stop_event.record(get_current_stream());
