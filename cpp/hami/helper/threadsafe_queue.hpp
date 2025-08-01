@@ -40,6 +40,15 @@ class ThreadSafeQueue {
     data_cond_.notify_all();
   }
 
+  void push_and_notify_one(const T& new_value) {
+    {
+      std::lock_guard<std::mutex> lk(mut_);
+      data_queue_.push(new_value);
+    }
+
+    data_cond_.notify_one();
+  }
+
   // void PushIfEmpty(const T& new_value) {
   //   {
   //     std::unique_lock<std::mutex> lk(mut_);
