@@ -41,6 +41,8 @@ parser.add_argument(
 parser.add_argument(
     "--save", dest="save", type=str, default="", help="save result to pickle"
 )
+parser.add_argument('--debug', action='store_true', help='enable debug mode')
+
 parser.add_argument(
     "--trt_instance_num",
     dest="trt_instance_num",
@@ -189,6 +191,9 @@ if __name__ == "__main__":
     import time
 
     # time.sleep(5)
+    
+    if args.debug:
+        hami.init("DebugLogger")
     config = {}
     onnx_save_path = f"./{args.model}.onnx"
     if (
