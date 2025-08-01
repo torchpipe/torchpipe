@@ -70,20 +70,36 @@ class HAMI_EXPORT PyInstance : public Backend {
         obj_->attr(init_method.data())(config, PyDict(kwargs));
       }
     }
-    HAMI_ASSERT(!py::hasattr(*obj_, "min") && !py::hasattr(*obj_, "max"));
+    // HAMI_ASSERT(!py::hasattr(*obj_, "min") && !py::hasattr(*obj_, "max"));
+    max_ = this->Backend::max();
+    min_ = this->Backend::min();
+    if (py::hasattr(*obj_, "max")) {
+      max_ = py::cast<size_t>(obj_->attr("max")());
+    }
+    if (py::hasattr(*obj_, "min")) {
+      min_ = py::cast<size_t>(obj_->attr("min")());
+    }
+    SPDLOG_DEBUG("Python instance: min={} max={}", min_, max_);
   }
   void impl_forward(const std::vector<dict>& input_output) override final {
     std::vector<PyDict> py_input_output;
     for (const auto& item : input_output) {
       py_input_output.push_back(PyDict(item)); // no need gil
-      // SPDLOG_DEBUG("py_input_output has result {}", item->find("result") != item->end());
+      // SPDLOG_DEBUG("py_input_output has result {}", item->find("result") !=
+      // item->end());
     }
     {
       py::gil_scoped_acquire gil;
-      obj_->attr("forward")(py_input_output);
+      try {
+        obj_->attr("forward")(py_input_output);
+      } catch (py::error_already_set& e) {
+        SPDLOG_ERROR("Python error: " + std::string(e.what()));
+        throw std::runtime_error("Python error: " + std::string(e.what()));
+      }
     }
 
-    // SPDLOG_DEBUG("after forward -> py_input_output has result {}", input_output[0]->find("result") != input_output[0]->end());
+    // SPDLOG_DEBUG("after forward -> py_input_output has result {}",
+    // input_output[0]->find("result") != input_output[0]->end());
 #ifdef DEBUG
     for (const auto& item : input_output) {
       if (item->find(TASK_RESULT_KEY) == item->end()) {
@@ -100,21 +116,23 @@ class HAMI_EXPORT PyInstance : public Backend {
   }
 
  public:
-  void init_with_obj(const py::object& obj) {
+  void init_with_obj(const py::object& obj, bool update_max_min = true) {
     obj_ = hami::python::make_unique(obj);
-    max_ = this->Backend::max();
-    min_ = this->Backend::min();
-    if (py::hasattr(obj, "max")) {
-      max_ = py::cast<size_t>(obj.attr("max")());
-    }
-    if (py::hasattr(obj, "min")) {
-      min_ = py::cast<size_t>(obj.attr("min")());
+    if (update_max_min) {
+      max_ = this->Backend::max();
+      min_ = this->Backend::min();
+      if (py::hasattr(obj, "max")) {
+        max_ = py::cast<size_t>(obj.attr("max")());
+      }
+      if (py::hasattr(obj, "min")) {
+        min_ = py::cast<size_t>(obj.attr("min")());
+      }
     }
   }
 
  private:
   hami::python::unique_ptr<> obj_;
-  size_t max_ = 1;
+  size_t max_ = std::numeric_limits<size_t>::max();
   size_t min_ = 1;
   size_t init_default_params_ = 0;
   size_t init_num_params_ = 0;
@@ -220,9 +238,7 @@ static void register_cls(const std::string& cls_name, py::type obj) {
     auto* backend = new PyInstance();
     py::gil_scoped_acquire guard;
     // backend->init_with_obj(obj.attr("__new__")(obj));
-    backend->init_with_obj(obj());
-    SPDLOG_INFO("register from python => {}: [{}, {}]", cls_name, backend->min(), backend->max());
-    // std::unique_ptr<Backend> backend
+    backend->init_with_obj(obj(), false);
     return (Backend*)backend;
   };
 

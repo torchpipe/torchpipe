@@ -20,19 +20,10 @@ void Register::impl_init(
   owned_backend_ = std::unique_ptr<Backend>(dep);
   dep->init(params, kwargs);
   inject_dependency(dep);
-  // HAMI_ASSERT(
-  //     args_kwargs.first.size() == 1,
-  //     "Requires exactly 1 argument. Usage:
-  //     Register(index)/Register::args=index");
-  // const auto& name = args_kwargs.first.at(0);
 
   for (const auto& item : args_kwargs.second) {
     SPDLOG_INFO(
-        "[Params] {}: {} [{}, {}]",
-        item.first,
-        item.second,
-        dep->min(),
-        dep->max());
+        "{}: {} [{}, {}]", item.first, item.second, dep->min(), dep->max());
   }
   // set_registered_name("node." + node_name);
 }

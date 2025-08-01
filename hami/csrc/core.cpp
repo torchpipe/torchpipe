@@ -72,6 +72,7 @@ void init_core(py::module_& m) {
 
   HAMI_ADD_HASH(std::exception_ptr);
   HAMI_ADD_HASH(std::pair<int, int>);
+  HAMI_ADD_HASH(long long);
   HAMI_ADD_HASH(std::pair<float, float>);
   HAMI_ADD_HASH(std::pair<std::string, std::string>);
 

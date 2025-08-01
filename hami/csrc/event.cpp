@@ -48,8 +48,8 @@ void init_event(py::module_& m) {
                 }
               } catch (const std::exception& e) {
                 // 将 C++ 异常转换为 Python 异常对象
-                py::object py_e = py::cast(e);
-                (*p_cb)(py_e); // 调用 Python 回调
+                // py::object py_e = py::cast(e);
+                (*p_cb)(e.what()); // 调用 Python 回调
               } catch (...) {
                 (*p_cb)(py::cast("Unknown C++ exception"));
               }
@@ -57,6 +57,11 @@ void init_event(py::module_& m) {
             });
           })
       .def("try_throw", &Event::try_throw, "Try to throw an exception.")
+      .def(
+          "notify_all",
+          py::overload_cast<>(&Event::notify_all),
+          py::call_guard<py::gil_scoped_release>(),
+          "Try to Notify.")
       .def(
           "set_final_callback",
           &Event::set_final_callback,

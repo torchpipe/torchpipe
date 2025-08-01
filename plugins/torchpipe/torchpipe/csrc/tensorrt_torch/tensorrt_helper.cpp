@@ -251,6 +251,16 @@ void print_colored_net(
 
   // Print the final output
   SPDLOG_INFO(ss.str());
+
+  // ss.clear();
+  // ss << "Network Info: " << '\n';
+  // for (std::size_t index_l = 0; index_l < network->getNbLayers(); ++index_l) {
+  //   nvinfer1::ILayer* layer = network->getLayer(index_l);
+  //   const auto* name = layer->getName();
+  //   ss << index_l << " " << name << '\n';
+  // }
+  // ss << std::endl;
+  // SPDLOG_DEBUG(ss.str());
 }
 
 void print_net(
@@ -419,6 +429,28 @@ void merge_mean_std(
     }
   }
 }
+
+// void add_anchor_plugins(
+//     nvinfer1::INetworkDefinition* network,
+//     const std::vector<std::string>& names,
+//     bool with_pre,
+//     bool with_post) {
+//   std::vector<nvinfer1::ILayer*> target_layers;
+//   std::vector<std::vector<nvinfer1::ITensor>> outputs;
+//   for (int32_t i = 0; i < network->getNbLayers(); ++i) {
+//     nvinfer1::ILayer* layer = network->getLayer(i);
+//     if (std::find(names.begin(), names.end(), layer->getName()) !=
+//         names.end()) {
+//       // target_layers.push_back(layer);
+//       HAMI_ASSERT(layer->getNbOutputs() == 1);
+//       outputs[i].push_back(layer->getOutput(0));
+//     }
+//   }
+
+//   // for (const auto& name : names) {
+//   //   nvinfer1::ILayer* layer = network->getLayer()
+//   // }
+// }
 
 bool initTrtPlugins() {
   static bool didInitPlugins = initLibNvInferPlugins(get_trt_logger(), "");
@@ -618,6 +650,7 @@ std::unique_ptr<nvinfer1::IHostMemory> onnx2trt(OnnxParams& params) {
   if (builder->setMaxThreads(max_threads))
     SPDLOG_INFO("tensorrt builder: max_threads={}", max_threads);
 
+  SPDLOG_INFO("parse {}", params.model);
   // todo timecache
   auto b_parsed = parser->parseFromFile(
       params.model.c_str(),
@@ -770,6 +803,11 @@ std::unique_ptr<nvinfer1::IHostMemory> onnx2trt(OnnxParams& params) {
     SPDLOG_INFO(ss.str());
     config->addOptimizationProfile(profile);
   }
+#if (NV_TENSORRT_MAJOR == 10 && NV_TENSORRT_MINOR >= 3) || \
+    (NV_TENSORRT_MAJOR >= 11)
+  SPDLOG_INFO("LIASED_PLUGIN_IO_10_03 enabled");
+  config->setPreviewFeature(nvinfer1::PreviewFeature::kALIASED_PLUGIN_IO_10_03,true); 
+#endif
 
 #if (NV_TENSORRT_MAJOR == 10 && NV_TENSORRT_MINOR >= 1) || \
     (NV_TENSORRT_MAJOR >= 11)

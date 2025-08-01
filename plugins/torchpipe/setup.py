@@ -97,7 +97,7 @@ if _check_cuda_version() > 0:
 class DependencyManager:
     @staticmethod
     def validate_library(header: str, include_dir: Path, lib_dir: Path) -> bool:
-        return (include_dir / header).exists() and any(lib_dir.glob(f"*{header.split('.')[0]}*"))
+        return (include_dir / header).exists()
 
     @classmethod
     def handle_opencv(cls):
@@ -117,7 +117,8 @@ class DependencyManager:
         if not cls.validate_library("NvInfer.h",
                                     Path(config.tensorrt_include),
                                     Path(config.tensorrt_lib)):
-            log.warn("TensorRT not found. Attempting to install...")
+            log.warn("TensorRT not found. Attempting to install... tensorrt_include={config.tensorrt_include}")
+            # import pdb;pdb.set_trace()
             from download_and_install_tensorrt import download_and_install_trt
             new_include, new_lib = download_and_install_trt()
             config.tensorrt_include = new_include

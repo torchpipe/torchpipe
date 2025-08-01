@@ -193,11 +193,13 @@ void Batching::impl_inject_dependency(Backend* dependency) {
   Dependency::impl_inject_dependency(dependency);
   const size_t max_bs = dependency->max();
   if (batching_timeout_ < 0)
+  {    
     if (max_bs > 1)
       batching_timeout_ = 4;
     else {
       batching_timeout_ = 0;
     }
+  }
   if (batching_timeout_ > 0 && max_bs > 1) {
     bInited_.store(true);
     thread_ = std::thread(&Batching::run, this, max_bs);
@@ -264,9 +266,10 @@ void Batching::run(size_t max_bs) {
         cached_data.push_back(input_queue_.pop());
       }
 
-      if (!try_forward(cached_data, new_pop + cached_size, SHUTDOWN_TIMEOUT))
+      if (!try_forward(cached_data, new_pop + cached_size, 1)) {
+        instances_state_->wait_for(new_pop + cached_size, SHUTDOWN_TIMEOUT);
         continue;
-      else {
+      } else {
         already_batching_timout = false;
         cached_data.clear();
       }
