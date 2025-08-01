@@ -403,12 +403,17 @@ void BackgroundThread::impl_init(
 
 void BackgroundThread::impl_forward(const std::vector<dict>& ios) {
   if (helper::all_has_key(ios, TASK_EVENT_KEY)) {
-    if (ios.size() > 1) {
-      float time = helper::timestamp();
-      SPDLOG_DEBUG("BackgroundThread  timer: {} {}", ios.size(), time);
-    }
+    
 
     batched_queue_.push(ios);
+    if (ios.size() >= 1) {
+      float time = helper::timestamp();
+      SPDLOG_DEBUG(
+          "BackgroundThread  timer: {} {} {}",
+          ios.size(),
+          time,
+          batched_queue_.size());
+    }
     return;
   }
   HAMI_ASSERT(helper::none_has_key(ios, TASK_EVENT_KEY));
