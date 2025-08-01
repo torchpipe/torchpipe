@@ -256,4 +256,39 @@ HAMI_REGISTER_BACKEND(SetTensorRequestSize);
 // HAMI_REGISTER_BACKEND(AppendIndexSelectTensor);
 HAMI_REGISTER_BACKEND(PrintTensor);
 
+class HAMI_EXPORT LogGPUTime : public hami::Backend {
+ private:
+  void impl_init(
+      const std::unordered_map<std::string, std::string>& params,
+      const dict& options) override final {
+    auto args_kwargs = hami::parser_v2::get_args_kwargs(this, "LogGPUTime", params);
+    HAMI_ASSERT(
+        args_kwargs.first.size() == 1,
+        "Requires exactly ==1 argument. Usage: LogGPUTime(key)/LogGPUTime::args=key_to_time");
+    key_ = args_kwargs.first[0];
+  }
+  void impl_forward(const std::vector<hami::dict>& input_output) override final {
+    // float time = get_time();
+    float time = cuda_time();
+    SPDLOG_INFO("timer: {} = {}", key_, time);
+    for (const auto& item : input_output) {
+      (*item)[TASK_RESULT_KEY] = item->at(TASK_DATA_KEY);
+    }
+  }
+  [[nodiscard]] size_t impl_max() const override final {
+    return max_;
+  }
+
+ private:
+  float get_time() {
+    return static_cast<float>(
+        std::chrono::duration<double>(
+            std::chrono::system_clock::now().time_since_epoch())
+            .count());
+  }
+  size_t max_{std::numeric_limits<size_t>::max()};
+  std::string key_;
+};
+HAMI_REGISTER_BACKEND(LogGPUTime);
+
 } // namespace torchpipe
