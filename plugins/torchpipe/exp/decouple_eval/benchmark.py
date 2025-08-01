@@ -171,7 +171,7 @@ def get_config(args):
             "model": f"./{model_name}.onnx",
             "std": "58.395, 57.120, 57.375",
             "model::cache": f"./{model_name}_{args.max}.trt",
-            "post_processor": "CpuTensor",
+            # "post_processor": "CpuTensor",
         },
         "global": {"batching_timeout": args.timeout},
     }
