@@ -414,7 +414,6 @@ void BackgroundThread::impl_forward(const std::vector<dict>& ios) {
           time,
           batched_queue_.size());
     }
-    std::this_thread::yield();
     return;
   }
   HAMI_ASSERT(helper::none_has_key(ios, TASK_EVENT_KEY));
@@ -448,13 +447,8 @@ void BackgroundThread::run() {
         continue;
       }
 
-      float time = helper::timestamp();
-      SPDLOG_DEBUG(
-          "batched_queue_  timer: {} {} {}",
-          tasks.size(),
-          time,
-          batched_queue_.size());
-        }
+
+    }
 
     std::vector<std::shared_ptr<Event>> events;
     for (std::size_t i = 0; i < tasks.size(); ++i) {

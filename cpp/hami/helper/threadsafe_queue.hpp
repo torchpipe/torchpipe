@@ -100,9 +100,20 @@ class ThreadSafeQueue {
   bool wait_pop(T& value, int time_out) {
     {
       std::unique_lock<std::mutex> lk(mut_);
-      auto re = data_cond_.wait_for(lk,
-                                    std::chrono::milliseconds(time_out),
-                                    [this] { return !data_queue_.empty(); });
+      auto re =
+          data_cond_.wait_for(lk, std::chrono::milliseconds(time_out), [this] {
+           
+            auto n = !data_queue_.empty();
+            if (n){
+              float time = helper::timestamp();
+              SPDLOG_DEBUG(
+                  "wait_pop  timer: {} {} {}",
+                  data_queue_.front().size(),
+                  time,
+                  batched_queue_.size());
+            }
+            return n;
+          });
       if (!re) return false;
       value = data_queue_.front();
       data_queue_.pop();
