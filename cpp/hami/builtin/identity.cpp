@@ -1,7 +1,7 @@
 // #include "backends/identity.hpp"
 #include <algorithm>
 #include <cmath>
-
+#include "hami/helper/timer.hpp"
 #include "hami/builtin/basic_backends.hpp"
 #include "hami/core/helper.hpp"
 #include "hami/core/reflect.h"
@@ -174,7 +174,8 @@ class HAMI_EXPORT LogTime : public Backend {
     key_ = args_kwargs.first[0];
   }
   void impl_forward(const std::vector<dict>& input_output) override final {
-    float time = get_time();
+    // float time = get_time();
+    float time = helper::timestamp();
     SPDLOG_INFO("timer: {} = {}", key_, time);
     for (const auto& item : input_output) {
       (*item)[TASK_RESULT_KEY] = item->at(TASK_DATA_KEY);

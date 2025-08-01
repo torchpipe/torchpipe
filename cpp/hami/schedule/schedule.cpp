@@ -268,10 +268,7 @@ void Batching::run(size_t max_bs) {
           "scheduler: new pop: {}, cached: {} timestamp = {}",
           new_pop,
           cached_size,
-          static_cast<float>(
-              std::chrono::duration<double>(
-                  std::chrono::system_clock::now().time_since_epoch())
-                  .count()));
+          helper::timestamp());
       if (!try_forward(cached_data, new_pop + cached_size, 1)) {
         instances_state_->wait_for(new_pop + cached_size, SHUTDOWN_TIMEOUT);
         continue;
