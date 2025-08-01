@@ -32,7 +32,7 @@
 #include <hami/extension.hpp>
 #include "helper/torch.hpp"
 // #include "NvInferRuntime.h"
-
+#include "hami/helper/timer.hpp"
 namespace torchpipe {
 
 void save(std::string save_name, torch::Tensor input) {
@@ -175,8 +175,7 @@ inline float cuda_time() {
     sync_event.record(get_current_stream());
     sync_event.synchronize();
 
-    auto cpu_elapsed =
-        std::chrono::duration<float, std::milli>(now() - start_time()).count();
+    auto cpu_elapsed = hami::helper::timestamp();
     return cpu_elapsed - start_event().elapsed_time(sync_event);
   }();
 
