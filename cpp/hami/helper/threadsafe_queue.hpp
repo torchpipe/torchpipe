@@ -110,7 +110,7 @@ class ThreadSafeQueue {
                   "wait_pop  timer: {} {} {}",
                   data_queue_.front().size(),
                   time,
-                  batched_queue_.size());
+                  data_queue_.size());
             }
             return n;
           });
