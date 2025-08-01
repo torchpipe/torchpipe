@@ -335,10 +335,17 @@ void InstanceDispatcher::impl_forward(const std::vector<dict>& ios) {
   //
   std::string node_name = dict_get<std::string>(ios[0],"node_name", true);
 
+  float time = helper::timestamp();
+  SPDLOG_DEBUG("InstanceDispatcher enter timer: {} {}", node_name, time);
+
   std::optional<size_t> index;
   do {
     index = instances_state_->query_available(req_size, 100, true, node_name);
   } while (!index);
+
+  time = helper::timestamp();
+  SPDLOG_DEBUG("InstanceDispatcher timer: {} {}", node_name, time);
+
   size_t valid_index{*index};
   // SPDLOG_INFO(
   //     "InstanceDispatcher, num deps = {}, req_size = {}, ios = {}",

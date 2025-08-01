@@ -25,7 +25,7 @@ void CatTensor::impl_forward(const std::vector<dict>& input_dict) {
     cated_inputs.push_back(std::move(data));
   }
   auto total_bs = std::accumulate(req_size.begin(), req_size.end(), 0);
-  SPDLOG_DEBUG("batchsize = {} time = ", total_bs, hami::helper::timestamp());
+  SPDLOG_DEBUG("batchsize = {} time = {}", total_bs, hami::helper::timestamp());
 
   // row2col
   const size_t num_tensors = cated_inputs.front().size();
