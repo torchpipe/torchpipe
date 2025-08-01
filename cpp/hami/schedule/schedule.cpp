@@ -403,6 +403,11 @@ void BackgroundThread::impl_init(
 
 void BackgroundThread::impl_forward(const std::vector<dict>& ios) {
   if (helper::all_has_key(ios, TASK_EVENT_KEY)) {
+    if (ios.size() > 1) {
+      float time = helper::timestamp();
+      SPDLOG_DEBUG("BackgroundThread  timer: {} {}", ios.size(), time);
+    }
+
     batched_queue_.push(ios);
     return;
   }
@@ -446,10 +451,6 @@ void BackgroundThread::run() {
             any_cast<std::shared_ptr<Event>>(iter_time->second);
         events.push_back(ti_p);
       }
-    }
-    if (tasks.size() > 1) {
-      float time = helper::timestamp();
-      SPDLOG_DEBUG("BackgroundThread  timer: {} {}", tasks.size(), time);
     }
 
     HAMI_FATAL_ASSERT(
