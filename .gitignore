@@ -26,3 +26,4 @@ log.txt
 hami/_build_info.py
 
 plugins/torchpipe/examples/yolo/dog_result.jpg
+.trunk/
