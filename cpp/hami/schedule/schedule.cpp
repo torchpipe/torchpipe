@@ -447,7 +447,7 @@ void BackgroundThread::run() {
         events.push_back(ti_p);
       }
     }
-    if (tasks.size() >= 1) {
+    if (tasks.size() > 1) {
       float time = helper::timestamp();
       SPDLOG_DEBUG("BackgroundThread  timer: {} {}", tasks.size(), time);
     }
