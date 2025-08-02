@@ -417,7 +417,7 @@ void BackgroundThread::impl_forward(const std::vector<dict>& ios) {
           "BackgroundThread  timer: {} {} {}",
           ios.size(),
           time,
-          batched_queue_.size());
+          0);
     }
     return;
   }
@@ -456,7 +456,7 @@ void BackgroundThread::run() {
           "batched_queue_  timer: {} {} {}",
           tasks.size(),
           time,
-          batched_queue_.size());
+          0);
     }
 
     std::vector<std::shared_ptr<Event>> events;
