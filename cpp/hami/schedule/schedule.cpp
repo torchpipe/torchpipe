@@ -413,7 +413,7 @@ void BackgroundThread::impl_forward(const std::vector<dict>& ios) {
     HAMI_ASSERT(batched_queue_.push(ios));
     if (ios.size() >= 1) {
       float time = helper::timestamp();
-      SPDLOG_DEBUG(
+      SPDLOG_INFO(
           "BackgroundThread  timer: {} {} {}",
           ios.size(),
           time,
@@ -452,7 +452,7 @@ void BackgroundThread::run() {
         continue;
       }
       float time = helper::timestamp();
-      SPDLOG_DEBUG(
+      SPDLOG_INFO(
           "batched_queue_  timer: {} {} {}",
           tasks.size(),
           time,
