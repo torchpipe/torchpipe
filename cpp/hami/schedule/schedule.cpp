@@ -445,7 +445,7 @@ void BackgroundThread::run() {
     std::vector<dict> tasks;
     {
       auto succ = batched_queue_.wait_pop(
-          tasks, SHUTDOWN_TIMEOUT); // for exit this thread
+          tasks, 1); // for exit this thread
 
       if (!succ) {
         assert(tasks.empty());
