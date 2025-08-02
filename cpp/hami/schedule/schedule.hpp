@@ -133,6 +133,7 @@ class BackgroundThread : public Backend {
   std::unique_ptr<Backend> dependency_;
   std::exception_ptr init_eptr_;
   std::function<void(void)> init_task_;
+  int priority_ {0};
   // std::function<void(void)> init_task_;
   // void forward_task(const std::vector<dict>& inputs);
 };

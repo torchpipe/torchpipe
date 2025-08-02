@@ -376,16 +376,21 @@ void BackgroundThread::impl_init(
 
   dependency_ = std::unique_ptr<Backend>(HAMI_CREATE(Backend, dependency_name));
   HAMI_ASSERT(dependency_);
+  auto iter = config.find("priority");
+  if (iter != config.end()){
+    priority_ = std::stoi(iter->second);
+    SPDLOG_INFO("priority = {}", priority_);
+  }
 
-  init_task_ = [this, config, kwargs]() {
-    dependency_->init(config, kwargs);
-    HAMI_ASSERT(
-        dependency_->min() >= 1 && dependency_->min() <= dependency_->max(),
-        std::to_string(dependency_->min()) + " " +
-            std::to_string(dependency_->max()));
+    init_task_ = [this, config, kwargs]() {
+      dependency_->init(config, kwargs);
+      HAMI_ASSERT(
+          dependency_->min() >= 1 && dependency_->min() <= dependency_->max(),
+          std::to_string(dependency_->min()) + " " +
+              std::to_string(dependency_->max()));
 
-    bInited_.store(true);
-  };
+      bInited_.store(true);
+    };
 
   thread_ = std::thread(&BackgroundThread::run, this);
   while (!bInited_.load() && (!bStoped_.load())) {
@@ -405,7 +410,7 @@ void BackgroundThread::impl_forward(const std::vector<dict>& ios) {
   if (helper::all_has_key(ios, TASK_EVENT_KEY)) {
     
 
-    batched_queue_.push_and_notify_one(ios);
+    batched_queue_.push(ios);
     if (ios.size() >= 1) {
       float time = helper::timestamp();
       SPDLOG_DEBUG(

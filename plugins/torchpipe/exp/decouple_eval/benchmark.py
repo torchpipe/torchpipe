@@ -258,7 +258,7 @@ if __name__ == "__main__":
             total_number = 10000
 
     # img_dir = 'encode_jpeg'
-    img_dir = '640'
+    img_dir = '320'
     result = test_from_raw_file(
         run,
         os.path.join("../", "tests/assets/", img_dir),
