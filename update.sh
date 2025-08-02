@@ -1,0 +1,1 @@
+clear && python uninstall -y hami-core && rm -f dist/*.whl && python setup.py bdist_wheel && pip install dist/*.whl

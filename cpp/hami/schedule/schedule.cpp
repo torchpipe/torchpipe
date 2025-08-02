@@ -410,7 +410,7 @@ void BackgroundThread::impl_forward(const std::vector<dict>& ios) {
   if (helper::all_has_key(ios, TASK_EVENT_KEY)) {
     
 
-    batched_queue_.push(ios);
+    batched_queue_.push_and_notify_one(ios);
     if (ios.size() >= 1) {
       float time = helper::timestamp();
       SPDLOG_DEBUG(

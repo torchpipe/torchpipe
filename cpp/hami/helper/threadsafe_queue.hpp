@@ -113,7 +113,8 @@ class ThreadSafeQueue {
                                     std::chrono::milliseconds(time_out),
                                     [this] { return !data_queue_.empty(); });
       if (!re) return false;
-      value = data_queue_.front();
+      std::swap(value, data_queue_.front());
+      // value = data_queue_.front();
       data_queue_.pop();
     }
 
