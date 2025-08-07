@@ -280,44 +280,48 @@ if __name__ == "__main__":
             assert "result" in input
             
         result = test_from_ids([forward]*args.client, ids)
-        exit(0)
+    else:        
+        if "ensemble" in args.model or args.model == "triton_resnet_ensemble":
+            import triton_utils
+
+            clients = triton_utils.get_clients(args.model, args.client)
+            run = [x.forward for x in clients]
+        elif args.model == "triton_resnet":
+            import triton_utils
+
+            clients = triton_utils.get_clients_with_preprocess(
+                "resnet_trt", args.client)
+            run = [x.forward for x in clients]
+        else:
+            config = get_config(args)
+            print(config)
+            import torchpipe as tp
+
+            nodes = hami.pipe(config)
+
+        if args.model == "empty":
+            print("args.model is empty. test preprocess only")
+            run = only_preprocess
+
+        # run([(img_path, img)])
+
+        from test_tools import test_from_raw_file
+
         
-    elif "ensemble" in args.model or args.model == "triton_resnet_ensemble":
-        import triton_utils
 
-        clients = triton_utils.get_clients(args.model, args.client)
-        run = [x.forward for x in clients]
-    elif args.model == "triton_resnet":
-        import triton_utils
+        # img_dir = 'encode_jpeg'
+        img_dir = '320'
+        result = test_from_raw_file(
+            run,
+            os.path.join("../", "tests/assets/", img_dir),
+            num_clients=args.client,
+            total_number=total_number,
+        )
 
-        clients = triton_utils.get_clients_with_preprocess(
-            "resnet_trt", args.client)
-        run = [x.forward for x in clients]
-    else:
-        config = get_config(args)
-        print(config)
-        import torchpipe as tp
+        from test_tools import ProcessAdaptor
 
-        nodes = hami.pipe(config)
+        ProcessAdaptor.close_all(clients)
 
-    if args.model == "empty":
-        print("args.model is empty. test preprocess only")
-        run = only_preprocess
-
-    # run([(img_path, img)])
-
-    from test_tools import test_from_raw_file
-
-    
-
-    # img_dir = 'encode_jpeg'
-    img_dir = '320'
-    result = test_from_raw_file(
-        run,
-        os.path.join("../", "tests/assets/", img_dir),
-        num_clients=args.client,
-        total_number=total_number,
-    )
 
     # keep = ["throughput::qps", "latency::TP99", "latency::TP50", "cpu_usage", 'gpu_usage']
     keep = {
@@ -333,10 +337,6 @@ if __name__ == "__main__":
     print("\n\n")
     print({args.client: new_result})
     print("\n\n")
-
-    from test_tools import ProcessAdaptor
-
-    ProcessAdaptor.close_all(clients)
 
     if args.save:
         import pickle
