@@ -146,6 +146,9 @@ python decouple_eval/benchmark.py  --model resnet101 --preprocess cpu --max 40 -
 {40: {'QPS': 1840.08, 'TP50': 21.57, 'TP99': 23.46, 'GPU Usage': 54.0}}
 {80: {'QPS': 3036.11, 'TP50': 25.97, 'TP99': 33.33, 'GPU Usage': 95.0}}
 
+python decouple_eval/benchmark.py  --model resnet101 --preprocess cpu --max 4 --trt_instance_num 1 --timeout 10 --preprocess-instances 14 --total_number 20000 --client 80
+
+
 ```
 
 

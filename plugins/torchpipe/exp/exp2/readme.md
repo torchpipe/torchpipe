@@ -1,6 +1,14 @@
 
 
 
+## multiple instances, with no preprocesser
+```bash
+ python benchmark.py --model=resnet18 --max 4 --trt_instance_num 8 
+ # 1,2,4,8,16,32  
+ # 32,16,8,4,2,1
+ ```
+
+## old
 
 ```bash
 # GPUPreprocess:
