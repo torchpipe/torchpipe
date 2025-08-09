@@ -57,7 +57,7 @@ def save_onnx(model: str, gpu_id: int):
     # 设置GPU设备
     device = f"cuda:{gpu_id}"
     torch_model = timm.create_model(
-        model, pretrained=False, exportable=True).to(device).eval()
+        model, pretrained=False, exportable=True).eval()  # .to(device)
 
     torchpipe.utils.model_helper.onnx_export(
         torch_model, onnx_save_path, 224, 224)
@@ -208,7 +208,7 @@ def plot_results(model: str, results: List[dict]):
 
 
 def main(
-    models: List[str] = ['resnet101', 'mobilenetv2_100',
+    models: List[str] = ['mobilenetv2_100', 'resnet101',
                          'vit_base_patch16_siglip_224'],
     batch_range: Tuple[int, int] = (1, 16),
     norm_batch_size: int = 32
