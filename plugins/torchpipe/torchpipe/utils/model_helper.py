@@ -11,7 +11,6 @@ from io import BytesIO
 from typing import Callable, Tuple, Optional
 import numpy as np
 from typing import List, Union, Callable, Tuple, Any
-import version
 
 try:
     import cv2
