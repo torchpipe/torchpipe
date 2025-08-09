@@ -208,12 +208,13 @@ def plot_results(model: str, results: List[dict]):
 
 
 def main(
-    models: List[str] = ['resnet101'],
+    models: List[str] = ['resnet101', 'mobilenetv2_100',
+                         'vit_base_patch16_siglip_224'],
     batch_range: Tuple[int, int] = (1, 16),
     norm_batch_size: int = 32
 ):
     # models: List[str] = ['resnet101', 'mobilenetv2_100',
-                        #  'vit_base_patch16_siglip_224'],
+    #                      'vit_base_patch16_siglip_224'],
     # 验证trtexec是否可用
     assert shutil.which("trtexec") is not None, "trtexec not found in PATH"
 
