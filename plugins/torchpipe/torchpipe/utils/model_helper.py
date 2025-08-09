@@ -11,6 +11,8 @@ from io import BytesIO
 from typing import Callable, Tuple, Optional
 import numpy as np
 from typing import List, Union, Callable, Tuple, Any
+import version
+
 try:
     import cv2
 except ImportError:
@@ -75,6 +77,28 @@ def import_or_install_package(package_name: str, import_name=None) -> None:
     return module
 
 
+def get_max_supported_onnx_opset():
+    """获取当前 PyTorch 版本支持的 ONNX 最大 opset 版本"""
+    # PyTorch 1.8+ 使用这个属性
+    if hasattr(torch.onnx, 'ONNX_MAX_OPSET_VERSION'):
+        return torch.onnx.ONNX_MAX_OPSET_VERSION
+
+    # PyTorch 1.12+ 移除了上述属性，使用这个内部常量
+    if hasattr(torch.onnx, '_constants'):
+        from torch.onnx import _constants
+        if hasattr(_constants, 'ONNX_TORCHSCRIPT_EXPORTER_MAX_OPSET'):
+            return _constants.ONNX_TORCHSCRIPT_EXPORTER_MAX_OPSET
+        elif hasattr(_constants, 'ONNX_MAX_OPSET'):
+            return _constants.ONNX_MAX_OPSET
+    
+    torch_version = torch.__version__.split('+')[0]  # 移除可能的 CUDA 后缀
+    major, minor = map(int, torch_version.split('.')[:2])
+
+    if (major == 1 and minor >= 1.12) or major >= 2:
+        return 17
+    else:
+        return 11
+
 def export_n3hw(model: nn.Module, onnx_path: str, input_h: int, input_w: int) -> str:
     """Export model to optimized ONNX format with input shape [-1, 3, H, W].
 
@@ -95,8 +119,14 @@ def export_n3hw(model: nn.Module, onnx_path: str, input_h: int, input_w: int) ->
     from onnxsim import simplify
 
     # Generate dummy input
-    dummy_input = torch.randn(1, 3, input_h, input_w)
+    original_device = next(model.parameters()).device
+    original_dtype = next(model.parameters()).dtype
+    dummy_input = torch.randn(1, 3, input_h, input_w, 
+                             device=original_device,
+                             dtype=original_dtype)
+    
     tmp_onnx_path = tempfile.mktemp()
+    
 
     # Export initial ONNX model
     torch.onnx.export(
@@ -106,7 +136,7 @@ def export_n3hw(model: nn.Module, onnx_path: str, input_h: int, input_w: int) ->
         input_names=["input"],
         output_names=["output"],
         dynamic_axes={"input": {0: "batch_size"}, "output": {0: "batch_size"}},
-        opset_version=13
+        opset_version=get_max_supported_onnx_opset()
     )
 
     # Optimize with ONNX-Simplifier
