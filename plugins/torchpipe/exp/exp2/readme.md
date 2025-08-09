@@ -2,11 +2,52 @@
 
 
 ## multiple instances, with no preprocesser
+
+resnet101, fp16, 32, 0.7, 4/5
+
 ```bash
- python benchmark.py --model=resnet18 --max 4 --trt_instance_num 8 
- # 1,2,4,8,16,32  
- # 32,16,8,4,2,1
+ python benchmark.py --model=resnet18 --max 4 --trt_instance_num 8 --client=10
+ # 1,1,2,4,8  ,16,32  
+ # 1,2,2,2,1  ,2,1
+  python benchmark.py --model=resnet101 --max 1 --trt_instance_num 1
+    python benchmark.py --model=resnet101 --max 1 --trt_instance_num 2 
+    python benchmark.py --model=resnet101 --max 2 --trt_instance_num 4 
+
+    python benchmark.py --model=resnet101 --max 4 --trt_instance_num 2 
+    trtexec --loadEngine=resnet101_b4_i1.trt --shapes=input:4x3x224x224
+        python benchmark.py --model=resnet101 --max 4 --trt_instance_num 4 
+
+        python benchmark.py --model=resnet50 --max 4 --trt_instance_num 4 
+        python benchmark.py --model=resnet50 --max 4 --trt_instance_num 1 
+    trtexec --loadEngine=resnet50_b4_i1.trt --shapes=input:4x3x224x224
+     trtexec --loadEngine=resnet101_4.trt --shapes=input:4x3x224x224
+   trtexec --loadEngine=resnet101_b4_i1.trt  --shapes=input:4x3x224x224
+
+0.75 -> 2361.443
+
+trtexec --onnx=resnet101.onnx --saveEngine==resnet101_b1.trt --shapes=input:1x3x224x224 --fp16 => 1029.22
+
+trtexec --onnx=resnet101.onnx --saveEngine==resnet101_b2.trt --shapes=input:2x3x224x224 --fp16 => 1567.588
+
+trtexec --onnx=resnet101.onnx --saveEngine==resnet101_b3.trt --shapes=input:3x3x224x224 --fp16 => 1938.114
+
+trtexec --onnx=resnet101.onnx --saveEngine==resnet101_b4.trt --shapes=input:4x3x224x224 --fp16 => 2233.672
+
+trtexec --onnx=resnet101.onnx --saveEngine==resnet101_b5.trt --shapes=input:5x3x224x224 --fp16 => 2453.145
+
+trtexec --onnx=resnet101.onnx --saveEngine==resnet101_b6.trt --shapes=input:6x3x224x224 --fp16 => 2276.868
+
+trtexec --onnx=resnet101.onnx --saveEngine==resnet101_b7.trt --shapes=input:7x3x224x224 --fp16 => 2417.093
+
+trtexec --onnx=resnet101.onnx --saveEngine==resnet101_b8.trt --shapes=input:8x3x224x224 --fp16 => 2552.112
+
+trtexec --onnx=resnet101.onnx --saveEngine==resnet101_b32.trt --shapes=input:32x3x224x224 --fp16 =>  3079.5104
+
+
+
+
   python benchmark.py --model=resnet101 --max 4 --trt_instance_num 8 
+  python benchmark.py --model=resnet101 --max 8 --trt_instance_num 4 
 
  ```
 
