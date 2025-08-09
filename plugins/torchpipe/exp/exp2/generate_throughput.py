@@ -172,46 +172,46 @@ def parse_gpu_log(log_path: str) -> Tuple[float, int]:
         return 0.0, 0
 
 
-def plot_results(model: str, results: List[dict]):
-    """生成吞吐量对比图"""
-    df = pd.DataFrame(results)
-    if df.empty:
-        return
+# def plot_results(model: str, results: List[dict]):
+#     """生成吞吐量对比图"""
+#     df = pd.DataFrame(results)
+#     if df.empty:
+#         return
 
-    # 找出归一化batch size的吞吐量参考值
-    t32 = df[df['batch_size'] == 32]['throughput'].values
-    t32 = t32[0] if len(t32) > 0 else 0
+#     # 找出归一化batch size的吞吐量参考值
+#     t32 = df[df['batch_size'] == 32]['throughput'].values
+#     t32 = t32[0] if len(t32) > 0 else 0
 
-    plt.figure(figsize=(10, 6))
-    plt.plot(df['batch_size'], df['throughput'], 'o-', label='Throughput')
+#     plt.figure(figsize=(10, 6))
+#     plt.plot(df['batch_size'], df['throughput'], 'o-', label='Throughput')
 
-    if t32 > 0:
-        # 绘制75%阈值线并找出最小batch size
-        threshold = 0.75 * t32
-        plt.axhline(threshold, color='r', linestyle='--', label='75% of T32')
+#     if t32 > 0:
+#         # 绘制75%阈值线并找出最小batch size
+#         threshold = 0.75 * t32
+#         plt.axhline(threshold, color='r', linestyle='--', label='75% of T32')
 
-        valid_bs = df[(df['batch_size'] >= 1) &
-                      (df['batch_size'] <= 12) &
-                      (df['throughput'] >= threshold)]
-        if not valid_bs.empty:
-            min_bs = valid_bs['batch_size'].min()
-            plt.plot(min_bs, valid_bs[valid_bs['batch_size'] == min_bs]['throughput'].values[0],
-                     'ro', markersize=8, label=f'Min BS: {min_bs}')
+#         valid_bs = df[(df['batch_size'] >= 1) &
+#                       (df['batch_size'] <= 12) &
+#                       (df['throughput'] >= threshold)]
+#         if not valid_bs.empty:
+#             min_bs = valid_bs['batch_size'].min()
+#             plt.plot(min_bs, valid_bs[valid_bs['batch_size'] == min_bs]['throughput'].values[0],
+#                      'ro', markersize=8, label=f'Min BS: {min_bs}')
 
-    plt.title(f'Model: {model}')
-    plt.xlabel('Batch Size')
-    plt.ylabel('Throughput (qps)')
-    plt.legend()
-    plt.grid(True)
-    plt.savefig(f"{model}_throughput.png")
-    plt.close()
+#     plt.title(f'Model: {model}')
+#     plt.xlabel('Batch Size')
+#     plt.ylabel('Throughput (qps)')
+#     plt.legend()
+#     plt.grid(True)
+#     plt.savefig(f"{model}_throughput.png")
+#     plt.close()
 
 
 def main(
     models: List[str] = ['mobilenetv2_100', 'resnet101',
                          'vit_base_patch16_siglip_224'],
     batch_range: Tuple[int, int] = (1, 16),
-    norm_batch_size: int = 32
+    norm_batch_size: int = 64
 ):
     # models: List[str] = ['resnet101', 'mobilenetv2_100',
     #                      'vit_base_patch16_siglip_224'],
@@ -265,7 +265,7 @@ def main(
 
         # 保存并绘制结果
         all_results.extend(model_results)
-        plot_results(model, model_results)
+        # plot_results(model, model_results)
         
 
     # 保存综合结果
