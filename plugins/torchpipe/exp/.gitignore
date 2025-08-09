@@ -1,3 +1,6 @@
 *.onnx
 *.trt
 **/*.plan
+**/*.csv
+*.csv
+*.png
