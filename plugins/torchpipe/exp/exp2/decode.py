@@ -3,6 +3,7 @@ import os
 import random
 import time
 import statistics
+import torch
 
 def get_data(batch_size, img_path='../../tests/encode_jpeg/', gpu_id=0):
     # Collect image paths
@@ -12,7 +13,7 @@ def get_data(batch_size, img_path='../../tests/encode_jpeg/', gpu_id=0):
             if file.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.tiff')):
                 image_paths.append(os.path.join(root, file))
     
-    print(f"Found {len(image_paths)} images to decode")
+    print(f"Found {len(image_paths)} images")
     if len(image_paths) == 0:
         print("No images found. Exiting.")
         exit(1)
@@ -25,45 +26,43 @@ def get_data(batch_size, img_path='../../tests/encode_jpeg/', gpu_id=0):
                 data_list.append(in_file.read())
         except Exception as e:
             print(f"Error reading file {p}: {str(e)}")
-        assert len(data_list) < 1000
     
-    # Initialize decoder and decode sample images
-    dec = nvimgcodec.Decoder(device_id=gpu_id)
-    try:
-        sample_images = dec.decode(data_list)  # Decode subset for info
-        print(f"Successfully decoded {len(sample_images)} sample images")
-        for i, img in enumerate(sample_images):
-            print(f"\nSample Image {i+1}:", flush=True)
-            print("CUDA Array Interface:", img.__cuda_array_interface__, flush=True)
-    except Exception as e:
-        print(f"Sample decoding failed: {str(e)}")
-    
-    batch_data = random.choices(data_list, k=batch_size)
-    assert len(batch_data) == batch_size
-    return batch_data, dec
+    if len(data_list) == 0:
+        print("No valid images read. Exiting.")
+        exit(1)
+
+    # Initialize decoder
+    dec = nvimgcodec.Decoder(device_id=gpu_id, output_format=nvimgcodec.PixelFormat.RGB)
+    return data_list, dec
 
 def main(batch_size, gpu_id, total=1000, img_path='../../tests/assets/encode_jpeg/'):
-    data_list, dec = get_data(batch_size, img_path, gpu_id)
+    all_data, dec = get_data(batch_size, img_path, gpu_id)
     
-    print(f'Warm-up started. data length = {len(data_list)}')
-    # Warm-up
-    for i in range(len(data_list)):
-        print(f'i={i}')
-        _ = dec.decode(data_list[:i+1])
-    print(f'Warm-up finished')
+    # Select random batch (consistent across runs)
+    batch_data = random.choices(all_data, k=batch_size)
     
-    # Benchmark with time measurement for each iteration
+    print(f'Warm-up started (batch_size={batch_size})')
+    # Warm-up with GPU synchronization
+    for _ in range(5):
+        _ = dec.decode(batch_data)
+    torch.cuda.synchronize()
+    print('Warm-up finished')
+    
+    # Benchmark with CUDA events
+    start_event = torch.cuda.Event(enable_timing=True)
+    end_event = torch.cuda.Event(enable_timing=True)
     iteration_times = []
+    
     for _ in range(total):
-        start = time.time()
-        _ = dec.decode(data_list)
-        end = time.time()
-        iteration_times.append(end - start)
+        start_event.record()
+        _ = dec.decode(batch_data)
+        end_event.record()
+        torch.cuda.current_stream().synchronize()  # Ensure measurement completes
+        elapsed_ms = start_event.elapsed_time(end_event)
+        iteration_times.append(elapsed_ms / 1000.0)  # Convert to seconds
     
-    # Calculate median time per batch
+    # Calculate statistics
     median_time_per_batch = statistics.median(iteration_times)
-    
-    # Calculate throughput based on median
     images_per_second = batch_size / median_time_per_batch
     batches_per_second = 1 / median_time_per_batch
     
