@@ -240,7 +240,7 @@ def main(
                 model = model.rstrip('py:')
                 
                 tput, tp50_sm, max_mem = run_benchmark(
-                    engine_path, norm_batch_size, selected_gpu, from_py=True)
+                    model, norm_batch_size, selected_gpu, from_py=True)
                 tput *= norm_batch_size
                 curr_result = {
                     'model': model,
