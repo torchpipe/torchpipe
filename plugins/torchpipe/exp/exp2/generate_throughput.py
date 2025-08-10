@@ -244,7 +244,7 @@ def main(
                     model, norm_batch_size, selected_gpu, from_py=True)
                 tput *= norm_batch_size
                 curr_result = {
-                    'model': model,
+                    'model': model.rsplit('.', 1)[0],
                     'batch_size': norm_batch_size,
                     'throughput': int(tput),
                     'tp50_sm': tp50_sm,
@@ -259,7 +259,7 @@ def main(
                         model, bs, selected_gpu, from_py=True)
                     tput *= bs
                     current = {
-                        'model': model,
+                        'model': model.rsplit('.', 1)[0],
                         'batch_size': bs,
                         'throughput': int(tput),
                         'tp50_sm': tp50_sm,
