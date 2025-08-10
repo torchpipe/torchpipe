@@ -222,6 +222,9 @@ def main(
     # models: List[str] = ['resnet101', 'mobilenetv2_100',
     #                      'vit_base_patch16_siglip_224'],
     # 验证trtexec是否可用
+    if isinstance(models, str):
+        models = [models]
+    print(f'models = {models}')
     assert shutil.which("trtexec") is not None, "trtexec not found in PATH"
 
     # 选择最空闲的GPU
