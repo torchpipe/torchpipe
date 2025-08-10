@@ -32,10 +32,11 @@ def get_data(batch_size, img_path='../../tests/encode_jpeg/', gpu_id=0):
         exit(1)
 
     # Initialize decoder
-    dec = nvimgcodec.Decoder(device_id=gpu_id, output_format=nvimgcodec.PixelFormat.RGB)
+    dec = nvimgcodec.Decoder(gpu_id=gpu_id)
     return data_list, dec
 
 def main(batch_size, gpu_id, total=1000, img_path='../../tests/assets/encode_jpeg/'):
+    os.environ['CUDA_VISIBLE_DEVICES'] = batch_size
     all_data, dec = get_data(batch_size, img_path, gpu_id)
     
     # Select random batch (consistent across runs)
