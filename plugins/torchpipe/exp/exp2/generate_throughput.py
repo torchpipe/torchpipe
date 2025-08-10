@@ -101,7 +101,8 @@ def run_benchmark(engine_path: str, batch_size: int, gpu_id: int, from_py: bool)
     # 运行基准测试
     if from_py:
         run_cmd = [
-            f"python {engine_path}",
+            f"python",
+            f'{engine_path}',
             f"--batch_size={batch_size}",
             f"--gpu_id={gpu_id}"  # 指定GPU
         ]
