@@ -37,6 +37,7 @@ def get_data(batch_size, img_path='../../tests/encode_jpeg/', gpu_id=0):
 
 def main(batch_size, gpu_id, total=1000, img_path='../../tests/assets/encode_jpeg/'):
     os.environ['CUDA_VISIBLE_DEVICES'] = str(gpu_id)
+    gpu_id = 0
     all_data, dec = get_data(batch_size, img_path, gpu_id)
     
     # Select random batch (consistent across runs)
