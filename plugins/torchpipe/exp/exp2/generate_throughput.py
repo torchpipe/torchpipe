@@ -234,11 +234,11 @@ def main(
 
     all_results = []
 
-    for model in models:
+    for local_model in models:
         model_results = []
         try:
-            if model.startswith('py:'):
-                model = model.split('py:')[1]
+            if local_model.startswith('py:'):
+                model = local_model.split('py:')[1]
                 
                 tput, tp50_sm, max_mem = run_benchmark(
                     model, norm_batch_size, selected_gpu, from_py=True)
@@ -269,6 +269,7 @@ def main(
                     model_results.append(current)
                     print(f'\ncurrent: {current}\n')
             else:
+                model = local_model
                 save_onnx(model, selected_gpu)
 
                 # 基准测试归一化batch size
