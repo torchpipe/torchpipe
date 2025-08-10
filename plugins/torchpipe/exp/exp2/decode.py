@@ -71,8 +71,7 @@ def main(batch_size, gpu_id, total=1000, img_path='../../tests/assets/encode_jpe
     print(f"- Total batches processed: {total}")
     print(f"- Total images decoded: {batch_size * total}")
     print(f"- Median time per batch: {median_time_per_batch * 1000:.4f} ms")
-    print(f"- Throughput: {images_per_second:.2f} qps")
-    print(f"- Batch rate: {batches_per_second:.2f} batches/sec")
+    print(f"- Throughput: {batches_per_second:.2f} qps")
 
 if __name__ == '__main__':
     import fire
