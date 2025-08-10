@@ -255,9 +255,8 @@ def main(
 
                 # 基准测试batch size范围
                 for bs in range(batch_range[0], batch_range[1] + 1):
-                    engine_path = build_engine(model, bs, selected_gpu)
                     tput, tp50_sm, max_mem = run_benchmark(
-                        engine_path, bs, selected_gpu)
+                        engine_path, bs, selected_gpu, from_py=True)
                     tput *= bs
                     current = {
                         'model': model,
