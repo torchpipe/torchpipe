@@ -33,9 +33,9 @@ def get_data(batch_size, img_path='../../tests/encode_jpeg/', gpu_id=0):
         sample_images = dec.decode(data_list)  # Decode subset for info
         print(f"Successfully decoded {len(sample_images)} sample images")
         for i, img in enumerate(sample_images):
-            print(f"\nSample Image {i+1}:")
-            print("CUDA Array Interface:", img.__cuda_array_interface__)
-            print("Shape:", img.shape)
+            print(f"\nSample Image {i+1}:", flush=True)
+            print("CUDA Array Interface:", img.__cuda_array_interface__, flush=True)
+            print("Shape:", img.shape, flush=True)
     except Exception as e:
         print(f"Sample decoding failed: {str(e)}")
     
