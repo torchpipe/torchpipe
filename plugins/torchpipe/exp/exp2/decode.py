@@ -45,7 +45,7 @@ def get_data(batch_size, img_path='../../tests/encode_jpeg/', gpu_id=0):
 def main(batch_size, gpu_id, total=1000, img_path='../../tests/assets/encode_jpeg/'):
     data_list, dec = get_data(batch_size, img_path, gpu_id)
     
-    print(f'Warm-up started.')
+    print(f'Warm-up started. data length = {len(data_list)}')
     # Warm-up
     _ = dec.decode(data_list)
     print(f'Warm-up finished')
