@@ -215,7 +215,7 @@ def parse_gpu_log(log_path: str) -> Tuple[float, int]:
 #     plt.close()
 
 def main(
-    models: List[str] = ['mobilenetv2_100', 'resnet101',
+    models: List[str] = ['jpg_decode.py', 'mobilenetv2_100', 'resnet101',
                          'vit_base_patch16_siglip_224'],
     batch_range: Tuple[int, int] = (1, 16),
     norm_batch_size: int = 64
@@ -234,12 +234,10 @@ def main(
 
     all_results = []
 
-    for local_model in models:
+    for model in models:
         model_results = []
         try:
-            if local_model.startswith('py:'):
-                model = local_model.split('py:')[1]
-                
+            if model.endswith('.py'):                
                 tput, tp50_sm, max_mem = run_benchmark(
                     model, norm_batch_size, selected_gpu, from_py=True)
                 tput *= norm_batch_size
@@ -268,7 +266,6 @@ def main(
                     model_results.append(current)
                     print(f'\ncurrent: {current}\n')
             else:
-                model = local_model
                 save_onnx(model, selected_gpu)
 
                 # 基准测试归一化batch size
