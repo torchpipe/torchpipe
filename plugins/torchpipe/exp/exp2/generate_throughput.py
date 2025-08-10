@@ -81,7 +81,7 @@ def build_engine(model: str, batch_size: int, gpu_id: int):
     return engine_path
 
 
-def run_benchmark(engine_path: str, batch_size: int, gpu_id: int, from_py: bool) -> Tuple[float, float, int]:
+def run_benchmark(engine_path: str, batch_size: int, gpu_id: int, from_py: bool = False) -> Tuple[float, float, int]:
     """在指定GPU上运行基准测试"""
     # 准备GPU监控
     log_file = f"./gpu_log_{os.path.basename(engine_path)}.csv"
@@ -242,7 +242,7 @@ def main(
                     model, norm_batch_size, selected_gpu, from_py=True)
                 tput *= norm_batch_size
                 curr_result = {
-                    'model': model.rsplit('.', 1)[0],
+                    'model': model,
                     'batch_size': norm_batch_size,
                     'throughput': int(tput),
                     'tp50_sm': tp50_sm,
@@ -257,7 +257,7 @@ def main(
                         model, bs, selected_gpu, from_py=True)
                     tput *= bs
                     current = {
-                        'model': model.rsplit('.', 1)[0],
+                        'model': model,
                         'batch_size': bs,
                         'throughput': int(tput),
                         'tp50_sm': tp50_sm,
