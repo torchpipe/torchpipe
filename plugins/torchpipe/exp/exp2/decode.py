@@ -47,7 +47,9 @@ def main(batch_size, gpu_id, total=1000, img_path='../../tests/assets/encode_jpe
     
     print(f'Warm-up started. data length = {len(data_list)}')
     # Warm-up
-    _ = dec.decode(data_list)
+    for i in range(len(data_list)):
+        print(f'i={i}')
+        _ = dec.decode(data_list[:i+1])
     print(f'Warm-up finished')
     
     # Benchmark with time measurement for each iteration
