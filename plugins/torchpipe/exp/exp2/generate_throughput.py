@@ -237,7 +237,7 @@ def main(
         model_results = []
         try:
             if model.startswith('py:'):
-                model = model.rstrip('py:')
+                model = model.split('py:')[1]
                 
                 tput, tp50_sm, max_mem = run_benchmark(
                     model, norm_batch_size, selected_gpu, from_py=True)
