@@ -81,7 +81,7 @@ def build_engine(model: str, batch_size: int, gpu_id: int):
     return engine_path
 
 
-def run_benchmark(engine_path: str, batch_size: int, gpu_id: int) -> Tuple[float, float, int]:
+def run_benchmark(engine_path: str, batch_size: int, gpu_id: int, from_py: bool) -> Tuple[float, float, int]:
     """在指定GPU上运行基准测试"""
     # 准备GPU监控
     log_file = f"./gpu_log_{os.path.basename(engine_path)}.csv"
@@ -99,12 +99,19 @@ def run_benchmark(engine_path: str, batch_size: int, gpu_id: int) -> Tuple[float
         )
 
     # 运行基准测试
-    run_cmd = [
-        "trtexec",
-        f"--loadEngine={engine_path}",
-        f"--shapes=input:{batch_size}x3x224x224",
-        f"--device={gpu_id}"  # 指定GPU
-    ]
+    if from_py:
+        run_cmd = [
+            f"python {engine_path}",
+            f"--batch_size={batch_size}",
+            f"--gpu_id={gpu_id}"  # 指定GPU
+        ]
+    else:
+        run_cmd = [
+            "trtexec",
+            f"--loadEngine={engine_path}",
+            f"--shapes=input:{batch_size}x3x224x224",
+            f"--device={gpu_id}"  # 指定GPU
+        ]
 
     try:
         result = subprocess.run(
@@ -206,7 +213,6 @@ def parse_gpu_log(log_path: str) -> Tuple[float, int]:
 #     plt.savefig(f"{model}_throughput.png")
 #     plt.close()
 
-
 def main(
     models: List[str] = ['mobilenetv2_100', 'resnet101',
                          'vit_base_patch16_siglip_224'],
@@ -226,51 +232,86 @@ def main(
 
     for model in models:
         model_results = []
-        save_onnx(model, selected_gpu)
-
         try:
-            # 基准测试归一化batch size
-            engine_path = build_engine(model, norm_batch_size, selected_gpu)
-            tput, tp50_sm, max_mem = run_benchmark(
-                engine_path, norm_batch_size, selected_gpu)
-            tput *= norm_batch_size
-            curr_result = {
-                'model': model,
-                'batch_size': norm_batch_size,
-                'throughput': int(tput),
-                'tp50_sm': tp50_sm,
-                'max_mem': max_mem
-            }
-            model_results.append(curr_result)
-            t32 = tput
-
-            # 基准测试batch size范围
-            for bs in range(batch_range[0], batch_range[1] + 1):
-                engine_path = build_engine(model, bs, selected_gpu)
+            if model.startswith('py:'):
+                # model = model.rstrip('py:')
+                
                 tput, tp50_sm, max_mem = run_benchmark(
-                    engine_path, bs, selected_gpu)
-                tput *= bs
-                current = {
+                    engine_path, norm_batch_size, selected_gpu, from_py=True)
+                tput *= norm_batch_size
+                curr_result = {
                     'model': model,
-                    'batch_size': bs,
+                    'batch_size': norm_batch_size,
                     'throughput': int(tput),
                     'tp50_sm': tp50_sm,
                     'max_mem': max_mem
                 }
-                model_results.append(current)
-                print(f'\ncurrent: {current}\n')
+                model_results.append(curr_result)
+                t32 = tput
 
+                # 基准测试batch size范围
+                for bs in range(batch_range[0], batch_range[1] + 1):
+                    engine_path = build_engine(model, bs, selected_gpu)
+                    tput, tp50_sm, max_mem = run_benchmark(
+                        engine_path, bs, selected_gpu)
+                    tput *= bs
+                    current = {
+                        'model': model,
+                        'batch_size': bs,
+                        'throughput': int(tput),
+                        'tp50_sm': tp50_sm,
+                        'max_mem': max_mem
+                    }
+                    model_results.append(current)
+                    print(f'\ncurrent: {current}\n')
+            else:
+                save_onnx(model, selected_gpu)
+
+                # 基准测试归一化batch size
+                engine_path = build_engine(model, norm_batch_size, selected_gpu)
+                tput, tp50_sm, max_mem = run_benchmark(
+                    engine_path, norm_batch_size, selected_gpu)
+                tput *= norm_batch_size
+                curr_result = {
+                    'model': model,
+                    'batch_size': norm_batch_size,
+                    'throughput': int(tput),
+                    'tp50_sm': tp50_sm,
+                    'max_mem': max_mem
+                }
+                model_results.append(curr_result)
+                t32 = tput
+
+                # 基准测试batch size范围
+                for bs in range(batch_range[0], batch_range[1] + 1):
+                    engine_path = build_engine(model, bs, selected_gpu)
+                    tput, tp50_sm, max_mem = run_benchmark(
+                        engine_path, bs, selected_gpu)
+                    tput *= bs
+                    current = {
+                        'model': model,
+                        'batch_size': bs,
+                        'throughput': int(tput),
+                        'tp50_sm': tp50_sm,
+                        'max_mem': max_mem
+                    }
+                    model_results.append(current)
+                    print(f'\ncurrent: {current}\n')
+
+            all_results.extend(model_results)
+                
         except Exception as e:
             print(f"Error processing {model}: {str(e)}")
-
-        # 保存并绘制结果
-        all_results.extend(model_results)
-        # plot_results(model, model_results)
         
-
     # 保存综合结果
     csv_file = "benchmark_results.csv"
-    pd.DataFrame(all_results).to_csv(csv_file, index=False)
+    file_exists = os.path.isfile(csv_file)
+    pd.DataFrame(all_results).to_csv(
+        csv_file, 
+        mode='a',          # 追加模式
+        index=False,       # 不写入行索引
+        header=not file_exists  # 如果文件不存在才写入列名
+    )
     print(f'result saved to {csv_file}')
 
 

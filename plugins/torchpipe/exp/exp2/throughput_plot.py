@@ -33,16 +33,23 @@ df = pd.read_csv('benchmark_results.csv')
 models = df['model'].unique()
 print(f"Found {len(models)} models: {', '.join(models)}")
 
-# 计算每个模型的归一化吞吐量
+# 计算每个模型的归一化吞吐量（使用每个模型的最大batch size作为基准）
 for model in models:
     model_data = df[df['model'] == model]
-    base_throughput = model_data[model_data['batch_size']
-                                 == 32]['throughput'].values[0]
+    max_batch_size = model_data['batch_size'].max()
+    max_throughput = model_data[model_data['batch_size']
+                                == max_batch_size]['throughput'].values[0]
     df.loc[df['model'] == model, 'normalized_throughput'] = df[df['model']
-                                                               == model]['throughput'] / base_throughput
+                                                               == model]['throughput'] / max_throughput
 
-# 提取batch_size小于32的数据点（排除基准点）
-plot_df = df[df['batch_size'] < 32].sort_values(['model', 'batch_size'])
+# 提取小于最大batch size的数据点（排除基准点）
+plot_df = pd.DataFrame()
+for model in models:
+    model_data = df[df['model'] == model]
+    max_batch_size = model_data['batch_size'].max()
+    model_plot_data = model_data[model_data['batch_size'] < max_batch_size]
+    plot_df = pd.concat([plot_df, model_plot_data])
+plot_df = plot_df.sort_values(['model', 'batch_size'])
 
 print(plot_df)
 # 创建图形
@@ -63,6 +70,8 @@ min_bs_points = []
 # 为每个模型绘制曲线
 for model in models:
     model_data = plot_df[plot_df['model'] == model]
+    if model_data.empty:
+        continue
     color = model_colors[model]
 
     # 绘制主曲线
@@ -78,15 +87,15 @@ for model in models:
         min_point = valid_points[valid_points['batch_size'] == min_bs].iloc[0]
         min_bs_points.append((model, min_bs))
 
-        # 添加关键点标记
+        # 添加关键点标记（使用紫色区分）
         plt.plot(min_bs, min_point['normalized_throughput'], 'o',
-                 color='#2ca02c', markersize=8,
+                 color='#9467bd', markersize=8,  # 使用紫色避免与任何模型颜色冲突
                  markeredgecolor='white', markeredgewidth=1.2, zorder=4)
 
         # 添加关键点标签
         plt.text(min_bs, min_point['normalized_throughput'] + 0.05,
                  f"BS={min_bs}",
-                 ha='center', fontsize=8, color='#2ca02c',
+                 ha='center', fontsize=8, color='#9467bd',  # 标签也使用紫色
                  weight='bold', bbox=dict(facecolor='white', alpha=0.8,
                                           edgecolor='none', boxstyle='round,pad=0.2'))
 
@@ -94,8 +103,8 @@ for model in models:
 plt.title('Normalized Offline Throughput vs Batch Size',
           fontsize=12, pad=12, weight='bold')
 plt.xlabel('Batch Size', fontsize=11, labelpad=8)
-plt.ylabel('Normalized Throughput (BS=32 = 1.0)',
-           fontsize=11, labelpad=8)
+plt.ylabel('Normalized Throughput (Max BS = 1.0)',
+           fontsize=11, labelpad=8)  # 更新坐标轴标签
 
 # 设置坐标轴刻度
 plt.xticks(np.arange(1, 17, 1))
