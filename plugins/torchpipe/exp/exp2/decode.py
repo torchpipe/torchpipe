@@ -25,6 +25,7 @@ def get_data(batch_size, img_path='../../tests/encode_jpeg/', gpu_id=0):
                 data_list.append(in_file.read())
         except Exception as e:
             print(f"Error reading file {p}: {str(e)}")
+        assert len(data_list) < 1000
     
     # Initialize decoder and decode sample images
     dec = nvimgcodec.Decoder(device_id=gpu_id)
@@ -47,6 +48,7 @@ def main(batch_size, gpu_id, total=1000, img_path='../../tests/assets/encode_jpe
     
     # Warm-up
     _ = dec.decode(data_list)
+    print(f'Warm-up finished')
     
     # Benchmark with time measurement for each iteration
     iteration_times = []
