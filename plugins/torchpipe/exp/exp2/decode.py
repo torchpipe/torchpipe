@@ -42,7 +42,7 @@ def get_data(batch_size, img_path='../../tests/encode_jpeg/', gpu_id=0):
     assert len(batch_data) == batch_size
     return batch_data, dec
 
-def main(batch_size, gpu_id, total=1000, img_path='../../tests/encode_jpeg/'):
+def main(batch_size, gpu_id, total=1000, img_path='../../tests/assets/encode_jpeg/'):
     data_list, dec = get_data(batch_size, img_path, gpu_id)
     
     # Warm-up
