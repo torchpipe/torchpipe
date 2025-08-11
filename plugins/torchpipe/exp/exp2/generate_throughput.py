@@ -100,14 +100,16 @@ def run_benchmark(engine_path: str, batch_size: int, gpu_id: int, from_py: bool 
 
     # 运行基准测试
     if from_py:
+        my_env = os.environ.copy()
+        my_env['CUDA_VISIBLE_DEVICES'] = str(gpu_id)
         run_cmd = [
-            f'CUDA_VISIBLE_DEVICES={gpu_id}'
             f"python",
             f'{engine_path}',
             f"--batch_size={batch_size}",
             f"--gpu_id={gpu_id}"  # 指定GPU
         ]
     else:
+        my_env = os.environ.copy()
         run_cmd = [
             "trtexec",
             f"--loadEngine={engine_path}",
@@ -121,7 +123,8 @@ def run_benchmark(engine_path: str, batch_size: int, gpu_id: int, from_py: bool 
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
-            timeout=300  # 5分钟超时
+            timeout=300,
+            env=my_env
         )
     except subprocess.TimeoutExpired:
         print(f"Benchmark timed out for {engine_path}")
