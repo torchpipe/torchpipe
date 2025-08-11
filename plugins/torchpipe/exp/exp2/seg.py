@@ -54,12 +54,14 @@ def postprocess_cvcuda(
     if frame_nhwc.shape[0] != actual_batch_size:
         frame_nhwc = frame_nhwc[:actual_batch_size]
     
+    print(f'before resize')
     # 上采样掩码到原始分辨率
     cvcuda_class_masks_upscaled = cvcuda.resize(
         cvcuda_class_masks,
         (frame_nhwc.shape[0], frame_nhwc.shape[1], frame_nhwc.shape[2], 1),
         cvcuda.Interp.NEAREST,
     )
+    print(f'af resize')
 
     # 对低分辨率图像进行高斯模糊
     cvcuda_blurred_input_imgs = cvcuda.gaussian(
@@ -105,10 +107,8 @@ def postprocess_cvcuda(
     # 转换为所需输出格式
     if gpu_output:
         if torch_output:
-            print(output)
             # 直接使用cvcuda张量的底层存储创建torch张量
             output = torch.as_tensor(output.cuda(), device=f"cuda:{device_id}")
-            print('ff')
     else:
         # 先复制到CPU内存，再转换为numpy
         output = output.cpu().numpy()
