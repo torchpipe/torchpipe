@@ -176,7 +176,7 @@ def generate_realistic_batch(batch_size=4, height=517, width=606, class_index=0)
     return probabilities, frame_nhwc, resized_tensor
 
 
-def main(batch_size=1, gpu_id=0, total=2000, img_path='../../tests/assets/encode_jpeg/'):
+def main(batch_size=1, gpu_id=0, total=4000, img_path='../../tests/assets/encode_jpeg/'):
     # 配置日志    
     
     if "CUDA_VISIBLE_DEVICES" in os.environ:

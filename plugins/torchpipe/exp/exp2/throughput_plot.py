@@ -1,151 +1,183 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
-import seaborn as sns
-from matplotlib.ticker import MultipleLocator
+import matplotlib
+from matplotlib.lines import Line2D
 
-# 设置学术论文风格的字体配置
-plt.rcParams.update({
-    'font.family': 'serif',
-    'font.serif': ['Times New Roman', 'Liberation Serif', 'DejaVu Serif'],
-    'font.size': 10,
-    'axes.labelsize': 11,
-    'axes.titlesize': 12,
+# 设置全局字体和样式
+matplotlib.rcParams.update({
+    'font.size': 11,
+    'axes.titlesize': 14,
+    'axes.labelsize': 12,
     'xtick.labelsize': 10,
     'ytick.labelsize': 10,
-    'legend.fontsize': 9,
+    'legend.fontsize': 10,
     'figure.dpi': 300,
-    'savefig.dpi': 300,
-    'savefig.format': 'pdf',
-    'savefig.bbox': 'tight',
-    'axes.grid': True,
-    'grid.linestyle': '--',
-    'grid.alpha': 0.2,
-    'axes.linewidth': 0.8,
-    'lines.linewidth': 1.8,
-    'patch.edgecolor': 'black'
+    'figure.figsize': (10, 6)
 })
 
 # 从CSV文件读取数据
-df = pd.read_csv('benchmark_results.csv')
+df = pd.read_csv("benchmark_results.csv")
 
-# 获取所有模型列表
+# 计算每个模型在batch_size=64时的基准吞吐量
+base_throughputs = {}
+for model in df['model'].unique():
+    base = df[(df['model'] == model) & (
+        df['batch_size'] == 64)]['throughput'].values
+    if len(base) > 0:
+        base_throughputs[model] = base[0]
+
+# 计算归一化吞吐量
+df['normalized_throughput'] = df.apply(
+    lambda row: row['throughput'] / base_throughputs[row['model']]
+    if row['model'] in base_throughputs else 1.0,
+    axis=1
+)
+
+# 过滤掉batch_size=64的数据点
+df = df[df['batch_size'] <= 16]
+
+# 自动生成模型显示名称（移除.py扩展名，保持原始大小写）
+
+
+def get_display_name(orig_name):
+    if orig_name.endswith('.py'):
+        return orig_name[:-3]
+    return orig_name
+
+
+# 为每个模型分配唯一标识符
 models = df['model'].unique()
-print(f"Found {len(models)} models: {', '.join(models)}")
+model_ids = {model: idx for idx, model in enumerate(models)}
+df['model_id'] = df['model'].map(model_ids)
 
-# 计算每个模型的归一化吞吐量（使用每个模型的最大batch size作为基准）
-for model in models:
-    model_data = df[df['model'] == model]
-    max_batch_size = model_data['batch_size'].max()
-    max_throughput = model_data[model_data['batch_size']
-                                == max_batch_size]['throughput'].values[0]
-    df.loc[df['model'] == model, 'normalized_throughput'] = df[df['model']
-                                                               == model]['throughput'] / max_throughput
+# 设置颜色映射和线型
+cmap = plt.get_cmap('tab20')  # 使用20种颜色的调色板
+line_styles = {
+    'image_processing': '--',  # 虚线表示图像处理
+    'model_inference': '-'     # 实线表示模型推理
+}
 
-# 提取小于最大batch size的数据点（排除基准点）
-plot_df = pd.DataFrame()
-for model in models:
-    model_data = df[df['model'] == model]
-    max_batch_size = model_data['batch_size'].max()
-    model_plot_data = model_data[model_data['batch_size'] < max_batch_size]
-    plot_df = pd.concat([plot_df, model_plot_data])
-plot_df = plot_df.sort_values(['model', 'batch_size'])
-
-print(plot_df)
 # 创建图形
-plt.figure(figsize=(7, 5))
+fig, ax = plt.subplots(figsize=(10, 6))
 
-# 定义学术配色方案
-PALETTE = sns.color_palette("colorblind", n_colors=len(models))
-model_colors = dict(zip(models, PALETTE))
+# 存储所有线条对象用于图例
+lines = []
+model_legend_elements = []
 
-# 绘制75%阈值线
-plt.axhline(y=0.75, color='#d62728', linestyle='--',
-            linewidth=1.5, alpha=0.85, zorder=1,
-            label='75% Throughput Threshold')
+# 绘制每个模型的曲线
+for orig_name in models:
+    display_name = get_display_name(orig_name)
+    model_df = df[df['model'] == orig_name].sort_values('batch_size')
 
-# 存储关键点信息用于图例
-min_bs_points = []
+    # 确定任务类型和样式
+    is_image_processing = orig_name.endswith('.py')
+    task_type = 'image_processing' if is_image_processing else 'model_inference'
 
-# 为每个模型绘制曲线
-for model in models:
-    model_data = plot_df[plot_df['model'] == model]
-    if model_data.empty:
-        continue
-    color = model_colors[model]
+    # 为每个模型分配唯一颜色
+    color = cmap(model_ids[orig_name] % 20)  # 循环使用20种颜色
 
-    # 绘制主曲线
-    plt.plot(model_data['batch_size'], model_data['normalized_throughput'],
-             marker='o', linestyle='-', color=color,
-             markersize=6, markeredgecolor='white', markeredgewidth=0.8,
-             zorder=3, label=model)
+    # 绘制曲线
+    line = ax.plot(
+        model_df['batch_size'],
+        model_df['normalized_throughput'],
+        marker='o',
+        markersize=2,
+        markeredgewidth=0.8,
+        markerfacecolor=color,
+        markeredgecolor='white',
+        linestyle=line_styles[task_type],
+        linewidth=1.8,
+        color=color,
+        alpha=0.9,
+        markevery=4  # 每个点都显示标记
+    )
+    lines.append(line[0])
 
-    # 找出并标记第一个达到75%性能的batch size
-    valid_points = model_data[model_data['normalized_throughput'] >= 0.75]
-    if not valid_points.empty:
-        min_bs = valid_points['batch_size'].min()
-        min_point = valid_points[valid_points['batch_size'] == min_bs].iloc[0]
-        min_bs_points.append((model, min_bs))
+    # 为模型图例创建元素
+    model_legend_elements.append(Line2D(
+        [0], [0],
+        marker='o',
+        color=color,
+        label=display_name,
+        linestyle='',
+        markersize=8
+    ))
 
-        # 添加关键点标记（使用紫色区分）
-        plt.plot(min_bs, min_point['normalized_throughput'], 'o',
-                 color='#9467bd', markersize=8,  # 使用紫色避免与任何模型颜色冲突
-                 markeredgecolor='white', markeredgewidth=1.2, zorder=4)
+# 标注第一个达到75%性能的点
+for orig_name in models:
+    display_name = get_display_name(orig_name)
+    model_df = df[df['model'] == orig_name].sort_values('batch_size')
+    color = cmap(model_ids[orig_name] % 20)
 
-        # 添加关键点标签
-        plt.text(min_bs, min_point['normalized_throughput'] + 0.05,
-                 f"BS={min_bs}",
-                 ha='center', fontsize=8, color='#9467bd',  # 标签也使用紫色
-                 weight='bold', bbox=dict(facecolor='white', alpha=0.8,
-                                          edgecolor='none', boxstyle='round,pad=0.2'))
+    # 找到第一个达到75%性能的点
+    for idx, row in model_df.iterrows():
+        if row['normalized_throughput'] >= 0.75:
+            # 添加关键点标记
+            ax.scatter(
+                row['batch_size'],
+                row['normalized_throughput'],
+                s=70,
+                facecolors=color,
+                edgecolors='black',
+                linewidths=1.0,
+                zorder=5
+            )
+            break
 
-# 设置图表属性
-plt.title('Normalized Offline Throughput vs Batch Size',
-          fontsize=12, pad=12, weight='bold')
-plt.xlabel('Batch Size', fontsize=11, labelpad=8)
-plt.ylabel('Normalized Throughput (Max BS = 1.0)',
-           fontsize=11, labelpad=8)  # 更新坐标轴标签
+# 添加75%性能参考线
+ax.axhline(y=0.75, color='gray', linestyle=':', linewidth=1.5, alpha=0.7)
+ax.text(16.2, 0.76, '75% Reference', ha='right', fontsize=10, color='gray')
 
-# 设置坐标轴刻度
-plt.xticks(np.arange(1, 17, 1))
-plt.xlim(0.5, 16.5)
-plt.yticks(np.arange(0.4, 1.21, 0.1))
-plt.ylim(0.35, 1.15)
+# 设置坐标轴和标题
+ax.set_title(
+    'Normalized Throughput Comparison (Relative to Batch Size 64)', pad=15)
+ax.set_xlabel('Batch Size')
+ax.set_ylabel('Normalized Throughput')
+ax.set_xticks(range(1, 17))
+ax.set_xlim(1, 16.5)
+ax.set_ylim(0, 1.1)
+ax.grid(True, linestyle='--', alpha=0.3)
 
-# 添加精细刻度
-ax = plt.gca()
-ax.xaxis.set_minor_locator(MultipleLocator(1))
-ax.yaxis.set_minor_locator(MultipleLocator(0.05))
+# 创建任务类型图例
+task_legend_elements = [
+    Line2D([0], [0], color='black', lw=2,
+           label='Image Processing', linestyle='--'),
+    Line2D([0], [0], color='black', lw=2,
+           label='Model Inference', linestyle='-'),
+    Line2D([0], [0], marker='o', color='w', markerfacecolor='gray',
+           markersize=8, markeredgecolor='black', label='First ≥75% Point')
+]
 
-# 优化网格
-plt.grid(True, linestyle='--', alpha=0.15, which='major')
-plt.grid(True, linestyle=':', alpha=0.08, which='minor')
+# 添加任务类型图例在右上角
+task_legend = ax.legend(
+    handles=task_legend_elements,
+    loc='upper right',
+    framealpha=0.9,
+    facecolor='white',
+    title='Task Types'
+)
 
-# 创建图例
-handles, labels = plt.gca().get_legend_handles_labels()
+# 添加模型名称图例在右下角（分两列显示）
+model_legend = ax.legend(
+    handles=model_legend_elements,
+    loc='lower right',
+    framealpha=0.9,
+    facecolor='white',
+    ncol=2,
+    # title='Models'
+)
 
-# 添加关键点图例项
-min_bs_legend = []
-for model, min_bs in min_bs_points:
-    min_bs_legend.append(f"{model} Min BS ({min_bs})")
+# 添加两个图例
+ax.add_artist(task_legend)
+ax.add_artist(model_legend)
 
-# 合并图例
-all_handles = handles
-all_labels = labels + min_bs_legend
+# 添加图表说明
+plt.figtext(0.5, -0.05,
+            "Note: Throughput normalized relative to each model's performance at batch size 64. "
+            "Dashed lines represent image processing tasks, solid lines represent model inference tasks. "
+            "Marked points indicate the first batch size achieving ≥75% performance.",
+            ha="center", fontsize=9)
 
-# 调整图例位置和样式
-plt.legend(all_handles, all_labels,
-           loc='lower right', frameon=True, framealpha=0.92,
-           edgecolor='0.8', fancybox=False, handlelength=1.8,
-           borderpad=0.6, handletextpad=0.8, ncol=1)
-
-# 添加脚注说明
-min_bs_str = ", ".join([f"{model}(BS={bs})" for model, bs in min_bs_points])
-plt.figtext(0.5, 0.01,
-            f'Fig: Normalized throughput across batch sizes. Minimum viable batch sizes: {min_bs_str}',
-            ha='center', fontsize=8, style='italic', color='#555555')
-
-# 调整布局并保存
-plt.tight_layout(rect=[0, 0.03, 1, 0.95])
-plt.savefig('multi_model_normalized_throughput.pdf')
-plt.show()
+plt.tight_layout(rect=[0, 0.05, 1, 0.95])
+plt.savefig('normalized_throughput_comparison.png', bbox_inches='tight')

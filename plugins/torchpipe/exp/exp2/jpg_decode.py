@@ -35,7 +35,7 @@ def get_data(batch_size, img_path='../../tests/encode_jpeg/', gpu_id=0):
     dec = nvimgcodec.Decoder(device_id=gpu_id)
     return data_list, dec
 
-def main(batch_size, gpu_id, total=2000, img_path='../../tests/assets/encode_jpeg/'):
+def main(batch_size, gpu_id, total=4000, img_path='../../tests/assets/encode_jpeg/'):
     if "CUDA_VISIBLE_DEVICES" in os.environ:
         assert str(gpu_id) == os.environ['CUDA_VISIBLE_DEVICES'] or gpu_id == 0
         gpu_id = 0
