@@ -219,7 +219,7 @@ def parse_gpu_log(log_path: str) -> Tuple[float, int]:
 #     plt.close()
 
 def main(
-    models: List[str] = ['jpg_decode.py', 'mobilenetv2_100', 'resnet101',
+    models: List[str] = ['seg.py','jpg_decode.py', 'mobilenetv2_100', 'resnet101',
                          'vit_base_patch16_siglip_224'],
     batch_range: Tuple[int, int] = (1, 16),
     norm_batch_size: int = 64

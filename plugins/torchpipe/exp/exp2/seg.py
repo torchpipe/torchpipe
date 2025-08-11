@@ -209,7 +209,7 @@ def main(batch_size=1, gpu_id=0, total=10000, img_path='../../tests/assets/encod
     end_event = torch.cuda.Event(enable_timing=True)
     iteration_times = []
 
-    for _ in range(total):
+    for _ in tqdm(range(total)):
         start_event.record()
         result = postprocess_cvcuda(
             probabilities=probs,
