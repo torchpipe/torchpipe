@@ -147,6 +147,7 @@ def generate_realistic_batch(batch_size=4, height=517, width=606, class_index=0)
 
     # 添加随机噪声模拟真实预测
     noise = torch.rand((batch_size, 1, h_prob, w_prob), device="cuda") * 0.1
+    print(noise)
     class0_probs = (circle_mask + noise).clamp(0, 1)
 
     # 创建完整概率图 (batch, 21, H, W)
