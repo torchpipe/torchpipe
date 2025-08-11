@@ -179,7 +179,7 @@ def main(batch_size=1, gpu_id=0, total=10000, img_path='../../tests/assets/encod
     torch.cuda.set_device(gpu_id)
     # 生成随机输入 (batch=4, 分辨率517x606)
     probs, frames, resized = generate_realistic_batch(
-        batch_size=4,
+        batch_size=batch_size,
         height=517,
         width=606,
         class_index=0
