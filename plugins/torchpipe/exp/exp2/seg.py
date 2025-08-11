@@ -54,7 +54,7 @@ def postprocess_cvcuda(
     if frame_nhwc.shape[0] != actual_batch_size:
         frame_nhwc = frame_nhwc[:actual_batch_size]
     
-    print(f'before resize')
+    print(f'before resize', cvcuda_class_masks)
     # 上采样掩码到原始分辨率
     cvcuda_class_masks_upscaled = cvcuda.resize(
         cvcuda_class_masks,
