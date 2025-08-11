@@ -2,6 +2,7 @@ import logging
 import torch
 import numpy as np
 import cvcuda
+import statistics
 
 def postprocess_cvcuda(
     probabilities: torch.Tensor,
@@ -28,9 +29,7 @@ def postprocess_cvcuda(
     
     返回: 处理后的图像 (torch.Tensor 或 numpy array)
     """
-    logger = logging.getLogger(__name__)
-    logger.info("Running CVCUDA post-processing")
-    
+
     # 验证输出布局
     if output_layout not in ["NCHW", "NHWC"]:
         raise ValueError("Invalid output layout: %s" % output_layout)
@@ -47,8 +46,7 @@ def postprocess_cvcuda(
     class_probs = class_probs.type(torch.uint8)
     
     # 确保概率图在GPU上
-    if class_probs.device.type != "cuda":
-        class_probs = class_probs.cuda()
+    assert class_probs.device.type == "cuda"
     
     cvcuda_class_masks = cvcuda.as_tensor(class_probs, "NHWC")
 
@@ -116,52 +114,129 @@ def postprocess_cvcuda(
     return output
 
 # 生成随机批量化输入数据的函数 - 修复内存问题
-def generate_random_batch(batch_size=4, height=517, width=606):
+
+
+def generate_realistic_batch(batch_size=4, height=517, width=606, class_index=0):
     """
-    生成随机输入数据用于测试
+    生成更接近真实场景的测试数据
     
     返回:
-    - probabilities: 随机概率图 [batch, 21, H, W]
-    - frame_nhwc: 原始图像 [batch, H, W, 3] (在GPU上)
+    - probabilities: 模拟真实分割的概率图 [batch, 21, H, W]
+    - frame_nhwc: 原始图像 [batch, H, W, 3]
     - resized_tensor: 预处理图像 [batch, 384, 384, 3] (CVCUDA tensor)
     """
-    # 生成随机概率图 (假设21个类别)
-    prob_shape = (batch_size, 21, height//2, width//2)
-    probabilities = torch.rand(prob_shape, dtype=torch.float32)
-    
-    # 生成原始图像 (NHWC格式) - 直接在GPU上创建
-    frame_nhwc = torch.randint(0, 256, (batch_size, height, width, 3), 
-                             dtype=torch.uint8, device="cuda")
-    
-    # 生成预处理图像 - 在GPU上创建torch张量，然后转换为CVCUDA张量
-    resized_tensor_torch = torch.randint(0, 256, (batch_size, 384, 384, 3), 
-                                      dtype=torch.uint8, device="cuda")
+    # 概率图分辨率是原始图像的一半
+    h_prob, w_prob = height // 2, width // 2
+
+    # 创建固定模式的掩码（中心圆形区域）
+    center_y, center_x = h_prob // 2, w_prob // 2
+    radius = min(h_prob, w_prob) // 4
+
+    # 生成网格坐标
+    y, x = torch.meshgrid(
+        torch.arange(h_prob, device="cuda"),
+        torch.arange(w_prob, device="cuda"),
+        indexing='ij'
+    )
+
+    # 计算距离中心点的欧氏距离
+    dist = torch.sqrt((x - center_x)**2 + (y - center_y)**2)
+
+    # 创建圆形掩码 (0.0-1.0)
+    circle_mask = torch.where(dist <= radius, 0.95, 0.05).float()
+
+    # 添加随机噪声模拟真实预测
+    noise = torch.rand((batch_size, 1, h_prob, w_prob), device="cuda") * 0.1
+    class0_probs = (circle_mask + noise).clamp(0, 1)
+
+    # 创建完整概率图 (batch, 21, H, W)
+    probabilities = torch.zeros((batch_size, 21, h_prob, w_prob),
+                                device="cuda", dtype=torch.float32)
+
+    # 将类别0的概率设置为圆形区域
+    probabilities[:, class_index] = class0_probs.squeeze(1)
+
+    # 其他类别使用剩余概率 (更真实的分布)
+    remaining_probs = (1 - class0_probs) / 20
+    for i in range(21):
+        if i != class_index:
+            probabilities[:, i] = remaining_probs.squeeze(1)
+
+    # 生成原始图像 (NHWC格式)
+    frame_nhwc = torch.randint(0, 256, (batch_size, height, width, 3),
+                               dtype=torch.uint8, device="cuda")
+
+    # 生成预处理图像 (CVCUDA tensor)
+    resized_tensor_torch = torch.randint(0, 256, (batch_size, 384, 384, 3),
+                                         dtype=torch.uint8, device="cuda")
     resized_tensor = cvcuda.as_tensor(resized_tensor_torch, "NHWC")
-    
+
     return probabilities, frame_nhwc, resized_tensor
+
+
+def main(batch_size, gpu_id, total=1000, img_path='../../tests/assets/encode_jpeg/'):
+    # 配置日志    
+    torch.cuda.set_device(gpu_id)
+    # 生成随机输入 (batch=4, 分辨率517x606)
+    probs, frames, resized = generate_realistic_batch(
+        batch_size=4,
+        height=517,
+        width=606,
+        class_index=0
+    )
+    
+    for _ in range(5):
+        result = postprocess_cvcuda(
+            probabilities=probs,
+            frame_nhwc=frames,
+            resized_tensor=resized,
+            class_index=0,  # 选择第一个类别
+            output_layout="NHWC",
+            gpu_output=True,
+            torch_output=True,
+            device_id=gpu_id,
+        )
+    torch.cuda.synchronize()
+    print('Warm-up finished')
+    print(
+        f"Output shape: {result.shape}, dtype: {result.dtype}, device: {result.device}")
+    
+    start_event = torch.cuda.Event(enable_timing=True)
+    end_event = torch.cuda.Event(enable_timing=True)
+    iteration_times = []
+
+    for _ in range(total):
+        start_event.record()
+        result = postprocess_cvcuda(
+            probabilities=probs,
+            frame_nhwc=frames,
+            resized_tensor=resized,
+            class_index=0,  # 选择第一个类别
+            output_layout="NHWC",
+            gpu_output=True,
+            torch_output=True,
+            device_id=gpu_id,
+        )
+        end_event.record()
+        torch.cuda.current_stream().synchronize()  # Ensure measurement completes
+        elapsed_ms = start_event.elapsed_time(end_event)
+        iteration_times.append(elapsed_ms / 1000.0)  # Convert to seconds
+
+    # Calculate statistics
+    median_time_per_batch = statistics.median(iteration_times)
+    images_per_second = batch_size / median_time_per_batch
+    batches_per_second = 1 / median_time_per_batch
+
+    print(f"\nBenchmark Results (GPU {gpu_id}):")
+    print(f"- Total batches processed: {total}")
+    print(f"- Total images decoded: {batch_size * total}")
+    print(f"- Median time per batch: {median_time_per_batch * 1000:.4f} ms")
+    print(f"- Throughput: {batches_per_second:.2f} qps")
+
+
 
 # 使用示例
 if __name__ == "__main__":
-    # 配置日志
-    logging.basicConfig(level=logging.INFO)
-    
-    # 生成随机输入 (batch=4, 分辨率517x606)
-    probs, frames, resized = generate_random_batch(
-        batch_size=4,
-        height=517,
-        width=606
-    )
-    
-    # 执行后处理
-    result = postprocess_cvcuda(
-        probabilities=probs,
-        frame_nhwc=frames,
-        resized_tensor=resized,
-        class_index=0,  # 选择第一个类别
-        output_layout="NHWC",
-        gpu_output=True,
-        torch_output=True
-    )
-    
-    print("Post-processing completed.")
-    print(f"Output shape: {result.shape}, dtype: {result.dtype}, device: {result.device}")
+
+    import fire
+    fire.Fire(main)
