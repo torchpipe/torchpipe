@@ -1,5 +1,5 @@
 import logging
-import torch
+import torch, os
 import numpy as np
 import cvcuda
 import statistics
@@ -54,14 +54,12 @@ def postprocess_cvcuda(
     if frame_nhwc.shape[0] != actual_batch_size:
         frame_nhwc = frame_nhwc[:actual_batch_size]
     
-    print(f'before resize', cvcuda_class_masks)
     # 上采样掩码到原始分辨率
     cvcuda_class_masks_upscaled = cvcuda.resize(
         cvcuda_class_masks,
         (frame_nhwc.shape[0], frame_nhwc.shape[1], frame_nhwc.shape[2], 1),
         cvcuda.Interp.NEAREST,
     )
-    print(f'af resize')
 
     # 对低分辨率图像进行高斯模糊
     cvcuda_blurred_input_imgs = cvcuda.gaussian(
@@ -179,6 +177,7 @@ def generate_realistic_batch(batch_size=4, height=517, width=606, class_index=0)
 def main(batch_size=1, gpu_id=0, total=10000, img_path='../../tests/assets/encode_jpeg/'):
     # 配置日志    
     torch.cuda.set_device(gpu_id)
+    os.environ["CUDA_VISIBLE_DEVICES"]
     # 生成随机输入 (batch=4, 分辨率517x606)
     probs, frames, resized = generate_realistic_batch(
         batch_size=batch_size,
