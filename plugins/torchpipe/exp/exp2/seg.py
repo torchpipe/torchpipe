@@ -180,7 +180,7 @@ def main(batch_size=1, gpu_id=0, total=1000, img_path='../../tests/assets/encode
     # 配置日志    
     
     if "CUDA_VISIBLE_DEVICES" in os.environ:
-        assert str(gpu_id) == os.environ['CUDA_VISIBLE_DEVICES']
+        assert str(gpu_id) == os.environ['CUDA_VISIBLE_DEVICES'] or gpu_id == 0
         gpu_id = 0
     elif gpu_id != 0:
         os.environ['CUDA_VISIBLE_DEVICES'] = str(gpu_id)
