@@ -1,7 +1,7 @@
 import logging
 import torch
 import os
-import tqdm
+from tqdm import tqdm
 import numpy as np
 import cvcuda
 import statistics
