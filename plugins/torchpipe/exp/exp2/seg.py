@@ -174,7 +174,7 @@ def generate_realistic_batch(batch_size=4, height=517, width=606, class_index=0)
     return probabilities, frame_nhwc, resized_tensor
 
 
-def main(batch_size=1, gpu_id=0, total=1000, img_path='../../tests/assets/encode_jpeg/'):
+def main(batch_size=1, gpu_id=0, total=10000, img_path='../../tests/assets/encode_jpeg/'):
     # 配置日志    
     torch.cuda.set_device(gpu_id)
     # 生成随机输入 (batch=4, 分辨率517x606)
