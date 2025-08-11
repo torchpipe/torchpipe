@@ -114,6 +114,7 @@ def run_benchmark(engine_path: str, batch_size: int, gpu_id: int, from_py: bool 
             "trtexec",
             f"--loadEngine={engine_path}",
             f"--shapes=input:{batch_size}x3x224x224",
+            "--iterations=100",
             f"--device={gpu_id}"  # 指定GPU
         ]
 
