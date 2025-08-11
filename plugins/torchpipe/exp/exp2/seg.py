@@ -105,8 +105,10 @@ def postprocess_cvcuda(
     # 转换为所需输出格式
     if gpu_output:
         if torch_output:
+            print(output)
             # 直接使用cvcuda张量的底层存储创建torch张量
             output = torch.as_tensor(output.cuda(), device=f"cuda:{device_id}")
+            print('ff')
     else:
         # 先复制到CPU内存，再转换为numpy
         output = output.cpu().numpy()
@@ -147,7 +149,6 @@ def generate_realistic_batch(batch_size=4, height=517, width=606, class_index=0)
 
     # 添加随机噪声模拟真实预测
     noise = torch.rand((batch_size, 1, h_prob, w_prob), device="cuda") * 0.1
-    print(noise)
     class0_probs = (circle_mask + noise).clamp(0, 1)
 
     # 创建完整概率图 (batch, 21, H, W)
