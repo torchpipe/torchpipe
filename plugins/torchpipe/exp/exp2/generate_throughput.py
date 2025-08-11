@@ -101,6 +101,7 @@ def run_benchmark(engine_path: str, batch_size: int, gpu_id: int, from_py: bool 
     # 运行基准测试
     if from_py:
         run_cmd = [
+            f'CUDA_VISIBLE_DEVICES={gpu_id}'
             f"python",
             f'{engine_path}',
             f"--batch_size={batch_size}",

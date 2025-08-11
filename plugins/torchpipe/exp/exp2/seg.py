@@ -177,7 +177,9 @@ def generate_realistic_batch(batch_size=4, height=517, width=606, class_index=0)
 def main(batch_size=1, gpu_id=0, total=10000, img_path='../../tests/assets/encode_jpeg/'):
     # 配置日志    
     torch.cuda.set_device(gpu_id)
-    os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu_id)
+    if "CUDA_VISIBLE_DEVICES" in os.environ:
+        assert str(gpu_id) == os.environ['CUDA_VISIBLE_DEVICES']
+        gpu_id = 0
     # 生成随机输入 (batch=4, 分辨率517x606)
     probs, frames, resized = generate_realistic_batch(
         batch_size=batch_size,
