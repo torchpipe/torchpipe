@@ -182,6 +182,9 @@ def main(batch_size=1, gpu_id=0, total=1000, img_path='../../tests/assets/encode
     if "CUDA_VISIBLE_DEVICES" in os.environ:
         assert str(gpu_id) == os.environ['CUDA_VISIBLE_DEVICES']
         gpu_id = 0
+    elif gpu_id != 0:
+        os.environ['CUDA_VISIBLE_DEVICES'] = str(gpu_id)
+        gpu_id = 0
     torch.cuda.set_device(gpu_id)
     # 生成随机输入 (batch=4, 分辨率517x606)
     probs, frames, resized = generate_realistic_batch(
