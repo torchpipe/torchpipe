@@ -291,6 +291,7 @@ if __name__ == "__main__":
     if args.save:
         if args.save.endswith('.txt') or args.save.endswith('.log'):
             result_str = f'model:{args.model},'
+            result_str = f'preprocessor:{args.preprocess},'
             for k, v in result.items():
                 result_str += f'{k}:{v},'
             result_str = result_str.strip(',')
