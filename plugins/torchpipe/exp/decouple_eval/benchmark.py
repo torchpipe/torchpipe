@@ -266,12 +266,15 @@ if __name__ == "__main__":
         total_number=total_number,
     )
 
-    # keep = ["throughput::qps", "latency::TP99", "latency::TP50", "cpu_usage", 'gpu_usage']
     keep = {
         "throughput::qps": "QPS",
         "latency::TP99": "TP99",
         "latency::TP50": "TP50",
+        "latency::TP99.9": "TP99.9",
+        "latency::TP99.99": "TP99.99",
+        "latency::TP50": "TP50",
         "gpu_usage": "GPU Usage",
+        "cpu_usage": "CPU Usage",
     }
 
     print("\n", result)
@@ -286,7 +289,16 @@ if __name__ == "__main__":
     ProcessAdaptor.close_all(clients)
 
     if args.save:
-        import pickle
+        if args.save.endswith('.txt'):
+            result_str = f'{args.client} = '
+            for k, v in result.items():
+                result_str += f'{k}:{v},'
+            result_str.strip(',')
+            result_str +='\n'
+            with open(args.save, "a") as f:
+                f.write(result_str)
+        else:
+            import pickle
 
-        with open(args.save, "wb") as f:
-            pickle.dump({args.client: new_result}, f)
+            with open(args.save, "wb") as f:
+                pickle.dump({args.client: result}, f)
