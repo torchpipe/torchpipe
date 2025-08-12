@@ -411,14 +411,14 @@ void BackgroundThread::impl_forward(const std::vector<dict>& ios) {
     
 
     HAMI_ASSERT(batched_queue_.push(ios));
-    if (ios.size() >= 1) {
-      float time = helper::timestamp();
-      SPDLOG_INFO(
-          "BackgroundThread  timer: {} {} {}",
-          ios.size(),
-          time,
-          0);
-    }
+    // if (ios.size() >= 1) {
+    //   float time = helper::timestamp();
+    //   SPDLOG_INFO(
+    //       "BackgroundThread  timer: {} {} {}",
+    //       ios.size(),
+    //       time,
+    //       0);
+    // }
     return;
   }
   HAMI_ASSERT(helper::none_has_key(ios, TASK_EVENT_KEY));
@@ -451,12 +451,12 @@ void BackgroundThread::run() {
         assert(tasks.empty());
         continue;
       }
-      float time = helper::timestamp();
-      SPDLOG_INFO(
-          "batched_queue_  timer: {} {} {}",
-          tasks.size(),
-          time,
-          0);
+      // float time = helper::timestamp();
+      // SPDLOG_INFO(
+      //     "batched_queue_  timer: {} {} {}",
+      //     tasks.size(),
+      //     time,
+      //     0);
     }
 
     std::vector<std::shared_ptr<Event>> events;
