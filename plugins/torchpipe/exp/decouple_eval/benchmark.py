@@ -289,7 +289,7 @@ if __name__ == "__main__":
     ProcessAdaptor.close_all(clients)
 
     if args.save:
-        if args.save.endswith('.txt'):
+        if args.save.endswith('.txt') or args.save.endswith('.log'):
             result_str = f'{args.client} = '
             for k, v in result.items():
                 result_str += f'{k}:{v},'
