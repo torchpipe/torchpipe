@@ -76,7 +76,7 @@ std::optional<size_t> InstancesState::query_available(
     auto max_v = available_instances_.empty()
         ? 0
         : instances_.at(*available_instances_.begin()).second;
-    SPDLOG_WARN(
+    SPDLOG_DEBUG(
         "query_available timeout. req_size: {}, available_instances_: {} min={} max={} node_name={}",
         req_size,
         available_instances_.size(),
