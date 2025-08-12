@@ -2,10 +2,8 @@ import re
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
-from matplotlib.ticker import LogLocator, ScalarFormatter
+from matplotlib.ticker import AutoLocator
 from matplotlib.backends.backend_pdf import PdfPages
-
-# 解析日志文件的函数
 
 
 def parse_log_file(file_path):
@@ -36,154 +34,160 @@ def parse_log_file(file_path):
                     'total_requests': int(groups[4]),
                     'throughput_qps': float(groups[5]),
                     'throughput_avg': float(groups[6]),
-                    'TP50': float(groups[7]),
-                    'TP90': float(groups[8]),
-                    'TP99': float(groups[9]),
-                    'TP99.9': float(groups[10]),
-                    'TP99.99': float(groups[11]),
-                    'TP99.999': float(groups[12]),
+                    '50': float(groups[7]),
+                    '90': float(groups[8]),
+                    '99': float(groups[9]),
+                    '99.9': float(groups[10]),
+                    '99.99': float(groups[11]),
+                    '99.999': float(groups[12]),
                     'latency_avg': float(groups[13]),
                     'cpu_usage': float(groups[18]),
                     'gpu_usage': float(groups[19])
                 }
                 data.append(entry)
+    data.sort(key=lambda entry: 'resnet' not in entry['model'])
     return pd.DataFrame(data)
 
-# 绘制稳定性图表（仅第一个图）
 
-def plot_percentile_comparison(df, output_file="percentile_comparison.pdf"):
+def plot_percentile_comparison(df, output_file="latency_percentiles.pdf"):
+    # 优化线条粗细设置
     plt.rcParams.update({
         "font.family": "serif",
-        "font.serif": ["Times", "Palatino", "New Century Schoolbook"],
-        "font.size": 10,
-        "axes.labelsize": 10,
-        "axes.titlesize": 11,
-        "legend.fontsize": 9,
-        "xtick.labelsize": 8,
-        "ytick.labelsize": 8,
-        "lines.linewidth": 1.8,
-        "lines.markersize": 6,
-        "axes.linewidth": 0.8,
-        "grid.linewidth": 0.4,
+        "font.serif": ["DejaVu Serif", "Times New Roman", "Times", "Palatino", "Bookman", "serif"],
+        "font.size": 14,
+        "axes.labelsize": 14,
+        "axes.titlesize": 15,
+        "legend.fontsize": 13,
+        "xtick.labelsize": 13,
+        "ytick.labelsize": 13,
+        "lines.linewidth": 1.8,  # 减小线条宽度，使更协调
+        "lines.markersize": 8,   # 减小标记尺寸
+        "axes.linewidth": 1.0,   # 减细坐标轴线
+        "grid.linewidth": 0.4,   # 减细网格线
         "savefig.dpi": 300,
         "savefig.bbox": "tight",
         "pdf.fonttype": 42
     })
 
-    models = df['model'].unique()
+    models = df['model'].unique().tolist()
     preprocessors = ['cpu', 'gpu']
     percentiles = [50, 90, 99, 99.9, 99.99, 99.999]
-    percentile_labels = ['TP50', 'TP90',
-                         'TP99', 'TP99.9', 'TP99.99', 'TP99.999']
-    markers = ['o', 's', '^', 'D', 'v', '<']
+    percentile_labels = ['50', '90', '99', '99.9', '99.99', '99.999']
+    # markers = ['o', 's', '^', 'D', 'v', '<']
+    markers = ['']*10
     colors = {'cpu': '#1f77b4', 'gpu': '#d62728'}
 
-    # 计算每个模型的高度比例
+    # 添加线条样式区分
+    line_styles = {'cpu': '-', 'gpu': '--'}  # 实线 vs 虚线
+
     height_ratios = []
     model_ranges = []
 
     for model in models:
         model_df = df[df['model'] == model]
         all_vals = model_df[percentile_labels].values
-
-        if "resnet" in model.lower():
-            y_min, y_max = 6, 9
-        else:
-            data_min = np.min(all_vals)
-            data_max = np.max(all_vals)
-            padding = (data_max - data_min) * 0.05
-            y_min = max(1, data_min - padding)
-            y_max = data_max + padding
-
+        data_min = np.min(all_vals)
+        data_max = np.max(all_vals)
+        padding = (data_max - data_min) * 0.04 + 0.5
+        y_min = max(0.1, data_min - padding)
+        y_max = data_max + padding
         model_ranges.append((y_min, y_max))
         height_ratios.append(y_max - y_min)
 
     with PdfPages(output_file) as pdf:
-        # 创建具有动态高度比例的子图
-        fig, axes = plt.subplots(
-            len(models), 1,
-            figsize=(6, 9),
-            gridspec_kw={
-                'height_ratios': height_ratios,
-                'hspace': 0.0  # 完全消除垂直间距
-            }
-        )
+        fig = plt.figure(figsize=(9, 8.5))
 
-        if len(models) == 1:
-            axes = [axes]
+        gs = plt.GridSpec(len(models), 1, figure=fig,
+                          height_ratios=height_ratios, hspace=0.0)
+        axes = [fig.add_subplot(gs[i]) for i in range(len(models))]
 
         for i, model in enumerate(models):
             ax = axes[i]
             model_df = df[df['model'] == model]
-            model_short = model.split('_')[0] if '_' in model else model
+            model_short = model
             y_min, y_max = model_ranges[i]
 
             for pp in preprocessors:
                 pp_df = model_df[model_df['preprocessor'] == pp]
                 if not pp_df.empty:
                     values = pp_df.iloc[0][percentile_labels].values
-                    ax.semilogy(percentile_labels, values,
-                                marker=markers[i],
-                                markersize=5,
-                                linewidth=1.8,
-                                color=colors[pp],
-                                label=f'{pp.upper()} Preprocessor',
-                                zorder=3)
+                    # 添加线条样式区分，减小标记尺寸
+                    ax.plot(percentile_labels, values,
+                            marker=markers[i],
+                            markersize=7,      # 减小标记尺寸
+                            linewidth=1.8,     # 减小线条宽度
+                            linestyle=line_styles[pp],  # 添加线条样式
+                            color=colors[pp],
+                            label=f'{pp.upper()} Preprocessor',
+                            zorder=3)
 
-            # 设置网格和坐标轴
-            ax.grid(True, which="both", linestyle='--', alpha=0.5, zorder=1)
+            # 优化标注框样式
+            num_clients = model_df.iloc[0]['num_clients']
+            ax.text(0.98, 0.15, f"Request Concurrency: {num_clients}",
+                    transform=ax.transAxes,
+                    fontsize=11,
+                    color='#555555',
+                    horizontalalignment='right',
+                    verticalalignment='bottom',
+                    bbox=dict(boxstyle='round,pad=0.3',
+                              facecolor='white',
+                              alpha=0.8,
+                              edgecolor='#dddddd',  # 更浅的边框颜色
+                              linewidth=0.8))       # 减细边框
+
+            # 使用更柔和的网格线
+            ax.grid(True, which="both", linestyle=':', alpha=0.5, zorder=1)
             ax.set_ylim(y_min, y_max)
 
-            # 设置整数格式的坐标轴
-            ax.yaxis.set_major_formatter(ScalarFormatter())
-            ax.yaxis.set_minor_formatter(ScalarFormatter())
-            ax.tick_params(axis='y', which='minor', length=0)
+            # 减细刻度线
+            ax.tick_params(axis='y', which='both', length=4, width=0.8)
+            ax.tick_params(axis='x', which='both', length=4, width=0.8)
+            ax.yaxis.set_major_formatter(plt.FormatStrFormatter('%d'))
 
-            # 强制y轴刻度为整数
-            ax.yaxis.set_major_locator(plt.MaxNLocator(
-                integer=True,
-                steps=[1, 2, 5, 10],
-                nbins=min(5, int(y_max - y_min) + 1)
-            ))
-
-            # 仅底部子图显示x轴标签
             if i == len(models) - 1:
-                ax.set_xlabel('Percentile', labelpad=8)
+                ax.set_xlabel('Percentile', fontsize=16, labelpad=12)
             else:
                 ax.set_xticklabels([])
 
-            # 添加模型标识（使用相对位置）
-            ax.text(0.02, 0.95, f'({chr(97+i)}) {model_short}',
+            # 优化模型标识框
+            ax.text(0.02, 0.85, f'({chr(97+i)}) {model_short}',
                     transform=ax.transAxes,
-                    fontsize=10,
+                    fontsize=14,
                     verticalalignment='top',
-                    bbox=dict(boxstyle='round,pad=0.3', fc='white', ec='gray', alpha=0.8))
+                    bbox=dict(boxstyle='round,pad=0.4',
+                              fc='white',
+                              ec='#888888',  # 更柔和的边框颜色
+                              alpha=0.9,
+                              linewidth=0.8))  # 减细边框
 
-        # 共享y轴标签（精确居中）
         fig.text(0.04, 0.5, 'Latency (ms)', va='center',
-                 rotation='vertical', fontsize=10)
+                 rotation='vertical', fontsize=16)
 
-        # 统一图例（使用紧凑布局）
+        # 优化图例位置和样式
         handles, labels = axes[0].get_legend_handles_labels()
-        fig.legend(handles, labels, loc='lower center', ncol=2,
-                   bbox_to_anchor=(0.5, 0.01), frameon=True, framealpha=0.9)
+        fig.legend(handles, labels, loc='lower right', ncol=1,
+                   fontsize=13,  # 减小图例字体
+                   bbox_to_anchor=(0.98, 0.03),
+                   frameon=True,
+                   framealpha=0.9,
+                   edgecolor='#cccccc',  # 更柔和的边框颜色
+                   title='',
+                   title_fontsize=12)
 
-        # 紧凑布局（完全消除所有边距）
+        # 调整布局
         plt.tight_layout(pad=0.1, h_pad=0.0, w_pad=0.0,
-                         rect=[0.04, 0.04, 0.99, 0.97])
+                         rect=[0.06, 0.06, 0.95, 0.97])
 
         pdf.savefig(fig)
         plt.close()
 
 
-# 主程序
-if __name__ == "__main__":
-    # 替换为实际文件路径
-    log_file = "../stability.log"
-    output_pdf = "latency_percentiles.pdf"
 
-    # 解析日志并生成图表
+if __name__ == "__main__":
+    log_file = "../stability.log"
+    output_pdf = "latency_percentiles.pdf"  # 更新输出文件名
+
     df = parse_log_file(log_file)
     plot_percentile_comparison(df, output_pdf)
 
-    print(f"分析完成! 图表已保存至: {output_pdf}")
+    print(f"优化图表已保存至: {output_pdf}")

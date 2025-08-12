@@ -1,3 +1,4 @@
 *.log
 *.onnx
 *.trt
+*.pdf
