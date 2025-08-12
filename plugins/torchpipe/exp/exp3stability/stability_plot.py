@@ -1,160 +1,217 @@
-import matplotlib.pyplot as plt
-import matplotlib.ticker as ticker
-import numpy as np
-import pandas as pd
-from matplotlib import rcParams
 import re
+import matplotlib.pyplot as plt
+import pandas as pd
+import numpy as np
+from matplotlib.backends.backend_pdf import PdfPages
+import matplotlib as mpl
 
-# 设置学术论文风格
-rcParams['font.family'] = 'serif'
-rcParams['font.serif'] = ['Times New Roman']
-rcParams['axes.labelsize'] = 10
-rcParams['xtick.labelsize'] = 8
-rcParams['ytick.labelsize'] = 8
-rcParams['legend.fontsize'] = 8
-rcParams['figure.dpi'] = 300
-rcParams['figure.figsize'] = (6.5, 4.0)
-rcParams['axes.grid'] = True
-rcParams['grid.linestyle'] = ':'
-rcParams['grid.alpha'] = 0.3
-rcParams['savefig.bbox'] = 'tight'
-rcParams['savefig.pad_inches'] = 0.05
+# 设置全局字体 - 使用适合学术出版的字体设置
+plt.rcParams.update({
+    "font.family": "serif",
+    "font.serif": ["Times New Roman", "DejaVu Serif"],
+    "font.size": 8,
+    "axes.labelsize": 9,
+    "axes.titlesize": 10,
+    "legend.fontsize": 7,
+    "xtick.labelsize": 7,
+    "ytick.labelsize": 7,
+    "lines.linewidth": 1.5,
+    "lines.markersize": 5,
+    "axes.linewidth": 0.8,
+    "grid.linewidth": 0.4,
+    "savefig.dpi": 600,
+    "savefig.bbox": "tight",
+    "pdf.fonttype": 42,
+    "axes.formatter.useoffset": False,
+    "axes.formatter.limits": [-5, 6],
+    "mathtext.default": "regular"  # 使用常规数学字体
+})
 
-# 定义MLSys友好的配色方案
-COLORS = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b']
+# 解析日志文件的函数
 
 
-def parse_log(file_path):
-    """改进的日志解析函数，正确处理特殊字符"""
+def parse_log_file(file_path):
+    pattern = re.compile(
+        r"model:(.*?),preprocessor:(.*?),tool's version:(.*?),num_clients:(.*?),"
+        r"total_number:(.*?),throughput::qps:(.*?),throughput::avg:(.*?),"
+        r"latency::TP50:(.*?),latency::TP90:(.*?),latency::TP99:(.*?),"
+        r"latency::TP99\.9:(.*?),latency::TP99\.99:(.*?),latency::TP99\.999:(.*?),"
+        r"latency::avg:(.*?),-50:(.*?),-20:(.*?),-10:(.*?),-1:(.*?),"
+        r"cpu_usage:(.*?),gpu_usage:(.*?)$"
+    )
+
     data = []
     with open(file_path, 'r') as f:
         for line in f:
-            # 使用正则表达式分割键值对
-            parts = re.split(r',(?=\w)', line.strip())
-            record = {}
-            for part in parts:
-                # 处理包含双冒号的情况
-                if '::' in part:
-                    key, value = part.split('::', 1)
-                    # 分离指标和数值
-                    if ':' in value:
-                        subkey, val = value.split(':', 1)
-                        key = f"{key}_{subkey}"
-                        value = val
-                elif ':' in part:
-                    key, value = part.split(':', 1)
+            line = line.strip()
+            if not line:
+                continue
 
-                # 规范化键名
-                key = key.replace('-', 'neg').replace('.', '_').strip()
-                record[key] = value.strip()
-
-            # 添加模型实例标识
-            model = record['model']
-            instance_id = sum(1 for d in data if d.get('model') == model) + 1
-            record['instance_id'] = instance_id
-            data.append(record)
-
+            match = pattern.match(line)
+            if match:
+                groups = match.groups()
+                entry = {
+                    'model': groups[0],
+                    'preprocessor': groups[1],
+                    'tool_version': groups[2],
+                    'num_clients': int(groups[3]),
+                    'total_requests': int(groups[4]),
+                    'throughput_qps': float(groups[5]),
+                    'throughput_avg': float(groups[6]),
+                    'TP50': float(groups[7]),
+                    'TP90': float(groups[8]),
+                    'TP99': float(groups[9]),
+                    'TP99.9': float(groups[10]),
+                    'TP99.99': float(groups[11]),
+                    'TP99.999': float(groups[12]),
+                    'latency_avg': float(groups[13]),
+                    'cpu_usage': float(groups[18]),
+                    'gpu_usage': float(groups[19])
+                }
+                data.append(entry)
     return pd.DataFrame(data)
 
+# 绘制单栏尺寸的百分位比较图
 
-def plot_stability(df):
-    """绘制延迟分布图表 - 横坐标为百分位指标，纵坐标为延迟"""
-    fig, ax = plt.subplots()
-    
-    # 定义百分位点顺序
-    percentiles = ['TP50', 'TP90', 'TP99', 'TP99.9', 'TP99.99']
-    metric_keys = ['latency_TP50', 'latency_TP90', 'latency_TP99', 
-                   'latency_TP99_9', 'latency_TP99_99']
-    
-    # 获取所有模型
+
+def plot_single_column_percentiles(df, output_file="single_column_percentiles.pdf"):
+    # 单栏尺寸 (3.5英寸宽)
+    SINGLE_COL_WIDTH = 3.5  # 英寸
+    fig_height = SINGLE_COL_WIDTH * 0.75  # 保持宽高比
+
+    fig, ax = plt.subplots(figsize=(SINGLE_COL_WIDTH, fig_height))
+
+    # 优化绘图区域
+    plt.subplots_adjust(left=0.15, right=0.95, top=0.92, bottom=0.15)
+
     models = df['model'].unique()
-    
-    # 设置横坐标位置
-    x_pos = np.arange(len(percentiles))
-    bar_width = 0.15  # 每个模型的柱宽
-    offset = np.linspace(-0.3, 0.3, len(models))  # 每个模型的偏移量
-    
-    # 绘制每个模型的箱线图
-    for i, model in enumerate(models):
-        model_data = []
-        for metric in metric_keys:
-            # 获取当前模型当前指标的所有值
-            values = df[df['model'] == model][metric].astype(float)
-            model_data.append(values)
-        
-        # 绘制箱线图（位置偏移以避免重叠）
-        positions = x_pos + offset[i]
-        box = ax.boxplot(
-            model_data, 
-            positions=positions,
-            widths=bar_width,
-            patch_artist=True,
-            showfliers=False,  # 不显示异常值
-            boxprops=dict(facecolor=COLORS[i], alpha=0.7, linewidth=0.7),
-            medianprops=dict(color='white', linewidth=1.2),
-            whiskerprops=dict(color=COLORS[i], linewidth=1.0),
-            capprops=dict(color=COLORS[i], linewidth=1.0)
-        
-        # 添加中位线连接
-        medians = [np.median(vals) for vals in model_data]
-        ax.plot(
-            positions, medians, 
-            color=COLORS[i], 
-            linestyle='-', 
-            marker='o', 
-            markersize=4,
-            linewidth=1.5,
-            alpha=0.9,
-            label=model
-        )
-    
-    # 设置图表格式
-    ax.set_xlabel('Percentile Metrics', fontsize=10)
-    ax.set_ylabel('Latency (ms)', fontsize=10)
-    ax.set_xticks(x_pos)
-    ax.set_xticklabels(percentiles)
-    
-    # 设置纵坐标范围和对数刻度
-    all_values = np.concatenate([df[metric].astype(float).values for metric in metric_keys])
-    y_min = max(0.1, np.min(all_values) * 0.8)
-    y_max = np.max(all_values) * 1.2
-    ax.set_ylim(y_min, y_max)
-    ax.set_yscale('log')
-    
-    # 添加次要刻度线
-    ax.yaxis.set_minor_locator(ticker.LogLocator(subs=np.arange(1.0, 10.0) * 0.1))
-    ax.yaxis.set_minor_formatter(ticker.NullFormatter())
-    
-    # 添加网格和边框
-    ax.grid(True, linestyle=':', alpha=0.3)
-    ax.grid(True, which='minor', linestyle=':', alpha=0.1)
+    preprocessors = ['cpu', 'gpu']
+    percentile_labels = ['TP50', 'TP90',
+                         'TP99', 'TP99.9', 'TP99.99', 'TP99.999']
+
+    # 模型简称映射 - 学术论文中使用标准缩写
+    model_short_names = {
+        'resnet101': 'ResNet-101',
+        'mobilenetv2_100': 'MobiNetV2',
+        'vit_base_patch16_siglip_224': 'ViT-SigLIP'
+    }
+
+    # 预处理方式显示名称
+    pp_names = {
+        'cpu': 'CPU',
+        'gpu': 'GPU'
+    }
+
+    # 创建颜色映射 - 使用更学术的调色板
+    colors = {
+        'resnet101': '#1f77b4',  # 蓝色
+        'mobilenetv2_100': '#2ca02c',  # 绿色
+        'vit_base_patch16_siglip_224': '#d62728'  # 红色
+    }
+
+    # 线型和标记样式
+    linestyles = {
+        'cpu': '-',
+        'gpu': '--'
+    }
+
+    markers = {
+        'cpu': 'o',
+        'gpu': 's'
+    }
+
+    # 绘制所有数据线
+    for model in models:
+        model_df = df[df['model'] == model]
+        model_short = model_short_names.get(model, model)
+
+        for pp in preprocessors:
+            pp_df = model_df[model_df['preprocessor'] == pp]
+            if not pp_df.empty:
+                values = pp_df.iloc[0][percentile_labels].values
+                line_style = linestyles[pp]
+                marker_style = markers[pp]
+
+                # 绘制线条
+                ax.plot(percentile_labels, values,
+                        marker=marker_style,
+                        markersize=4.5,
+                        linewidth=1.2,
+                        color=colors[model],
+                        linestyle=line_style,
+                        label=f"{model_short} ({pp_names[pp]})",
+                        zorder=3,
+                        markeredgewidth=0.5,
+                        markeredgecolor='w')  # 白色边缘提高可读性
+
+                # 标注尾部延迟值
+                tail_value = values[-1]
+                ax.annotate(f'{tail_value:.1f}',
+                            (percentile_labels[-1], tail_value),
+                            textcoords="offset points",
+                            xytext=(5, 0),
+                            ha='left',
+                            va='center',
+                            fontsize=6.5,
+                            color=colors[model],
+                            bbox=dict(boxstyle="round,pad=0.15",
+                                      fc=(1, 1, 1, 0.7),
+                                      ec=colors[model],
+                                      lw=0.5))
+
+    # 设置图表元素
+    ax.set_title('Latency Percentile Comparison', fontsize=10, pad=10)
+    ax.set_xlabel('Percentile', labelpad=6)
+    ax.set_ylabel('Latency (ms)', labelpad=6)
+
+    # 优化刻度标签
+    ax.set_xticklabels([x.replace('TP', '') for x in percentile_labels], rotation=20,
+                       ha='right', fontsize=7.5)
+
+    # 设置Y轴范围
+    all_latencies = df[percentile_labels].values.flatten()
+    y_max = max(20, np.percentile(all_latencies, 99) * 1.25)
+    ax.set_ylim(0, y_max)
+
+    # 使用对数刻度更好地显示长尾分布
+    # ax.set_yscale('log')
+    # ax.set_ylim(1, y_max)
+
+    # 添加网格线
+    ax.grid(True, axis='y', linestyle=':', alpha=0.4, zorder=1)
+    ax.grid(True, axis='x', linestyle=':', alpha=0.2, zorder=1)
+
+    # 添加图例 - 紧凑排列在右上角
+    handles, labels = ax.get_legend_handles_labels()
+    ax.legend(handles, labels,
+              loc='upper right',
+              frameon=True,
+              framealpha=0.9,
+              ncol=2,
+              columnspacing=0.8,
+              handletextpad=0.4,
+              handlelength=2.0,
+              fontsize=7.5)
+
+    # 添加学术风格的边框
     for spine in ax.spines.values():
-        spine.set_visible(True)
-        spine.set_linewidth(0.5)
-    
-    # 添加图例
-    ax.legend(
-        loc='upper left',
-        frameon=True,
-        framealpha=0.9,
-        edgecolor='#DDDDDD'
-    )
-    
-    # 添加标题
-    plt.title('Latency Distribution by Percentile', fontsize=11, pad=10)
-    
-    plt.tight_layout()
-    plt.savefig('latency_distribution.pdf', dpi=300)
+        spine.set_linewidth(0.7)
+
+    # 保存到PDF
+    with PdfPages(output_file) as pdf:
+        pdf.savefig(fig, dpi=600)
+
     plt.close()
 
 
+# 主程序
 if __name__ == "__main__":
-    # 从日志文件读取数据
-    df = parse_log("../stability.log")
-    
-    # 转换数值列
-    numeric_cols = [col for col in df.columns if col not in ['model', 'tool_s version']]
-    df[numeric_cols] = df[numeric_cols].apply(pd.to_numeric, errors='coerce')
-    
-    # 生成图表
-    plot_stability(df)
+    # 替换为实际文件路径
+    log_file = "../stability.log"
+    output_pdf = "single_column_percentiles.pdf"
+
+    # 解析日志并生成图表
+    df = parse_log_file(log_file)
+    plot_single_column_percentiles(df, output_pdf)
+
+    print(f"Analysis complete! Single-column chart saved to: {output_pdf}")
