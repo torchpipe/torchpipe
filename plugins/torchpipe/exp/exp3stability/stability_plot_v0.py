@@ -49,24 +49,23 @@ def parse_log_file(file_path):
                 data.append(entry)
     return pd.DataFrame(data)
 
-# 绘制稳定性图表（仅第一个图）
+# 绘制稳定性图表（垂直紧密叠加）
 
 
 def plot_percentile_comparison(df, output_file="percentile_comparison.pdf"):
-    # 设置学术出版级别的绘图参数
     plt.rcParams.update({
         "font.family": "serif",
         "font.serif": ["Times", "Palatino", "New Century Schoolbook"],
-        "font.size": 10,
-        "axes.labelsize": 10,
-        "axes.titlesize": 11,
-        "legend.fontsize": 9,
+        "font.size": 9,
+        "axes.labelsize": 9,
+        "axes.titlesize": 10,
+        "legend.fontsize": 8,
         "xtick.labelsize": 8,
         "ytick.labelsize": 8,
-        "lines.linewidth": 1.8,
-        "lines.markersize": 6,
-        "axes.linewidth": 0.8,
-        "grid.linewidth": 0.4,
+        "lines.linewidth": 1.5,
+        "lines.markersize": 5,
+        "axes.linewidth": 0.7,
+        "grid.linewidth": 0.3,
         "savefig.dpi": 300,
         "savefig.bbox": "tight",
         "pdf.fonttype": 42
@@ -77,83 +76,81 @@ def plot_percentile_comparison(df, output_file="percentile_comparison.pdf"):
     percentiles = [50, 90, 99, 99.9, 99.99, 99.999]
     percentile_labels = ['TP50', 'TP90',
                          'TP99', 'TP99.9', 'TP99.99', 'TP99.999']
-    markers = ['o', 's', '^', 'D', 'v', '<']  # 不同的标记样式
+    markers = ['o', 's', '^', 'D', 'v', '<']
+    colors = {'cpu': '#1f77b4', 'gpu': '#d62728'}
 
-    # 创建颜色映射 - 更专业的学术配色
-    colors = {
-        'cpu': '#1f77b4',  # 蓝色
-        'gpu': '#d62728'   # 红色
+    # 为每个模型定义优化的y轴范围
+    model_ranges = {
+        "resnet101": (6, 9),      # 显著缩小范围
+        "yolov8": (10, 40),       # 中等范围
+        "bert-base": (20, 100)    # 较大范围
     }
 
     with PdfPages(output_file) as pdf:
-        # 创建3个子图，水平排列
-        fig, axes = plt.subplots(1, 3, figsize=(12, 4.5))
+        # 创建3个垂直排列的子图（3行1列）
+        fig, axes = plt.subplots(3, 1, figsize=(4.5, 7))  # 更紧凑的尺寸
 
-        # 设置全局标题
-        fig.suptitle('Latency Percentile Comparison by Model and Preprocessor Type',
-                     fontsize=12, y=0.98)
-
-        # 确定Y轴范围
+        # 获取全局y轴范围（基于所有数据）
         all_latencies = df[percentile_labels].values.flatten()
-        y_min = max(1, 0.8 * np.min(all_latencies))
-        y_max = min(100, 1.2 * np.max(all_latencies))
 
         for i, model in enumerate(models):
             ax = axes[i]
             model_df = df[df['model'] == model]
-
-            # 获取模型简称用于标题
             model_short = model.split('_')[0] if '_' in model else model
+
+            # 获取该模型的优化y轴范围
+            y_min, y_max = model_ranges.get(
+                model, (0.8*np.min(all_latencies), 1.2*np.max(all_latencies)))
 
             for pp in preprocessors:
                 pp_df = model_df[model_df['preprocessor'] == pp]
                 if not pp_df.empty:
                     values = pp_df.iloc[0][percentile_labels].values
-
-                    # 使用不同的标记和颜色
                     line = ax.semilogy(percentile_labels, values,
                                        marker=markers[i],
-                                       markersize=5,
-                                       linewidth=1.8,
+                                       markersize=4.5,  # 更小的标记
+                                       linewidth=1.5,
                                        color=colors[pp],
                                        label=f'{pp.upper()} Preprocessor',
                                        zorder=3)
 
-                    # 添加数据标签（仅关键点）
-                    for j, v in enumerate(values):
-                        if j == 0 or j == len(values)-1 or v == max(values):
-                            ax.annotate(f'{v:.2f}ms',
-                                        (j, v),
-                                        textcoords="offset points",
-                                        xytext=(0, 10 if j % 2 == 0 else -15),
-                                        ha='center',
-                                        fontsize=7)
-
-            # 设置图表元素
-            ax.set_title(f'{model_short}', fontsize=11, pad=10)
-            ax.set_xlabel('Percentile', labelpad=8)
-            if i == 0:
-                ax.set_ylabel('Latency (ms)', labelpad=8)
-
             # 设置网格和刻度
-            ax.grid(True, which="both", linestyle='--', alpha=0.5, zorder=1)
+            ax.grid(True, which="both", linestyle='--', alpha=0.4, zorder=1)
             ax.set_ylim(y_min, y_max)
 
-            # 设置对数刻度的格式
-            ax.yaxis.set_major_formatter(ScalarFormatter())
-            ax.yaxis.set_minor_formatter(ScalarFormatter())
-            ax.tick_params(axis='x', rotation=45, pad=2)
-            ax.tick_params(axis='y', which='both', pad=2)
+            # 使用线性刻度（非对数）因为范围较小
+            ax.set_yscale('linear')
 
-            # 添加图例
+            # 设置y轴刻度位置和标签
+            ax.yaxis.set_major_locator(plt.MultipleLocator((y_max - y_min)/4))
+            ax.yaxis.set_minor_locator(plt.MultipleLocator((y_max - y_min)/20))
+
+            # 只在底部子图显示x轴标签
             if i == 2:
-                ax.legend(loc='upper left', framealpha=0.9)
+                ax.set_xlabel('Percentile', labelpad=6)
+            else:
+                ax.set_xticklabels([])  # 移除上方子图的x轴刻度标签
 
-        # 调整布局
-        plt.tight_layout(rect=[0, 0, 1, 0.96])
-        plt.subplots_adjust(wspace=0.15, hspace=0.4)
+            # 添加模型标识（替代标题）
+            ax.text(0.02, 0.95, f'{model_short}',
+                    transform=ax.transAxes,
+                    fontsize=9,
+                    fontweight='bold',
+                    verticalalignment='top')
 
-        # 保存到PDF
+        # 设置共享的y轴标签（居中）
+        fig.text(0.04, 0.5, 'Latency (ms)', va='center',
+                 rotation='vertical', fontsize=9)
+
+        # 添加统一图例（在底部）
+        handles, labels = axes[0].get_legend_handles_labels()
+        fig.legend(handles, labels, loc='lower center', ncol=2,
+                   bbox_to_anchor=(0.5, 0.01), frameon=True, framealpha=0.8)
+
+        # 调整子图间距（垂直无间隙）
+        plt.tight_layout(rect=[0.05, 0.05, 1, 0.96])
+        plt.subplots_adjust(hspace=0.0)  # 垂直方向无间隙
+
         pdf.savefig(fig)
         plt.close()
 
