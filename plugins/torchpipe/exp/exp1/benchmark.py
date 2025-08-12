@@ -309,8 +309,8 @@ if __name__ == "__main__":
 
         
 
-        # img_dir = 'encode_jpeg'
-        img_dir = '320'
+        img_dir = 'encode_jpeg'
+        # img_dir = '320'
         result = test_from_raw_file(
             run,
             os.path.join("../", "tests/assets/", img_dir),
