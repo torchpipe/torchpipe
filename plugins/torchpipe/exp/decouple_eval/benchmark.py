@@ -164,13 +164,13 @@ def get_config(args):
     config = {
         "jpg_decoder": preprocess,
         model_name: {
-            "backend": "S[LogGPUTime(pre),TensorrtTensor, StreamGuard, LogTime(model)]",
+            "backend": "S[TensorrtTensor, StreamGuard]",
             "instance_num": args.trt_instance_num,
             "max": args.max,
             "mean": "123.675, 116.28, 103.53",
             "model": f"./{model_name}.onnx",
             "std": "58.395, 57.120, 57.375",
-            "model::cache": f"./{model_name}_{args.max}.trt",
+            "model::cache": f"./{model_name}_b{args.max}i{args.trt_instance_num}.trt",
             "post_processor": "CpuTensor",
         },
         "global": {"batching_timeout": args.timeout},

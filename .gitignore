@@ -30,3 +30,4 @@ plugins/torchpipe/examples/yolo/dog_result.jpg
 tmp.md
 
 plugins/torchpipe/exp/exp2/tmp.txt
+plugins/torchpipe/exp/exp2batch/tmp.txt
