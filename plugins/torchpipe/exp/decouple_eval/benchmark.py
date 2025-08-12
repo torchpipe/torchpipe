@@ -290,10 +290,10 @@ if __name__ == "__main__":
 
     if args.save:
         if args.save.endswith('.txt') or args.save.endswith('.log'):
-            result_str = f'{args.client} = '
+            result_str = f'model:{args.model},'
             for k, v in result.items():
                 result_str += f'{k}:{v},'
-            result_str.strip(',')
+            result_str = result_str.strip(',')
             result_str +='\n'
             with open(args.save, "a") as f:
                 f.write(result_str)

@@ -1,1 +1,3 @@
 *.log
+*.onnx
+*.trt
