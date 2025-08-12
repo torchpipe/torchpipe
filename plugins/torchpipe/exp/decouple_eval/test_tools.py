@@ -595,6 +595,8 @@ def test(sample: Union[Sampler, List[Sampler]], total_number=10000):
     tp50 = round(list_latency[length // 2], 2)
     tp90 = round(list_latency[int(0.9 * length)], 2)
     tp99 = round(list_latency[int(0.99 * length)], 2)
+    tp99_9 = round(list_latency[int(0.999 * length)], 2)
+    tp99_99 = round(list_latency[int(0.9999 * length)], 2)
     tp_1 = round(list_latency[-1], 2)
     tp_2 = round(list_latency[-10], 2)
     tp_3 = round(list_latency[-20], 2)
@@ -615,7 +617,7 @@ def test(sample: Union[Sampler, List[Sampler]], total_number=10000):
     print(f"throughput::     qps:  {qps},   [qps:=total_number/total_time]")
     print(f"                 avg:  {avg} ms   [avg:=num_clients/qps]")
 
-    print(f"latency::        TP50: {tp50}   TP90: {tp90}   TP99:  {tp99} ")
+    print(f"latency::        TP50:{tp50};TP90:{tp90}; TP99:{tp99}99.9:{tp99_9}; 99.99:{tp99_99}")
     print(
         f"                 avg:  {mean}   -50,-40,-20,-10,-1: {tp_5},{tp_4},{tp_3},{tp_2},{tp_1} ms"
     )
