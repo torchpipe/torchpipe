@@ -84,7 +84,7 @@ model_legend_elements = []
 
 # 绘制每个模型的曲线
 for orig_name in models:
-    display_name,_ = get_display_name(orig_name)
+    display_name, is_image = get_display_name(orig_name)
     model_df = df[df['model'] == orig_name].sort_values('batch_size')
 
     # 确定任务类型和样式
@@ -123,7 +123,7 @@ for orig_name in models:
     # 为模型图例创建元素
     model_legend_elements.append(Line2D(
         [0], [0],
-        marker='o',
+        marker='s' if is_image else  'o',
         color=color,
         label=display_name,
         linestyle='',
