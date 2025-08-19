@@ -910,6 +910,7 @@ OnnxParams config2onnxparams(
   if (config.find("min") != config.end() && !config.at("min").empty()) {
     auto min_shapes = hami::str::str_split(config.at("min"), ';');
     params.mins = hami::str::str_split<int>(config.at("min"), 'x', ',', ';');
+    SPDLOG_INFO("min_shapes = {}", config.at("min"));
   }
 
   if (config.find("max") != config.end() && !config.at("max").empty()) {
