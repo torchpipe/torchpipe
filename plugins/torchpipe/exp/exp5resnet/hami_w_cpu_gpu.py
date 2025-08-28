@@ -3,6 +3,7 @@ import tempfile
 import pickle
 import subprocess  # 新增导入
 import argparse
+from tqdm import tqdm  # 用于进度条
 
 parser = argparse.ArgumentParser()
 
@@ -26,11 +27,14 @@ num_clients = [int(x.strip()) for x in args.num_clients.split(",")]
 
 
 def parse_result(result):
-    return "tool's version::"+result.strip().split("tool's version::")[1]
-    
+    return "tool's version::"+result.strip().split("tool's version::")
+
+
 def run_gpu_preprocess_cmd():
     files = []
-    for i in num_clients:
+    print("Running GPU preprocess commands...")
+    # 添加进度条
+    for i in tqdm(num_clients, desc="GPU Preprocess"):
         total_number = 5000 if i == 1 else 20000
         cmd = [
             "python3",
@@ -45,6 +49,9 @@ def run_gpu_preprocess_cmd():
             "--client", str(i),
         ]
 
+        print(f"\nRunning command for {i} clients:")
+        print(" ".join(cmd))
+
         result = subprocess.run(
             cmd,
             stdout=subprocess.PIPE,
@@ -52,14 +59,26 @@ def run_gpu_preprocess_cmd():
             text=True,
             check=True
         )
-        files.append(parse_result(result.stdout))
+
+        # 打印中间结果
+        print(f"Result for {i} clients:")
+        print(result.stdout)
+        if result.stderr:
+            print("Errors:")
+            print(result.stderr)
+
+        parsed_result = parse_result(result.stdout)
+        files.append(parsed_result)
+        print(f"Parsed result: {parsed_result}")
 
     return files
 
 
 def run_cpu_preprocess_cmd():
     files = []
-    for i in num_clients:
+    print("Running CPU preprocess commands...")
+    # 添加进度条
+    for i in tqdm(num_clients, desc="CPU Preprocess"):
         total_number = 5000 if i == 1 else 20000
         cmd = [
             "python3",
@@ -71,7 +90,10 @@ def run_cpu_preprocess_cmd():
             "--timeout", "2",
             "--total_number", str(total_number),
             "--client", str(i),
-            ]
+        ]
+
+        print(f"\nRunning command for {i} clients:")
+        print(" ".join(cmd))
 
         result = subprocess.run(
             cmd,
@@ -80,7 +102,17 @@ def run_cpu_preprocess_cmd():
             text=True,
             check=True
         )
-        files.append(parse_result(result.stdout))
+
+        # 打印中间结果
+        print(f"Result for {i} clients:")
+        print(result.stdout)
+        if result.stderr:
+            print("Errors:")
+            print(result.stderr)
+
+        parsed_result = parse_result(result.stdout)
+        files.append(parsed_result)
+        print(f"Parsed result: {parsed_result}")
 
     return files
 
@@ -89,13 +121,16 @@ def run_cmd(cmd):
     def func():
         results = []
         base_cmd = cmd.strip().split()
-        for i in num_clients:
+        print(f"Running custom command: {cmd}")
+        # 添加进度条
+        for i in tqdm(num_clients, desc="Custom Command"):
             total_number = 5000 if i == 1 else 20000
             cmd_new = base_cmd + [
                 "--total_number", str(total_number),
                 "--client", str(i),
             ]
-            print("cmd: ", " ".join(cmd_new))
+            print(f"\nRunning command for {i} clients:")
+            print(" ".join(cmd_new))
 
             result = subprocess.run(
                 cmd_new,
@@ -104,7 +139,17 @@ def run_cmd(cmd):
                 text=True,
                 check=True
             )
-            results.append(parse_result(result.stdout))
+
+            # 打印中间结果
+            print(f"Result for {i} clients:")
+            print(result.stdout)
+            if result.stderr:
+                print("Errors:")
+                print(result.stderr)
+
+            parsed_result = parse_result(result.stdout)
+            results.append(parsed_result)
+            print(f"Parsed result: {parsed_result}")
 
         return results
 
@@ -119,14 +164,31 @@ if __name__ == "__main__":
     if args.cmd:
         targets = [run_cmd(args.cmd)]
     results = []
-    for func in targets:
+
+    print(f"Starting benchmark with {len(targets)} target(s)")
+    # 添加总体进度条
+    for func in tqdm(targets, desc="Overall Progress"):
+        print(f"\nStarting {func.__name__}...")
         result = func()
         results.append(result)
+        print(f"Completed {func.__name__}")
+        # 打印中间汇总结果
+        print(f"Intermediate results for {func.__name__}:")
+        for i, res in zip(num_clients, result):
+            print(f"  {i} clients: {res}")
 
     final_json = {}
     for k, v in zip(targets, results):
         final_json["hami"+k.__name__] = v
-    import json 
+
+    import json
     with open(file, "a") as f:
         json.dump(final_json, f, indent=4)
+
     print("final result saved in ", file)
+    # 打印最终结果摘要
+    print("\nFinal Results Summary:")
+    for key, value in final_json.items():
+        print(f"{key}:")
+        for i, res in zip(num_clients, value):
+            print(f"  {i} clients: {res}")

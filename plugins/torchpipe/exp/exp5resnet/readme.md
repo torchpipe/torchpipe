@@ -1,6 +1,6 @@
 
-## Prepare environment
-### code
+## Prepare code environment
+
 ```bash
 
 # clone code 
@@ -10,6 +10,7 @@ cd torchpipe/ && git submodule update --init --recursive
 ### ours => A10: ~/paper/v1/torchpipe/
 ```
 
+## hami
 
 ### docker
 img_name=nvcr.io/nvidia/pytorch:25.05-py3
@@ -47,7 +48,7 @@ ls *.onnx
 ``` -->
 
 
-## experiment with hami
+### experiment with hami
 
 - Hami w/ CPU  GPU
 ```bash
@@ -67,7 +68,25 @@ ls *.onnx
  
 
 
-- Triton Ensem. w/ GPU-dali
+
+## Triton
+
+## env
+```bash
+cd torchpipe/
+
+img_name=nvcr.io/nvidia/tritonserver:25.05-py3
+nvidia-docker run --name=exp_triton -it --cpus=8 --network=host --runtime=nvidia --privileged   --shm-size=1g --ulimit memlock=-1 --ulimit stack=67108864 -v `pwd`:/workspace   $img_name bash
+```
+
+cd /workspace/examples/exp
+
+onnx_path=./resnet101.onnx # please exported with dynamic batch size. refer to model_repository/en/export_onnx.py
+/usr/src/tensorrt/bin/trtexec --onnx=$onnx_path --saveEngine=./model_repository/resnet/resnet_trt/1/model.plan --minShapes=input:1x3x224x224 --optShapes=input:8x3x224x224 --maxShapes=input:8x3x224x224 --fp16
+#  --explicitBatch
+export CUDA_VISIBLE_DEVICES=3
+tritonserver --model-repository=./model_repository/resnet
+
 ```bash
 cd /workspace/plugins/torchpipe/exp
  tritonserver --model-repository=./model_repository/en 
@@ -92,7 +111,11 @@ zsy_artifactv2 /workspace/v0/examples/exp/   cpu 4552.31, 2.11 gpu 7420.67, 1.25
 python -c "import torchpipe; print (torchpipe.__version__)"
 
 ```
-- Triton Ensem. w/ PythonCPU
+
+ 
+
+
+## Triton Ensem. w/ PythonCPU
 ```bash
 
 cd /workspace/plugins/torchpipe/exp
