@@ -58,7 +58,6 @@ ls *.onnx
 # python ./benchmark.py  --preprocess gpu --model resnet101 --max 5 --preprocess-instances 8 --client 30 --timeout 2 --trt_instance_num 2 --total_number 20000
 
 
-
 # trtexec --onnx=resnet101.onnx --fp16 --shapes=input:8x3x224x224 --saveEngine=resnet101_b8i1.trt
 # 
 
