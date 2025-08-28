@@ -38,10 +38,11 @@ def run_gpu_preprocess_cmd():
             "--model", "resnet101",
             "--preprocess", "gpu",
             "--preprocess-instances", "8",
-            "--max", "8",
+            "--max", "5",
             "--trt_instance_num", "2",
             "--timeout", "2",
             "--total_number", str(total_number),
+            "--client", str(i),
         ]
 
         result = subprocess.run(
