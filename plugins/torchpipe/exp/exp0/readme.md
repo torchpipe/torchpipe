@@ -1,6 +1,6 @@
 
 
-
+# useless experiments
 ## multiple instances, with no preprocesser
 
 resnet101, fp16, 32, 0.7, 4/5

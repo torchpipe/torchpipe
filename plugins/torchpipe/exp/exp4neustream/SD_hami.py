@@ -53,7 +53,7 @@ def handle_output(output_queue, log_name, workload_request_count, rate, cv, slo_
             formatted_time = now.strftime("%Y-%m-%d %H:%M:%S")
 
             slos = 0#[slo2bs_bable[int(x*10)] for x in slo_scale]
-            statistics = f"time:{formatted_time}, 256x image, rate:{rate} qps, cv={cv}, goodput_rate={goodput_request_count}/{workload_request_count}, goodput speed={goodput_request_count/total_trace_time}, dropped: {drop_count} slo_scale={slo_scale}, mbs={slos}\n"
+            statistics = f"time:{formatted_time}, id:hami_sd_256_candrop{can_drop}, rate:{rate} qps, cv={cv}, goodput_rate={goodput_request_count}/{workload_request_count}, goodput speed={goodput_request_count/total_trace_time}, dropped: {drop_count} slo_scale={slo_scale}, mbs={slos}\n"
             print(statistics)
 
             result_file = open("stable_diffusion_serve_result.txt", "a")
@@ -163,11 +163,16 @@ if __name__ == "__main__":
     parser.add_argument('--log_folder', default='log',
                         type=str, help='a value to determine log folder')
     # parser.add_argument('--profile_device', required=True, type=str, help='a value to determine profile device')
-    parser.add_argument('--step_delta', required=True,
-                        type=float, help='a value to determine running device')
+    # parser.add_argument('--step_delta', required=True,
+    #                     type=float, help='a value to determine running device')
 
-
+    parser.add_argument('--can_drop', default='1', type=str,
+                        help='a value to determine weather to drop requests')
+    
+    
     args = parser.parse_args()
+    
+    can_drop = int(args.can_drop)
 
     # key = f"rate={args.rate_scale}_cv={args.cv_scale}_{args.image_size}"
 
@@ -191,15 +196,10 @@ if __name__ == "__main__":
 
     torch.set_grad_enabled(False)
     try:
-        # trace setting
-        import sys
-        sys.path.insert(
-            0, './25Eurosys-NeuStream-AE/Diffusion/StableDiffusion/RTX4090_SD_FP16_img256/')
-        from test_set import prompt_list
+        from neustream.test_set import prompt_list
 
         time_pattern = "request=500"
 
-        # delay_num = args.delay_num
         from datetime import datetime, timezone, timedelta
         timestamp = datetime.now(
             timezone(timedelta(hours=8))).strftime("%Y-%m-%d %H:%M:%S")
@@ -227,8 +227,8 @@ if __name__ == "__main__":
         deploy_ready.acquire()
         print(
             f"Workers deploy all done! time used: {time.time() - deploy_begin}")
-
         emergency_threshold = 1/ref_times[1] * 1
+
         warm_up_request_temp = {
             "prompt": "a beautiful girl studying in Chinese University",
             "height": image_size,
@@ -239,13 +239,14 @@ if __name__ == "__main__":
             "request_time": time.time(),
             "guidance_scale": 7.5,
             "seed": 0,
-            'emergency_threshold': emergency_threshold,
             "SLO": slo_scale * (ref_times[0] + ref_times[1] * 50 + ref_times[2]),
             "loop_index": {
                 "UNetModule": 0
             },
             "id": -1
         }
+        if can_drop:
+            warm_up_request_temp['emergency_threshold'] = emergency_threshold
 
         collect_worker.start()
 
@@ -259,8 +260,9 @@ if __name__ == "__main__":
             request_time = time.time()
             warm_up_request["request_time"] = request_time
             warm_up_request['id'] = -1*idx - 1
-            warm_up_request['iter_deadline'] = request_time + \
-                slo_scale * (ref_times[0] + ref_times[1] * 50)
+            if can_drop:
+                warm_up_request['iter_deadline'] = request_time + \
+                    slo_scale * (ref_times[0] + ref_times[1] * 50)
             input_queue.put(warm_up_request)
         # warm up all the unet batch_size
 
@@ -281,8 +283,7 @@ if __name__ == "__main__":
                                             ref_times[1] * step + ref_times[2])
             time.sleep(arrival_interval_list[idx])
             request_time = time.time()
-            iter_deadline = request_time + slo_scale * \
-                (ref_times[0] + ref_times[1] * random_step_list[idx])
+            
             input = {
                 "prompt": prompt_list[idx % 100],
                 "height": image_size,
@@ -296,15 +297,19 @@ if __name__ == "__main__":
                 "guidance_scale": 7.5,
                 "seed": 0,
                 "uuid": uuid.uuid1(),
-                'emergency_threshold': emergency_threshold,
                 "request_time": request_time,
-                'iter_deadline': iter_deadline,
                 "SLO": SLO_THRES,
                 "id": idx,  # for debug
             }
+            if can_drop:
+                iter_deadline = request_time + slo_scale * \
+                    (ref_times[0] + ref_times[1] * random_step_list[idx])
+                input['emergency_threshold'] = emergency_threshold
+                input['iter_deadline'] = iter_deadline
+            
+            input_queue.put(input)
             print(
                 f"clip_queue put item: {input['id']}\n-----------------------")
-            input_queue.put(input)
             
         time.sleep(10)
         input_queue.put(None)

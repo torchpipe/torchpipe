@@ -83,8 +83,10 @@ class Clip:
             req = global_request_pool[id]
             data['result'] = id
             reqs.append(req)
-
+        # print(f'{id}: clip bs = {len(io)}, time={time.time()}')
         sd_modules['ClipModule'].compute(reqs)
+        # torch.cuda.current_stream().synchronize()
+        # print(f'clip done: {id}, time={time.time()}')
 
     def max(self):
         # print('xxxxxxxxxxxxxxd')
@@ -93,12 +95,14 @@ class Clip:
 
 class Unet:
     def init(self, params, options):
+        print(f'unet init: {torch.cuda.current_stream()}')
         torch.set_grad_enabled(False)
         print(f'unet params={params}')
         self.sd_module = sd_modules['UNetModule']
 
     def forward(self, io: List[hami.Dict]):
-        # print(f'unet bs = {len(io)}')
+        # print(f'unet forard: {torch.cuda.current_stream()}')
+        
         # start_time = time.perf_counter()
         reqs = []
         for data in io:
@@ -117,7 +121,7 @@ class Unet:
             # index = req["loop_index"]["UNetModule"]
             # print(f"{id}/{index}: restart to {data['restart']}")
             data['result'] = id
-
+        # print(f'{id}: unet bs = {len(io)}, time={time.time()}')
             # print(req)
         self.sd_module.compute(reqs)
 
@@ -208,6 +212,8 @@ class PyContinuousBatching:
                     self.on_start(task)
                 elif step == "finish":
                     self.on_finish(task)
+                    if self.input_queue.qsize() == 0 and len(self.receiving_data) != 0: # 检查残余数据
+                        self.on_start([]) # recheck if all received
                 else:
                     raise RuntimeError(f'error step {step}')
 
@@ -219,7 +225,7 @@ class PyContinuousBatching:
     def on_start(self, io):
         for data in io:
             self.receiving_data[data['data']] = data
-
+        
         if not self.all_received():
             return
         else:
@@ -228,14 +234,19 @@ class PyContinuousBatching:
 
         for req_id, data in receiving_data.items():
             loop_num = data['loop_num']
-            emergency_threshold = data['emergency_threshold']
-            iter_deadline = data['iter_deadline']
+
             if not req_id in self.cached_data:
                 ev = data.pop('event')
-                self.cached_data[req_id] = LoopInfo(
-                    data, ev, 0, loop_num=loop_num, emergency_threshold=emergency_threshold,
-                    time = time.time(),
-                    iter_deadline=iter_deadline)
+                if data.contains('iter_deadline'):
+                    self.cached_data[req_id] = LoopInfo(
+                        data, ev, 0, loop_num=loop_num,
+                        time=time.time(), 
+                        iter_deadline=data['iter_deadline'],
+                        emergency_threshold=data['emergency_threshold'])
+                else:
+                    self.cached_data[req_id] = LoopInfo(
+                        data, ev, 0, loop_num=loop_num,
+                        time=time.time())
             else:
                 ev = data.pop('event')
                 self.cached_data[req_id].data = data
@@ -249,14 +260,15 @@ class PyContinuousBatching:
         for req_id, data in self.cached_data.items():
             left_round = data.loop_num - data.loop_index
             iter_deadline = data.iter_deadline
-            left_time = max(1e-10, iter_deadline - time.time())
-            data.emergency = left_round / left_time  # 40 轮 3.5 秒
-            if data.emergency > data.emergency_threshold:
-                need_drop.add(req_id)
-                print(f'iter_deadline={iter_deadline},now={time.time()}')
-                print(
-                    f'drop(no enough time) {req_id} emergency = {data.emergency}/{data.emergency_threshold}, loop_index = {data.loop_index}/{data.loop_num}, left_time = {left_time}')
-
+            if iter_deadline != 0:
+                left_time = max(1e-10, iter_deadline - time.time())
+                data.emergency = left_round / left_time  # 40 轮 3.5 秒
+                if data.emergency > data.emergency_threshold:
+                    need_drop.add(req_id)
+                    print(f'iter_deadline={iter_deadline},now={time.time()}')
+                    print(
+                        f'drop(no enough time) {req_id} emergency = {data.emergency}/{data.emergency_threshold}, loop_index = {data.loop_index}/{data.loop_num}, left_time = {left_time}')
+            
         self.running_ids = set()
         self.drop_request(need_drop)
         delayed = self.delay_some_request()
@@ -296,7 +308,7 @@ class PyContinuousBatching:
         for req_id in should_del:
             del self.cached_data[req_id]
             self.running_ids.discard(req_id)
-            print(f'request {req_id} finished')
+            print(f'request {req_id} finished in iteration')
 
     def delay_some_request(self):
         delayed = set()
@@ -324,14 +336,14 @@ hami.register("PyContinuousBatching", PyContinuousBatching)
 
 
 def get_scheduler(max_batch_size):
-    hami.pipe({'unet_backend': {'backend': 'SyncTensor[Unet]', 'batching_timeout': 1, 'instance_num': 1},
+    hami.pipe({'unet_backend': {'backend': 'S[Unet,SyncTensor]', 'batching_timeout': 1, 'instance_num': 1},
                })
 
     config = {
         'global': {'entrypoint': 'Restart[DagDispatcher]'},
-        'clip': {'backend': 'SyncTensor[Clip]', 'batching_timeout': 4, 'instance_num': 1, 'next': 'unet'},
+        'clip': {'backend': 'S[Clip,SyncTensor]', 'batching_timeout': 4, 'instance_num': 1, 'next': 'unet'},
         'unet': {'node_entrypoint': 'Register[PyContinuousBatching]', 'target': 'node.unet_backend', 'max_batch_size': max_batch_size},
-        'vaesafety': {"backend": 'SyncTensor[Vae]', 'batching_timeout': 4, 'instance_num': 1}}
+        'vaesafety': {"backend": 'S[Vae,SyncTensor]', 'batching_timeout': 4, 'instance_num': 1}}
 
     scheduler = hami.pipe(config)
 
@@ -357,12 +369,15 @@ class Model:
         event.set_callback(call_back)
         event.set_callback(drop_cb)
         
-        emergency_threshold = request.pop('emergency_threshold')
-        iter_deadline = request.pop('iter_deadline')
-
-        io = hami.Dict({'data': req_id, 'node_name': 'clip', 'event': event,
-                        'emergency_threshold': emergency_threshold, 'iter_deadline': iter_deadline,
-                       'loop_num': request['loop_num']["UNetModule"]})
+        emergency_threshold = request.pop('emergency_threshold', None)
+        iter_deadline = request.pop('iter_deadline', None)
+        io = {'data': req_id, 'node_name': 'clip', 'event': event,
+              'loop_num': request['loop_num']["UNetModule"]}
+        if iter_deadline is not None:
+            io['iter_deadline'] = iter_deadline
+            assert emergency_threshold is not None
+            io['emergency_threshold'] = emergency_threshold
+        io = hami.Dict(io)
 
         assert req_id not in global_request_pool
         global_request_pool[req_id] = request

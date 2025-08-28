@@ -46,6 +46,9 @@ USE_TRT=True python run_profile_trt.py --max_batch=48
 
 ```bash
 bash run_hami.sh
+
+nohup bash run_hami.sh > output.log 2>&1 &
+
 ```
 -------
 

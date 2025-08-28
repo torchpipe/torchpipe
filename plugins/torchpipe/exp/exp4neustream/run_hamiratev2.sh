@@ -18,7 +18,7 @@ fi
 # image_size=512时, 设定为0.1s
 for can_drop in '0' '1'
 do
-    for slo_scale in "7" #"0.9" "0.95" "1"
+    for slo_scale in "3" #"0.9" "0.95" "1"
     do
         # for rate_scale in "0.75" "1.0" "1.25" "1.5" "1.75" "2.0" "2.25" "2.5"
         # for rate_scale in $(seq 1.0 0.5 7.0) 1.25

@@ -87,7 +87,7 @@ def main(
     return model, img_bytes
 
 
-def test_throughput(model='yolo11', num_client=10, total_number=10000):
+def test_throughput(model='yolo11m', num_client=10, total_number=10000):
     net, img_bytes = main(model)
 
     img = cv2.imdecode(np.frombuffer(img_bytes, np.uint8), cv2.IMREAD_COLOR)

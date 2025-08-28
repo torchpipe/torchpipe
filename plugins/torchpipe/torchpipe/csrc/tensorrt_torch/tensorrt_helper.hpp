@@ -102,6 +102,7 @@ struct OnnxParams {
       mins; // min: multiple profiles - multiple inputs - multiDims
   std::vector<std::vector<std::vector<int>>> maxs; // max
   size_t instance_num = 1;
+  std::string hardward_compatibility = "NONE"; // = "AMPERE_PLUS";
 };
 
 std::unique_ptr<nvinfer1::IHostMemory> onnx2trt(OnnxParams& params);

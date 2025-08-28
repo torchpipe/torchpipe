@@ -147,6 +147,69 @@ for orig_name in models:
             )
             break
 
+
+# === 新增：计算参考点性能对比 ===
+reference_point_results = []
+
+for orig_name in models:
+    model_df = df[df['model'] == orig_name].sort_values('batch_size')
+
+    # 找到第一个达到75%性能的点
+    ref_point = None
+    for idx, row in model_df.iterrows():
+        if row['normalized_throughput'] >= 0.75:
+            ref_point = row
+            break
+
+    if ref_point is not None:
+        ref_batch_size = ref_point['batch_size']
+        ref_throughput = ref_point['throughput']
+
+        # 获取batch_size=1的数据
+        bs1_data = model_df[model_df['batch_size'] == 1]
+        if not bs1_data.empty:
+            bs1_throughput = bs1_data['throughput'].values[0]
+
+            # 计算吞吐量提升倍数
+            throughput_ratio = ref_throughput / bs1_throughput
+
+            # 计算延迟降低倍数（吞吐量的倒数）
+            latency_ratio = (bs1_throughput) / (ref_throughput/ref_batch_size)
+
+            display_name, is_image = get_display_name(orig_name)
+
+            reference_point_results.append({
+                'model': display_name,
+                'reference_batch_size': ref_batch_size,
+                'throughput_ratio': throughput_ratio,
+                'latency_ratio': latency_ratio,
+                'is_image_processing': is_image
+            })
+
+# 打印结果
+print("=" * 80)
+print("参考点性能对比分析 (与batch_size=1相比)")
+print("=" * 80)
+print(f"{'模型':<25} {'参考点Batch Size':<18} {'吞吐倍数':<15} {'延迟倍数':<15}")
+print("-" * 80)
+
+
+for result in reference_point_results:
+    print(f"{result['model']:<25} {result['reference_batch_size']:<18} "
+          f"{result['throughput_ratio']:<15.2f} {result['latency_ratio']:<15.2f}")
+
+# 计算平均值
+avg_throughput_ratio = np.mean([r['throughput_ratio']
+                               for r in reference_point_results])
+avg_latency_ratio = np.mean([r['latency_ratio']
+                            for r in reference_point_results])
+
+print("-" * 80)
+print(f"{'平均值':<25} {'-':<18} {avg_throughput_ratio:<15.2f} {avg_latency_ratio:<15.2f}")
+print("=" * 80)
+# 新增结束
+
+
 # 添加75%参考线
 ax.axhline(y=0.75, color='#333333', linestyle=':', linewidth=3.0, alpha=0.9)
 ax.text(0.91, 0.63, '75% Reference',

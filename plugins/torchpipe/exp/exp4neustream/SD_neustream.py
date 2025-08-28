@@ -42,7 +42,7 @@ def handle_output(output_queue, log_name, workload_request_count, rate, cv, slo_
             # f.close()
             now = datetime.now()
             formatted_time = now.strftime("%Y-%m-%d %H:%M:%S")
-            statistics = f"time:{formatted_time}, Stable Diffusion 256x image, rate:{rate} qps, cv={cv}, slo={slo_factor}, NeuStream goodput_rate={goodput_request_count}/{workload_request_count}, goodput speed={goodput_request_count/total_trace_time}\n"
+            statistics = f"time:{formatted_time}, id:neustream_sd_256, rate:{rate} qps, cv={cv}, slo={slo_factor}, NeuStream goodput_rate={goodput_request_count}/{workload_request_count}, goodput speed={goodput_request_count/total_trace_time}\n"
             print(statistics)
             result_file = open("stable_diffusion_serve_result.txt", "a")
             result_file.write(statistics)
@@ -90,7 +90,8 @@ if __name__ == "__main__":
     parser.add_argument('--slo_scale', required=True, type=str, help='a value to determine slo factor')
     parser.add_argument('--extra_vae_safety_time', required=True, type=float, help='a value to determine extra budget for vae and safety')
     parser.add_argument('--log_folder', required=True, type=str, help='a value to determine log folder')
-    parser.add_argument('--profile_device', required=True, type=str, help='a value to determine profile device')
+    parser.add_argument('--profile_device', required=False, default='rtx4090',
+                        type=str, help='a value to determine profile device')
     parser.add_argument('--step_delta', required=True, type=float, help='a value to determine running device')
 
     args = parser.parse_args()
@@ -162,9 +163,7 @@ if __name__ == "__main__":
         sd_pipeline = StableDiffusionPipeline(config_path=sd_config_file)        
 
         # trace setting
-        sys.path.insert(
-            0, './25Eurosys-NeuStream-AE/Diffusion/StableDiffusion/RTX4090_SD_FP16_img256/')
-        from test_set import prompt_list
+        from neustream.test_set import prompt_list
 
         #time_pattern = "uniform"
         time_pattern = "request=500"
@@ -173,7 +172,7 @@ if __name__ == "__main__":
         #delay_num = args.delay_num
         from datetime import datetime, timezone, timedelta
         timestamp = datetime.now(timezone(timedelta(hours=8))).strftime("%Y-%m-%d %H:%M:%S")
-        log_prefix = f"{log_folder}/{timestamp}_image_size={image_size}_{time_pattern}_rate={rate}_cv={cv}_slo_factor={slo_factor}_extra_vae_time={extra_vae_safety_time}_device={args.profile_device}_step_delta={step_delta}"
+        log_prefix = f"{log_folder}/{timestamp}_image_size={image_size}_{time_pattern}_rate={rate}_cv={cv}_slo_factor={slo_factor}_extra_vae_time={extra_vae_safety_time}_step_delta={step_delta}"
 
         # init queue
         worker_nums = 3
@@ -190,7 +189,6 @@ if __name__ == "__main__":
         device = "cuda:0"
         # 创建工作进程
         print(torch.multiprocessing.get_start_method())
-        # torch.multiprocessing.set_start_method("spawn")
         from neustream.worker import Worker
         worker_list = []
         worker_list.append(Worker(stream_module_list=sd_pipeline.stream_module_list[0:1], input_queue=queue_list[0], output_queue=queue_list[1], id="clip", log_prefix=log_prefix, deploy_ready=deploy_ready,

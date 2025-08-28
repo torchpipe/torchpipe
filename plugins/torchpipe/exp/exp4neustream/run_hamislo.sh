@@ -16,18 +16,19 @@ fi
 # 保留4090上的设定
 # image_size=256时, 设定为0.06s
 # image_size=512时, 设定为0.1s
-for can_drop in '0' '1'
+for can_drop in '0'  '1' 
 do
-    for slo_scale in "7" #"0.9" "0.95" "1"
+    for slo_scale in "2.5" "3" "3.5" "4"
+     #"0.9" "0.95" "1"
     do
         # for rate_scale in "0.75" "1.0" "1.25" "1.5" "1.75" "2.0" "2.25" "2.5"
         # for rate_scale in $(seq 1.0 0.5 7.0) 1.25
         # for slo_factor in "3" "3.5" "4" "4.5" "5" "6"   # 0.95 4.5   0.98 3.5
         # for slo_factor in "13" "14" "15"
-        for rate_scale in "1" "2" "3" "4" "5"
+        for cv_scale in "0.5"
         do
-            echo "Running with variable rate: $rate_scale"
-            USE_TRT="True" python SD_hami.py --image_size 256 --rate_scale $rate_scale --cv_scale 0.5 --slo_scale $slo_scale --can_drop $can_drop 
+            echo "Running with variable rate: 3"
+            USE_TRT="True" python SD_hami.py --image_size 256 --rate_scale 3 --cv_scale $cv_scale  --slo_scale $slo_scale --can_drop $can_drop 
         done
     done
 done

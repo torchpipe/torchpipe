@@ -47,9 +47,9 @@ trace = {
 process = GammaProcess(1.0, 1.0)
 
 # 定义到达率和变异系数列表
-arrival_rate_list = [1.5, 1.75, 2.0, 2.25, 2.5]  # req/s
+arrival_rate_list = [1, 1.5, 1.75, 2.0, 2.25, 2.5]  # req/s
 arrival_rate_list += [2.5 + 0.25 * i for i in range(1, 50)]
-cv_list = [0.01, 0.1, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0]  # 突发程度指标
+cv_list = [0.01, 0.1, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 5.0, 6.0, 7.0, 8.0]  # 突发程度指标
 
 # 生成各参数组合的到达间隔
 for arrival_rate in arrival_rate_list:
