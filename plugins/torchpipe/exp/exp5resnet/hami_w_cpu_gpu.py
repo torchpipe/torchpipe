@@ -79,7 +79,7 @@ def run_cpu_preprocess_cmd():
             text=True,
             check=True
         )
-        files.appendparse_result(result.stdout)
+        files.append(parse_result(result.stdout))
 
     return files
 
