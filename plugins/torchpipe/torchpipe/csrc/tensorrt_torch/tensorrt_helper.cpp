@@ -660,10 +660,13 @@ std::unique_ptr<nvinfer1::IHostMemory> onnx2trt(OnnxParams& params) {
   // todo max workspace size for setMemoryPoolLimit
 
   // todo ampere_plus
-#if (NV_TENSORRT_MAJOR >= 9 && params.hardward_compatibility == "AMPERE_PLUS")
+#if NV_TENSORRT_MAJOR >= 9 
+  if(params.hardward_compatibility == "AMPERE_PLUS")
+{
   SPDLOG_INFO("set HardwareCompatibilityLevel to AMPERE_PLUS");
   config->setHardwareCompatibilityLevel(
       nvinfer1::HardwareCompatibilityLevel::kAMPERE_PLUS);
+}
 #endif
 
   bool use_only_fp32 = true;

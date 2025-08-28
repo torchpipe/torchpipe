@@ -38,7 +38,7 @@ requires-python = ">=3.8"
 # write_to = "hami/version.py"
 # version_file = "VERSION.txt"
 fallback_version = "0.0.0"
-local_scheme = "time-dot-node"
+local_scheme = "node-and-timestamp"
 normalize = false
 write_to = "VERSION.txt"
 
