@@ -49,7 +49,7 @@ def run_gpu_preprocess_cmd():
             text=True,
             check=True
         )
-        files.append(result)
+        files.append(result.stdout.strip().split('\n'))
 
     return files
 
@@ -77,7 +77,7 @@ def run_cpu_preprocess_cmd():
             text=True,
             check=True
         )
-        files.append(result)
+        files.append(result.stdout.strip().split('\n'))
 
     return files
 
@@ -111,7 +111,7 @@ def run_cmd(cmd):
 
 if __name__ == "__main__":
 
-    file = tempfile.mkstemp(suffix=".log")[1]
+    file = 'hami_w_cpu_gpu_results.json'
     targets = [run_cpu_preprocess_cmd, run_gpu_preprocess_cmd]
     if args.cmd:
         targets = [run_cmd(args.cmd)]

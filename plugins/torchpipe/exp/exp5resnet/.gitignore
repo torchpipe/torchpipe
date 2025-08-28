@@ -1,2 +1,3 @@
 *.onnx
 *.trt
+hami_w_cpu_gpu_results.json
