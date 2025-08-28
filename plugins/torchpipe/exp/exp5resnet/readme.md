@@ -49,38 +49,22 @@ ls *.onnx
 
 ## experiment with hami
 
-- Hami w/ CPU 
+- Hami w/ CPU  GPU
 ```bash
-python ./benchmark.py  --preprocess cpu --model resnet101 --max 5 --preprocess-instances 8 --client 10 --timeout 2 --trt_instance_num 2 --total_number 20000
+ python hami_w_cpu_gpu.py
+# python ./benchmark.py  --preprocess cpu --model resnet101 --max 5 --preprocess-instances 8 --client 10 --timeout 2 --trt_instance_num 2 --total_number 20000
 
-python ./benchmark.py  --preprocess gpu --model resnet101 --max 5 --preprocess-instances 8 --client 20 --timeout 2 --trt_instance_num 2 --total_number 20000
+# python ./benchmark.py  --preprocess gpu --model resnet101 --max 5 --preprocess-instances 8 --client 20 --timeout 2 --trt_instance_num 2 --total_number 20000
 
-python ./benchmark.py  --preprocess cpu --model resnet101 --max 5 --preprocess-instances 8 --client 5 --timeout 2 --trt_instance_num 1 --total_number 20000
-
- 
-
-python ./benchmark.py  --preprocess cpu --model resnet101 --max 5 --preprocess-instances 8 --client 1 --timeout 5 --trt_instance_num 2 --total_number 20000
 
 
 # trtexec --onnx=resnet101.onnx --fp16 --shapes=input:8x3x224x224 --saveEngine=resnet101_b8i1.trt
 # 
 
 
-    # trtexec --loadEngine=resnet101_b8i2.trt --shapes=input:8x3x224x224
 
 ```
-- Hami w/ GPU 
-```bash
-sh hamiwgpu.sh
-```
-
-- Hami w/ CPU/GPU 
-```bash
-CUDA_VISIBLE_DEVICES=0 python hami_w_cpu_gpu.py
-
-640: run_cpu_preprocess_cmd =  [{1: {'QPS': 119.18, 'TP50': 8.38, 'TP99': 8.49, 'GPU Usage': 21.0}}, {10: {'QPS': 1528.11, 'TP50': 5.92, 'TP99': 8.88, 'GPU Usage': 64.0}}, {20: {'QPS': 2311.98, 'TP50': 8.8, 'TP99': 19.39, 'GPU Usage': 90.0}}, {30: {'QPS': 2419.04, 'TP50': 11.97, 'TP99': 24.18, 'GPU Usage': 91.0}}]
-run_gpu_preprocess_cmd =  [{1: {'QPS': 129.67, 'TP50': 7.71, 'TP99': 7.75, 'GPU Usage': 24.0}}, {10: {'QPS': 1533.84, 'TP50': 6.3, 'TP99': 8.97, 'GPU Usage': 73.0}}, {20: {'QPS': 2316.98, 'TP50': 8.51, 'TP99': 10.56, 'GPU Usage': 99.0}}, {30: {'QPS': 2439.99, 'TP50': 12.49, 'TP99': 16.17, 'GPU Usage': 99.0}}]
-```
+ 
 
 
 - Triton Ensem. w/ GPU-dali

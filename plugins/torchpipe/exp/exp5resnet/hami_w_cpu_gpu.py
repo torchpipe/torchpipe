@@ -124,7 +124,7 @@ if __name__ == "__main__":
 
     final_json = {}
     for k, v in zip(targets, results):
-        final_json[k.__name__] = v
+        final_json["hami"+k.__name__] = v
     import json 
     with open(file, "a") as f:
         json.dump(final_json, f, indent=4)
