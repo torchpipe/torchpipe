@@ -210,10 +210,14 @@ if __name__ == "__main__":
             total_number = 10000
 
     img_dir = 'encode_jpeg'
-    # img_dir = '320'
+
+    img_dir = os.path.join("../", "tests/assets/", img_dir)
+    if not os.path.exists(img_dir):
+        img_dir = os.path.join("../", img_dir)
+        
     result = test_from_raw_file(
         run,
-        os.path.join("../", "tests/assets/", img_dir),
+        img_dir,
         num_clients=args.client,
         total_number=total_number,
     )
