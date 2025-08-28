@@ -27,7 +27,7 @@ num_clients = [int(x.strip()) for x in args.num_clients.split(",")]
 
 
 def parse_result(result):
-    return "tool's version::"+result.strip().split("tool's version::")
+    return "tool's version::"+result.strip().split("tool's version::")[1]
 
 
 def run_gpu_preprocess_cmd():
