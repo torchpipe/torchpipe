@@ -276,6 +276,8 @@ void Batching::run(size_t max_bs) {
         already_batching_timout = false;
         cached_data.clear();
       }
+    } else if (cached_size == 1 && instances_state_->running_intance_count() == 0) {
+      already_batching_timout = true;
     } else {
       // std::size_t new_pop = 0;
 
