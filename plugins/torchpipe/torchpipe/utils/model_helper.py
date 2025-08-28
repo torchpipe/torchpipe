@@ -110,7 +110,7 @@ def export_n3hw(model: nn.Module, onnx_path: str, input_h: int, input_w: int) ->
         Path to the exported ONNX model
     """
     # Ensure dependencies are installed
-    for package in ["onnxslim", "onnx"]:
+    for package in ["onnxslim", "onnx", 'onnxsim']:
         import_or_install_package(package)
 
     # Import required modules after installation
@@ -138,7 +138,8 @@ def export_n3hw(model: nn.Module, onnx_path: str, input_h: int, input_w: int) ->
     )
 
     # Optimize with ONNX-Simplifier
-    os.system(f'onnxslim {tmp_onnx_path} {onnx_path}')
+    os.system(f"onnxsim {tmp_onnx_path} {onnx_path}")
+    os.system(f'onnxslim {tmp_onnx_path} {tmp_onnx_path}')
     os.remove(tmp_onnx_path)
 
     print(f"Optimized ONNX model saved to: {onnx_path}")

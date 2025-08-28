@@ -38,7 +38,7 @@ pip install dist/torchpipe-0.10.1a0-cp312-cp312-linux_x86_64.whl
 ### install timm
 ```bash
 ### optional: pip config set global.index-url https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple
-pip install timm==1.0.15 fire onnxslim
+pip install timm==1.0.15 fire onnxslim onnxsim~=0.4.36
 #  onnxsim==0.4.36  py3nvml nvidia-pytriton==0.5.14 nvidia-ml-py # -i https://pypi.tuna.tsinghua.edu.cn/simple
 ```
 <!-- ### export onnx
@@ -51,7 +51,17 @@ ls *.onnx
 
 - Hami w/ CPU 
 ```bash
-python ./benchmark.py  --preprocess cpu --model resnet101 --preprocess-instances 8 --client 20 --timeout 5 --trt_instance_num 2 --total_number 20000
+python ./benchmark.py  --preprocess cpu --model resnet101 --preprocess-instances 5 --client 10 --timeout 2 --trt_instance_num 2 --total_number 20000
+
+python ./benchmark.py  --preprocess cpu --model resnet101 --preprocess-instances 5 --client 1 --timeout 5 --trt_instance_num 2 --total_number 20000
+
+
+# trtexec --onnx=resnet101.onnx --fp16 --shapes=input:8x3x224x224 --saveEngine=resnet101_b8i1.trt
+# 
+
+
+    # trtexec --loadEngine=resnet101_b8i2.trt --shapes=input:8x3x224x224
+
 ```
 - Hami w/ GPU 
 ```bash

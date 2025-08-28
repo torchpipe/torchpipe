@@ -82,9 +82,9 @@ def export_onnx(onnx_save_path, model_name):
     else:
         raise ValueError(f"model {model_name} not found in timm")
     
-    x = torch.randn(3, 3, 224, 224)
     onnx_save_path = f"./{model_name}.onnx"
     tp.utils.model_helper.export_n3hw(model, onnx_save_path, 224, 224)
+    
 
 
 def get_cpu_preprocess_cfg(preprocess_instances):
@@ -235,14 +235,10 @@ if __name__ == "__main__":
 
     print("\n", result)
 
-    new_result = {keep[k]: v for k, v in result.items() if k in keep.keys()}
-    print("\n\n")
-    print({args.client: new_result})
-    print("\n\n")
-
-    from test_tools import ProcessAdaptor
-
-    ProcessAdaptor.close_all(clients)
+    # new_result = {keep[k]: v for k, v in result.items() if k in keep.keys()}
+    # print("\n\n")
+    # print({args.client: new_result})
+    # print("\n\n")
 
     if args.save:
         if args.save.endswith('.txt') or args.save.endswith('.log'):
