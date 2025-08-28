@@ -41,15 +41,17 @@ pip install dist/torchpipe-0.10.1a0-cp312-cp312-linux_x86_64.whl
 pip install timm==1.0.15 fire onnxslim
 #  onnxsim==0.4.36  py3nvml nvidia-pytriton==0.5.14 nvidia-ml-py # -i https://pypi.tuna.tsinghua.edu.cn/simple
 ```
-### export onnx
+<!-- ### export onnx
 cd exp5resnet/
-```
+ls *.onnx
+``` -->
 
+
+## experiment with hami
 
 - Hami w/ CPU 
 ```bash
-sh hamiwcpu.sh
-#   python decouple_eval/benchmark.py  --preprocess cpu --model resnet101 --preprocess-instances 8 --client 20 --timeout 5 --trt_instance_num 2 --total_number 20000
+python ./benchmark.py  --preprocess cpu --model resnet101 --preprocess-instances 8 --client 20 --timeout 5 --trt_instance_num 2 --total_number 20000
 ```
 - Hami w/ GPU 
 ```bash
