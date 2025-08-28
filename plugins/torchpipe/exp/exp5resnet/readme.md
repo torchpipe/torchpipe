@@ -1,10 +1,6 @@
 
-## experiment with Hami
-```bash
-
-```
-### Evaluation Section
-- Prepare environment
+## Prepare environment
+### code
 ```bash
 
 # clone code 
@@ -12,26 +8,86 @@ git clone -b v1 ...
 cd torchpipe/ && git submodule update --init --recursive
 
 ### ours => A10: ~/paper/v1/torchpipe/
+```
 
-# docker
-img_name=nvcr.io/nvidia/tritonserver:25.05-py3
+
+### docker
+img_name=nvcr.io/nvidia/pytorch:25.05-py3
 docker pull $img_name
 
-docker run --name=zsy_triton --runtime=nvidia --ipc=host --cpus=8 --network=host -v `pwd`:/workspace  --shm-size 1G  --ulimit memlock=-1 --ulimit stack=67108864  --privileged=true  -w/workspace -it $img_name /bin/bash
+docker run --name=exp_hami --runtime=nvidia --ipc=host --cpus=8 --network=host -v `pwd`:/workspace  --shm-size 1G  --ulimit memlock=-1 --ulimit stack=67108864  --privileged=true  -w/workspace -it $img_name /bin/bash
+ 
+### test cuda
+python -c  "import torch; assert (torch.cuda.is_available())"
 
-# install timm
-# apt-get update && apt-get install -y cmake ninja-build
+### install hami
+```bash
+# optional: pip config set global.index-url https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple
 
-### optional: pip config set global.index-url https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple
-# pip install -r plugins/torchpipe/exp/requirements.txt
-ln -s /usr/bin/python3 /usr/bin/python
-
-# test cuda
-
-# to work directory
-
-root@yidun-ai-traingpu19:/workspace# 
+pip install --upgrade pip setuptools wheel
+python setup.py bdist_wheel
+pip uninstall hami-core -y && pip install dist/*.whl
 ```
+
+### install torchpipe
+cd plugins/torchpipe/
+rm -rf dist/*.whl
+python setup.py bdist_wheel
+pip install dist/torchpipe-0.10.1a0-cp312-cp312-linux_x86_64.whl
+
+### install timm
+```bash
+### optional: pip config set global.index-url https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple
+pip install timm==1.0.15 fire onnxslim
+#  onnxsim==0.4.36  py3nvml nvidia-pytriton==0.5.14 nvidia-ml-py # -i https://pypi.tuna.tsinghua.edu.cn/simple
+```
+### export onnx
+cd exp5resnet/
+```
+
+
+- Hami w/ CPU 
+```bash
+sh hamiwcpu.sh
+#   python decouple_eval/benchmark.py  --preprocess cpu --model resnet101 --preprocess-instances 8 --client 20 --timeout 5 --trt_instance_num 2 --total_number 20000
+```
+- Hami w/ GPU 
+```bash
+sh hamiwgpu.sh
+```
+
+- Hami w/ CPU/GPU 
+```bash
+CUDA_VISIBLE_DEVICES=0 python hami_w_cpu_gpu.py
+
+640: run_cpu_preprocess_cmd =  [{1: {'QPS': 119.18, 'TP50': 8.38, 'TP99': 8.49, 'GPU Usage': 21.0}}, {10: {'QPS': 1528.11, 'TP50': 5.92, 'TP99': 8.88, 'GPU Usage': 64.0}}, {20: {'QPS': 2311.98, 'TP50': 8.8, 'TP99': 19.39, 'GPU Usage': 90.0}}, {30: {'QPS': 2419.04, 'TP50': 11.97, 'TP99': 24.18, 'GPU Usage': 91.0}}]
+run_gpu_preprocess_cmd =  [{1: {'QPS': 129.67, 'TP50': 7.71, 'TP99': 7.75, 'GPU Usage': 24.0}}, {10: {'QPS': 1533.84, 'TP50': 6.3, 'TP99': 8.97, 'GPU Usage': 73.0}}, {20: {'QPS': 2316.98, 'TP50': 8.51, 'TP99': 10.56, 'GPU Usage': 99.0}}, {30: {'QPS': 2439.99, 'TP50': 12.49, 'TP99': 16.17, 'GPU Usage': 99.0}}]
+```
+
+
+- Triton Ensem. w/ GPU-dali
+```bash
+cd /workspace/plugins/torchpipe/exp
+ tritonserver --model-repository=./model_repository/en 
+
+python3 decouple_eval/benchmark.py --model ensemble_dali_resnet \
+ --total_number 20000 --client 20 
+```
+
+
+
+-----------------为整理---------------
+
+
+- Hami w/ Pure-CPU
+```bash
+export  CUDA_VISIBLE_DEVICES=1
+python decouple_eval/benchmark.py  --model empty --preprocess cpu --preprocess-instances 8 --total_number 5000 --client 10 --timeout 0
+
+a108  /workspace/examples/exp 
+zsy_artifact  /workspace/plugins/torchpipe/exp     cpu 4566.77, 2.12 gpu 7429.29,,1.22
+zsy_artifactv2 /workspace/v0/examples/exp/   cpu 4552.31, 2.11 gpu 7420.67, 1.25
+python -c "import torchpipe; print (torchpipe.__version__)"
 
 ```
 - Triton Ensem. w/ PythonCPU
@@ -44,20 +100,14 @@ python3 decouple_eval/benchmark.py --model ensemble_py_resnet \
  --total_number 20000 --client 20 
 ```
 
-- Triton Ensem. w/ GPU-dali
-```bash
-cd /workspace/plugins/torchpipe/exp
- tritonserver --model-repository=./model_repository/en 
-
-python3 decouple_eval/benchmark.py --model ensemble_dali_resnet \
- --total_number 20000 --client 20 
-```
 
 https://github.com/NVIDIA/DALI/issues/4581   disable antialias
 
 https://github.com/NVIDIA/DALI/issues/4581#issuecomment-1386888761
 
 https://github.com/triton-inference-server/tutorials/tree/main/Conceptual_Guide/Part_6-building_complex_pipelines
+
+pip install huggingface-hub==0.25.2
 
 ---------------- OLD EXPERIMENTS ----------------
 
