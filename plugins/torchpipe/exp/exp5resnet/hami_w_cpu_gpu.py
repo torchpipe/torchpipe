@@ -25,7 +25,9 @@ args = parser.parse_args()
 num_clients = [int(x.strip()) for x in args.num_clients.split(",")]
 
 
-
+def parse_result(result):
+    return "tool's version::"+result.strip().split("tool's version::")[1]
+    
 def run_gpu_preprocess_cmd():
     files = []
     for i in num_clients:
@@ -49,7 +51,7 @@ def run_gpu_preprocess_cmd():
             text=True,
             check=True
         )
-        files.append(result.stdout.strip().split('\n'))
+        files.append(parse_result(result.stdout))
 
     return files
 
@@ -77,7 +79,7 @@ def run_cpu_preprocess_cmd():
             text=True,
             check=True
         )
-        files.append(result.stdout.strip().split('\n'))
+        files.appendparse_result(result.stdout))
 
     return files
 
@@ -101,7 +103,7 @@ def run_cmd(cmd):
                 text=True,
                 check=True
             )
-            results.append(result)
+            results.append(parse_result(result.stdout))
 
         return results
 
@@ -111,7 +113,7 @@ def run_cmd(cmd):
 
 if __name__ == "__main__":
 
-    file = 'hami_w_cpu_gpu_results.json'
+    file = 'exp_w_cpu_gpu_results.json'
     targets = [run_cpu_preprocess_cmd, run_gpu_preprocess_cmd]
     if args.cmd:
         targets = [run_cmd(args.cmd)]
@@ -124,6 +126,6 @@ if __name__ == "__main__":
     for k, v in zip(targets, results):
         final_json[k.__name__] = v
     import json 
-    with open(file, "w") as f:
+    with open(file, "a") as f:
         json.dump(final_json, f, indent=4)
     print("final result saved in ", file)
