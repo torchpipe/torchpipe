@@ -110,12 +110,11 @@ def export_n3hw(model: nn.Module, onnx_path: str, input_h: int, input_w: int) ->
         Path to the exported ONNX model
     """
     # Ensure dependencies are installed
-    for package in ["onnxsim", "onnx"]:
+    for package in ["onnxslim", "onnx"]:
         import_or_install_package(package)
 
     # Import required modules after installation
     import onnx
-    from onnxsim import simplify
 
     # Generate dummy input
     original_device = next(model.parameters()).device
@@ -139,11 +138,9 @@ def export_n3hw(model: nn.Module, onnx_path: str, input_h: int, input_w: int) ->
     )
 
     # Optimize with ONNX-Simplifier
-    onnx_model = onnx.load(tmp_onnx_path)
+    os.system(f'onnxslim {tmp_onnx_path} {onnx_path}')
     os.remove(tmp_onnx_path)
-    model_simp, check = simplify(onnx_model)
-    assert check, "Simplified ONNX model could not be validated"
-    onnx.save(model_simp, onnx_path)
+
     print(f"Optimized ONNX model saved to: {onnx_path}")
     return onnx_path
 
