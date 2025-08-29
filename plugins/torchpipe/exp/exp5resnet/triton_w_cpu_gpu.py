@@ -23,6 +23,13 @@ parser.add_argument(
     default="1, 5, 10, 20, 30",
     help="basic num_clients",
 )
+parser.add_argument(
+    "--gpu_id",
+    dest="gpu_id",
+    type=str,
+    default="0",
+    help="GPU ID to use for Triton server",
+)
 args = parser.parse_args()
 
 num_clients = [int(x.strip()) for x in args.num_clients.split(",")]
@@ -32,22 +39,46 @@ def parse_result(result):
     return result.strip().split("-------------------------------------------------------------------")
 
 
-def start_triton_server(model_repo_cmd):
+def start_triton_server(model_repo_cmd, gpu_id):
     """启动Triton服务器并返回进程对象"""
-    print(f"Starting Triton server with command: {model_repo_cmd}")
+    # 设置CUDA_VISIBLE_DEVICES环境变量
+    env = os.environ.copy()
+    env['CUDA_VISIBLE_DEVICES'] = gpu_id
+
+    print(
+        f"Starting Triton server with command: {model_repo_cmd} on GPU {gpu_id}")
+
     # 拆分命令字符串为列表
     cmd_parts = model_repo_cmd.strip().split()
     process = subprocess.Popen(
         cmd_parts,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
-        preexec_fn=os.setsid  # 创建新的进程组，便于后续终止整个进程树
+        preexec_fn=os.setsid,  # 创建新的进程组，便于后续终止整个进程树
+        env=env  # 传递环境变量
     )
 
     # 等待服务器启动
     time.sleep(10)  # 等待10秒让服务器启动
     print("Triton server started (waiting 10 seconds for initialization)")
     return process
+
+
+def stop_triton_server(process):
+    """停止Triton服务器进程"""
+    if process:
+        try:
+            # 终止整个进程组
+            os.killpg(os.getpgid(process.pid), signal.SIGTERM)
+            process.wait(timeout=10)
+            print("Triton server stopped successfully")
+        except subprocess.TimeoutExpired:
+            print("Triton server did not stop gracefully, forcing termination")
+            os.killpg(os.getpgid(process.pid), signal.SIGKILL)
+        except ProcessLookupError:
+            print("Triton server process already terminated")
+        except Exception as e:
+            print(f"Error stopping Triton server: {e}")
 
 
 def run_gpu_preprocess_cmd():
@@ -132,11 +163,16 @@ def run_cpu_preprocess_cmd():
     return files
 
 
-def run_cmd(cmd):
+def run_cmd(cmd, gpu_id):
     def func():
         results = []
         base_cmd = cmd
-        print(f"Running custom command: {cmd}")
+
+        # 设置环境变量，确保基准测试也使用相同的GPU
+        env = os.environ.copy()
+        env['CUDA_VISIBLE_DEVICES'] = gpu_id
+
+        print(f"Running custom command: {cmd} on GPU {gpu_id}")
         for i in tqdm(num_clients, desc="Custom Command"):
             total_number = 5000 if i == 1 else 20000
             cmd_new = base_cmd + [
@@ -151,7 +187,8 @@ def run_cmd(cmd):
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
-                check=True
+                check=True,
+                env=env  # 传递环境变量
             )
 
             print(f"Result for {i} clients:")
@@ -177,8 +214,8 @@ DEFAULT_PARAMS = [
 ]
 
 TEST = {
-    # 'triton_resnet_process': "tritonserver --model-repository=./model_repository/resnet/",
-    # 'triton_resnet_thread': "tritonserver --model-repository=./model_repository/resnet/",
+    'triton_resnet_process': "tritonserver --model-repository=./model_repository/resnet/",
+    'triton_resnet_thread': "tritonserver --model-repository=./model_repository/resnet/",
     'ensemble_dali_resnet_cpu': "tritonserver --model-repository=./model_repository/en_dalicpu/",
     'ensemble_dali_resnet_gpu': "tritonserver --model-repository=./model_repository/en_daligpu/"
 }
@@ -190,27 +227,31 @@ if __name__ == "__main__":
     final_json = {}
     print(f"Starting benchmark with {len(TEST)} target(s)")
 
+    # 获取要使用的GPU ID
+    gpu_id = args.gpu_id
+
     for key, back_cmd in tqdm(TEST.items(), desc="Overall Progress"):
         print(f"\nStarting {key}...")
 
         # 启动Triton服务器
-        server_process = start_triton_server(back_cmd)
+        server_process = start_triton_server(back_cmd, gpu_id)
 
         try:
             # 运行基准测试
             result = run_cmd(['python3', './benchmark.py',
-                              '--model', key] + DEFAULT_PARAMS)()
+                              '--model', key] + DEFAULT_PARAMS, gpu_id)()
             final_json[key] = result
             print(f"Completed {key}")
         except Exception as e:
             print(f"Error during benchmark for {key}: {e}")
         finally:
-            # 测试完成后不停止服务，避免端口冲突
-            print(
-                f"Keeping Triton server running for {key} to avoid port conflicts")
+            # 停止Triton服务器
+            stop_triton_server(server_process)
+            # 等待一段时间确保端口释放
+            time.sleep(5)
 
     import json
-    with open(file, "a") as f:
+    with open(file, "w") as f:
         json.dump(final_json, f, indent=4)
 
     print("final result saved in ", file)
