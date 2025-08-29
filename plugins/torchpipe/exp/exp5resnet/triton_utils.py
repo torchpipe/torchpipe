@@ -132,11 +132,12 @@ class TritonWithPreprocess:
 
         img = cv2.imdecode(np.frombuffer(img_bytes, dtype=np.uint8), cv2.IMREAD_COLOR)
         img = cv2.resize(img, (224, 224))
-        img_np = (
-            (img[:, :, ::-1].astype(np.float32) - self.mean) / self.std
-        ).transpose((2, 0, 1))[None, ...]
-        
-        img_np = ((img[:, :, ::-1].astype(np.float32) )).transpose((2, 0, 1))[None, ...]
+        if False:
+            img_np = (
+                (img[:, :, ::-1].astype(np.float32) - self.mean) / self.std
+            ).transpose((2, 0, 1))[None, ...]
+        else:
+            img_np = ((img[:, :, ::-1].astype(np.float32) )).transpose((2, 0, 1))[None, ...]
 
         inputs = [InferInput(self.input_name, img_np.shape, "FP32")]
 
