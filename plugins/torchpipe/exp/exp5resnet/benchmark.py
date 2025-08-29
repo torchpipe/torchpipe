@@ -234,6 +234,8 @@ if __name__ == "__main__":
     }
 
     print("\n", result)
+    
+    del clients
 
     # new_result = {keep[k]: v for k, v in result.items() if k in keep.keys()}
     # print("\n\n")
