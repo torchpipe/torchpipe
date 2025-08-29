@@ -128,6 +128,9 @@ class ProcessAdaptor:
         self.alive.set()
         self.instance.join()
 
+    def __del__(self):
+        self.close()
+        
     @staticmethod
     def close_all(clients):
 
