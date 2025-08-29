@@ -111,11 +111,6 @@ class ProcessAdaptor:
 
 class TritonWithPreprocess:
     def __init__(self, model_name):
-        # import multiprocessing
-
-        # self.pool = multiprocessing.Pool(processes=14)
-
-        # import torchpipe as tp
 
         self.input_name = "input"
         self.output_name = "output"

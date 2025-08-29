@@ -252,18 +252,3 @@ if __name__ == "__main__":
     # from triton_utils import ProcessAdaptor
 
     # ProcessAdaptor.close_all(clients)
-    if args.save:
-        if args.save.endswith('.txt') or args.save.endswith('.log'):
-            result_str = f'model:{args.model},'
-            result_str += f'preprocessor:{args.preprocess},'
-            for k, v in result.items():
-                result_str += f'{k}:{v},'
-            result_str = result_str.strip(',')
-            result_str +='\n'
-            with open(args.save, "a") as f:
-                f.write(result_str)
-        else:
-            import pickle
-
-            with open(args.save, "wb") as f:
-                pickle.dump({args.client: result}, f)
