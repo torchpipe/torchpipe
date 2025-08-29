@@ -70,6 +70,31 @@ def check_triton_ready(port, max_retries=30, retry_interval=2):
     return False
 
 
+def check_triton_stopped(port, max_retries=5, retry_interval=1):
+    """验证Triton服务器是否已停止且端口不再可用"""
+    health_url = f"http://localhost:{port}/v2/health/ready"
+
+    for i in range(max_retries):
+        try:
+            response = requests.get(health_url, timeout=3)
+            # 如果还能收到响应，说明服务器仍在运行
+            print(
+                f"Triton server still responding (attempt {i+1}/{max_retries})")
+        except requests.exceptions.ConnectionError:
+            # 连接被拒绝，说明服务器已停止
+            print("Triton server has stopped and port is no longer accessible")
+            return True
+        except requests.exceptions.RequestException:
+            # 其他异常也视为服务器已停止
+            print("Triton server has stopped (connection failed)")
+            return True
+
+        time.sleep(retry_interval)
+
+    print("Triton server might still be running or port is still in use")
+    return False
+
+
 def start_triton_server(model_repo_cmd, gpu_id):
     """启动Triton服务器并返回进程对象"""
     # 设置CUDA_VISIBLE_DEVICES环境变量
@@ -101,12 +126,12 @@ def start_triton_server(model_repo_cmd, gpu_id):
 
 
 def stop_triton_server(process):
-    """停止Triton服务器进程"""
+    """停止Triton服务器进程并验证"""
     if process:
         try:
             # 终止整个进程组
             os.killpg(os.getpgid(process.pid), signal.SIGTERM)
-            process.wait(timeout=10)
+            process.wait(timeout=15)
             print("Triton server stopped successfully")
         except subprocess.TimeoutExpired:
             print("Triton server did not stop gracefully, forcing termination")
@@ -115,6 +140,9 @@ def stop_triton_server(process):
             print("Triton server process already terminated")
         except Exception as e:
             print(f"Error stopping Triton server: {e}")
+
+        # 验证服务器是否真正停止
+        check_triton_stopped(args.triton_http_port)
 
 
 def run_cmd(cmd, gpu_id, pbar=None):
@@ -172,8 +200,8 @@ DEFAULT_PARAMS = [
 ]
 
 TEST = {
-    'triton_resnet_process': "tritonserver --model-repository=./model_repository/resnet/",
-    'triton_resnet_thread': "tritonserver --model-repository=./model_repository/resnet/",
+    # 'triton_resnet_process': "tritonserver --model-repository=./model_repository/resnet/",
+    # 'triton_resnet_thread': "tritonserver --model-repository=./model_repository/resnet/",
     'ensemble_dali_resnet_cpu': "tritonserver --model-repository=./model_repository/en_dalicpu/",
     'ensemble_dali_resnet_gpu': "tritonserver --model-repository=./model_repository/en_daligpu/"
 }

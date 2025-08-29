@@ -37,13 +37,14 @@ cp resnet101_bs5i1.trt ./model_repository/cpu_en/resnet_trt/1/model.plan
 cp resnet101_bs5i1.trt ./model_repository/en_dalicpu/resnet_trt/1/model.plan
 cp resnet101_bs5i1.trt ./model_repository/en_daligpu/resnet_trt/1/model.plan
 
+ pip install opencv-python-headless~=4.5 tritonclient[grpc]  psutil nvidia-ml-py requests
+
 
  tritonserver --model-repository=./model_repository/resnet/ 
 
 
 
 ### optional: pip config set global.index-url https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple
- pip install opencv-python-headless~=4.5 tritonclient[grpc]  psutil nvidia-ml-py
 
 
 # python3 ./benchmark.py  --model triton_resnet_process  --total_number 10000  --client 20
