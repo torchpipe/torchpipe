@@ -152,7 +152,7 @@ class TritonWithPreprocess:
         # import torchpipe as tp
 
         self.input_name = "input"
-        self.output_name = "output_0"
+        self.output_name = "output"
 
         self.model_name = model_name
         self.url = os.environ.get("TRITON_SERVER_URL", "localhost:8001")
