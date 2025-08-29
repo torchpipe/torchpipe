@@ -69,7 +69,7 @@ def run_gpu_preprocess_cmd():
 
         parsed_result = parse_result(result.stdout)
         files.append(parsed_result)
-        print(f"Parsed result: {parsed_result}")
+        # print(f"Parsed result: {parsed_result}")
 
     return files
 
