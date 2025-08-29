@@ -6,6 +6,8 @@ import argparse
 from tqdm import tqdm
 import time
 import signal
+import requests
+import json
 
 parser = argparse.ArgumentParser()
 
@@ -30,13 +32,42 @@ parser.add_argument(
     default="0",
     help="GPU ID to use for Triton server",
 )
+parser.add_argument(
+    "--triton_http_port",
+    dest="triton_http_port",
+    type=int,
+    default=8000,
+    help="Triton HTTP port",
+)
 args = parser.parse_args()
 
 num_clients = [int(x.strip()) for x in args.num_clients.split(",")]
 
 
 def parse_result(result):
-    return result.strip().split("-------------------------------------------------------------------")
+    return result.strip().split("-------------------------------------------------------------------")[1]
+
+
+def check_triton_ready(port, max_retries=30, retry_interval=2):
+    """检查Triton服务器是否已准备好"""
+    health_url = f"http://localhost:{port}/v2/health/ready"
+
+    for i in range(max_retries):
+        try:
+            response = requests.get(health_url, timeout=5)
+            if response.status_code == 200:
+                print("Triton server is ready")
+                return True
+        except requests.exceptions.RequestException:
+            pass
+
+        if i < max_retries - 1:
+            print(
+                f"Waiting for Triton server to be ready... (attempt {i+1}/{max_retries})")
+            time.sleep(retry_interval)
+
+    print("Triton server failed to become ready within the expected time")
+    return False
 
 
 def start_triton_server(model_repo_cmd, gpu_id):
@@ -58,9 +89,14 @@ def start_triton_server(model_repo_cmd, gpu_id):
         env=env  # 传递环境变量
     )
 
-    # 等待服务器启动
-    time.sleep(10)  # 等待10秒让服务器启动
-    print("Triton server started (waiting 10 seconds for initialization)")
+    # 等待服务器启动，通过健康检查确认
+    if check_triton_ready(args.triton_http_port):
+        print("Triton server started successfully")
+    else:
+        print("Triton server failed to start")
+        stop_triton_server(process)
+        raise RuntimeError("Triton server failed to start")
+
     return process
 
 
@@ -81,89 +117,7 @@ def stop_triton_server(process):
             print(f"Error stopping Triton server: {e}")
 
 
-def run_gpu_preprocess_cmd():
-    files = []
-    print("Running GPU preprocess commands...")
-    for i in tqdm(num_clients, desc="GPU Preprocess"):
-        total_number = 5000 if i == 1 else 20000
-        cmd = [
-            "python3",
-            "./benchmark.py",
-            "--model", "resnet101",
-            "--preprocess", "gpu",
-            "--preprocess-instances", "8",
-            "--max", "5",
-            "--trt_instance_num", "2",
-            "--timeout", "2",
-            "--total_number", str(total_number),
-            "--client", str(i),
-        ]
-
-        print(f"\nRunning command for {i} clients:")
-        print(" ".join(cmd))
-
-        result = subprocess.run(
-            cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            check=True
-        )
-
-        print(f"Result for {i} clients:")
-        print(result.stdout)
-        if result.stderr:
-            print("Errors:")
-            print(result.stderr)
-
-        parsed_result = parse_result(result.stdout)
-        files.append(parsed_result)
-
-    return files
-
-
-def run_cpu_preprocess_cmd():
-    files = []
-    print("Running CPU preprocess commands...")
-    for i in tqdm(num_clients, desc="CPU Preprocess"):
-        total_number = 5000 if i == 1 else 20000
-        cmd = [
-            "python3",
-            "./benchmark.py",
-            "--model", "resnet101",
-            "--preprocess-instances", "8",
-            "--max", "5",
-            "--trt_instance_num", "2",
-            "--timeout", "2",
-            "--total_number", str(total_number),
-            "--client", str(i),
-        ]
-
-        print(f"\nRunning command for {i} clients:")
-        print(" ".join(cmd))
-
-        result = subprocess.run(
-            cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            check=True
-        )
-
-        print(f"Result for {i} clients:")
-        print(result.stdout)
-        if result.stderr:
-            print("Errors:")
-            print(result.stderr)
-
-        parsed_result = parse_result(result.stdout)
-        files.append(parsed_result)
-        print(f"Parsed result: {parsed_result}")
-
-    return files
-
-
-def run_cmd(cmd, gpu_id):
+def run_cmd(cmd, gpu_id, pbar=None):
     def func():
         results = []
         base_cmd = cmd
@@ -173,7 +127,7 @@ def run_cmd(cmd, gpu_id):
         env['CUDA_VISIBLE_DEVICES'] = gpu_id
 
         print(f"Running custom command: {cmd} on GPU {gpu_id}")
-        for i in tqdm(num_clients, desc="Custom Command"):
+        for i in num_clients:
             total_number = 5000 if i == 1 else 20000
             cmd_new = base_cmd + [
                 "--total_number", str(total_number),
@@ -199,7 +153,11 @@ def run_cmd(cmd, gpu_id):
 
             parsed_result = parse_result(result.stdout)
             results.append(parsed_result)
-            print(f"Parsed result: {parsed_result}")
+
+            # 更新总体进度条
+            if pbar:
+                pbar.update(1)
+                pbar.set_description(f"Completed {i} clients for current test")
 
         return results
 
@@ -225,32 +183,38 @@ if __name__ == "__main__":
 
     results = []
     final_json = {}
-    print(f"Starting benchmark with {len(TEST)} target(s)")
 
     # 获取要使用的GPU ID
     gpu_id = args.gpu_id
 
-    for key, back_cmd in tqdm(TEST.items(), desc="Overall Progress"):
-        print(f"\nStarting {key}...")
+    # 计算总任务数
+    total_tasks = len(TEST) * len(num_clients)
 
-        # 启动Triton服务器
-        server_process = start_triton_server(back_cmd, gpu_id)
+    # 创建总体进度条
+    with tqdm(total=total_tasks, desc="Overall Progress") as pbar:
+        for key, back_cmd in TEST.items():
+            pbar.set_description(f"Starting {key}")
+            print(f"\nStarting {key}...")
 
-        try:
-            # 运行基准测试
-            result = run_cmd(['python3', './benchmark.py',
-                              '--model', key] + DEFAULT_PARAMS, gpu_id)()
-            final_json[key] = result
-            print(f"Completed {key}")
-        except Exception as e:
-            print(f"Error during benchmark for {key}: {e}")
-        finally:
-            # 停止Triton服务器
-            stop_triton_server(server_process)
-            # 等待一段时间确保端口释放
-            time.sleep(5)
+            # 启动Triton服务器
+            server_process = start_triton_server(back_cmd, gpu_id)
 
-    import json
+            try:
+                # 运行基准测试，传递进度条对象
+                result = run_cmd(['python3', './benchmark.py',
+                                  '--model', key] + DEFAULT_PARAMS, gpu_id, pbar)()
+                final_json[key] = result
+                print(f"Completed {key}")
+            except Exception as e:
+                print(f"Error during benchmark for {key}: {e}")
+                # 出错时也更新进度条
+                pbar.update(len(num_clients))
+            finally:
+                # 停止Triton服务器
+                stop_triton_server(server_process)
+                # 等待一段时间确保端口释放
+                time.sleep(2)
+
     with open(file, "w") as f:
         json.dump(final_json, f, indent=4)
 
