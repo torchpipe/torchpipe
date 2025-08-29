@@ -181,11 +181,17 @@ if __name__ == "__main__":
 
         clients = triton_utils.get_clients(args.model, args.client)
         run = [x.forward for x in clients]
-    elif args.model == "triton_resnet":
+    elif args.model == "triton_resnet_thread":
         import triton_utils
 
         clients = triton_utils.get_clients_with_preprocess(
-            "resnet_trt", args.client)
+            "resnet_trt", args.client, False)
+        run = [x.forward for x in clients]
+    elif args.model == "triton_resnet_process":
+        import triton_utils
+
+        clients = triton_utils.get_clients_with_preprocess(
+            "resnet_trt", args.client, True)
         run = [x.forward for x in clients]
     else:
         config = get_config(args)

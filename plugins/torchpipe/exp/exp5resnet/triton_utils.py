@@ -51,46 +51,6 @@ class TritonInfer:
         return max_value, max_index
 
 
-class TritonWithPreprocess_:
-    def __init__(self, model_name):
-
-        # import torchpipe as tp
-
-        self.input_name = "input"
-        self.output_name = "output"
-
-        self.model_name = model_name
-        self.url = os.environ.get("TRITON_SERVER_URL", "localhost:8001")
-        self.triton_client = InferenceServerClient(url=self.url)
-        self.outputs = [InferRequestedOutput(self.output_name)]
-        self.mean = np.array((0.485, 0.456, 0.406)).astype(np.float32)
-        self.std = np.array((0.229, 0.224, 0.225)).astype(np.float32)
-
-    def forward(self, img):
-        img_path, img_bytes = img[0]
-
-        img = cv2.imdecode(np.frombuffer(img_bytes, dtype=np.uint8), cv2.IMREAD_COLOR)
-        img = cv2.resize(img, (224, 224))
-        img_np = (
-            (img[:, :, ::-1].astype(np.float32) - self.mean) / self.std
-        ).transpose((2, 0, 1))[None, ...]
-
-        inputs = [InferInput(self.input_name, img_np.shape, "FP32")]
-        # outputs.append(tritongrpcclient.InferRequestedOutput(self.output_name))
-
-        inputs[0].set_data_from_numpy(img_np)
-
-        triton_results = self.triton_client.infer(
-            model_name=self.model_name, inputs=inputs, outputs=self.outputs
-        )
-
-        arr = triton_results.as_numpy(self.output_name)
-        # print(arr.shape)
-        max_value = np.max(arr)
-        max_index = np.argmax(arr)
-        # print(max_index, max_value)
-        return max_value, max_index
-
 
 class ProcessAdaptor:
     def __init__(self, class_def, args):
@@ -123,12 +83,12 @@ class ProcessAdaptor:
                 continue
             self.target.forward(p)
             self.event.set()
-        print(f'ProcessAdaptor for {self.class_def} stopped.')
+        # print(f'ProcessAdaptor for {self.class_def} stopped.')
 
     def close(self):
         self.alive.set()
         self.queue.put(None)
-        print(f'ProcessAdaptor for {self.class_def} closing...')
+        # print(f'ProcessAdaptor for {self.class_def} closing...')
         self.instance.join()
 
     def __del__(self):
@@ -175,6 +135,8 @@ class TritonWithPreprocess:
         img_np = (
             (img[:, :, ::-1].astype(np.float32) - self.mean) / self.std
         ).transpose((2, 0, 1))[None, ...]
+        
+        img_np = ((img[:, :, ::-1].astype(np.float32) )).transpose((2, 0, 1))[None, ...]
 
         inputs = [InferInput(self.input_name, img_np.shape, "FP32")]
 
@@ -196,6 +158,7 @@ class TritonWithPreprocess:
         if RETURN_D:
             return 0, 0
         # print(arr.shape)
+        return 0
         max_value = np.max(arr)
         max_index = np.argmax(arr)
         # print(max_index, max_value)
@@ -206,9 +169,8 @@ def get_clients(model_name, num_clients):
     return [TritonInfer(model_name) for x in range(num_clients)]
 
 
-def get_clients_with_preprocess(model_name, num_clients):
-    USE_PROCESS = os.environ.get("USE_PROCESS", "0") == "1"
-    if not USE_PROCESS:
+def get_clients_with_preprocess(model_name, num_clients, use_process):
+    if not use_process:
         return [TritonWithPreprocess(model_name) for x in range(num_clients)]
     else:
         return [
