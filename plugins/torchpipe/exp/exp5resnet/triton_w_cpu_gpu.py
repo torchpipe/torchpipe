@@ -164,23 +164,34 @@ def run_cmd(cmd, gpu_id, pbar=None):
             print(f"\nRunning command for {i} clients:")
             print(" ".join(cmd_new))
 
-            result = subprocess.run(
-                cmd_new,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-                check=True,
-                env=env  # 传递环境变量
-            )
+            try:
+                result = subprocess.run(
+                    cmd_new,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                    check=True,
+                    env=env  # 传递环境变量
+                )
 
-            print(f"Result for {i} clients:")
-            print(result.stdout)
-            if result.stderr:
-                print("Errors:")
-                print(result.stderr)
+                print(f"Result for {i} clients:")
+                print(result.stdout)
+                if result.stderr:
+                    print("Errors:")
+                    print(result.stderr)
 
-            parsed_result = parse_result(result.stdout)
-            results.append(parsed_result)
+                parsed_result = parse_result(result.stdout)
+                results.append(parsed_result)
+
+            except subprocess.CalledProcessError as e:
+                print(f"Command failed with exit code {e.returncode}")
+                print(f"Command: {e.cmd}")
+                print(f"Stdout: {e.stdout}")
+                print(f"Stderr: {e.stderr}")
+                # 将错误信息添加到结果中，以便后续分析
+                results.append(f"ERROR: {e.stderr}")
+                # 继续执行下一个客户端数量
+                continue
 
             # 更新总体进度条
             if pbar:
