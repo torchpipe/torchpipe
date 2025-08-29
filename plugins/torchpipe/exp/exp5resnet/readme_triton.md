@@ -28,6 +28,10 @@ ln -s /usr/bin/python3 /usr/bin/python
 
 cd /workspace/plugins/torchpipe/exp
 export CUDA_VISIBLE_DEVICES=0
+
+ tritonserver --model-repository=./model_repository/resnet/ 
+cp resnet101_b5i1.trt ./model_repository/resnet/resnet_trt/1/model.plan
+
  tritonserver --model-repository=./model_repository/cpu_en 
 
 
