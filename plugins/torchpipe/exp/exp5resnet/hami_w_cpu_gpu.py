@@ -1,9 +1,8 @@
 import os
 import tempfile
 import pickle
-import subprocess  # 新增导入
+import subprocess
 import argparse
-from tqdm import tqdm  # 用于进度条
 
 parser = argparse.ArgumentParser()
 
@@ -33,8 +32,7 @@ def parse_result(result):
 def run_gpu_preprocess_cmd():
     files = []
     print("Running GPU preprocess commands...")
-    # 添加进度条
-    for i in tqdm(num_clients, desc="GPU Preprocess"):
+    for i in num_clients:
         total_number = 5000 if i == 1 else 20000
         cmd = [
             "python3",
@@ -52,24 +50,30 @@ def run_gpu_preprocess_cmd():
         print(f"\nRunning command for {i} clients:")
         print(" ".join(cmd))
 
-        result = subprocess.run(
-            cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            check=True
-        )
+        try:
+            result = subprocess.run(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                check=True
+            )
 
-        # 打印中间结果
-        print(f"Result for {i} clients:")
-        print(result.stdout)
-        if result.stderr:
-            print("Errors:")
-            print(result.stderr)
+            # 打印中间结果
+            print(f"Result for {i} clients:")
+            print(result.stdout)
+            if result.stderr:
+                print("Errors:")
+                print(result.stderr)
 
-        parsed_result = parse_result(result.stdout)
-        files.append(parsed_result)
-        print(f"Parsed result: {parsed_result}")
+            parsed_result = parse_result(result.stdout)
+            files.append(parsed_result)
+            print(f"Parsed result: {parsed_result}")
+        except subprocess.CalledProcessError as e:
+            print(f"Command failed with return code {e.returncode}")
+            print(f"Stdout: {e.stdout}")
+            print(f"Stderr: {e.stderr}")
+            raise  # 重新抛出异常，让外部处理
 
     return files
 
@@ -77,8 +81,7 @@ def run_gpu_preprocess_cmd():
 def run_cpu_preprocess_cmd():
     files = []
     print("Running CPU preprocess commands...")
-    # 添加进度条
-    for i in tqdm(num_clients, desc="CPU Preprocess"):
+    for i in num_clients:
         total_number = 5000 if i == 1 else 20000
         cmd = [
             "python3",
@@ -95,45 +98,9 @@ def run_cpu_preprocess_cmd():
         print(f"\nRunning command for {i} clients:")
         print(" ".join(cmd))
 
-        result = subprocess.run(
-            cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            check=True
-        )
-
-        # 打印中间结果
-        print(f"Result for {i} clients:")
-        print(result.stdout)
-        if result.stderr:
-            print("Errors:")
-            print(result.stderr)
-
-        parsed_result = parse_result(result.stdout)
-        files.append(parsed_result)
-        print(f"Parsed result: {parsed_result}")
-
-    return files
-
-
-def run_cmd(cmd):
-    def func():
-        results = []
-        base_cmd = cmd.strip().split()
-        print(f"Running custom command: {cmd}")
-        # 添加进度条
-        for i in tqdm(num_clients, desc="Custom Command"):
-            total_number = 5000 if i == 1 else 20000
-            cmd_new = base_cmd + [
-                "--total_number", str(total_number),
-                "--client", str(i),
-            ]
-            print(f"\nRunning command for {i} clients:")
-            print(" ".join(cmd_new))
-
+        try:
             result = subprocess.run(
-                cmd_new,
+                cmd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
@@ -148,8 +115,55 @@ def run_cmd(cmd):
                 print(result.stderr)
 
             parsed_result = parse_result(result.stdout)
-            results.append(parsed_result)
+            files.append(parsed_result)
             print(f"Parsed result: {parsed_result}")
+        except subprocess.CalledProcessError as e:
+            print(f"Command failed with return code {e.returncode}")
+            print(f"Stdout: {e.stdout}")
+            print(f"Stderr: {e.stderr}")
+            raise  # 重新抛出异常，让外部处理
+
+    return files
+
+
+def run_cmd(cmd):
+    def func():
+        results = []
+        base_cmd = cmd.strip().split()
+        print(f"Running custom command: {cmd}")
+        for i in num_clients:
+            total_number = 5000 if i == 1 else 20000
+            cmd_new = base_cmd + [
+                "--total_number", str(total_number),
+                "--client", str(i),
+            ]
+            print(f"\nRunning command for {i} clients:")
+            print(" ".join(cmd_new))
+
+            try:
+                result = subprocess.run(
+                    cmd_new,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                    check=True
+                )
+
+                # 打印中间结果
+                print(f"Result for {i} clients:")
+                print(result.stdout)
+                if result.stderr:
+                    print("Errors:")
+                    print(result.stderr)
+
+                parsed_result = parse_result(result.stdout)
+                results.append(parsed_result)
+                print(f"Parsed result: {parsed_result}")
+            except subprocess.CalledProcessError as e:
+                print(f"Command failed with return code {e.returncode}")
+                print(f"Stdout: {e.stdout}")
+                print(f"Stderr: {e.stderr}")
+                raise  # 重新抛出异常，让外部处理
 
         return results
 
@@ -166,8 +180,7 @@ if __name__ == "__main__":
     results = []
 
     print(f"Starting benchmark with {len(targets)} target(s)")
-    # 添加总体进度条
-    for func in tqdm(targets, desc="Overall Progress"):
+    for func in targets:
         print(f"\nStarting {func.__name__}...")
         result = func()
         results.append(result)
