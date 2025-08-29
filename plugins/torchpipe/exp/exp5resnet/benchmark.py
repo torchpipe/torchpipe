@@ -241,9 +241,9 @@ if __name__ == "__main__":
     }
 
     print("\n", result)
-    
-    from triton_utils import ProcessAdaptor
-    ProcessAdaptor.close_all(clients)
+    if len(clients) > 0:
+        from triton_utils import ProcessAdaptor
+        ProcessAdaptor.close_all(clients)
 
 
     # new_result = {keep[k]: v for k, v in result.items() if k in keep.keys()}
