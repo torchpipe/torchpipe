@@ -126,6 +126,7 @@ class ProcessAdaptor:
 
     def close(self):
         self.alive.set()
+        self.queue.put(None)
         self.instance.join()
 
     def __del__(self):
