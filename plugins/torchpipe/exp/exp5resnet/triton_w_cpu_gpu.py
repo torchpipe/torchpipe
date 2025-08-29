@@ -160,19 +160,19 @@ def run_cmd(cmd):
 
 
 TEST = {'triton_resnet_process':
-        {
+        [
             "--preprocess-instances", "8",
             "--max", "5",
             "--trt_instance_num", "2",
             "--timeout", "2",
-        },
+        ],
         'triton_resnet_thread':
-        {
+        [
             "--preprocess-instances", "8",
             "--max", "5",
             "--trt_instance_num", "2",
             "--timeout", "2",
-        }
+        ]
     }
 
 if __name__ == "__main__":
