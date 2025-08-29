@@ -240,6 +240,9 @@ if __name__ == "__main__":
     # print({args.client: new_result})
     # print("\n\n")
 
+    from test_tools import ProcessAdaptor
+
+    ProcessAdaptor.close_all(clients)
     if args.save:
         if args.save.endswith('.txt') or args.save.endswith('.log'):
             result_str = f'model:{args.model},'
