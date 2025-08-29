@@ -153,7 +153,7 @@ def run_cmd(cmd):
 
         return results
 
-    func.__name__ = cmd.strip().split(" ")[-1]
+    # func.__name__ = cmd.strip().split(" ")[-1]
     return func
 
 
