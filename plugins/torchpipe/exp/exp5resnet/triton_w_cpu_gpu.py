@@ -211,10 +211,10 @@ DEFAULT_PARAMS = [
 ]
 
 TEST = {
-    # 'triton_resnet_process': "tritonserver --model-repository=./model_repository/resnet/",
-    # 'triton_resnet_thread': "tritonserver --model-repository=./model_repository/resnet/",
-    'ensemble_dali_resnet_cpu': "tritonserver --model-repository=./model_repository/en_dalicpu/",
-    'ensemble_dali_resnet_gpu': "tritonserver --model-repository=./model_repository/en_daligpu/"
+    'triton_resnet_process': "tritonserver --model-repository=./model_repository/resnet/",
+    'triton_resnet_thread': "tritonserver --model-repository=./model_repository/resnet/",
+    # 'ensemble_dali_resnet_cpu': "tritonserver --model-repository=./model_repository/en_dalicpu/",
+    # 'ensemble_dali_resnet_gpu': "tritonserver --model-repository=./model_repository/en_daligpu/"
 }
 
 if __name__ == "__main__":
@@ -257,7 +257,7 @@ if __name__ == "__main__":
     with open(file, "w") as f:
         json.dump(final_json, f, indent=4)
 
-    print("final result saved in ", file)
+    print("\nfinal result saved in ", file)
     print("\nFinal Results Summary:")
     for key, value in final_json.items():
         print(f"{key}:")
