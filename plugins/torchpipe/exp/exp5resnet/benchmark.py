@@ -176,10 +176,11 @@ if __name__ == "__main__":
                 return
 
     clients = []
-    if "ensemble" in args.model or args.model == "triton_resnet_ensemble":
+    if "ensemble" in args.model :
+        assert 'dali' in args.model, "only dali ensemble is supported now"
         import triton_utils
 
-        clients = triton_utils.get_clients(args.model, args.client)
+        clients = triton_utils.get_clients('ensemble_dali_resnet', args.client)
         run = [x.forward for x in clients]
     elif args.model == "triton_resnet_thread":
         import triton_utils
