@@ -34,7 +34,6 @@ class TritonInfer:
         # print(len(img_np))
         try:
             inputs = [InferInput(self.input_name, img_np.shape, "UINT8")]
-            # outputs.append(tritongrpcclient.InferRequestedOutput(self.output_name))
 
             inputs[0].set_data_from_numpy(img_np)
 
@@ -44,7 +43,7 @@ class TritonInfer:
         except Exception as e:
             print(e)
         arr = triton_results.as_numpy(self.output_name)
-        # print(arr.shape)
+        return 0
         max_value = np.max(arr)
         max_index = np.argmax(arr)
         # print(max_index, max_value)

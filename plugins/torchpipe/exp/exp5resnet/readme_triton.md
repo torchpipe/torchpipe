@@ -29,24 +29,45 @@ ln -s /usr/bin/python3 /usr/bin/python
 cd /workspace/plugins/torchpipe/exp
 export CUDA_VISIBLE_DEVICES=0
 
+
+/usr/src/tensorrt/bin/trtexec --onnx=resnet101.onnx --saveEngine=./resnet101_bs5i1.trt  --minShapes=input:1x3x224x224 --optShapes=input:5x3x224x224 --maxShapes=input:5x3x224x224 --fp16
+
+cp resnet101_bs5i1.trt ./model_repository/resnet/resnet_trt/1/model.plan
+cp resnet101_bs5i1.trt ./model_repository/cpu_en/resnet_trt/1/model.plan
+
+
  tritonserver --model-repository=./model_repository/resnet/ 
-cp resnet101_b5i1.trt ./model_repository/resnet/resnet_trt/1/model.plan
+
+
 
 ### optional: pip config set global.index-url https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple
  pip install opencv-python-headless~=4.5 tritonclient[grpc]  psutil nvidia-ml-py
 
 
-python3 ./benchmark.py  --model triton_resnet_process  --total_number 10000  --client 20
+# python3 ./benchmark.py  --model triton_resnet_process  --total_number 10000  --client 20
+ python triton_w_cpu_gpu.py
 
-# to work directory
-
-root@yidun-ai-traingpu19:/workspace# 
-```
 
 ```
+
+
 - Triton Ensem. w/ PythonCPU
 ```bash
+export CUDA_VISIBLE_DEVICES=0
+ tritonserver --model-repository=./model_repository/cpu_en/  
 
+ python3 benchmark.py --model ensemble_py_resnet --total_number 20000 --client 20 
+```
+
+
+-Triton Ensem. w/ Dali-GPU
+ tritonserver --model-repository=./model_repository/en 
+
+python3 decouple_eval/benchmark.py --model ensemble_dali_resnet \
+ --total_number 20000 --client 20 
+
+
+ ------
 cd /workspace/plugins/torchpipe/exp
 export CUDA_VISIBLE_DEVICES=0
  tritonserver --model-repository=./model_repository/cpu_en 
