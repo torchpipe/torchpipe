@@ -218,7 +218,7 @@ TEST = {
 }
 
 if __name__ == "__main__":
-    file = 'exp_w_cpu_gpu_results.json'
+    file = 'triton_cpu_gpu_results.json'
 
     results = []
     final_json = {}

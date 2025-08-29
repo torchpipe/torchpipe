@@ -173,7 +173,7 @@ def run_cmd(cmd):
 
 if __name__ == "__main__":
 
-    file = 'exp_w_cpu_gpu_results.json'
+    file = 'hami_cpu_gpu_results.json'
     targets = [run_cpu_preprocess_cmd, run_gpu_preprocess_cmd]
     if args.cmd:
         targets = [run_cmd(args.cmd)]
