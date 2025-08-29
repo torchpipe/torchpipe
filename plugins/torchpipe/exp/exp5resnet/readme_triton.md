@@ -34,6 +34,8 @@ export CUDA_VISIBLE_DEVICES=0
 
 cp resnet101_bs5i1.trt ./model_repository/resnet/resnet_trt/1/model.plan
 cp resnet101_bs5i1.trt ./model_repository/cpu_en/resnet_trt/1/model.plan
+cp resnet101_bs5i1.trt ./model_repository/en_dalicpu/resnet_trt/1/model.plan
+cp resnet101_bs5i1.trt ./model_repository/en_daligpu/resnet_trt/1/model.plan
 
 
  tritonserver --model-repository=./model_repository/resnet/ 
@@ -63,8 +65,7 @@ export CUDA_VISIBLE_DEVICES=0
 -Triton Ensem. w/ Dali-GPU
  tritonserver --model-repository=./model_repository/en 
 
-python3 decouple_eval/benchmark.py --model ensemble_dali_resnet \
- --total_number 20000 --client 20 
+python3 ./benchmark.py --model ensemble_dali_resnet --total_number 20000 --client 20 
 
 
  ------
