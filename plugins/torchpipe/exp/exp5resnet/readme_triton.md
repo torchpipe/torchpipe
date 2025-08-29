@@ -17,7 +17,7 @@ cd torchpipe/ && git submodule update --init --recursive
 img_name=nvcr.io/nvidia/tritonserver:25.05-py3 # triton 2.58.0
 docker pull $img_name
 
-docker run --name=zsy_triton --runtime=nvidia --ipc=host --cpus=8 --network=host -v `pwd`:/workspace  --shm-size 1G  --ulimit memlock=-1 --ulimit stack=67108864  --privileged=true  -w/workspace -it $img_name /bin/bash
+docker run --name=exp_triton --runtime=nvidia --ipc=host --cpus=8 --network=host -v `pwd`:/workspace  --shm-size 1G  --ulimit memlock=-1 --ulimit stack=67108864  --privileged=true  -w/workspace -it $img_name /bin/bash
 
 # install timm
 # apt-get update && apt-get install -y cmake ninja-build
@@ -26,7 +26,11 @@ docker run --name=zsy_triton --runtime=nvidia --ipc=host --cpus=8 --network=host
 # pip install -r plugins/torchpipe/exp/requirements.txt
 ln -s /usr/bin/python3 /usr/bin/python
 
-# test cuda
+cd /workspace/plugins/torchpipe/exp
+export CUDA_VISIBLE_DEVICES=0
+ tritonserver --model-repository=./model_repository/cpu_en 
+
+
 
 # to work directory
 
