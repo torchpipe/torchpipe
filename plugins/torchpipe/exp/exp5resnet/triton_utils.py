@@ -123,10 +123,12 @@ class ProcessAdaptor:
                 continue
             self.target.forward(p)
             self.event.set()
+        print(f'ProcessAdaptor for {self.class_def} stopped.')
 
     def close(self):
         self.alive.set()
         self.queue.put(None)
+        print(f'ProcessAdaptor for {self.class_def} closing...')
         self.instance.join()
 
     def __del__(self):
