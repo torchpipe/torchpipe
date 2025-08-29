@@ -102,7 +102,7 @@ class ProcessAdaptor:
         def close_client(client):
             if hasattr(client, "close"):
                 client.close()
-                print("client closed")
+                # print("client closed")
 
         # Assuming clients is a list of your client objects
         with ThreadPoolExecutor() as executor:
