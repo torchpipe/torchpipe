@@ -32,6 +32,10 @@ export CUDA_VISIBLE_DEVICES=0
  tritonserver --model-repository=./model_repository/resnet/ 
 cp resnet101_b5i1.trt ./model_repository/resnet/resnet_trt/1/model.plan
 
+### optional: pip config set global.index-url https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple
+ pip install opencv-python-headless~=4.5 tritonclient[grpc] 
+
+USE_PROCESS=1 python3 ./benchmark.py  --model triton_resnet  --total_number 10000  --client 5
 
 # to work directory
 
