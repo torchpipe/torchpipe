@@ -213,8 +213,8 @@ DEFAULT_PARAMS = [
 TEST = {
     'triton_resnet_process': "tritonserver --model-repository=./model_repository/resnet/",
     'triton_resnet_thread': "tritonserver --model-repository=./model_repository/resnet/",
-    # 'ensemble_dali_resnet_cpu': "tritonserver --model-repository=./model_repository/en_dalicpu/",
-    # 'ensemble_dali_resnet_gpu': "tritonserver --model-repository=./model_repository/en_daligpu/"
+    'ensemble_dali_resnet_cpu': "tritonserver --model-repository=./model_repository/en_dalicpu/",
+    'ensemble_dali_resnet_gpu': "tritonserver --model-repository=./model_repository/en_daligpu/"
 }
 
 if __name__ == "__main__":
@@ -254,7 +254,7 @@ if __name__ == "__main__":
                 # 等待一段时间确保端口释放
                 time.sleep(2)
 
-    with open(file, "w") as f:
+    with open(file, "a") as f:
         json.dump(final_json, f, indent=4)
 
     print("\nfinal result saved in ", file)
