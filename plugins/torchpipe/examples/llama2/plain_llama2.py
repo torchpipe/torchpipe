@@ -11,7 +11,7 @@ from models import hf_helper
 
 max_num_req=64
 page_size=16
-g_num_layers = 2
+g_num_layers = 32
 
 def set_num_layers(num_layers):
     global g_num_layers 

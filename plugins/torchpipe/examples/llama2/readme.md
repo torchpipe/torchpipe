@@ -9,10 +9,11 @@ python models/export_onnx_v2.py --num_layers=32 # --model_id=./Llama-2-7b-chat-h
 ```
 
 ## run
-```
+```bash
 python -c "import torch; print(torch.__version__, torch.version.cuda)"
-pip install flashinfer-python -i https://flashinfer.ai/whl/cu128/torch2.7
-
+pip install flashinfer-python==0.2.3 # -i https://flashinfer.ai/whl/cu129/torch2.8
+# pip install flashinfer-python==0.2.3 --extra-index-url https://flashinfer.ai/whl 
+```
 
 python plain_llama2.py
 # num_layers = 2:
