@@ -96,33 +96,6 @@ python3 decouple_eval/benchmark.py --model ensemble_dali_resnet \
 
 
 
------------------为整理---------------
-
-
-- Hami w/ Pure-CPU
-```bash
-export  CUDA_VISIBLE_DEVICES=1
-python decouple_eval/benchmark.py  --model empty --preprocess cpu --preprocess-instances 8 --total_number 5000 --client 10 --timeout 0
-
-a108  /workspace/examples/exp 
-zsy_artifact  /workspace/plugins/torchpipe/exp     cpu 4566.77, 2.12 gpu 7429.29,,1.22
-zsy_artifactv2 /workspace/v0/examples/exp/   cpu 4552.31, 2.11 gpu 7420.67, 1.25
-python -c "import torchpipe; print (torchpipe.__version__)"
-
-```
-
- 
-
-
-## Triton Ensem. w/ PythonCPU
-```bash
-
-cd /workspace/plugins/torchpipe/exp
- tritonserver --model-repository=./model_repository/cpu_en 
-
-python3 decouple_eval/benchmark.py --model ensemble_py_resnet \
- --total_number 20000 --client 20 
-```
 
 
 https://github.com/NVIDIA/DALI/issues/4581   disable antialias

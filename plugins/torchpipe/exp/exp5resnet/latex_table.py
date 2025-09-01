@@ -88,9 +88,9 @@ try:
     latex_output.append("\\begin{tabular}{lcccccc}")
     latex_output.append("\\toprule")
     latex_output.append(
-        "& \\multicolumn{5}{c}{Request Concurrency \\( N \\)} & \\multirow{3}{*}{LoC\\tablefootnote{For a fair comparison, we excluded the impact of the computational backends, focusing primarily on measuring the differences in the scheduling syntax portion.}} \\\\")
+        "& \\multicolumn{5}{c}{Request Concurrency \\( N \\)} & \\multirow{3}{*}{LoC\\tablefootnote{Focus primarily on measuring the differences in the scheduling syntax portion.}} \\\\")
     latex_output.append("\\cmidrule(lr){2-6}")
-    latex_output.append("& 1 & 5 & 10 & \\textbf{20} & 30 \\\\")
+    latex_output.append("& 1 & 5 & \\textbf{10} & 20 & 30 \\\\")
     latex_output.append("\\midrule")
 
     # Triton Multi-Thread
@@ -112,11 +112,11 @@ try:
     latex_output.append("\\midrule")
 
     # Hami w/ CPU (在20并发处添加****)
-    row = f"Hami w/ CPU & {hami_cpu_qps[0]} & {hami_cpu_qps[1]} & {hami_cpu_qps[2]} & \\textbf{{{hami_cpu_qps[3]}}} (****) & {hami_cpu_qps[4]} & \\textbf{{{loc_df.loc['Hami w/ CPU', 'LoC']}}}\\\\"
+    row = f"Hami w/ CPU & {hami_cpu_qps[0]} & {hami_cpu_qps[1]} & \\textbf{{{hami_cpu_qps[2]}}} & {hami_cpu_qps[3]}  & {hami_cpu_qps[4]} & \\textbf{{{loc_df.loc['Hami w/ CPU', 'LoC']}}}\\\\"
     latex_output.append(row)
 
     # Hami w/ GPU (在20并发处添加****和脚注)
-    row = f"Hami w/ GPU & {hami_gpu_qps[0]}\\tablefootnote{{Improvement from Hami's adaptive timeout tuning.}} & {hami_gpu_qps[1]} & {hami_gpu_qps[2]} & \\textbf{{{hami_gpu_qps[3]}}} (****) & {hami_gpu_qps[4]} & \\textbf{{{loc_df.loc['Hami w/ GPU', 'LoC']}}}\\\\"
+    row = f"Hami w/ GPU & {hami_gpu_qps[0]}\\tablefootnote{{Improvement from Hami's adaptive timeout tuning.}} & {hami_gpu_qps[1]} & \\textbf{{{hami_gpu_qps[2]}}} & {hami_gpu_qps[3]}  & {hami_gpu_qps[4]} & \\textbf{{{loc_df.loc['Hami w/ GPU', 'LoC']}}}\\\\"
     latex_output.append(row)
 
     latex_output.append("\\bottomrule")
