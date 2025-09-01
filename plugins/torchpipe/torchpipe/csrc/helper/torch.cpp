@@ -807,7 +807,7 @@ void check_batched_inputs(
     const std::vector<torch::Tensor>& tensors,
     const std::vector<NetIOInfo>& infos) {
 
-  SPDLOG_DEBUG(print_tensor(tensors, "check_batched_inputs"));
+  // SPDLOG_DEBUG(print_tensor(tensors, "check_batched_inputs"));
   const auto num_inputs = tensors.size();
   HAMI_ASSERT(
       infos.size() == num_inputs,
