@@ -25,10 +25,16 @@ void CatTensor::impl_forward(const std::vector<dict>& input_dict) {
     cated_inputs.push_back(std::move(data));
   }
   auto total_bs = std::accumulate(req_size.begin(), req_size.end(), 0);
-  SPDLOG_DEBUG("batchsize = {} time = {}", total_bs, hami::helper::timestamp());
+  
 
   // row2col
   const size_t num_tensors = cated_inputs.front().size();
+  SPDLOG_DEBUG(
+      "batchsize = {} time = {} input_dict.size()={}, num_tensors={}",
+      total_bs,
+      hami::helper::timestamp(),
+      input_dict.size(),
+      num_tensors);
   // const size_t batch_size = cated_inputs.size();
   std::vector<std::vector<torch::Tensor>> nchws(num_tensors);
   for (size_t i = 0; i < cated_inputs.size(); ++i) {
