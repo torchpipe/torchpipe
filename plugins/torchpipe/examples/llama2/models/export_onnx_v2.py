@@ -229,7 +229,7 @@ def export_batchable(model,  out_dir = 'model_files/', use_index_select = True):
         # raise RuntimeError(out_tmp_path)
         if need_sim:
             assert 0 == subprocess.call(
-                ["onnxslim", out_tmp_path, out_path, '--save_as_external_data'])
+                ["onnxslim", out_tmp_path, out_path, '--save-as-external-data'])
 
             shutil.rmtree(out_tmp_dir)
         
