@@ -118,7 +118,7 @@ class PyPlugin:
                 self.decode_forward(q[PyPlugin.num_prefill_tok:], k[PyPlugin.num_prefill_tok:], v[PyPlugin.num_prefill_tok:],
                                     output[PyPlugin.num_prefill_tok:])
         except Exception as e:
-            hami.print(f"error {e}", flush=True)
+            hami.print(f"error {e}")
             raise e
     def decode_forward(self, q, k, v, output):
         if self.layer_idx == 0:
