@@ -778,7 +778,7 @@ void check_input_tensor(const torch::Tensor& tensor, const NetIOInfo& infos) {
   for (size_t i = 0; i < infos.min.nbDims; ++i) {
     HAMI_ASSERT(tensor.sizes()[i] >= infos.min.d[i], std::to_string(tensor.sizes()[i]) +
                                                         " vs " +
-                                                        std::to_string(infos.min.d[i])) + " at i="+std::to_string(i);
+                                                        std::to_string(infos.min.d[i]) + " at i="+std::to_string(i));
     HAMI_ASSERT(
         tensor.sizes()[i] <= infos.max.d[i],
         "tensor.sizes()[i] = " + std::to_string(tensor.sizes()[i]) +
