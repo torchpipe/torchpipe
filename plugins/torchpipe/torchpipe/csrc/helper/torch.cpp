@@ -806,6 +806,8 @@ void check_input_tensor(const torch::Tensor& tensor, const NetIOInfo& infos) {
 void check_batched_inputs(
     const std::vector<torch::Tensor>& tensors,
     const std::vector<NetIOInfo>& infos) {
+
+  print_tensor(tensors, "check_batched_inputs");
   const auto num_inputs = tensors.size();
   HAMI_ASSERT(
       infos.size() == num_inputs,
