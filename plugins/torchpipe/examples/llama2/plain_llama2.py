@@ -205,7 +205,7 @@ class PyPlugin:
             kv_last_page_len
         )
         
-def main(num_layers = 2):
+def main(num_layers = 32):
     set_num_layers(num_layers)
     
     set_page_table()

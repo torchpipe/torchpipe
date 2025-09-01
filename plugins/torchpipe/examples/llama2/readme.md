@@ -15,7 +15,11 @@ pip install flashinfer-python==0.2.3 # -i https://flashinfer.ai/whl/cu129/torch2
 # pip install flashinfer-python==0.2.3 --extra-index-url https://flashinfer.ai/whl 
 ```
 
-python plain_llama2.py
+rm -rf /opt/hpcx/ncclnet_plugin
+
+export CUDA_VISIBLE_DEVICES=1
+
+python plain_llama2.py --num_layers=32
 # num_layers = 2:
 # San Francisco is a totalitéaletoreignersbyMSран 
 ```
