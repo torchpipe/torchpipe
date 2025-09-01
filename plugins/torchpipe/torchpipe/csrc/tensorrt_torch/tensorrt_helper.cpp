@@ -656,7 +656,7 @@ std::unique_ptr<nvinfer1::IHostMemory> onnx2trt(OnnxParams& params) {
   auto b_parsed = parser->parseFromFile(
       params.model.c_str(),
       static_cast<int>(trt_get_log_level(params.log_level)));
-  HAMI_ASSERT(b_parsed);
+  HAMI_ASSERT(b_parsed, "parsed failed for " + params.model);
   // todo max workspace size for setMemoryPoolLimit
 
   // todo ampere_plus
