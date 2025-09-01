@@ -7,3 +7,4 @@ exported_params/*
 **/*.json
 app.log
 .tmp/
+Llama-2-7b-chat-hf
