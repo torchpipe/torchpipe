@@ -218,7 +218,7 @@ def export_batchable(model,  out_dir = 'model_files/', use_index_select = True):
         torch.onnx.export(hf_helper.EmbedsAsInputWrapper(model),
                         args=(inputs_embeds, index_select),
                         f=out_tmp_path,
-                        opset_version=17,
+                        opset_version=18,
                         input_names=input_names,
                         output_names=['logits'],
                         dynamic_axes=dynamic_axes,

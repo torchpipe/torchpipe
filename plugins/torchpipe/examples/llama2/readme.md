@@ -3,9 +3,8 @@
 # python models/hf_helper.py 
 
 # export HF_ENDPOINT=https://hf-mirror.com
-python models/export_onnx_v2.py --num_layers=2 # --model_id=/benchmark/Llama-2-7b-chat-hf/
-## or: 
-python models/export_onnx_v2.py --num_layers=32 --model_id=/benchmark/Llama-2-7b-chat-hf/
+pip install -r requirements.txt 
+python models/export_onnx_v2.py --num_layers=32 # --model_id=./Llama-2-7b-chat-hf/
 
 ```
 

@@ -17,7 +17,9 @@ assume we put it in ./Llama-2-7b-chat-hf/
 
 
 ### start vllm server
-CUDA_VISIBLE_DEVICES=1 python3 -m vllm.entrypoints.openai.api_server -tp 1 -pp 1 --gpu-memory-utilization 0.93         --model ./Llama-2-7b-chat-hf/ --port 8000 --disable-log-stats --disable-log-requests 
+```bash
+CUDA_VISIBLE_DEVICES=1 python3 -m vllm.entrypoints.openai.api_server -tp 1 -pp 1 --gpu-memory-utilization 0.93       --port 8000 --disable-log-stats --disable-log-requests   --model meta-llama/Llama-2-7b-chat-hf # --model ./Llama-2-7b-chat-hf/
+```
 
 ### test
 ```bash
@@ -30,3 +32,11 @@ git clone -b v0.8.4 https://github.com/vllm-project/vllm.git
 
   python3 vllm/benchmark_serving.py         --backend vllm         --model ./Llama-2-7b-chat-hf/         --dataset-name sharegpt         --dataset-path ./ShareGPT_V3_unfiltered_cleaned_split.json         --num-prompts 500         --port 8000         --save-result         --result-dir results/         --result-filename vllm_llama7B_tp1_qps_2.json         --request-rate 2
   ```
+
+
+## hami
+```
+docker exec -it exp_hami bash
+
+```
+see [llama2 exampels](../../examples/llama2/readme.md)

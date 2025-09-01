@@ -2,6 +2,7 @@ from transformers import AutoTokenizer, AutoModelForCausalLM, AutoConfig
 import torch
 import fire,types
 from typing import Optional, Tuple, Callable
+import os
 def _modify_attention_v0(attention: torch.nn.Module):
     from transformers.models.llama.modeling_llama import apply_rotary_pos_emb, repeat_kv
     import flashinfer
@@ -519,11 +520,13 @@ def get_hf_model(model_id='meta-llama/Llama-2-7b-chat-hf', device='cuda', num_la
     else:
         num_layers = num_layers or config.num_hidden_layers
 
+    hf_token = os.getenv("HF_TOKEN", None)
     # Load model with layer truncation
     model = AutoModelForCausalLM.from_pretrained(
         model_id,
         torch_dtype=torch.float16,
         attn_implementation='eager',
+        token=hf_token,
     )
     
     if use_flashinfer:
