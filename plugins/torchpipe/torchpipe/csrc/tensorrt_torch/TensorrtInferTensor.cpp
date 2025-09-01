@@ -60,15 +60,16 @@ void TensorrtInferTensor::impl_init(
 
   std::ostringstream oss;
   oss << "TensorrtInferTensor instance_index=" << instance_index_
-      << " instance_num=" << instance_num_ << "\n";
+      << " instance_num=" << instance_num_ << ":\n";
    for (size_t i = 0; i < info_.first.size(); ++i) {
-     oss << "input[" << i << "] " << info_.first[i].min.nbDims << "\n";
+     oss << "input[" << i << "] " << info_.first[i].min.nbDims << " dims: ";
      for (size_t j = 0; j < info_.first[i].min.nbDims; ++j) {
         oss << info_.first[i].min.d[j] << ",";
       }
+      oss << "\n";
    }
 
-    SPDLOG_INFO(oss.str());
+    SPDLOG_DEBUG(oss.str());
   
 
   (*kwargs)[TASK_IO_INFO_KEY] = std::make_shared<NetIOInfos>(info_);
