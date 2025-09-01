@@ -143,7 +143,7 @@ void EmbeddingTensor::impl_forward(const std::vector<dict>& ios) {
 HAMI_REGISTER_BACKEND(EmbeddingTensor);
 
 class SetTensorRequestSize : public hami::Backend {
-  void forward(const std::vector<dict>& ios) override {
+  void impl_forward(const std::vector<dict>& ios) override {
     for (const auto& io : ios){
       auto data = dict_gets<torch::Tensor>(io, TASK_DATA_KEY);
 
