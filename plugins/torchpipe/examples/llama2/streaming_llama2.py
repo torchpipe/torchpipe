@@ -292,7 +292,7 @@ class CustomBackendEngine(BackendEngine):
             
 
 def main(num_layers = 2, max_num_page = 0, use_trt=False):
-    hami.init("DebugTensor")
+    hami.init("DebugLogger")
     os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
     
     if use_trt:
