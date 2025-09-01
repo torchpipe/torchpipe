@@ -776,9 +776,15 @@ void check_input_tensor(const torch::Tensor& tensor, const NetIOInfo& infos) {
   }
 
   for (size_t i = 0; i < infos.min.nbDims; ++i) {
-    HAMI_ASSERT(tensor.sizes()[i] >= infos.min.d[i], std::to_string(tensor.sizes()[i]) +
-                                                        " vs " +
-                                                        std::to_string(infos.min.d[i]) + " at i="+std::to_string(i));
+    if (tensor.sizes()[i] < infos.min.d[i]){
+      std::ostringstream oss;
+      oss << "Input tensor shape does not match the min shape required by the model. "
+          << "tensor.sizes() = " << tensor.sizes()
+          << ", infos.min.d[" << i << "] = " << infos.min.d[i] << "\n";
+      HAMI_ASSERT(false, oss.str());
+    }
+      
+    
     HAMI_ASSERT(
         tensor.sizes()[i] <= infos.max.d[i],
         "tensor.sizes()[i] = " + std::to_string(tensor.sizes()[i]) +
@@ -796,6 +802,7 @@ void check_input_tensor(const torch::Tensor& tensor, const NetIOInfo& infos) {
     HAMI_ASSERT(tensor.is_contiguous());
   }
 }
+
 void check_batched_inputs(
     const std::vector<torch::Tensor>& tensors,
     const std::vector<NetIOInfo>& infos) {
