@@ -67,7 +67,7 @@ void CatTensor::impl_forward(const std::vector<dict>& input_dict) {
     const auto opt =
         torch::TensorOptions().dtype(torch::kLong).device(torch::kCUDA);
     result.push_back(torch::tensor(output_values, opt));
-    std::ostreamstream oss;
+    std::ostringstream oss;
     for (size_t i = 0; i < result.size(); ++i) {
       oss << "i="<< i<<": [";
       oss << result[i].sizes() << "]";
