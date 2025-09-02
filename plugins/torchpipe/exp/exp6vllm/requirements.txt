@@ -1,0 +1,12 @@
+transformers>=4.49.0,<=4.50.0
+shortuuid
+fire
+fastapi
+uvicorn
+aiohttp
+onnx	
+onnxruntime
+onnxslim<=0.1.61
+onnx_graphsurgeon
+onnxslim
+flashinfer-python==0.2.3

@@ -61,6 +61,53 @@ docker run --name=exp_vllmclient --runtime=nvidia -e LC_ALL=C -e LANG=C  --ipc=h
 
 ```
   python3 vllm/benchmarks/benchmark_serving.py         --backend vllm         --model ./Llama-2-7b-chat-hf/         --dataset-name sharegpt         --dataset-path ./ShareGPT_V3_unfiltered_cleaned_split.json         --num-prompts 500         --port 8000         --save-result         --result-dir results/         --result-filename vllm_llama7B_tp1_qps_2.json         --request-rate 2
+
+    python3 vllm/benchmarks/benchmark_serving.py         --backend vllm         --model Llama-2-7b-chat-hf/         --dataset-name sharegpt         --dataset-path ./ShareGPT_V3_unfiltered_cleaned_split.json         --num-prompts 500         --port 8001         --save-result         --result-dir results/         --result-filename vllm_llama7B_tp1_qps_3.json         --request-rate 3
+
+============ Serving Benchmark Result ============(hami)
+Successful requests:                     500
+Benchmark duration (s):                  200.87
+Total input tokens:                      117316
+Total generated tokens:                  106916
+Request throughput (req/s):              2.49
+Output token throughput (tok/s):         532.26
+Total Token throughput (tok/s):          1116.29
+---------------Time to First Token----------------
+Mean TTFT (ms):                          3837.13
+Median TTFT (ms):                        288.95
+P99 TTFT (ms):                           15387.35
+-----Time per Output Token (excl. 1st token)------
+Mean TPOT (ms):                          61.48
+Median TPOT (ms):                        59.60
+P99 TPOT (ms):                           96.72
+---------------Inter-token Latency----------------
+Mean ITL (ms):                           62.58
+Median ITL (ms):                         52.15
+P99 ITL (ms):                            229.63
+==================================================
+
+============ Serving Benchmark Result ============(vllm)
+Successful requests:                     500
+Benchmark duration (s):                  199.30
+Total input tokens:                      117316
+Total generated tokens:                  105881
+Request throughput (req/s):              2.51
+Output token throughput (tok/s):         531.26
+Total Token throughput (tok/s):          1119.89
+---------------Time to First Token----------------
+Mean TTFT (ms):                          3401.63
+Median TTFT (ms):                        549.08
+P99 TTFT (ms):                           13102.46
+-----Time per Output Token (excl. 1st token)------
+Mean TPOT (ms):                          59.21
+Median TPOT (ms):                        56.52
+P99 TPOT (ms):                           120.54
+---------------Inter-token Latency----------------
+Mean ITL (ms):                           56.16
+Median ITL (ms):                         50.47
+P99 ITL (ms):                            218.51
+==================================================
+
   ```
 
 test on ShareGPT dataset, qps=2, requests=500, llama2-7b, A10-24G
