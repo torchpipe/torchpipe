@@ -45,10 +45,15 @@ pip install -r requirements.txt
 python3 ../../examples/llama2/models/export_onnx_v2.py --num_layers 32 --model_id meta-llama/Llama-2-7b-chat-hf # # --model_id  path_to/Llama-2-7b-chat-hf/
 
 ls -alh exported_params/
+
+# onnx2tensorrt
+rm -rf /opt/hpcx/ncclnet_plugin && ldconfig
+python ../../examples/llama2/plain_llama2.py --num_layers=32
 ```
  
  ## start hami server
 ```bash
+
 # for A10-24G
 python ../../examples/llama2/streaming_llama2.py --num_layers=32 --port=8000 --max_num_page=1024 
 
