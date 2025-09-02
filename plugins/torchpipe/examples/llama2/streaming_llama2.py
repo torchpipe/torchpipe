@@ -229,7 +229,7 @@ class CustomBackendEngine(BackendEngine):
                 seq.finish_reason = "stop"
                 output.finished = True
                 seq.text = ""
-                print("STOP TOKEN ID: \n", data_item)
+                print(f"{request_id} - STOP TOKEN ID {data_item} \n")
             elif "finish_reason" in io:
                 finish_reason = io["finish_reason"]
                 if finish_reason == "length":
