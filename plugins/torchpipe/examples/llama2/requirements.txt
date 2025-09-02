@@ -9,3 +9,4 @@ onnxruntime
 onnxslim<=0.1.61
 onnx_graphsurgeon
 onnxslim
+flashinfer-python==0.2.3

@@ -625,14 +625,15 @@ void fix_tensor_shape(
   // bool in_error = false;
   std::string err_msg;
   if (sizes.size() == min.nbDims) {
-    for (size_t i = 0; i < sizes.size(); ++i) {
-      if (sizes[i] < min.d[i] || sizes[i] > max.d[i]) {
-        // in_error = true;
-        err_msg = std::to_string(sizes[i]) + " is not in range [" +
-            std::to_string(min.d[i]) + ", " + std::to_string(max.d[i]) +
-            "]. index=" + std::to_string(i);
-        break;
-      }
+    // todo: after cat
+    // for (size_t i = 0; i < sizes.size(); ++i) {
+    //   if (sizes[i] < min.d[i] || sizes[i] > max.d[i]) {
+    //     // in_error = true;
+    //     err_msg = std::to_string(sizes[i]) + " is not in range [" +
+    //         std::to_string(min.d[i]) + ", " + std::to_string(max.d[i]) +
+    //         "]. index=" + std::to_string(i);
+    //     break;
+    //   }
     }
   } else if (sizes.size() + 1 == min.nbDims) {
     if ((sizes[0] >= min.d[1] && sizes[0] <= max.d[1]) &&

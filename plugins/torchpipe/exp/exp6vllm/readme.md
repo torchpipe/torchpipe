@@ -31,6 +31,7 @@ git clone -b v0.8.4 https://github.com/vllm-project/vllm.git
 
 #  pip install datasets vllm==0.8.4
 
+
   python3 vllm/benchmarks/benchmark_serving.py         --backend vllm         --model ./Llama-2-7b-chat-hf/         --dataset-name sharegpt         --dataset-path ./ShareGPT_V3_unfiltered_cleaned_split.json         --num-prompts 500         --port 8000         --save-result         --result-dir results/         --result-filename vllm_llama7B_tp1_qps_2.json         --request-rate 2
 ```
 
@@ -52,6 +53,7 @@ pip uninstall hami-core -y && pip install dist/*.whl
 #### install torchpipe
 cd plugins/torchpipe/
 rm -rf dist/*.whl
+
 python setup.py bdist_wheel
 pip install dist/torchpipe-0.10.1a0-cp312-cp312-linux_x86_64.whl
 
