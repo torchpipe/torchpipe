@@ -634,7 +634,7 @@ void fix_tensor_shape(
     //         "]. index=" + std::to_string(i);
     //     break;
     //   }
-    }
+    // }
   } else if (sizes.size() + 1 == min.nbDims) {
     if ((sizes[0] >= min.d[1] && sizes[0] <= max.d[1]) &&
         sizes[1] >= min.d[2] && sizes[1] <= max.d[2] && sizes[2] >= min.d[3] &&
