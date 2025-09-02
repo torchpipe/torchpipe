@@ -11,6 +11,8 @@ import torch
 from tokenizers.decoders import ByteFallback, DecodeStream
 import tokenizers
 
+CURRENT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '.'))
+
 @dataclass
 class RequestState:
     # 没有默认值的字段必须放在前面
@@ -66,7 +68,8 @@ class CustomBackendEngine(BackendEngine):
         # self.eos_token_id = self.tokenizer.get_vocab()["</s>"]
 
         # import pdb; pdb.set_trace()
-        self.model = hami.init_from_file('config/streaming_llama2.toml')
+        config = os.path.join(os.path.dirname(__file__), 'config/streaming_llama2.toml')
+        self.model = hami.init_from_file(config)
         self.request_status = {}
         
         self.continuous_batching  = hami.get("node.continuous_batching")

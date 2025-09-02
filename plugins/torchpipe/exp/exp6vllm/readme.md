@@ -30,7 +30,7 @@ rm -rf /opt/hpcx/ncclnet_plugin && ldconfig
 CUDA_VISIBLE_DEVICES=1 python3 -m vllm.entrypoints.openai.api_server -tp 1 -pp 1 --gpu-memory-utilization 0.93       --port 8001 --disable-log-stats --disable-log-requests   --model meta-llama/Llama-2-7b-chat-hf # --model Llama-2-7b-chat-hf/
 ```
 
-## start hami server
+## export onnx for hami
 
 ```bash
 docker exec -it exp_hami bash
@@ -44,8 +44,15 @@ cd /workspace/plugins/torchpipe/exp/exp6vllm/
 pip install -r requirements.txt 
 python3 ../../examples/llama2/models/export_onnx_v2.py --num_layers 32 --model_id meta-llama/Llama-2-7b-chat-hf # # --model_id  path_to/Llama-2-7b-chat-hf/
 
+ls -alh exported_params/
 ```
  
+ ## start hami server
+```bash
+# for A10-24G
+python ../../examples/llama2/streaming_llama2.py --num_layers=32 --max_num_page=1024 
+
+```
 
 ## hami
 - start hami server
