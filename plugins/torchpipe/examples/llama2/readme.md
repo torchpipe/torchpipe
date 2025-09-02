@@ -13,7 +13,7 @@ python models/export_onnx_v2.py --num_layers=32 # --model_id=./Llama-2-7b-chat-h
 python -c "import torch; print(torch.__version__, torch.version.cuda)"
 pip install flashinfer-python==0.2.3 # -i https://flashinfer.ai/whl/cu129/torch2.8
 # pip install flashinfer-python==0.2.3 --extra-index-url https://flashinfer.ai/whl 
-```
+ 
 
 rm -rf /opt/hpcx/ncclnet_plugin
 
@@ -25,7 +25,7 @@ python plain_llama2.py --num_layers=32
 ```
 
 ## streaming
-```
+```bash
 python streaming_llama2.py --num_layers=32
 
 python chat_client.py --prompt="San Francisco is a" --max_tokens 7
@@ -36,6 +36,17 @@ python chat_client.py --prompt="Do you know the book Traction by Gino Wickman?" 
 
 ```
 ## Benchmark
+```bash
+ pip install datasets vllm==0.8.4
+git clone -b v0.8.4 https://github.com/vllm-project/vllm.git
+
+ pip install datasets vllm==0.8.4
+
+python chat_client.py --prompt="Do you know the book Traction by Gino Wickman? generate anwser >= 2000 wordsDo you know the book Traction by Gino Wickman? generate anwser >= 2000 wordsDo you know the book Traction by Gino Wickman? generate anwser >= 2000 wordsDo you know the book Traction by Gino Wickman? generate anwser >= 2000 wordsDo you know the book Traction by Gino Wickman? generate anwser >= 2000 wordsDo you know the book Traction by Gino Wickman? generate anwser >= 2000 wordsDo you know the book Traction by Gino Wickman? generate anwser >= 2000 wordsDo you know the book Traction by Gino Wickman? generate anwser >= 2000 wordsDo you know the book Traction by Gino Wickman? generate anwser >= 2000 wordsDo you know the book Traction by Gino Wickman? generate anwser >= 2000 wordsDo you know the book Traction by Gino Wickman? generate anwser >= 2000 words" --max_tokens 2048 
+
+
+  python3 vllm/benchmarks/benchmark_serving.py         --backend vllm         --model ./Llama-2-7b-chat-hf/         --dataset-name sharegpt         --dataset-path ./ShareGPT_V3_unfiltered_cleaned_split.json         --num-prompts 500         --port 8000         --save-result         --result-dir results/         --result-filename vllm_llama7B_tp1_qps_2.json         --request-rate 2
+  ```
 
 test on ShareGPT dataset, qps=2, requests=500, llama2-7b, A10-24G
 
