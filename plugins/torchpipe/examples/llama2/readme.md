@@ -26,7 +26,7 @@ python plain_llama2.py --num_layers=32
 
 ## streaming
 ```bash
-python streaming_llama2.py --num_layers=32
+python streaming_llama2.py --num_layers=32 --max_num_page=1024
 
 python chat_client.py --prompt="San Francisco is a" --max_tokens 7
 
@@ -42,7 +42,7 @@ git clone -b v0.8.4 https://github.com/vllm-project/vllm.git
 
  pip install datasets vllm==0.8.4
 
-python chat_client.py --prompt="Do you know the book Traction by Gino Wickman? generate anwser >= 2000 wordsDo you know the book Traction by Gino Wickman? generate anwser >= 2000 wordsDo you know the book Traction by Gino Wickman?" --max_tokens 65 
+python3 chat_client.py --prompt="Do you know the book Traction by Gino Wickman? generate anwser >= 2000 wordsDo you know the book Traction by Gino Wickman? generate anwser >= 2000 wordsDo you know the book Traction by Gino Wickman?" --max_tokens 65 
 
 
  img_name=nvcr.io/nvidia/tritonserver:25.05-vllm-python-py3 # triton 2.58.0
