@@ -4,8 +4,8 @@ fire
 fastapi
 uvicorn
 aiohttp
-onnx	
-onnxruntime
+onnx==1.17.0	
+onnxruntime==1.19.2
 onnxslim<=0.1.61
 onnx_graphsurgeon
 onnxslim

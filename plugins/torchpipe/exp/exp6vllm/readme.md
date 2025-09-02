@@ -25,14 +25,25 @@ docker run --name=exp_vllmclient --runtime=nvidia -e LC_ALL=C -e LANG=C  --ipc=h
 ```bash
 docker exec -it exp_vllm bash
 
+rm -rf /opt/hpcx/ncclnet_plugin && ldconfig
+
 CUDA_VISIBLE_DEVICES=1 python3 -m vllm.entrypoints.openai.api_server -tp 1 -pp 1 --gpu-memory-utilization 0.93       --port 8001 --disable-log-stats --disable-log-requests   --model meta-llama/Llama-2-7b-chat-hf # --model Llama-2-7b-chat-hf/
 ```
+
 ## start hami server
 
 ```bash
 docker exec -it exp_hami bash
-cd plugins/torchpipe/exp/exp6vllm/
-CUDA_VISIBLE_DEVICES=1 python3 -m vllm.entrypoints.openai.api_server -tp 1 -pp 1 --gpu-memory-utilization 0.93       --port 8001 --disable-log-stats --disable-log-requests   --model meta-llama/Llama-2-7b-chat-hf # --model Llama-2-7b-chat-hf/
+rm -rf dist/*.whl && python setup.py bdist_wheel && pip install dist/*.whl
+cd plugins/torchpipe/ && rm -rf dist/*.whl && python setup.py bdist_wheel && pip install dist/*.whl
+
+cd /workspace/plugins/torchpipe/exp/exp6vllm/
+
+# pip config set global.index-url https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple
+
+pip install -r requirements.txt 
+python3 ../../examples/llama2/models/export_onnx_v2.py --num_layers 32 --model_id meta-llama/Llama-2-7b-chat-hf # # --model_id  path_to/Llama-2-7b-chat-hf/
+
 ```
  
 
