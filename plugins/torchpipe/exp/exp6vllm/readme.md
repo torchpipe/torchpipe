@@ -25,7 +25,7 @@ docker run --name=exp_vllmclient --runtime=nvidia -e LC_ALL=C -e LANG=C  --ipc=h
 docker exec -it exp_vllm bash
 rm -rf /opt/hpcx/ncclnet_plugin && ldconfig
 
-CUDA_VISIBLE_DEVICES=1 python3 -m vllm.entrypoints.openai.api_server -tp 1 -pp 1 --gpu-memory-utilization 0.93       --port 8001 --disable-log-stats --disable-log-requests   --model meta-llama/Llama-2-7b-chat-hf # --model Llama-2-7b-chat-hf/
+CUDA_VISIBLE_DEVICES=1 python3 -m vllm.entrypoints.openai.api_server -tp 1 -pp 1 --gpu-memory-utilization 0.93       --port 8001 --disable-log-stats --disable-log-requests --served-model-name llama2  --model meta-llama/Llama-2-7b-chat-hf # --model Llama-2-7b-chat-hf/
 ```
 
 ## export onnx for hami
@@ -58,13 +58,33 @@ python ../../examples/llama2/streaming_llama2.py --num_layers=32 --port=8000 --m
 
 ```
 
-## hami
-- start hami server
-```bash
-### optional: pip config set global.index-url https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple
-pip install pandas datasets
-```
 
+## clients
+```bash
+docker exec -it exp_vllmclient bash
+rm -rf /opt/hpcx/ncclnet_plugin && ldconfig
+
+# pip config set global.index-url https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple
+
+pip install pandas datasets
+
+mkdir results
+
+export MODEL_ID=meta-llama/Llama-2-7b-chat-hf
+# or export MODEL_ID=path_to/Llama-2-7b-chat-hf
+wget https://huggingface.co/datasets/anon8231489123/ShareGPT_Vicuna_unfiltered/resolve/main/ShareGPT_V3_unfiltered_cleaned_split.json
+
+python3 benchmarks/benchmark_serving.py         --backend vllm         --model $MODEL_ID         --dataset-name sharegpt         --dataset-path ./ShareGPT_V3_unfiltered_cleaned_split.json         --num-prompts 500         --port 8000         --save-result         --result-dir results/         --result-filename hami_llama7B_tp1_qps_2.json         --request-rate 2
+
+python3 benchmarks/benchmark_serving.py         --backend vllm         --model $MODEL_ID         --dataset-name sharegpt         --dataset-path ./ShareGPT_V3_unfiltered_cleaned_split.json         --num-prompts 500         --port 8000         --save-result         --result-dir results/         --result-filename hami_llama7B_tp1_qps_3.json         --request-rate 3
+
+python3 benchmarks/benchmark_serving.py         --backend vllm         --model $MODEL_ID         --dataset-name sharegpt         --dataset-path ./ShareGPT_V3_unfiltered_cleaned_split.json         --num-prompts 500         --port 8001         --save-result         --result-dir results/         --result-filename vllm_llama7B_tp1_qps_2.json         --request-rate 2 --served-model-name llama2 
+
+python3 benchmarks/benchmark_serving.py         --backend vllm         --model $MODEL_ID         --dataset-name sharegpt         --dataset-path ./ShareGPT_V3_unfiltered_cleaned_split.json         --num-prompts 500         --port 8001         --save-result         --result-dir results/         --result-filename vllm_llama7B_tp1_qps_3.json         --request-rate 3 --served-model-name llama2 
+
+
+```
+ 
 
 
 
