@@ -211,7 +211,9 @@ def main(num_layers = 32):
     set_page_table()
     hami.register("TorchPlugin", PyPlugin)
     
-    model = hami.init_from_file('config/plain_llama2.toml')
+    config = os.path.join(os.path.dirname(__file__),
+                          'config/plain_llama2.toml')
+    model = hami.init_from_file(config)
     hami.init("DebugLogger")
     
     exported_params = "./exported_params"
