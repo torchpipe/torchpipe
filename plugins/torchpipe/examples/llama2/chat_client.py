@@ -65,7 +65,7 @@ async def main(prompt="San Francisco is a", port = 8000, max_tokens=7):
         'Content-Type': 'application/json'
     }
     data = {
-        "model": "../Llama-2-7b-chat-hf/",
+        "model": "./Llama-2-7b-chat-hf/",
         "prompt": prompt,
         # "priority": "default",
         "n": 1,
