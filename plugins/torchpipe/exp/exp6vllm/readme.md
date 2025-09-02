@@ -50,7 +50,7 @@ ls -alh exported_params/
  ## start hami server
 ```bash
 # for A10-24G
-python ../../examples/llama2/streaming_llama2.py --num_layers=32 --max_num_page=1024 
+python ../../examples/llama2/streaming_llama2.py --num_layers=32 --max_num_page=1024 --port=8000
 
 ```
 
