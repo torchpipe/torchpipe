@@ -107,6 +107,7 @@ class AsyncEngine:
         output_stream = OutputAsyncStream()
 
         def callback(output: RequestOutput) -> bool:
+            # print(f'output = {output}')
             output.prompt = prompt
             return output_stream.put(output)
 
@@ -132,7 +133,7 @@ class AsyncEngine:
 
         def callback(output: RequestOutput) -> bool:
             # output.prompt = prompt
-            print(f'output = {output}')
+            # print(f'output = {output}')
             return output_stream.put(output)
 
         # use default sampling parameters if not provided
