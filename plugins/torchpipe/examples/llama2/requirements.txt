@@ -6,6 +6,6 @@ uvicorn
 aiohttp
 onnx	
 onnxruntime
-onnxsim<=0.1.61
+onnxslim<=0.1.61
 onnx_graphsurgeon
 onnxslim
