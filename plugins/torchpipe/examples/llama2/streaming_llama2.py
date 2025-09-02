@@ -323,7 +323,7 @@ def main(num_layers = 2, max_num_page = 0, port=8000, use_trt=False):
         "--model_id", "my_model",
         "--model", "llama2",
         "--host", "0.0.0.0",
-        "--port", port,
+        "--port", f'{port}',
         "--log_level", "info",
     ]
     from torchpipe.serve.openai.openai_server_api import main as server_main

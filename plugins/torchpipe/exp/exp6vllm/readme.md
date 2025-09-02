@@ -3,7 +3,6 @@
 ```bash
 
 # server
-
 img_name=nvcr.io/nvidia/tritonserver:25.05-vllm-python-py3 
 docker run --name=exp_vllm --runtime=nvidia -e LC_ALL=C -e LANG=C  --ipc=host --cpus=8 --network=host -v `pwd`:/workspace  --shm-size 1G  --ulimit memlock=-1 --ulimit stack=67108864  --privileged=true  -w/workspace -itd $img_name /bin/bash
 
@@ -24,7 +23,6 @@ docker run --name=exp_vllmclient --runtime=nvidia -e LC_ALL=C -e LANG=C  --ipc=h
 ## start vllm server
 ```bash
 docker exec -it exp_vllm bash
-
 rm -rf /opt/hpcx/ncclnet_plugin && ldconfig
 
 CUDA_VISIBLE_DEVICES=1 python3 -m vllm.entrypoints.openai.api_server -tp 1 -pp 1 --gpu-memory-utilization 0.93       --port 8001 --disable-log-stats --disable-log-requests   --model meta-llama/Llama-2-7b-chat-hf # --model Llama-2-7b-chat-hf/
@@ -34,6 +32,8 @@ CUDA_VISIBLE_DEVICES=1 python3 -m vllm.entrypoints.openai.api_server -tp 1 -pp 1
 
 ```bash
 docker exec -it exp_hami bash
+rm -rf /opt/hpcx/ncclnet_plugin && ldconfig
+
 rm -rf dist/*.whl && python setup.py bdist_wheel && pip install dist/*.whl
 cd plugins/torchpipe/ && rm -rf dist/*.whl && python setup.py bdist_wheel && pip install dist/*.whl
 
@@ -47,7 +47,6 @@ python3 ../../examples/llama2/models/export_onnx_v2.py --num_layers 32 --model_i
 ls -alh exported_params/
 
 # onnx2tensorrt
-rm -rf /opt/hpcx/ncclnet_plugin && ldconfig
 python ../../examples/llama2/plain_llama2.py --num_layers=32
 ```
  
