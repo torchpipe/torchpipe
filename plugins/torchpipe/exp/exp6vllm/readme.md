@@ -74,65 +74,67 @@ export MODEL_ID=meta-llama/Llama-2-7b-chat-hf
 # or export MODEL_ID=path_to/Llama-2-7b-chat-hf
 wget https://huggingface.co/datasets/anon8231489123/ShareGPT_Vicuna_unfiltered/resolve/main/ShareGPT_V3_unfiltered_cleaned_split.json
 
-python3 benchmarks/benchmark_serving.py         --backend vllm         --model $MODEL_ID         --dataset-name sharegpt         --dataset-path ./ShareGPT_V3_unfiltered_cleaned_split.json         --num-prompts 500         --port 8000         --save-result         --result-dir results/         --result-filename hami_llama7B_tp1_qps_2.json         --request-rate 2
+sh all_clients.sh
 
-python3 benchmarks/benchmark_serving.py         --backend vllm         --model $MODEL_ID         --dataset-name sharegpt         --dataset-path ./ShareGPT_V3_unfiltered_cleaned_split.json         --num-prompts 500         --port 8000         --save-result         --result-dir results/         --result-filename hami_llama7B_tp1_qps_3.json         --request-rate 3
+sh all_clients.sh
 
-python3 benchmarks/benchmark_serving.py         --backend vllm         --model $MODEL_ID         --dataset-name sharegpt         --dataset-path ./ShareGPT_V3_unfiltered_cleaned_split.json         --num-prompts 500         --port 8001         --save-result         --result-dir results/         --result-filename vllm_llama7B_tp1_qps_2.json         --request-rate 2 --served-model-name llama2 
+# python3 benchmarks/benchmark_serving.py         --backend vllm         --model $MODEL_ID         --dataset-name sharegpt         --dataset-path ./ShareGPT_V3_unfiltered_cleaned_split.json         --num-prompts 500         --port 8000         --save-result         --result-dir results/         --result-filename hami_llama7B_tp1_qps_2.json         --request-rate 2
 
-python3 benchmarks/benchmark_serving.py         --backend vllm         --model $MODEL_ID         --dataset-name sharegpt         --dataset-path ./ShareGPT_V3_unfiltered_cleaned_split.json         --num-prompts 500         --port 8001         --save-result         --result-dir results/         --result-filename vllm_llama7B_tp1_qps_3.json         --request-rate 3 --served-model-name llama2 
+# python3 benchmarks/benchmark_serving.py         --backend vllm         --model $MODEL_ID         --dataset-name sharegpt         --dataset-path ./ShareGPT_V3_unfiltered_cleaned_split.json         --num-prompts 500         --port 8000         --save-result         --result-dir results/         --result-filename hami_llama7B_tp1_qps_3.json         --request-rate 3
+
+# python3 benchmarks/benchmark_serving.py         --backend vllm         --model $MODEL_ID         --dataset-name sharegpt         --dataset-path ./ShareGPT_V3_unfiltered_cleaned_split.json         --num-prompts 500         --port 8001         --save-result         --result-dir results/         --result-filename vllm_llama7B_tp1_qps_2.json         --request-rate 2 --served-model-name llama2 
+
+# python3 benchmarks/benchmark_serving.py         --backend vllm         --model $MODEL_ID         --dataset-name sharegpt         --dataset-path ./ShareGPT_V3_unfiltered_cleaned_split.json         --num-prompts 500         --port 8001         --save-result         --result-dir results/         --result-filename vllm_llama7B_tp1_qps_3.json         --request-rate 3 --served-model-name llama2 
 
 
 ```
  
+##  result
+```
+============ Serving Benchmark Result ============
+Successful requests:                     500
+Benchmark duration (s):                  273.85
+Total input tokens:                      117316
+Total generated tokens:                  105804
+Request throughput (req/s):              1.83
+Output token throughput (tok/s):         386.35
+Total Token throughput (tok/s):          814.74
+---------------Time to First Token----------------
+Mean TTFT (ms):                          131.95
+Median TTFT (ms):                        84.91
+P99 TTFT (ms):                           776.14
+-----Time per Output Token (excl. 1st token)------
+Mean TPOT (ms):                          44.34
+Median TPOT (ms):                        43.71
+P99 TPOT (ms):                           67.25
+---------------Inter-token Latency----------------
+Mean ITL (ms):                           44.31
+Median ITL (ms):                         40.01
+P99 ITL (ms):                            169.12
+==================================================
 
 
-
-### start vllm server
-```bash
-CUDA_VISIBLE_DEVICES=1 python3 -m vllm.entrypoints.openai.api_server -tp 1 -pp 1 --gpu-memory-utilization 0.93       --port 8000 --disable-log-stats --disable-log-requests   --model meta-llama/Llama-2-7b-chat-hf # --model Llama-2-7b-chat-hf/
+============ Serving Benchmark Result ============
+Successful requests:                     500
+Benchmark duration (s):                  195.00
+Total input tokens:                      117316
+Total generated tokens:                  105106
+Request throughput (req/s):              2.56
+Output token throughput (tok/s):         539.02
+Total Token throughput (tok/s):          1140.65
+---------------Time to First Token----------------
+Mean TTFT (ms):                          1543.46
+Median TTFT (ms):                        171.70
+P99 TTFT (ms):                           8008.28
+-----Time per Output Token (excl. 1st token)------
+Mean TPOT (ms):                          58.56
+Median TPOT (ms):                        57.12
+P99 TPOT (ms):                           105.02
+---------------Inter-token Latency----------------
+Mean ITL (ms):                           58.42
+Median ITL (ms):                         50.28
+P99 ITL (ms):                            222.65
+==================================================
 ```
 
-
-### test
-```bash
-# download dataset
-# wget https://huggingface.co/datasets/anon8231489123/ShareGPT_Vicuna_unfiltered/resolve/main/ShareGPT_V3_unfiltered_cleaned_split.json
-
-
-git clone -b v0.8.4 https://github.com/vllm-project/vllm.git
-
-#  pip install datasets vllm==0.8.4
-
-
-  python3 vllm/benchmarks/benchmark_serving.py         --backend vllm         --model Llama-2-7b-chat-hf/         --dataset-name sharegpt         --dataset-path ./ShareGPT_V3_unfiltered_cleaned_split.json         --num-prompts 500         --port 8001         --save-result         --result-dir results/         --result-filename vllm_llama7B_tp1_qps_2.json         --request-rate 2
-```
-
-
-### hami
-```
-img_name=nvcr.io/nvidia/pytorch:25.05-py3
-docker pull $img_name
-cd plugins/torchpipe/exp/exp6vllm/
-
-docker run --name=exp_hami --runtime=nvidia --ipc=host --cpus=8 --network=host -v `pwd`:/workspace  --shm-size 1G  --ulimit memlock=-1 --ulimit stack=67108864  --privileged=true  -w/workspace -it $img_name /bin/bash
-
-# optional: pip config set global.index-url https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple
-
-pip install --upgrade pip setuptools wheel
-python setup.py bdist_wheel
-pip uninstall hami-core -y && pip install dist/*.whl
-```
-
-#### install torchpipe
-cd plugins/torchpipe/
-rm -rf dist/*.whl
-
-python setup.py bdist_wheel
-pip install dist/torchpipe-0.10.1a0-cp312-cp312-linux_x86_64.whl
-
-
-docker exec -it exp_hami bash
-
-```
-see [llama2 exampels](../../examples/llama2/readme.md)
+     
