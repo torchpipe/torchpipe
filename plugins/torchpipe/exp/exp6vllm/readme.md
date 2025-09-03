@@ -74,9 +74,7 @@ export MODEL_ID=meta-llama/Llama-2-7b-chat-hf
 # or export MODEL_ID=path_to/Llama-2-7b-chat-hf
 wget https://huggingface.co/datasets/anon8231489123/ShareGPT_Vicuna_unfiltered/resolve/main/ShareGPT_V3_unfiltered_cleaned_split.json
 
-sh all_clients.sh
-
-sh all_clients.sh
+sh all_clients.sh  && sh all_clients.sh
 
 # python3 benchmarks/benchmark_serving.py         --backend vllm         --model $MODEL_ID         --dataset-name sharegpt         --dataset-path ./ShareGPT_V3_unfiltered_cleaned_split.json         --num-prompts 500         --port 8000         --save-result         --result-dir results/         --result-filename hami_llama7B_tp1_qps_2.json         --request-rate 2
 
@@ -93,47 +91,88 @@ sh all_clients.sh
 ```
 ============ Serving Benchmark Result ============
 Successful requests:                     500
-Benchmark duration (s):                  273.85
+Benchmark duration (s):                  275.42
 Total input tokens:                      117316
-Total generated tokens:                  105804
-Request throughput (req/s):              1.83
-Output token throughput (tok/s):         386.35
-Total Token throughput (tok/s):          814.74
+Total generated tokens:                  105674
+Request throughput (req/s):              1.82
+Output token throughput (tok/s):         383.69
+Total Token throughput (tok/s):          809.64
 ---------------Time to First Token----------------
-Mean TTFT (ms):                          131.95
-Median TTFT (ms):                        84.91
-P99 TTFT (ms):                           776.14
+Mean TTFT (ms):                          110.45
+Median TTFT (ms):                        80.43
+P99 TTFT (ms):                           333.85
 -----Time per Output Token (excl. 1st token)------
-Mean TPOT (ms):                          44.34
-Median TPOT (ms):                        43.71
-P99 TPOT (ms):                           67.25
+Mean TPOT (ms):                          43.40
+Median TPOT (ms):                        43.00
+P99 TPOT (ms):                           61.47
 ---------------Inter-token Latency----------------
-Mean ITL (ms):                           44.31
-Median ITL (ms):                         40.01
-P99 ITL (ms):                            169.12
+Mean ITL (ms):                           43.53
+Median ITL (ms):                         39.76
+P99 ITL (ms):                            167.74
 ==================================================
-
 
 ============ Serving Benchmark Result ============
 Successful requests:                     500
-Benchmark duration (s):                  195.00
+Benchmark duration (s):                  194.65
 Total input tokens:                      117316
-Total generated tokens:                  105106
-Request throughput (req/s):              2.56
-Output token throughput (tok/s):         539.02
-Total Token throughput (tok/s):          1140.65
+Total generated tokens:                  106180
+Request throughput (req/s):              2.57
+Output token throughput (tok/s):         545.49
+Total Token throughput (tok/s):          1148.19
 ---------------Time to First Token----------------
-Mean TTFT (ms):                          1543.46
-Median TTFT (ms):                        171.70
-P99 TTFT (ms):                           8008.28
+Mean TTFT (ms):                          1495.44
+Median TTFT (ms):                        174.39
+P99 TTFT (ms):                           8502.62
 -----Time per Output Token (excl. 1st token)------
-Mean TPOT (ms):                          58.56
-Median TPOT (ms):                        57.12
-P99 TPOT (ms):                           105.02
+Mean TPOT (ms):                          57.38
+Median TPOT (ms):                        57.33
+P99 TPOT (ms):                           84.89
 ---------------Inter-token Latency----------------
-Mean ITL (ms):                           58.42
-Median ITL (ms):                         50.28
-P99 ITL (ms):                            222.65
+Mean ITL (ms):                           57.76
+Median ITL (ms):                         50.43
+P99 ITL (ms):                            225.48
+==================================================
+============ Serving Benchmark Result ============
+Successful requests:                     500
+Benchmark duration (s):                  275.86
+Total input tokens:                      117316
+Total generated tokens:                  105642
+Request throughput (req/s):              1.81
+Output token throughput (tok/s):         382.96
+Total Token throughput (tok/s):          808.24
+---------------Time to First Token----------------
+Mean TTFT (ms):                          116.48
+Median TTFT (ms):                        86.02
+P99 TTFT (ms):                           335.25
+-----Time per Output Token (excl. 1st token)------
+Mean TPOT (ms):                          43.93
+Median TPOT (ms):                        43.09
+P99 TPOT (ms):                           65.04
+---------------Inter-token Latency----------------
+Mean ITL (ms):                           43.35
+Median ITL (ms):                         39.86
+P99 ITL (ms):                            176.02
+==================================================
+============ Serving Benchmark Result ============
+Successful requests:                     500
+Benchmark duration (s):                  199.78
+Total input tokens:                      117316
+Total generated tokens:                  105853
+Request throughput (req/s):              2.50
+Output token throughput (tok/s):         529.84
+Total Token throughput (tok/s):          1117.05
+---------------Time to First Token----------------
+Mean TTFT (ms):                          3523.20
+Median TTFT (ms):                        386.31
+P99 TTFT (ms):                           14072.71
+-----Time per Output Token (excl. 1st token)------
+Mean TPOT (ms):                          59.49
+Median TPOT (ms):                        57.27
+P99 TPOT (ms):                           116.30
+---------------Inter-token Latency----------------
+Mean ITL (ms):                           57.06
+Median ITL (ms):                         50.75
+P99 ITL (ms):                            217.70
 ==================================================
 ```
 

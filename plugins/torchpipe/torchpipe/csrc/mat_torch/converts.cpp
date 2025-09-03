@@ -1,21 +1,66 @@
 #include "mat_torch/converts.hpp"
 
 #include "helper/mat.hpp"
+#include "helper/torch.hpp"
+
 #include "opencv2/imgcodecs.hpp"
 #include "opencv2/imgproc.hpp"
 #include <torch/torch.h>
 
 namespace torchpipe {
 
-inline torch::Tensor cvMat2TorchCPU(const cv::Mat& image) {
-    HAMI_ASSERT(image.type() == CV_8UC3 && (image.isContinuous()));
-    return torch::from_blob(
-        image.data, {image.rows, image.cols, image.channels()}, torch::kByte);
+inline torch::Tensor cvMat2TorchCPU(const cv::Mat& da) {
+  HAMI_ASSERT(
+      (da.type() == CV_8UC3 || da.type() == CV_32FC3) && da.isContinuous());
+
+  auto image_tensor = torch::from_blob(
+      da.data,
+      {da.rows, da.cols, da.channels()},
+      da.elemSize1() == 1 ? torch::kByte : torch::kFloat);
+
+  return image_tensor;
 }
 
 inline torch::Tensor cvMat2TorchCUDA(const cv::Mat& image) {
     auto re = cvMat2TorchCPU(image);
     return re.to(torch::kCUDA);
+}
+
+inline cv::Mat torchTensortoCVMatV2(torch::Tensor tensor, bool deepcopy) { //
+  tensor = img_hwc_guard(tensor);
+  cv::Mat mat;
+  tensor = tensor.to(torch::kCPU).contiguous();
+
+
+  if (tensor.dtype() == torch::kByte) {
+    mat = cv::Mat(
+        cv::Size(tensor.size(1), tensor.size(0)),
+        CV_8UC(tensor.size(2)),
+        tensor.data_ptr<uchar>());
+  } else if (tensor.dtype() == torch::kFloat) {
+    mat = cv::Mat(
+        cv::Size(tensor.size(1), tensor.size(0)),
+        CV_32FC(tensor.size(2)),
+        tensor.data_ptr<float>());
+  } else if (tensor.dtype() == torch::kHalf) {
+    tensor = tensor.to(torch::kFloat);
+    mat = cv::Mat(
+        cv::Size(tensor.size(1), tensor.size(0)),
+        CV_32FC(tensor.size(2)),
+        tensor.data_ptr<float>());
+  } else {
+    throw std::runtime_error(
+        "unsupported datatype " + std::string(tensor.dtype().name()));
+  }
+
+  if (deepcopy) {
+    mat = mat.clone();
+    HAMI_ASSERT(mat.isContinuous());
+
+    return mat;
+
+  } else
+    return mat;
 }
 
 void Mat2Tensor::impl_init(
@@ -40,6 +85,7 @@ void Mat2Tensor::forward(const hami::dict& input_dict) {
             input[TASK_RESULT_KEY] = cvMat2TorchCPU(data).clone();
         } else {
             input[TASK_RESULT_KEY] = cvMat2TorchCUDA(data);
+            
         }
 
     } else if (iter->second.type() == typeid(std::vector<cv::Mat>)) {
@@ -66,4 +112,26 @@ void Mat2Tensor::forward(const hami::dict& input_dict) {
 }
 
 HAMI_REGISTER(hami::Backend, Mat2Tensor);
-}  // namespace torchpipe
+
+void Tensor2Mat::forward(const hami::dict& input_dict) {
+  auto& input = *input_dict;
+
+  auto iter = input_dict->find(TASK_DATA_KEY);
+  HAMI_ASSERT(iter != input_dict->end());
+  if (iter->second.type() == typeid(torch::Tensor)) {
+    torch::Tensor data = hami::any_cast<torch::Tensor>(iter->second);
+    auto result = torchTensortoCVMatV2(data, true); // true is for 'deepcopy'
+    input[TASK_RESULT_KEY] = result;
+  } else if (iter->second.type() == typeid(std::vector<torch::Tensor>)) {
+    HAMI_ASSERT(false);
+    /* code */
+  } else {
+    SPDLOG_ERROR("unknown type: {}", iter->second.type().name());
+    throw std::runtime_error(
+        "unknown type: " + std::string(iter->second.type().name()));
+  }
+}
+
+HAMI_REGISTER(hami::Backend, Tensor2Mat);
+
+  } // namespace torchpipe
