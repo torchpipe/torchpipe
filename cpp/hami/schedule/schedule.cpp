@@ -208,7 +208,8 @@ void Batching::impl_inject_dependency(Backend* dependency) {
   } else {
     SPDLOG_INFO(
         "Batching thread not inited because batching_timeout_ = 0 or "
-        "max_bs = 1");
+        "max_bs = 1. node_name = {}",
+        node_name_);
   }
 }
 
@@ -221,7 +222,7 @@ void Batching::impl_forward_with_dep(
   if (bInited_.load())
     input_queue_.push(ios, get_request_size<dict>);
   else {
-    dep.forward(ios);
+    dep.safe_forward(ios);
   }
   helper.wait();
 }

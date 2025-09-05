@@ -604,8 +604,7 @@ void fix_tensor_shape(
     const NetIOInfo::Dims64& max) {
   
   const auto& sizes = data.sizes();
-  SPDLOG_DEBUG(
-      "fix_tensor_shape {} {} {} {}", sizes[0], sizes[1], min.d[2], max.d[2]);
+
   if (sizes.size() == 3 && 4 == min.nbDims && max.d[1] == min.d[1] &&
       min.d[1] <= 4) {
     // hwc2nchw

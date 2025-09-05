@@ -216,7 +216,7 @@ void TensorrtInferTensor::impl_forward(
   cudaEventSynchronize(input_finish_event_);
   inputs.clear();
   input_output[0]->erase(TASK_DATA_KEY);
-  SPDLOG_DEBUG("trt_infer: outputs.size()= " + std::to_string(outputs.size()));
+  // SPDLOG_DEBUG("trt_infer: outputs.size()= " + std::to_string(outputs.size()));
   if (outputs.size() == 1) {
     (*input_output[0])[TASK_RESULT_KEY] = outputs[0];
   } else {
