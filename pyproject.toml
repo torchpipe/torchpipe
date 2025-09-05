@@ -29,7 +29,9 @@ dependencies = [
   'numpy',
 ]
 description = "A Python library for batched backend scheduling"
-dynamic = ["version"]
+# dynamic = ["version"]
+version = "0.11.1"
+
 license = {text = "Apache-2.0"}
 name = "hami-core"
 readme = "README.md"
@@ -37,10 +39,10 @@ requires-python = ">=3.8"
 [tool.setuptools_scm]
 # write_to = "hami/version.py"
 # version_file = "VERSION.txt"
-fallback_version = "0.0.0"
+# fallback_version = "0.0.0"
 local_scheme = "node-and-timestamp"
 normalize = false
-write_to = "VERSION.txt"
+# write_to = "VERSION.txt"
 
 [project.urls]
 Homepage = "https://github.com/torchpipe/torchpipe"
@@ -51,7 +53,6 @@ packages = ["hami", "hami._C"]
 zip-safe = true
 [tool.setuptools.dynamic]
 dependencies = {file = "requirements.txt"}
-# version = {file = "VERSION"}
 
 [tool.setuptools.exclude-package-data]
 "*" = ["*.cc", "*.bak", "*.in", "CMakeLists.txt"]
