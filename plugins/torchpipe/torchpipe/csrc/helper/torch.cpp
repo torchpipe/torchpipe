@@ -605,11 +605,7 @@ void fix_tensor_shape(
   
   const auto& sizes = data.sizes();
   SPDLOG_DEBUG(
-      "fix_tensor_shape {} {} {} {}",
-      sizes.size(),
-      min.nbDims,
-      max.d[1],
-      min.d[1]);
+      "fix_tensor_shape {} {} {} {}", sizes[0], sizes[1], min.d[2], max.d[2]);
   if (sizes.size() == 3 && 4 == min.nbDims && max.d[1] == min.d[1] &&
       min.d[1] <= 4) {
     // hwc2nchw
@@ -624,9 +620,7 @@ void fix_tensor_shape(
             "The input tensor can be interpreted as either HWC or "
             "NCHW.");
       }
-      SPDLOG_DEBUG("data[0] befor = {}", data.sizes().size());
       data = data.permute({2, 0, 1}).unsqueeze(0);
-      SPDLOG_DEBUG("data[0] = {}", data.sizes().size());
       return;
     }
   }
