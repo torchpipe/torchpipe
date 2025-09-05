@@ -6,6 +6,8 @@ def test_none():
     # import pytest
     import hami
     import torchpipe
+    print(torchpipe.__version__)
+
     
     
 if __name__ == "__main__":

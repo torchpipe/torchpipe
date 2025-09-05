@@ -1,5 +1,6 @@
 # from ._C import *
 
+from .version import __version__
 import hami
 
 import torch
@@ -32,3 +33,4 @@ torch.cuda.init()
 #     _HAS_GPU_VIDEO_DECODER = True
 # except (ImportError, OSError):
 #     _HAS_GPU_VIDEO_DECODER = False
+
