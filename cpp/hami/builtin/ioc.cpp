@@ -64,6 +64,7 @@ void IoCV0::impl_init(
         register_name = "ioc." + main_backend +
             "." + // std::to_string(i) + "." +
             std::to_string(get_unique_index());
+        SPDLOG_DEBUG("register {} {} {}", i, main_backend, register_name);
         HAMI_INSTANCE_REGISTER(
             Backend, register_name, base_dependencies_[i].get());
         reg_backends[base_dependencies_[i].get()] = register_name;
