@@ -602,13 +602,14 @@ void fix_tensor_shape(
     torch::Tensor& data,
     const NetIOInfo::Dims64 min,
     const NetIOInfo::Dims64& max) {
+  
+  const auto& sizes = data.sizes();
   SPDLOG_DEBUG(
       "fix_tensor_shape {} {} {} {}",
       sizes.size(),
       min.nbDims,
       max.d[1],
       min.d[1]);
-  const auto& sizes = data.sizes();
   if (sizes.size() == 3 && 4 == min.nbDims && max.d[1] == min.d[1] &&
       min.d[1] <= 4) {
     // hwc2nchw
