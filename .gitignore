@@ -24,7 +24,7 @@ log.txt
 .trunk
 *.swp
 hami/_build_info.py
-
+ali/
 plugins/torchpipe/examples/yolo/dog_result.jpg
 .trunk/
 tmp.md
