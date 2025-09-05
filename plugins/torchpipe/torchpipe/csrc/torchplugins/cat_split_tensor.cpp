@@ -108,6 +108,7 @@ void FixTensor::impl_forward(const std::vector<dict>& input_dict) {
     if (net_shapes_) {
       fix_tensors(data, net_shapes_);
     }
+    SPDLOG_DEBUG("data[0] = {}", data[0].sizes().size());
     if (data.size() == 1) {
       (*input)[TASK_RESULT_KEY] = data[0];
     } else {
