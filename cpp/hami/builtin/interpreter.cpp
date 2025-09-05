@@ -76,12 +76,15 @@ void Interpreter::impl_init(
         "default: {}",
         entry_name);
   }
-
+  std::string registered_name = "entrypoint.";
+  static std::atomic<size_t> index{0};
+  registered_name += std::to_string(index.fetch_add(1));
   owned_backend_ =
-      init_backend(entry_name, global_config, new_kwargs, "entrypoint");
+      init_backend(entry_name, global_config, new_kwargs, registered_name);
   SPDLOG_INFO(
-      "Interpreter: entrypoint({})[{} {}]",
+      "Interpreter: entrypoint({}/{})[{} {}]",
       entry_name,
+      registered_name,
       owned_backend_->min(),
       owned_backend_->max());
   proxy_backend_ = owned_backend_.get();
