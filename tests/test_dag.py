@@ -3,10 +3,10 @@ import hami
 def test_dag():
     # todo
     config = {
-        'a':{'next':"b,c"},
-        'b': {'next': "d", "map": "a[result:data,color:color]"},
-        'c':  {'next': "d"},
-        'd': {'map':"c[result:1],b[result:data,color:color]"}   
+        'adag': {'next': "b,cdag"},
+        'b': {'next': "ddag", "map": "adag[result:data,color:color]"},
+        'cdag':  {'next': "ddag"},
+        'ddag': {'map': "cdag[result:1],b[result:data,color:color]"}
     }
     model = hami.pipe(config)
     inp = {'data':1,'color':'rgb'}
@@ -22,4 +22,4 @@ def test_dag_com():
     print(inp)
 if __name__ == "__main__":
     hami.init("DebugLogger")
-    test_dag()
+    test_dag_com()
