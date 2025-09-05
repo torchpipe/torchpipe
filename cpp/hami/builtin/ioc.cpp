@@ -33,7 +33,7 @@ void IoCV0::impl_init(
       iter != config.end(), "Dependency configuration missing for " + *name);
 
   auto backend_setting = iter->second;
-  SPDLOG_INFO("IoCV0: {}", backend_setting);
+  // SPDLOG_INFO("IoCV0: {}", backend_setting);
   config.erase(iter);
 
   std::vector<std::string> phases = str::items_split(backend_setting, ';');
