@@ -101,15 +101,14 @@ for orig_name in models:
     marker = markers[color_idx % len(markers)]
     line_width = 2.5 if is_image else 2.0  # 图像处理任务使用更粗的线条
 
-    # 绘制曲线 - 修改点：图像处理任务边框颜色与填充色一致
+    # 绘制曲线
     ax.plot(
         model_df['batch_size'],
         model_df['normalized_throughput'],
         marker=marker,
         markersize=8,
         markeredgewidth=2.0,
-        # 关键修改：统一边框颜色与填充色
-        markeredgecolor=base_color,  # 边框颜色改为与填充色一致
+        markeredgecolor=base_color,
         markerfacecolor=base_color if is_image else 'white',
         linestyle=line_style,
         linewidth=line_width,
@@ -119,12 +118,12 @@ for orig_name in models:
         markevery=(mbs-1, 1)
     )
 
-    # 添加模型图例元素 - 同样修改边框颜色
+    # 添加模型图例元素
     model_legend_elements.append(Line2D(
         [0], [0],
         marker=marker,
         color=base_color,
-        markeredgecolor=base_color,  # 关键修改：统一边框颜色
+        markeredgecolor=base_color,
         markerfacecolor=base_color if is_image else 'white',
         markersize=10,
         markeredgewidth=1.5,
@@ -141,12 +140,11 @@ for orig_name in models:
                 marker='*',
                 markersize=18,
                 markeredgewidth=2.0,
-                markerfacecolor='gold',
-                markeredgecolor='black',
+                markerfacecolor=base_color,#'gold',
+                markeredgecolor=base_color,  # 修改这里：将 'black' 改为 base_color
                 zorder=20
             )
             break
-
 
 # === 新增：计算参考点性能对比 ===
 reference_point_results = []
@@ -186,19 +184,16 @@ for orig_name in models:
                 'is_image_processing': is_image
             })
 
-# 打印结果
 print("=" * 80)
 print("参考点性能对比分析 (与batch_size=1相比)")
 print("=" * 80)
 print(f"{'模型':<25} {'参考点Batch Size':<18} {'吞吐倍数':<15} {'延迟倍数':<15}")
 print("-" * 80)
 
-
 for result in reference_point_results:
     print(f"{result['model']:<25} {result['reference_batch_size']:<18} "
           f"{result['throughput_ratio']:<15.2f} {result['latency_ratio']:<15.2f}")
 
-# 计算平均值
 avg_throughput_ratio = np.mean([r['throughput_ratio']
                                for r in reference_point_results])
 avg_latency_ratio = np.mean([r['latency_ratio']
@@ -207,32 +202,27 @@ avg_latency_ratio = np.mean([r['latency_ratio']
 print("-" * 80)
 print(f"{'平均值':<25} {'-':<18} {avg_throughput_ratio:<15.2f} {avg_latency_ratio:<15.2f}")
 print("=" * 80)
-# 新增结束
 
 
-# 添加75%参考线
 ax.axhline(y=0.75, color='#333333', linestyle=':', linewidth=3.0, alpha=0.9)
-ax.text(0.91, 0.63, '75% Reference',
+ax.text(0.91, 0.594, '75% Reference',  # 0.63
         transform=ax.transAxes, ha='right', fontsize=12, color='#333333')
 
-# 坐标轴设置
 ax.set_xlabel('Batch Size', fontsize=15, labelpad=10)
 ax.set_ylabel('Normalized Offline Throughput', fontsize=15, labelpad=10)
 ax.set_xticks(range(1, mbs+1))
 ax.set_xlim(0.8, mbs+0.2)
-ax.set_ylim(0.1, 1.05)
+ax.set_ylim(0.1, 1.1)
 ax.set_yticks(np.arange(0.2, 1.1, 0.2))
 ax.grid(True, which='major', linestyle='--', alpha=0.4)
 
-# 添加任务类型图例
 task_legend_elements.append(
     Line2D([0], [0], color='black', lw=2.5, linestyle=line_styles['model_inference'], label='Model Inference'))
 task_legend_elements.append(Line2D(
     [0], [0], color='black', lw=2.5, linestyle=line_styles['image_processing'], label='Image Processing'))
-model_legend_elements.append(Line2D([0], [0], marker='*', color='w', markerfacecolor='gold',
-                                    markersize=16, markeredgecolor='black', label='First ≥75% Point'))
+task_legend_elements.append(Line2D([0], [0], marker='*', color='w', markerfacecolor='black',
+                                   markersize=16, markeredgecolor='black', label='First ≥75% Point'))
 
-# 添加图例
 task_legend = ax.legend(
     handles=task_legend_elements,
     loc='upper left',
@@ -259,10 +249,8 @@ model_legend = ax.legend(
 ax.add_artist(model_legend)
 ax.add_artist(task_legend)
 
-# 调整布局
 plt.tight_layout(rect=[0, 0, 1, 0.95])
 
-# 保存图像
 plt.savefig('normalized_throughput.pdf',
             bbox_inches='tight',
             dpi=600,

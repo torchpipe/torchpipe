@@ -267,7 +267,7 @@ def plot_comparison(data):
 
     id_name2name = {
         'hami_sd_256_candrop0': 'Plain',
-        'hami_sd_256_candrop1': 'Plain + Profile-Guided Dropping',
+        'hami_sd_256_candrop1': 'Plain w/ Emergency-based Dropping',
         'neustream_sd_256': 'NeuStream'
     }
 
