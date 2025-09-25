@@ -1,10 +1,6 @@
 
-## experiment with Hami
-```bash
+## Prepare code environment
 
-```
-### Evaluation Section
-- Prepare environment
 ```bash
 
 # clone code 
@@ -12,39 +8,84 @@ git clone -b v1 ...
 cd torchpipe/ && git submodule update --init --recursive
 
 ### ours => A10: ~/paper/v1/torchpipe/
+```
 
-# docker
-img_name=nvcr.io/nvidia/tritonserver:25.05-py3
+## hami
+
+### docker
+img_name=nvcr.io/nvidia/pytorch:25.05-py3
 docker pull $img_name
 
-docker run --name=zsy_triton --runtime=nvidia --ipc=host --cpus=8 --network=host -v `pwd`:/workspace  --shm-size 1G  --ulimit memlock=-1 --ulimit stack=67108864  --privileged=true  -w/workspace -it $img_name /bin/bash
+docker run --name=exp_hami --runtime=nvidia --ipc=host --cpus=8 --network=host -v `pwd`:/workspace  --shm-size 1G  --ulimit memlock=-1 --ulimit stack=67108864  --privileged=true  -w/workspace -it $img_name /bin/bash
+ 
+### test cuda
+python -c  "import torch; assert (torch.cuda.is_available())"
 
-# install timm
-# apt-get update && apt-get install -y cmake ninja-build
-
-### optional: pip config set global.index-url https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple
-# pip install -r plugins/torchpipe/exp/requirements.txt
-ln -s /usr/bin/python3 /usr/bin/python
-
-# test cuda
-
-# to work directory
-
-root@yidun-ai-traingpu19:/workspace# 
-```
-
-```
-- Triton Ensem. w/ PythonCPU
+### install hami
 ```bash
+# optional: pip config set global.index-url https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple
 
-cd /workspace/plugins/torchpipe/exp
- tritonserver --model-repository=./model_repository/cpu_en 
-
-python3 decouple_eval/benchmark.py --model ensemble_py_resnet \
- --total_number 20000 --client 20 
+pip install --upgrade pip setuptools wheel
+python setup.py bdist_wheel
+pip uninstall hami-core -y && pip install dist/*.whl
 ```
 
-- Triton Ensem. w/ GPU-dali
+### install torchpipe
+cd plugins/torchpipe/
+rm -rf dist/*.whl
+python setup.py bdist_wheel
+pip install dist/torchpipe-0.10.1a0-cp312-cp312-linux_x86_64.whl
+
+### install timm
+```bash
+### optional: pip config set global.index-url https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple
+pip install timm==1.0.15 fire onnxslim onnxsim~=0.4.36
+#  onnxsim==0.4.36  py3nvml nvidia-pytriton==0.5.14 nvidia-ml-py # -i https://pypi.tuna.tsinghua.edu.cn/simple
+```
+<!-- ### export onnx
+cd exp5resnet/
+ls *.onnx
+``` -->
+
+
+### experiment with hami
+
+- Hami w/ CPU  GPU
+```bash
+ python hami_w_cpu_gpu.py
+# python ./benchmark.py  --preprocess cpu --model resnet101 --max 5 --preprocess-instances 8 --client 10 --timeout 2 --trt_instance_num 2 --total_number 20000
+
+# python ./benchmark.py  --preprocess gpu --model resnet101 --max 5 --preprocess-instances 6 --client 30 --timeout 2 --trt_instance_num 2 --total_number 20000
+
+
+# trtexec --onnx=resnet101.onnx --fp16 --shapes=input:8x3x224x224 --saveEngine=resnet101_b8i1.trt
+# 
+
+
+
+```
+ 
+
+
+
+## Triton
+
+## env
+```bash
+cd torchpipe/
+
+img_name=nvcr.io/nvidia/tritonserver:25.05-py3
+nvidia-docker run --name=exp_triton -it --cpus=8 --network=host --runtime=nvidia --privileged   --shm-size=1g --ulimit memlock=-1 --ulimit stack=67108864 -v `pwd`:/workspace   $img_name bash
+```
+
+cd /workspace/examples/exp
+
+onnx_path=./resnet101.onnx # please exported with dynamic batch size. refer to model_repository/en/export_onnx.py
+/usr/src/tensorrt/bin/trtexec --onnx=$onnx_path --saveEngine=./model_repository/resnet/resnet_trt/1/model.plan --minShapes=input:1x3x224x224 --optShapes=input:8x3x224x224 --maxShapes=input:8x3x224x224 --fp16
+#  --explicitBatch
+export CUDA_VISIBLE_DEVICES=3
+tritonserver --model-repository=./model_repository/resnet
+
 ```bash
 cd /workspace/plugins/torchpipe/exp
  tritonserver --model-repository=./model_repository/en 
@@ -53,11 +94,17 @@ python3 decouple_eval/benchmark.py --model ensemble_dali_resnet \
  --total_number 20000 --client 20 
 ```
 
+
+
+
+
 https://github.com/NVIDIA/DALI/issues/4581   disable antialias
 
 https://github.com/NVIDIA/DALI/issues/4581#issuecomment-1386888761
 
 https://github.com/triton-inference-server/tutorials/tree/main/Conceptual_Guide/Part_6-building_complex_pipelines
+
+pip install huggingface-hub==0.25.2
 
 ---------------- OLD EXPERIMENTS ----------------
 

@@ -128,11 +128,12 @@ class BackgroundThread : public Backend {
   std::atomic_bool bInited_{false};
   std::atomic_bool bStoped_{false};
   std::thread thread_;
-  ThreadSafeQueue<std::vector<dict>> batched_queue_;
+  SingleElementQueue<std::vector<dict>> batched_queue_;
   std::string dependency_name_;
   std::unique_ptr<Backend> dependency_;
   std::exception_ptr init_eptr_;
   std::function<void(void)> init_task_;
+  int priority_ {0};
   // std::function<void(void)> init_task_;
   // void forward_task(const std::vector<dict>& inputs);
 };

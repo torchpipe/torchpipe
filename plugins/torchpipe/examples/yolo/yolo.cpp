@@ -102,9 +102,12 @@ hami::Boxes yolo11_post_cpp(
   auto max_scores = std::get<0>(max_kv); // 每个框的最高类别分数
   auto keep_mask = max_scores >= conf_thres; // 置信度掩码
 
-  boxes = boxes.index({keep_mask}).cpu().contiguous(); // 过滤后的边界框
-  scores = scores.index({keep_mask}).cpu().contiguous(); // 过滤后的分数
-  id = id.index({keep_mask}).cpu().contiguous();
+  id = id.index({keep_mask});
+  boxes = boxes.index({keep_mask});
+  scores = scores.index({keep_mask}).gather(1, id.unsqueeze(1)); // 仅保留最高分数的类别
+  scores = scores.cpu().contiguous(); // 过滤后的分数
+  boxes = boxes.cpu().contiguous(); // 过滤后的边界框
+  id = id.cpu().contiguous();
   auto num_boxes = boxes.size(0);
   float* pboxes = boxes.data_ptr<float>();
   float* pscores = scores.data_ptr<float>();

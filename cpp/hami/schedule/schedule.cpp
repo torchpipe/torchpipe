@@ -1,7 +1,6 @@
 #include "hami/schedule/schedule.hpp"
 
 #include <charconv>
-
 #include "hami/builtin/aspect.hpp"
 #include "hami/builtin/proxy.hpp"
 #include "hami/core/event.hpp"
@@ -209,7 +208,8 @@ void Batching::impl_inject_dependency(Backend* dependency) {
   } else {
     SPDLOG_INFO(
         "Batching thread not inited because batching_timeout_ = 0 or "
-        "max_bs = 1");
+        "max_bs = 1. node_name = {}",
+        node_name_);
   }
 }
 
@@ -222,7 +222,7 @@ void Batching::impl_forward_with_dep(
   if (bInited_.load())
     input_queue_.push(ios, get_request_size<dict>);
   else {
-    dep.forward(ios);
+    dep.safe_forward(ios);
   }
   helper.wait();
 }
@@ -265,6 +265,11 @@ void Batching::run(size_t max_bs) {
         cached_data.push_back(input_queue_.pop());
       }
 
+      SPDLOG_DEBUG(
+          "scheduler: new pop: {}, cached: {} timestamp = {}",
+          new_pop,
+          cached_size,
+          helper::timestamp());
       if (!try_forward(cached_data, new_pop + cached_size, 1)) {
         instances_state_->wait_for(new_pop + cached_size, SHUTDOWN_TIMEOUT);
         continue;
@@ -272,6 +277,8 @@ void Batching::run(size_t max_bs) {
         already_batching_timout = false;
         cached_data.clear();
       }
+    } else if (cached_size == 1 && instances_state_->running_intance_count() == 0) {
+      already_batching_timout = true;
     } else {
       // std::size_t new_pop = 0;
 
@@ -335,6 +342,7 @@ void InstanceDispatcher::impl_forward(const std::vector<dict>& ios) {
   do {
     index = instances_state_->query_available(req_size, 100, true, node_name);
   } while (!index);
+
   size_t valid_index{*index};
   // SPDLOG_INFO(
   //     "InstanceDispatcher, num deps = {}, req_size = {}, ios = {}",
@@ -371,16 +379,21 @@ void BackgroundThread::impl_init(
 
   dependency_ = std::unique_ptr<Backend>(HAMI_CREATE(Backend, dependency_name));
   HAMI_ASSERT(dependency_);
+  auto iter = config.find("priority");
+  if (iter != config.end()){
+    priority_ = std::stoi(iter->second);
+    SPDLOG_INFO("priority = {}", priority_);
+  }
 
-  init_task_ = [this, config, kwargs]() {
-    dependency_->init(config, kwargs);
-    HAMI_ASSERT(
-        dependency_->min() >= 1 && dependency_->min() <= dependency_->max(),
-        std::to_string(dependency_->min()) + " " +
-            std::to_string(dependency_->max()));
+    init_task_ = [this, config, kwargs]() {
+      dependency_->init(config, kwargs);
+      HAMI_ASSERT(
+          dependency_->min() >= 1 && dependency_->min() <= dependency_->max(),
+          std::to_string(dependency_->min()) + " " +
+              std::to_string(dependency_->max()));
 
-    bInited_.store(true);
-  };
+      bInited_.store(true);
+    };
 
   thread_ = std::thread(&BackgroundThread::run, this);
   while (!bInited_.load() && (!bStoped_.load())) {
@@ -398,7 +411,17 @@ void BackgroundThread::impl_init(
 
 void BackgroundThread::impl_forward(const std::vector<dict>& ios) {
   if (helper::all_has_key(ios, TASK_EVENT_KEY)) {
-    batched_queue_.push(ios);
+    
+
+    HAMI_ASSERT(batched_queue_.push(ios));
+    // if (ios.size() >= 1) {
+    //   float time = helper::timestamp();
+    //   SPDLOG_INFO(
+    //       "BackgroundThread  timer: {} {} {}",
+    //       ios.size(),
+    //       time,
+    //       0);
+    // }
     return;
   }
   HAMI_ASSERT(helper::none_has_key(ios, TASK_EVENT_KEY));
@@ -425,12 +448,18 @@ void BackgroundThread::run() {
     std::vector<dict> tasks;
     {
       auto succ = batched_queue_.wait_pop(
-          tasks, SHUTDOWN_TIMEOUT); // for exit this thread
+          tasks, 100); // for exit this thread
 
       if (!succ) {
         assert(tasks.empty());
         continue;
       }
+      // float time = helper::timestamp();
+      // SPDLOG_INFO(
+      //     "batched_queue_  timer: {} {} {}",
+      //     tasks.size(),
+      //     time,
+      //     0);
     }
 
     std::vector<std::shared_ptr<Event>> events;
@@ -442,6 +471,7 @@ void BackgroundThread::run() {
         events.push_back(ti_p);
       }
     }
+
     HAMI_FATAL_ASSERT(
         events.size() == tasks.size(),
         "event: " + std::to_string(events.size()) +

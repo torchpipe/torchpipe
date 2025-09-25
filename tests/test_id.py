@@ -12,5 +12,6 @@ def test_AtomicInt():
 
     assert (atomic_int.increment() == 6)
     assert atomic_int.get() == 6
+    print(hami.__version__)
 if __name__ == "__main__":
     test_AtomicInt()

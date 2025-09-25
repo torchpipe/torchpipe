@@ -656,8 +656,18 @@ std::unique_ptr<nvinfer1::IHostMemory> onnx2trt(OnnxParams& params) {
   auto b_parsed = parser->parseFromFile(
       params.model.c_str(),
       static_cast<int>(trt_get_log_level(params.log_level)));
-  HAMI_ASSERT(b_parsed);
+  HAMI_ASSERT(b_parsed, "parsed failed for " + params.model);
   // todo max workspace size for setMemoryPoolLimit
+
+  // todo ampere_plus
+#if NV_TENSORRT_MAJOR >= 9 
+  if(params.hardward_compatibility == "AMPERE_PLUS")
+{
+  SPDLOG_INFO("set HardwareCompatibilityLevel to AMPERE_PLUS");
+  config->setHardwareCompatibilityLevel(
+      nvinfer1::HardwareCompatibilityLevel::kAMPERE_PLUS);
+}
+#endif
 
   bool use_only_fp32 = true;
   // quantize
@@ -857,6 +867,12 @@ OnnxParams config2onnxparams(
   params.max_workspace_size = 1024 * 1024 * params.max_workspace_size;
 
   hami::str::try_update(config, "model::timingcache", params.timingcache);
+  hami::str::try_update(
+      config, "hardward_compatibility", params.hardward_compatibility);
+  HAMI_ASSERT(
+      params.hardward_compatibility == "NONE" ||
+          params.hardward_compatibility == "AMPERE_PLUS",
+      "hardward_compatibility must be one of [NONE|AMPERE_PLUS]");
 
   hami::str::try_update(config, "log_level", params.log_level);
 
@@ -910,6 +926,7 @@ OnnxParams config2onnxparams(
   if (config.find("min") != config.end() && !config.at("min").empty()) {
     auto min_shapes = hami::str::str_split(config.at("min"), ';');
     params.mins = hami::str::str_split<int>(config.at("min"), 'x', ',', ';');
+    SPDLOG_INFO("min_shapes = {}", config.at("min"));
   }
 
   if (config.find("max") != config.end() && !config.at("max").empty()) {

@@ -46,7 +46,7 @@ def extract_text_from_data_str(data_str: str) -> str:
     
     return ""
 
-AIOHTTP_TIMEOUT = aiohttp.ClientTimeout(total=100)
+AIOHTTP_TIMEOUT = aiohttp.ClientTimeout(total=1000)
 
 async def fetch_completion(session, url, headers, data):
     async with session.post(url, headers=headers, json=data) as response:
@@ -65,7 +65,7 @@ async def main(prompt="San Francisco is a", port = 8000, max_tokens=7):
         'Content-Type': 'application/json'
     }
     data = {
-        "model": "../Llama-2-7b-chat-hf/",
+        "model": "./Llama-2-7b-chat-hf/",
         "prompt": prompt,
         # "priority": "default",
         "n": 1,

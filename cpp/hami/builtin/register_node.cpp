@@ -22,7 +22,7 @@ void Register::impl_init(
   inject_dependency(dep);
 
   for (const auto& item : args_kwargs.second) {
-    SPDLOG_INFO(
+    SPDLOG_DEBUG(
         "{}: {} [{}, {}]", item.first, item.second, dep->min(), dep->max());
   }
   // set_registered_name("node." + node_name);

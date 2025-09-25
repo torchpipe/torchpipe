@@ -20,7 +20,7 @@ pip install --upgrade ultralytics
 # 后处理用后端实现,输出可视化结果
 # python yolo_visual_with_post.py 
 # 用于实际高吞吐
-python yolo_deploy.py  # --model yolo12m
+python yolo_deploy.py --model yolo11m
 ```
 
 

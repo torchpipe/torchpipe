@@ -38,6 +38,11 @@ class InstancesState {
     cv_.notify_all();
   }
 
+  size_t running_intance_count() const {
+    std::lock_guard<std::mutex> lock(mtx_);
+    return instances_.size() - available_instances_.size();
+  }
+
   std::optional<size_t> query_available(
       size_t req_size,
       size_t timeout,

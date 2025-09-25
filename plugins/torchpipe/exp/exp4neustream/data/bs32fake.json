@@ -1,0 +1,30 @@
+{
+    "unet_trt": {
+        "backend": "S[FakeInstance[TensorrtTensor],Forward[unet_post]]",
+        "batching_timeout": 0,
+        "instance_num": 1,
+        "model": "unet.onnx",
+        "model::cache": "tmp/unet_bs32.trt",
+        "fake_instance_num": 3,
+        "max": "8;16;32",
+        "min": "1;9;17"
+    },
+    "vae_trt": {
+        "backend": "TensorrtTensor",
+        "batching_timeout": 10,
+        "instance_num": 1,
+        "model": "vae.onnx",
+        "model::cache": "tmp/vae_bs8i1.trt",
+        "max": 8,
+        "min": 1
+    },
+    "clip_trt": {
+        "backend": "TensorrtTensor",
+        "batching_timeout": 20,
+        "instance_num": 1,
+        "model": "clip.onnx",
+        "model::cache": "tmp/clip_bs8i1.trt",
+        "max": 4,
+        "min": 1
+    }
+}

@@ -545,7 +545,8 @@ std::unordered_map<std::string, std::string> map_split(
     std::string strtem,
     char inner_sp,
     char outer_sp,
-    const std::string& default_key = "");
+    const std::string& default_key = "",
+    bool reverse = false);
 // }  // namespace config_parser
 } // namespace str
 

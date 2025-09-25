@@ -388,7 +388,8 @@ std::unordered_map<std::string, std::string> map_split(
     std::string strtem,
     char inner_sp,
     char outer_sp,
-    const std::string& default_key) {
+    const std::string& default_key,
+    bool reverse) {
   remove_space_and_ctrl(strtem);
   if (strtem.empty()) {
     return {};
@@ -451,7 +452,10 @@ std::unordered_map<std::string, std::string> map_split(
   key_values.push_back(strtem.substr(lastInner + 1));
 
   for (size_t i = 0; i < key_values.size() / 2; ++i) {
-    result[key_values[i * 2]] = key_values[i * 2 + 1];
+    if (reverse)
+      result[key_values[i * 2 + 1]] = key_values[i * 2];
+    else
+      result[key_values[i * 2]] = key_values[i * 2 + 1];
   }
 
   const std::unordered_set<char> invalid(

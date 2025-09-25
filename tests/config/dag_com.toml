@@ -1,0 +1,33 @@
+instance_num = 2
+batching_timeout = 4
+precision = "fp16"
+
+backend="Identity"
+[cpu_decoder]
+# 切换batchsize时， 需要单独节点处理
+# backend = "S[DecodeMat,Mat2Tensor,CvtColorTensor, SyncTensor]" # 需要处理背景线程cuda流同步问题可用Torch， 否则可用Sequential；Torch确保初始化和前向在同一个线程时，能准确处理多个backend的同步时机
+
+
+color = "bgr"
+instance_num = 4
+
+
+next = "cpu_posdecoder,cls, final"
+[cpu_posdecoder]
+# 切换batchsize时， 需要单独节点处理
+map="cpu_decoder[result:data]" 
+# backend = "S[Tensor2Mat,CvtColorMat,ResizeMat,Mat2Tensor, SyncTensor]" 
+
+
+next = "cls, final"
+
+
+[cls]
+map="cpu_decoder[result:img],cpu_posdecoder[result:data,result:img_posdecoder]"
+# backend = "S[TensorrtTensor, SyncTensor]"
+
+next = "final"
+
+
+[final]
+map="cpu_decoder[result:img],cpu_posdecoder[result:data1,result:img_posdecoder], cls[result:data]"

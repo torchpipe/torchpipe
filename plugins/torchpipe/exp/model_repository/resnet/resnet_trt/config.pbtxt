@@ -21,7 +21,7 @@
 
 name: "resnet_trt"
 platform: "tensorrt_plan"
-max_batch_size: 8
+max_batch_size: 5
 input [
   {
     name: "input"

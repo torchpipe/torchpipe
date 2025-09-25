@@ -398,10 +398,9 @@ void ContinuousBatching::impl_forward(const std::vector<dict>& io) {
 
   for (auto iter = req_status_.begin(); iter != req_status_.end();) {
     if (iter->second.finish && !iter->second.running) {
-      // SPDLOG_INFO("Contiguous Batching stoped: {}", iter->first);
       notify_event({iter->second.data});
       // iter->second.event->notify_all();
-      SPDLOG_INFO("Contiguous Batching stoped(notify_event): {}", iter->first);
+      SPDLOG_INFO("Continuous Batching stoped(notify_event): {}", iter->first);
       HAMI_FATAL_ASSERT(page_table_->free(iter->first));
       iter = req_status_.erase(iter);
     } else {
@@ -465,7 +464,7 @@ void ContinuousBatching::impl_forward(const std::vector<dict>& io) {
     if (iter != finish_ids.end()) {
       new_ios.back()->insert({"finish_reason", iter->second});
       SPDLOG_INFO(
-          "Contiguous Batching finish: {} finish_reason={}", id, iter->second);
+          "Continuous Batching finish: {} finish_reason={}", id, iter->second);
       req_status_.at(id).finish = true;
     }
   }
@@ -538,7 +537,7 @@ void ContinuousBatching::parser_message(
 
   SPDLOG_INFO(
       "\n"
-      "+---------------------------- Contiguous Batching ----------------------------+\n"
+      "+---------------------------- Continuous Batching ----------------------------+\n"
       "| Request ID:      {:45} |\n"
       "| Req Tokens:      {:45} |\n"
       "| Context Length:      {:45} |\n"

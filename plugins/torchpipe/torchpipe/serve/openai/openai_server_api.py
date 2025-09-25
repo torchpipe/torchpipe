@@ -324,7 +324,7 @@ async def generate_completion_stream_response(
                 cur_offset = offsets.setdefault(seq_output.index, prompt_len)
                 offsets[seq_output.index] += len(seq_output.text)
                 # send chunk with delta message
-                if seq_output.text:
+                if seq_output.text or seq_output.finish_reason: # align to vllm
                     response = CompletionStreamResponse(
                         id=request_id,
                         object=chunk_object_type,

@@ -101,15 +101,17 @@ void Sequential::update_min_max() {
 
   if (num_one == backends_.size()) {
     max_ = 1;
+  }else if (max_ == std::numeric_limits<size_t>::max() && num_one != 0) {
+    max_ = 1;
   }
-  // else if (num_one != 0 && max_ == std::numeric_limits<size_t>::max()) {
-  //   max_ = 1;
-  // }
-  // if (num_one != 0 && max_ == std::numeric_limits<size_t>::max()) {
-  //   max_ = 1;
-  // }
+    // else if (num_one != 0 && max_ == std::numeric_limits<size_t>::max()) {
+    //   max_ = 1;
+    // }
+    // if (num_one != 0 && max_ == std::numeric_limits<size_t>::max()) {
+    //   max_ = 1;
+    // }
 
-  SPDLOG_INFO("Sequential: min={}, max={}", min_, max_);
+    SPDLOG_INFO("Sequential: min={}, max={}", min_, max_);
 }
 
 void Sequential::impl_forward(const std::vector<dict>& io) {

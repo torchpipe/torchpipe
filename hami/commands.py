@@ -4,8 +4,6 @@ import os
 import importlib
 
 DIR = os.path.abspath(os.path.dirname(__file__))
-print(f'Hami DIR: {DIR}, __file__: {__file__}')
-
 
 def get_C_path() -> str:
 

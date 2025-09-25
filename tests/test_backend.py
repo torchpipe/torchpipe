@@ -14,6 +14,8 @@ def test_backend_initialization():
     
     # Test with empty config
     backend.init({})
+    
+
 
 def test_backend_execution():
     backend = _C.create("Identity")

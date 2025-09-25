@@ -94,7 +94,37 @@ python decouple_eval/benchmark.py  --model faster_vit_1_224 --preprocess cpu --p
 
 
 
-# Predictability
+# Predictability && under-batching
+```bash
+# 20250801
+
+# docker
+img_name=nvcr.io/nvidia/pytorch:25.05-py3
+docker pull $img_name
+
+docker run --name=zsy_hami_all_cpu --runtime=nvidia --ipc=host  --network=host -v `pwd`:/workspace  --shm-size 1G  --ulimit memlock=-1 --ulimit stack=67108864  --privileged=true  -w/workspace -it $img_name /bin/bash
+ 
+# test cuda
+python -c  "import torch; assert (torch.cuda.is_available())"
+
+# install hami
+python setup.py bdist_wheel
+pip uninstall hami-core -y && pip install dist/*.whl
+
+
+# install torchpipe
+cd plugins/torchpipe/
+pip install -e .
+
+# install timm
+### optional: pip config set global.index-url https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple
+pip install timm==1.0.15 onnxsim==0.4.36  py3nvml nvidia-pytriton==0.5.14 nvidia-ml-py -i https://pypi.tuna.tsinghua.edu.cn/simple
+
+# to work directory
+cd exp/
+
+
+```
 
 ```bash
 python decouple_eval/benchmark.py  --model resnet101 --preprocess cpu --preprocess-instances 14 --total_number 40000  --client 80
@@ -109,11 +139,15 @@ python decouple_eval/benchmark.py  --model resnet101 --preprocess cpu --max 1 --
 {40: {'QPS': 1303.3, 'TP50': 30.27, 'TP99': 43.24, 'GPU Usage': 98.0}}
 {80: {'QPS': 1244.96, 'TP50': 60.96, 'TP99': 207.66, 'GPU Usage': 97.0}}
 
-python decouple_eval/benchmark.py  --model resnet101 --preprocess cpu --max 40 --trt_instance_num 1 --timeout 10 --preprocess-instances 14 --total_number 10000 --client 80
+taskset -c 12-40
+python decouple_eval/benchmark.py  --model resnet101 --preprocess cpu --max 40 --trt_instance_num 1 --timeout 10 --preprocess-instances 14 --total_number 20000 --client 80
 {1: {'QPS': 101.65, 'TP50': 7.57, 'TP99': 17.75, 'GPU Usage': 56.0}}
 {10: {'QPS': 524.0, 'TP50': 19.06, 'TP99': 19.45, 'GPU Usage': 30.5}}
 {40: {'QPS': 1840.08, 'TP50': 21.57, 'TP99': 23.46, 'GPU Usage': 54.0}}
 {80: {'QPS': 3036.11, 'TP50': 25.97, 'TP99': 33.33, 'GPU Usage': 95.0}}
+
+python decouple_eval/benchmark.py  --model resnet101 --preprocess cpu --max 4 --trt_instance_num 1 --timeout 10 --preprocess-instances 14 --total_number 20000 --client 80
+
 
 ```
 

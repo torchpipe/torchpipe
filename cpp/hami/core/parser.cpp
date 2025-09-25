@@ -114,7 +114,7 @@ DagParser::DagParser(const str::mapmap& config) {
               cited_item + " has no map config, default set to [result:data]");
           dag_config_[cited_item].map_config = str::mapmap();
           dag_config_[cited_item].map_config[item.first] =
-              str::str_map{{TASK_RESULT_KEY, TASK_DATA_KEY}};
+              str::str_map{{TASK_DATA_KEY, TASK_RESULT_KEY}};
         }
       }
     }
@@ -214,7 +214,7 @@ str::mapmap DagParser::parse_map_config(const std::string& config) {
     HAMI_ASSERT(
         maps_data.size() == 2,
         "map should be in the form of node_name[src_key:dst_key]");
-    in_map = str::map_split(maps_data[1], ':', ',', "");
+    in_map = str::map_split(maps_data[1], ':', ',', "", true);
     if (!in_map.empty()) {
       map_config[maps_data[0]] = in_map;
     }
@@ -287,7 +287,7 @@ dict DagParser::prepare_data_from_previous(
   for (const auto& item : dag_config_.at(node).map_config) {
     const auto& src_node = item.first;
     const auto& src_dict = processed.at(src_node);
-    for (const auto& [src_key, dst_key] : item.second) {
+    for (const auto& [dst_key, src_key] : item.second) {
       auto iter = src_dict->find(src_key);
       HAMI_ASSERT(
           iter != src_dict->end(),

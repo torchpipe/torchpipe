@@ -58,6 +58,20 @@ void TensorrtInferTensor::impl_init(
   info_ = get_context_shape(context_.get(), instance_index_);
   HAMI_ASSERT(is_all_positive(info_), "input shape is not positive");
 
+  std::ostringstream oss;
+  oss << "TensorrtInferTensor instance_index=" << instance_index_
+      << " instance_num=" << instance_num_ << ":\n";
+   for (size_t i = 0; i < info_.first.size(); ++i) {
+     oss << "input[" << i << "] " << info_.first[i].min.nbDims << " dims: ";
+     for (size_t j = 0; j < info_.first[i].min.nbDims; ++j) {
+        oss << info_.first[i].min.d[j] << ",";
+      }
+      oss << "\n";
+   }
+
+    SPDLOG_DEBUG(oss.str());
+  
+
   (*kwargs)[TASK_IO_INFO_KEY] = std::make_shared<NetIOInfos>(info_);
 
   if (mem_size_ == 0) {
@@ -202,6 +216,7 @@ void TensorrtInferTensor::impl_forward(
   cudaEventSynchronize(input_finish_event_);
   inputs.clear();
   input_output[0]->erase(TASK_DATA_KEY);
+  // SPDLOG_DEBUG("trt_infer: outputs.size()= " + std::to_string(outputs.size()));
   if (outputs.size() == 1) {
     (*input_output[0])[TASK_RESULT_KEY] = outputs[0];
   } else {

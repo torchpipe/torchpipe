@@ -121,6 +121,10 @@ class HAMI_EXPORT ClassRegistryBase {
       if (!aspect_name.empty()) {
         // printlog("Named Backend-Object: " + aspect_name + ". Class: "
         // + class_name);
+        if (reverse_class_name_map_.find(aspect_name) !=
+            reverse_class_name_map_.end()) {
+          throw std::runtime_error("Duplicated backend name: " + aspect_name);
+        }
         reverse_class_name_map_[aspect_name] = result;
       }
     }

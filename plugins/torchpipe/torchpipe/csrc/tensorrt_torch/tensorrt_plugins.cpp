@@ -197,7 +197,7 @@ int32_t TorchPlugin::getOutputDataTypes(
     DataType const* inputTypes,
     int32_t nbInputs) const noexcept {
   // One output.
-  SPDLOG_INFO(
+  SPDLOG_DEBUG(
       "getOutputDataTypes called. nbInputs={}, nbOutputs={}",
       nbInputs,
       nbOutputs);

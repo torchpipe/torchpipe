@@ -4,8 +4,8 @@
 - start triton server
 ```bash
 cd paper/torchpipe/
-img_name=nvcr.io/nvidia/tritonserver:23.06-py3
-nvidia-docker run -it --rm --cpus=8 --network=host --runtime=nvidia --privileged  --name triton8 --shm-size=1g --ulimit memlock=-1 --ulimit stack=67108864 -v `pwd`:/workspace   $img_name bash
+img_name=nvcr.io/nvidia/tritonserver:25.05-py3
+nvidia-docker run --name=triton_exp -it --rm --cpus=8 --network=host --runtime=nvidia --privileged  --name triton8 --shm-size=1g --ulimit memlock=-1 --ulimit stack=67108864 -v `pwd`:/workspace   $img_name bash
 
 cd /workspace/examples/exp
 

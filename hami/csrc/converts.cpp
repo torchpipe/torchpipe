@@ -19,7 +19,7 @@ std::optional<any> object2any_base_type(pybind11::handle data) {
   } else if (py::isinstance<py::int_>(data)) {
     return py::cast<int>(data);
   } else if (py::isinstance<py::float_>(data)) {
-    return py::cast<float>(data);
+    return py::cast<double>(data);
   } else if (py::isinstance<py::bytes>(data)) {
     return py::cast<std::string>(data);
   }

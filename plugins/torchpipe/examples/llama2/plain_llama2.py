@@ -11,7 +11,7 @@ from models import hf_helper
 
 max_num_req=64
 page_size=16
-g_num_layers = 2
+g_num_layers = 32
 
 def set_num_layers(num_layers):
     global g_num_layers 
@@ -118,7 +118,7 @@ class PyPlugin:
                 self.decode_forward(q[PyPlugin.num_prefill_tok:], k[PyPlugin.num_prefill_tok:], v[PyPlugin.num_prefill_tok:],
                                     output[PyPlugin.num_prefill_tok:])
         except Exception as e:
-            hami.print(f"error {e}", flush=True)
+            hami.print(f"error {e}")
             raise e
     def decode_forward(self, q, k, v, output):
         if self.layer_idx == 0:
@@ -205,13 +205,15 @@ class PyPlugin:
             kv_last_page_len
         )
         
-def main(num_layers = 2):
+def main(num_layers = 32):
     set_num_layers(num_layers)
     
     set_page_table()
     hami.register("TorchPlugin", PyPlugin)
     
-    model = hami.init_from_file('config/plain_llama2.toml')
+    config = os.path.join(os.path.dirname(__file__),
+                          'config/plain_llama2.toml')
+    model = hami.init_from_file(config)
     hami.init("DebugLogger")
     
     exported_params = "./exported_params"

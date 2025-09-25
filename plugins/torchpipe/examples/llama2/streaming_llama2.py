@@ -11,6 +11,8 @@ import torch
 from tokenizers.decoders import ByteFallback, DecodeStream
 import tokenizers
 
+CURRENT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '.'))
+
 @dataclass
 class RequestState:
     # 没有默认值的字段必须放在前面
@@ -66,7 +68,8 @@ class CustomBackendEngine(BackendEngine):
         # self.eos_token_id = self.tokenizer.get_vocab()["</s>"]
 
         # import pdb; pdb.set_trace()
-        self.model = hami.init_from_file('config/streaming_llama2.toml')
+        config = os.path.join(os.path.dirname(__file__), 'config/streaming_llama2.toml')
+        self.model = hami.init_from_file(config)
         self.request_status = {}
         
         self.continuous_batching  = hami.get("node.continuous_batching")
@@ -229,7 +232,7 @@ class CustomBackendEngine(BackendEngine):
                 seq.finish_reason = "stop"
                 output.finished = True
                 seq.text = ""
-                print("STOP TOKEN ID: \n", data_item)
+                print(f"{request_id} - STOP TOKEN ID {data_item} \n")
             elif "finish_reason" in io:
                 finish_reason = io["finish_reason"]
                 if finish_reason == "length":
@@ -291,7 +294,10 @@ class CustomBackendEngine(BackendEngine):
         pass
             
 
-def main(num_layers = 2, max_num_page = 0, use_trt=False):
+def main(num_layers = 2, max_num_page = 0, port=8000, use_trt=False):
+    print( f"CXX11_ABI = {torch._C._GLIBCXX_USE_CXX11_ABI}")
+    
+    # hami.init("DebugLogger")
     os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
     
     if use_trt:
@@ -317,7 +323,7 @@ def main(num_layers = 2, max_num_page = 0, use_trt=False):
         "--model_id", "my_model",
         "--model", "llama2",
         "--host", "0.0.0.0",
-        "--port", "8000",
+        "--port", f'{port}',
         "--log_level", "info",
     ]
     from torchpipe.serve.openai.openai_server_api import main as server_main

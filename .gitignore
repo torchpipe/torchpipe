@@ -24,6 +24,14 @@ log.txt
 .trunk
 *.swp
 hami/_build_info.py
-
+ali/
 plugins/torchpipe/examples/yolo/dog_result.jpg
 .trunk/
+tmp.md
+
+plugins/torchpipe/exp/exp2/tmp.txt
+plugins/torchpipe/exp/exp2batch/tmp.txt
+plugins/torchpipe/exp/model_parameters
+tmp.py
+*.onnx
+*.onnx.data

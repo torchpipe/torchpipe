@@ -1,7 +1,7 @@
 #include "torchplugins/cat_split_tensor.hpp"
 #include "helper/task_keys.hpp"
 #include "helper/torch.hpp"
-
+#include "hami/helper/timer.hpp"
 using namespace hami;
 
 namespace torchpipe {
@@ -25,10 +25,11 @@ void CatTensor::impl_forward(const std::vector<dict>& input_dict) {
     cated_inputs.push_back(std::move(data));
   }
   auto total_bs = std::accumulate(req_size.begin(), req_size.end(), 0);
-  SPDLOG_DEBUG("batchsize = {}", total_bs);
+  
 
   // row2col
   const size_t num_tensors = cated_inputs.front().size();
+
   // const size_t batch_size = cated_inputs.size();
   std::vector<std::vector<torch::Tensor>> nchws(num_tensors);
   for (size_t i = 0; i < cated_inputs.size(); ++i) {
@@ -61,6 +62,12 @@ void CatTensor::impl_forward(const std::vector<dict>& input_dict) {
     const auto opt =
         torch::TensorOptions().dtype(torch::kLong).device(torch::kCUDA);
     result.push_back(torch::tensor(output_values, opt));
+    // std::ostringstream oss;
+    // for (size_t i = 0; i < result.size(); ++i) {
+    //   oss << "i="<< i<<": ";
+    //   oss << result[i].sizes() << ",";
+    // }
+    // SPDLOG_DEBUG("CatTensor output sizes: {}", oss.str());
     (*input_dict.front())[TASK_RESULT_KEY] = result;
   } else {
     if (result.size() == 1) {
@@ -96,6 +103,7 @@ void FixTensor::impl_forward(const std::vector<dict>& input_dict) {
     if (net_shapes_) {
       fix_tensors(data, net_shapes_);
     }
+    
     if (data.size() == 1) {
       (*input)[TASK_RESULT_KEY] = data[0];
     } else {

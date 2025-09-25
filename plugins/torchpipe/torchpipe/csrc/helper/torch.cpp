@@ -20,6 +20,7 @@
 #include "c10/cuda/CUDAStream.h"
 #endif
 #include <ATen/cuda/CUDAContext.h>
+#include <ATen/cuda/CUDAEvent.h>
 
 // #include "time_utils.hpp"
 // #include "base_logging.hpp"
@@ -31,7 +32,7 @@
 #include <hami/extension.hpp>
 #include "helper/torch.hpp"
 // #include "NvInferRuntime.h"
-
+#include "hami/helper/timer.hpp"
 namespace torchpipe {
 
 void save(std::string save_name, torch::Tensor input) {
@@ -144,6 +145,43 @@ bool is_any_cpu(hami::any data) {
   }
 
   return true;
+}
+
+inline c10::cuda::CUDAStream get_current_stream() {
+  return c10::cuda::getCurrentCUDAStream();
+}
+
+// GPU事件初始化（线程安全版）
+inline const at::cuda::CUDAEvent& start_event() {
+  static at::cuda::CUDAEvent ev;
+  static std::once_flag flag;
+  std::call_once(flag, [&] { ev.record(at::cuda::getDefaultCUDAStream()); });
+  return ev;
+}
+
+// 获取当前CUDA流的时间（毫秒），对齐CPU时间
+float cuda_time() {
+  // 记录GPU结束事件
+  at::cuda::CUDAEvent stop_event;
+  stop_event.record(get_current_stream());
+  stop_event.synchronize();
+
+  // 计算GPU时间
+  float gpu_ms = start_event().elapsed_time(stop_event);
+
+  // 初始化时间偏移量（只执行一次）
+  static float time_offset = [&]() {
+    start_event().synchronize();
+    at::cuda::CUDAEvent sync_event;
+    sync_event.record(get_current_stream());
+    sync_event.synchronize();
+
+    auto cpu_elapsed = hami::helper::timestamp();
+    return cpu_elapsed - start_event().elapsed_time(sync_event);
+  }();
+
+  // 返回对齐后的时间
+  return gpu_ms + time_offset;
 }
 
 /**
@@ -564,7 +602,9 @@ void fix_tensor_shape(
     torch::Tensor& data,
     const NetIOInfo::Dims64 min,
     const NetIOInfo::Dims64& max) {
+  
   const auto& sizes = data.sizes();
+
   if (sizes.size() == 3 && 4 == min.nbDims && max.d[1] == min.d[1] &&
       min.d[1] <= 4) {
     // hwc2nchw
@@ -587,15 +627,16 @@ void fix_tensor_shape(
   // bool in_error = false;
   std::string err_msg;
   if (sizes.size() == min.nbDims) {
-    for (size_t i = 0; i < sizes.size(); ++i) {
-      if (sizes[i] < min.d[i] || sizes[i] > max.d[i]) {
-        // in_error = true;
-        err_msg = std::to_string(sizes[i]) + " is not in range [" +
-            std::to_string(min.d[i]) + ", " + std::to_string(max.d[i]) +
-            "]. index=" + std::to_string(i);
-        break;
-      }
-    }
+    // todo: after cat
+    // for (size_t i = 0; i < sizes.size(); ++i) {
+    //   if (sizes[i] < min.d[i] || sizes[i] > max.d[i]) {
+    //     // in_error = true;
+    //     err_msg = std::to_string(sizes[i]) + " is not in range [" +
+    //         std::to_string(min.d[i]) + ", " + std::to_string(max.d[i]) +
+    //         "]. index=" + std::to_string(i);
+    //     break;
+    //   }
+    // }
   } else if (sizes.size() + 1 == min.nbDims) {
     if ((sizes[0] >= min.d[1] && sizes[0] <= max.d[1]) &&
         sizes[1] >= min.d[2] && sizes[1] <= max.d[2] && sizes[2] >= min.d[3] &&
@@ -738,7 +779,15 @@ void check_input_tensor(const torch::Tensor& tensor, const NetIOInfo& infos) {
   }
 
   for (size_t i = 0; i < infos.min.nbDims; ++i) {
-    HAMI_ASSERT(tensor.sizes()[i] >= infos.min.d[i]);
+    if (tensor.sizes()[i] < infos.min.d[i]){
+      std::ostringstream oss;
+      oss << "Input tensor shape does not match the min shape required by the model. "
+          << "tensor.sizes() = " << tensor.sizes()
+          << ", infos.min.d[" << i << "] = " << infos.min.d[i] << "\n";
+      HAMI_ASSERT(false, oss.str());
+    }
+      
+    
     HAMI_ASSERT(
         tensor.sizes()[i] <= infos.max.d[i],
         "tensor.sizes()[i] = " + std::to_string(tensor.sizes()[i]) +
@@ -756,9 +805,12 @@ void check_input_tensor(const torch::Tensor& tensor, const NetIOInfo& infos) {
     HAMI_ASSERT(tensor.is_contiguous());
   }
 }
+
 void check_batched_inputs(
     const std::vector<torch::Tensor>& tensors,
     const std::vector<NetIOInfo>& infos) {
+
+  // SPDLOG_DEBUG(print_tensor(tensors, "check_batched_inputs"));
   const auto num_inputs = tensors.size();
   HAMI_ASSERT(
       infos.size() == num_inputs,
