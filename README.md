@@ -26,7 +26,7 @@ Torchpipe is an alternative choice for [Triton Inference Server]((https://github
 
 
 ## Version Migration Notes 
-The core functionality of TorchPipe (v0) has been extracted into a standalone [Hami](https://github.com/torchpipe/torchpipe/tree/v1?tab=readme-ov-file) library. Additionally, [TorchPipe (v1)](https://github.com/torchpipe/torchpipe/tree/v1/plugins/torchpipe) has been developed as a collection of deep learning computation backends built on top of this Hami library. This change is driven by three main reasons:
+The core functionality of TorchPipe (v0) has been extracted into a standalone [core](https://github.com/torchpipe/torchpipe/tree/v1?tab=readme-ov-file) library. Additionally, [TorchPipe (v1)](https://github.com/torchpipe/torchpipe/tree/v1/plugins/torchpipe) has been developed as a collection of deep learning computation backends built on top of this core library. This change is driven by three main reasons:
 - Consider the scheduling component as part of the user API.
 - The core library is better integrated into PyPI.
 - Better code quality.
