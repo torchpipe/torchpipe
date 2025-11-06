@@ -340,7 +340,7 @@ setuptools.setup(
 
     packages=[
         "hami",
-        'hami.csrc'
+        'hami.csrc',
         "hami.utils",  # 显式声明
         "hami._C"     # 如果 _C 也是包
     ],
@@ -353,7 +353,6 @@ setuptools.setup(
             "*.so",
             "csrc/*.hpp",  # 明确包含 .hpp 文件
             "csrc/*.h",    # 明确包含 .h 文件
-            "utils/*",     # 包含 utils 下的所有文件
             "_C*.so",
             "_build_info.py",
         ]
