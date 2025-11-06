@@ -265,7 +265,6 @@ class build_ext(setuptools.command.build_ext.build_ext):
                     src_file = os.path.join(root, file)
                     dst_file = os.path.join(dest_path, file)
                     shutil.copy2(src_file, dst_file)
-                    print(f"Copied {src_file} to {dst_file}")
 
     def run(self):
 
@@ -292,7 +291,8 @@ class build_ext(setuptools.command.build_ext.build_ext):
         extension_dst_dir = os.path.join(build_lib, "hami/")
 
         os.makedirs(extension_dst_dir, exist_ok=True)
-
+        # print(
+        #     f'CMAKE_LIBRARY_OUTPUT_DIRECTORY={CMAKE_LIBRARY_OUTPUT_DIRECTORY}')
         for so_file in glob.glob(os.path.join(CMAKE_LIBRARY_OUTPUT_DIRECTORY, "*.so")):
             shutil.copy(so_file, extension_dst_dir)
             log.info("Copying {} to {}".format(so_file, extension_dst_dir))
@@ -306,6 +306,7 @@ class build_ext(setuptools.command.build_ext.build_ext):
                 else:
                     f.write(f"{key} = '{str(value)}'\n")
 
+        
 
 cmdclass = {
     "cmake_build": cmake_build,
@@ -335,27 +336,13 @@ def get_install_files_old():
     return incs
 
 
+
 setuptools.setup(
     name="hami-core",
-
-    packages=[
-        "hami",
-        'hami.csrc',
-        "hami.utils",  # 显式声明
-        "hami._C"     # 如果 _C 也是包
-    ],
+    packages=["hami", "hami.utils"],
     ext_modules=ext_modules,
     cmdclass=cmdclass,
     include_package_data=True,
-    package_data={
-        "hami": [
-            'csrc/',
-            "*.so",
-            "csrc/*.hpp",  # 明确包含 .hpp 文件
-            "csrc/*.h",    # 明确包含 .h 文件
-            "_C*.so",
-            "_build_info.py",
-        ]
-    },
-    setup_requires=required_setup_deps
+    zip_safe=False,
+    setup_requires=required_setup_deps,
 )

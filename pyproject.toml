@@ -1,71 +1,75 @@
 [build-system]
-build-backend = "setuptools.build_meta"
 requires = [
-  "setuptools>=42",
+  "setuptools>=61",  # 支持 file-based dynamic deps
   "wheel",
   "cmake>=3.18",
   "ninja",
-  "setuptools-scm",
-  "pybind11",
+  "setuptools-scm[toml]>=7",
+  "pybind11>=2.10",
 ]
+build-backend = "setuptools.build_meta"
 
 [project]
-authors = [
-  {name = "torchpipe Team", email = "hydzhang@hotmail.com"},
-]
+name = "hami-core"
+version = "0.30.0"
+description = "A Python library for batched backend scheduling"
+readme = "README.md"
+license = {text = "Apache-2.0"}
+requires-python = ">=3.8"
+authors = [{name = "torchpipe Team", email = "hydzhang@hotmail.com"}]
 classifiers = [
   "Development Status :: 3 - Alpha",
   "Intended Audience :: Developers",
   "Intended Audience :: Education",
   "Programming Language :: C++",
   "Programming Language :: Python :: 3 :: Only",
-  "Operating System :: POSIX",
+  "Operating System :: POSIX :: Linux",
   "License :: OSI Approved :: Apache Software License",
   "Topic :: Scientific/Engineering",
   "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 dependencies = [
   'tomli>=2.0.1; python_version < "3.11"',
-  'numpy',
+  'numpy>=1.19',
 ]
-description = "A Python library for batched backend scheduling"
-# dynamic = ["version"]
-version = "0.20.0"
 
-license = {text = "Apache-2.0"}
-name = "hami-core"
-readme = "README.md"
-requires-python = ">=3.8"
-[tool.setuptools_scm]
-# write_to = "hami/version.py"
-# version_file = "VERSION.txt"
-# fallback_version = "0.0.0"
-local_scheme = "node-and-timestamp"
-normalize = false
-# write_to = "VERSION.txt"
+dynamic = ["optional-dependencies"]
 
 [project.urls]
 Homepage = "https://github.com/torchpipe/torchpipe"
 
 [tool.setuptools]
+packages = ["hami", "hami.utils", "hami.csrc"]
+# 不要 include hami._C as a Python package — it's a C extension
+zip-safe = false
 include-package-data = true
-packages = ["hami", "hami._C"]
-zip-safe = true
-[tool.setuptools.dynamic]
-dependencies = {file = "requirements.txt"}
+
+# 关键：通过 MANIFEST.in 控制文件包含，避免在 package_data 冗余声明
+[tool.setuptools.package-data]
+hami = [
+  "csrc/*.hpp",
+  "csrc/*.h",
+  "include/hami/*.h",
+  "include/spdlog/*.h",
+  "include/spdlog/**/*.h",
+  "_build_info.py",
+  "*.so"
+]
 
 [tool.setuptools.exclude-package-data]
-"*" = ["*.cc", "*.bak", "*.in", "CMakeLists.txt"]
+"*" = ["*.cc", "*.cpp", "*.cu", "*.bak", "*.in", "CMakeLists.txt", "test_*"]
 
-# [tool.setuptools.cmdclass]
-# build_ext = "setup.CMakeBuild"
-
-# [tool.setuptools.packages.find]
-# include = ["hami*"]
+[tool.setuptools_scm]
+local_scheme = "node-and-timestamp"
+normalize = false
+write_to = "hami/_version.py"  # 推荐生成版本文件
 
 [tool.mypy]
-enable_error_code = ["ignore-without-code", "redundant-expr", "truthy-bool"]
-files = "setup.py"
-show_error_codes = true
 strict = true
+show_error_codes = true
 warn_unreachable = true
+enable_error_code = ["ignore-without-code", "redundant-expr", "truthy-bool"]
+files = ["setup.py"]
+
+# [project.optional-dependencies]
+# dev = ["pytest", "mypy", "black"]

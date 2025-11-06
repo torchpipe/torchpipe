@@ -40,6 +40,7 @@ function(cc_dynamic_library)
       LIBRARY_OUTPUT_DIRECTORY "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}"
       LINK_FLAGS "-Wl,--enable-new-dtags,-rpath,\\$ORIGIN"
     )
+    message(STATUS "Dynamic library ${CC_DYNAMIC_LIB_NAME} will be built to ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}")
     
 
     target_sources(${CC_DYNAMIC_LIB_NAME} 

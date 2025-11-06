@@ -1,15 +1,15 @@
-recursive-include cmake *
-recursive-include hami/utils/ *
-recursive-include hami/csrc/ *.hpp *.h
-
-
 include LICENSE
+include README.md
 include VERSION
 include CMakeLists.txt
 
+recursive-include cmake *
+recursive-include hami/utils *.py
+recursive-include hami/csrc *.hpp *.h *.cc *.cpp
+recursive-include third_party/spdlog/include/spdlog *.h *.hpp
+
+recursive-include cpp/hami *.h *.hpp
+
 global-exclude */__pycache__/*
 global-exclude *.pyc
-
-include hami/*.py
-include hami/*.hpp
-
+global-exclude *.o *.a *.so

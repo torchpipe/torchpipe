@@ -2,12 +2,13 @@
 import os, glob
 from importlib.metadata import version, PackageNotFoundError
 
-try:
-    __version__ = version("hami-core")
-except PackageNotFoundError:
-    # package is not installed
-    pass
+# try:
+#     __version__ = version("hami-core")
+# except PackageNotFoundError:
+#     # package is not installed
+#     pass
 
+from ._version import version as __version__
 
 if os.path.exists("./hami/"):
     # if /hami/_C*.so exits

@@ -35,3 +35,4 @@ plugins/torchpipe/exp/model_parameters
 tmp.py
 *.onnx
 *.onnx.data
+hami/_version.py
