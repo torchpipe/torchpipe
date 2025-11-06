@@ -1,6 +1,5 @@
 include LICENSE
 include README.md
-include VERSION
 include CMakeLists.txt
 
 recursive-include cmake *
