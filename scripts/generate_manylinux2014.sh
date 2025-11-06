@@ -5,7 +5,6 @@ rm -rf wheelhouse/*manylinux2014_x86_64.whl
 rm -rf hami*.egg-info/*
 
 git config --global --add safe.directory .
-git fetch --unshallow --tags 2>/dev/null || true
 
 export PYVER=313
 
