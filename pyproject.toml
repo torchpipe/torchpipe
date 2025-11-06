@@ -11,7 +11,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "hami-core"
-version = "0.30.0"
+version = "0.40.0"
 description = "A Python library for batched backend scheduling"
 readme = "README.md"
 license = {text = "Apache-2.0"}
