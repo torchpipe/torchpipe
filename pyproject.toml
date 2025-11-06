@@ -12,6 +12,8 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "hami-core"
 # version = "1.40.0"
+dynamic = ["version", "optional-dependencies"]
+
 description = "A Python library for batched backend scheduling"
 readme = "README.md"
 license = {text = "Apache-2.0"}
@@ -33,7 +35,7 @@ dependencies = [
   'numpy>=1.19',
 ]
 
-dynamic = ["optional-dependencies"]
+# dynamic = ["optional-dependencies"]
 
 [project.urls]
 Homepage = "https://github.com/torchpipe/torchpipe"
