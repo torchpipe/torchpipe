@@ -37,7 +37,7 @@ import shutil
 ################################################################################
 # Packages
 ################################################################################
-required_setup_deps = ["cmake", "ninja", "pybind11", "setuptools_scm"]
+required_setup_deps = []# ["cmake", "ninja", "pybind11", "setuptools_scm"]
 
 
 def is_package_installed(package_name):

@@ -7,6 +7,8 @@ TorchPipe is an alternative choice for Triton Inference Server, mainly featuring
 
 It is a multi-instance pipeline parallel library that acts as a bridge between lower-level acceleration libraries (such as TensorRT, OpenCV, CVCUDA) and RPC frameworks (e.g. Thrift). It offers a thread-safe function interface for the PyTorch frontend.
 
+If you find an issue, please [let us know](../..//issues)!
+
 ## Usage
 
 Below are some usage examples, for more check out the [examples](./examples/).
@@ -69,7 +71,7 @@ result = data['result']
 
 > Note: compiling torchpipe depends on the TensorRT c++ API. Please follow the [TensorRT Installation Guide](https://docs.nvidia.com/deeplearning/tensorrt/install-guide/index.html).  You may also try installing torchpipe inside one of the NGC PyTorch docker containers(e.g. nvcr.io/nvidia/pytorch:25.05-py3). Similar to the structure of Triton Inference Server, torchpipe is a plugin collection (TensorRT, OpenCV, etc...) built on top of the core library (named Hami, used to standardize both computation backends and scheduling backends).
 
-### Install the torchpipe Python library
+### Quick Install
 
 To install the torchpipe Python library, call the following
 
@@ -92,27 +94,8 @@ python setup.py install --cv2
 # export TENSORRT_INCLUDE=~/tensorrt_install/include
 # export TENSORRT_LIB=~/tensorrt_install/lib
 ```
+for more installation options, please refer to [Inside NGC Docker](./docs/getting_started.md#inside), [uv environment](./docs/getting_started.md#uv) and.
 
-### Specific Installation Instructions
-Compile with the torch cxx11_abi flag:
-```bash
-python -c "import torch; print(torch._C._GLIBCXX_USE_CXX11_ABI)"
-```
-If the output is True, then cxx11_abi is enabled.
-
-Compile the core library Hami (root directory):
-```bash
-USE_CXX11_ABI=1 python setup.py install
-```
-Or install from PyPI (hami-core will be automatically installed when compiling torchpipe):
-
-```bash
-# cxx11_abi=False
-bash -c 'tmpdir=$(mktemp -d) && pip download hami-core --platform manylinux2014_x86_64 --only-binary=:all: --dest $tmpdir --no-deps && pip install $tmpdir/hami_core-*.whl && rm -rf $tmpdir'
-# cxx11_abi=True: 
-pip install hami-core 
-
-```
    
 
 

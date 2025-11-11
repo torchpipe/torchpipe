@@ -76,6 +76,9 @@ def prepare_hami():
         need_reinstall = hami._C.use_cxx11_abi() != torch._C._GLIBCXX_USE_CXX11_ABI
     except:
         need_reinstall = True
+    # torch >= 1.10.2
+    
+    
     
     if need_reinstall:
         import tempfile

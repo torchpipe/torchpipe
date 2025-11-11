@@ -12,10 +12,10 @@ try:
 except Exception:
     __version__ = "0.0.0+unknown"
 
-if os.path.exists("./hami/"):
-    # if /hami/_C*.so exits
-    if not any(glob.glob(os.path.join("./hami/", '_C*.so'))) or not any(glob.glob(os.path.join("./hami/", '*hami.so'))):
-        raise ImportError('find ./hami/ in current directory, but no _C*.so or *hami.so found')
+# if os.path.exists("./hami/"):
+#     # if /hami/_C*.so exits
+#     if not any(glob.glob(os.path.join("./hami/", '_C*.so'))) or not any(glob.glob(os.path.join("./hami/", '*hami.so'))):
+#         raise ImportError('find ./hami/ in current directory, but no _C*.so or *hami.so found')
 
 from .commands import get_cmake_dir, get_includes, get_pkgconfig_dir, get_library_dir, get_root, get_C_path
 

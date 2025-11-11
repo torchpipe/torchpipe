@@ -1,9 +1,14 @@
 # from ._C import *
 
 # from .version import __version__
+
 import hami
 
 import torch
+
+from importlib.metadata import version
+
+__version__ = version("torchpipe")
 
 from . import libnative, libimage, libmat, libtrt
 
@@ -21,6 +26,7 @@ from .extension import _load_library
 
 
 torch.cuda.init()
+
 
 
 # _load_library("native")

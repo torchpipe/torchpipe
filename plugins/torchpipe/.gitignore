@@ -3,3 +3,4 @@ _C.so
 *.egg-info
 *.so
 torchpipe/*.so
+.venv/
