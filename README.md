@@ -3,7 +3,7 @@
 <h6 align="center">Ensemble Pipeline Serving With PyTorch Frontend</h6>  
 </div>
 
-TorchPipe is an alternative choice for Triton Inference Server, mainly featuring similar functionalities such as Shared-memory, Ensemble, and BLS mechanism. 
+torchpipe is an alternative choice for Triton Inference Server, mainly featuring similar functionalities such as [Shared-momory](https://docs.nvidia.com/deeplearning/triton-inference-server/user-guide/docs/protocol/extension_shared_memory.html), [Ensemble](https://github.com/triton-inference-server/server/blob/main/docs/user_guide/architecture.md#ensemble-models), and [BLS](https://github.com/triton-inference-server/python_backend#business-logic-scripting) mechanism.
 
 It is a multi-instance pipeline parallel library that acts as a bridge between lower-level acceleration libraries (such as TensorRT, OpenCV, CVCUDA) and RPC frameworks (e.g. Thrift). It offers a thread-safe function interface for the PyTorch frontend.
 
@@ -109,7 +109,7 @@ python setup.py install --cv2
 
 ## Version Migration Notes 
 
-The core functionality of TorchPipe (v0) has been extracted into the standalone Hami library.  
+The core functionality of [TorchPipe (v0)](https://github.com/torchpipe/torchpipe/tree/v0) has been extracted into the standalone Hami library.  
 
 
-TorchPipe (v1, this version) is a collection of deep learning computation backend plugins built on the Hami library, primarily integrating third-party libraries including TensorRT, OpenCV, and LibTorch.
+TorchPipe (v1, this version)  is a collection of deep learning computation backends built on  Hami library, primarily integrating third-party libraries including TensorRT, OpenCV, and LibTorch. Not all computation backends from TorchPipe (v0) have been ported to TorchPipe (v1) yet.

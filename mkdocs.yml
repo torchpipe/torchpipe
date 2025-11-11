@@ -1,0 +1,48 @@
+site_name: torchpipe
+theme:
+    name: "material"
+    palette:
+        primary: green
+        secondary: light green
+
+repo_url: https://https://github.com/torchpipe/torchpipe/
+
+plugins:
+  - search
+  
+use_directory_urls: False
+
+edit_uri: blob/v1/plugins/torchpipe/docs
+markdown_extensions:
+  - pymdownx.tabbed
+  - pymdownx.keys
+  - pymdownx.snippets
+  - pymdownx.inlinehilite
+  - pymdownx.highlight:
+      use_pygments: true
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - attr_list
+  
+# use_directory_urls - False to fix broken raw html image links
+# https://github.com/mkdocs/mkdocs/issues/991
+
+# borrowed from https://github.com/NVIDIA-AI-IOT/torch2trt/
+
+nav:
+
+  - Home: index.md
+  - Getting Started: getting_started.md
+  - Usage:
+      - Basic Usage: usage/basic_usage.md
+
+extra_css:
+    - css/version-select.css
+extra_javascript:
+    - js/version-select.js
+    
+google_analytics:
+    - UA-135919510-3
+    - auto
+    
