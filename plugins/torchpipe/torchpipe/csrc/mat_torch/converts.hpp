@@ -1,29 +1,30 @@
 
 #pragma once
-#include <hami/extension.hpp>
+#include <omniback/extension.hpp>
 
 namespace torchpipe {
 
-class Mat2Tensor : public hami::BackendOne {
-   public:
-    virtual void impl_init(const std::unordered_map<std::string, std::string>&,
-                           const hami::dict&) override;
+class Mat2Tensor : public omniback::BackendOne {
+ public:
+  virtual void impl_init(
+      const std::unordered_map<std::string, std::string>&,
+      const omniback::dict&) override;
 
-    virtual void forward(const hami::dict&) override;
+  virtual void forward(const omniback::dict&) override;
 
-   private:
-    std::string device_{"cuda"};
+ private:
+  std::string device_{"cuda"};
 };
 
-class Tensor2Mat : public hami::BackendOne {
+class Tensor2Mat : public omniback::BackendOne {
  public:
-//   virtual void impl_init(
-//       const std::unordered_map<std::string, std::string>&,
-//       const hami::dict&) override;
+  //   virtual void impl_init(
+  //       const std::unordered_map<std::string, std::string>&,
+  //       const omniback::dict&) override;
 
-  virtual void forward(const hami::dict&) override;
+  virtual void forward(const omniback::dict&) override;
 
  private:
 };
 
-}  // namespace torchpipe
+} // namespace torchpipe

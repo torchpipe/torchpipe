@@ -1,11 +1,11 @@
-#include <optional>
-#include <hami/csrc/python.hpp>
-#include <hami/extension.hpp>
+#include <omniback/csrc/python.hpp>
+#include <omniback/extension.hpp>
 #include <torch/csrc/autograd/python_variable.h>
+#include <optional>
 
-#include <torch/extension.h>
-#include <pybind11/stl.h>
 #include <ATen/ATen.h>
+#include <pybind11/stl.h>
+#include <torch/extension.h>
 #include "pybind/register_types.h"
 
 namespace torchpipe {
@@ -18,15 +18,15 @@ bool is_torch_tensor(const py::handle& obj) {
   return THPVariable_Check(obj.ptr());
 }
 
-HAMI_ADD_PY2CPP([](const py::handle& obj) -> std::optional<hami::any> {
+OMNI_ADD_PY2CPP([](const py::handle& obj) -> std::optional<omniback::any> {
   if (!is_torch_tensor(obj)) {
     return std::nullopt;
   }
 
-  return hami::any(py::cast<torch::Tensor>(obj));
+  return omniback::any(py::cast<torch::Tensor>(obj));
 });
 
-HAMI_ADD_PY2CPP([](const py::handle& obj) -> std::optional<hami::any> {
+OMNI_ADD_PY2CPP([](const py::handle& obj) -> std::optional<omniback::any> {
   if (!py::isinstance<py::list>(obj)) {
     return std::nullopt;
   }
@@ -49,12 +49,12 @@ HAMI_ADD_PY2CPP([](const py::handle& obj) -> std::optional<hami::any> {
     tensor_list.push_back(py::cast<torch::Tensor>(item));
   }
 
-  return hami::any(tensor_list);
+  return omniback::any(tensor_list);
 });
 
-HAMI_ADD_HASH(torch::Tensor);
-HAMI_ADD_HASH(std::vector<torch::Tensor>)([](const hami::any& data) {
-  const auto& vec = hami::any_cast<std::vector<torch::Tensor>>(data);
+OMNI_ADD_HASH(torch::Tensor);
+OMNI_ADD_HASH(std::vector<torch::Tensor>)([](const omniback::any& data) {
+  const auto& vec = omniback::any_cast<std::vector<torch::Tensor>>(data);
   py::list result;
   for (const auto& tensor : vec) {
     result.append(py::cast(tensor));
@@ -62,12 +62,12 @@ HAMI_ADD_HASH(std::vector<torch::Tensor>)([](const hami::any& data) {
   return result;
 });
 
-HAMI_ADD_CPP2PY([](const hami::any& obj) -> std::optional<py::object> {
+OMNI_ADD_CPP2PY([](const omniback::any& obj) -> std::optional<py::object> {
   if (obj.type() != typeid(torch::Tensor)) {
     return std::nullopt;
   }
 
-  const torch::Tensor& tensor = hami::any_cast<torch::Tensor>(obj);
+  const torch::Tensor& tensor = omniback::any_cast<torch::Tensor>(obj);
   return py::cast(tensor);
 });
 // Add this to your initialization code

@@ -1,16 +1,16 @@
 #pragma once
 
-#include <unordered_set>
+#include <omniback/extension.hpp>
 #include <string>
-#include <hami/extension.hpp>
+#include <unordered_set>
 
-using hami::dict;
+using omniback::dict;
 
 namespace torchpipe {
-class CropTensor : public hami::BackendOne {
-   public:
-    virtual void forward(const dict&) override;
+class CropTensor : public omniback::BackendOne {
+ public:
+  virtual void forward(const dict&) override;
 
-   private:
+ private:
 };
-}  // namespace torchpipe
+} // namespace torchpipe

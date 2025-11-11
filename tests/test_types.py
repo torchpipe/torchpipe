@@ -2,10 +2,10 @@ import time
 
 
 def test_types():
-    import hami
+    import omniback
     config = {'instance_num': '2', 'max': '4', 'batching_timeout': 5,
               'backend': 'Identity', 'model': 'yolo11l.onnx'}
-    hami.pipe({"xss": config})
+    omniback.pipe({"xss": config})
 
 
 if __name__ == "__main__":

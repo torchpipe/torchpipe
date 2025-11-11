@@ -1,4 +1,0 @@
-#pragma once
-#include  "hami/builtin/basic_backends.hpp"
-
-namespace hami {}  // namespace hami

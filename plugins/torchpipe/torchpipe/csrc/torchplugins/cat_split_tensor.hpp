@@ -1,15 +1,15 @@
 #pragma once
 
-#include <unordered_set>
+#include <omniback/extension.hpp>
 #include <string>
-#include <hami/extension.hpp>
+#include <unordered_set>
 #include "helper/net_info.hpp"
 
-using hami::dict;
+using omniback::dict;
 
 namespace torchpipe {
 
-class CatTensor : public hami::BackendMax {
+class CatTensor : public omniback::BackendMax {
  private:
   void impl_init(
       const std::unordered_map<std::string, std::string>& config_param,
@@ -20,7 +20,7 @@ class CatTensor : public hami::BackendMax {
   std::optional<int> index_selector_;
 };
 
-class FixTensor : public hami::BackendMax {
+class FixTensor : public omniback::BackendMax {
  private:
   void impl_init(
       const std::unordered_map<std::string, std::string>& config_param,
@@ -31,7 +31,7 @@ class FixTensor : public hami::BackendMax {
   std::shared_ptr<NetIOInfos> net_shapes_;
 };
 
-class SplitTensor : public hami::Backend {
+class SplitTensor : public omniback::Backend {
  private:
   void impl_init(
       const std::unordered_map<std::string, std::string>& config_param,
@@ -42,7 +42,7 @@ class SplitTensor : public hami::Backend {
   std::shared_ptr<std::vector<NetIOInfo>> net_shapes_;
 };
 
-class ArgMaxTensor : public hami::Backend {
+class ArgMaxTensor : public omniback::Backend {
  private:
   void impl_init(
       const std::unordered_map<std::string, std::string>& config_param,
@@ -50,7 +50,7 @@ class ArgMaxTensor : public hami::Backend {
   void impl_forward(const std::vector<dict>& io) override;
 };
 
-class SoftmaxArgMaxTensor : public hami::Backend {
+class SoftmaxArgMaxTensor : public omniback::Backend {
  private:
   void impl_init(
       const std::unordered_map<std::string, std::string>& config_param,

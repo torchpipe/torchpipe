@@ -1,6 +1,6 @@
 import os
 import fire
-import hami
+import omniback
 import torchpipe
 from pathlib import Path
 import tempfile
@@ -9,8 +9,8 @@ import torchpipe.utils.model_helper as helper
  
 
 def onnx2trt(onnx_path, toml_path, register_name):
-    """Convert ONNX model to TensorRT using HAMI configurations."""
-    config = hami.parser.parse(toml_path)
+    """Convert ONNX model to TensorRT using OMNI configurations."""
+    config = omniback.parser.parse(toml_path)
     
     trt_path = Path(onnx_path).with_suffix('.trt')
     for _, settings in config.items():
@@ -19,9 +19,9 @@ def onnx2trt(onnx_path, toml_path, register_name):
             settings['model::cache'] = str(trt_path)
             break
     
-    kwargs = hami.Dict()
+    kwargs = omniback.Dict()
     kwargs['config'] = config
-    return hami.create('Interpreter', register_name).init({}, kwargs)
+    return omniback.create('Interpreter', register_name).init({}, kwargs)
 
 import torchpipe.utils.model_helper as helper
         
@@ -30,19 +30,19 @@ if __name__ == "__main__":
     # time.sleep(10)
 
     
-    data_pipeline = hami.init("S[ReadFile, Send2Queue(src_queue, max=10)]")
+    data_pipeline = omniback.init("S[ReadFile, Send2Queue(src_queue, max=10)]")
     
     model='resnet50'
     onnx_path = Path(tempfile.gettempdir()) / f"{model}.onnx"
     if not onnx_path.exists():
         torch_model, _ = helper.get_timm_and_export_onnx(model, str(onnx_path))
     resnet50 = onnx2trt(str(onnx_path), f'{model}.toml', 'trt_model')
-    pool = hami.init("IoC[Profile,ThreadPoolExecutor(out=thread,max_workers=10),Identity; DI[ThreadPoolExecutor,Profile,trt_model]]", register_name='pool')  # target_queu(default)
-    # pool = hami.init("IoC[Profile,ThreadPoolExecutor(out=thread,max_workers=10), Identity; DI[ThreadPoolExecutor,Identity]]", register_name='pool')  # target_queu(default)
+    pool = omniback.init("IoC[Profile,ThreadPoolExecutor(out=thread,max_workers=10),Identity; DI[ThreadPoolExecutor,Profile,trt_model]]", register_name='pool')  # target_queu(default)
+    # pool = omniback.init("IoC[Profile,ThreadPoolExecutor(out=thread,max_workers=10), Identity; DI[ThreadPoolExecutor,Identity]]", register_name='pool')  # target_queu(default)
 
     # import pdb;pdb.set_trace()
     
-    q = hami.default_queue(tag = 'src_queue')
+    q = omniback.default_queue(tag = 'src_queue')
     pool({'data':q}) # async
     
     total_number = 10000
@@ -61,7 +61,7 @@ if __name__ == "__main__":
         retina_path= str(retina_path)
 
     
-    # while (q.status() == hami.Queue.RUNNING and index< total_number):
+    # while (q.status() == omniback.Queue.RUNNING and index< total_number):
     
     ms_val_dataset = helper.get_mini_imagenet().to_torch_dataset()
     # import pdb; pdb.set_trace()
@@ -83,14 +83,14 @@ if __name__ == "__main__":
     
     # print(thread.size())
     # result = thread.get()['result']
-    # print(thread.size(),  hami.default_queue().size())
+    # print(thread.size(),  omniback.default_queue().size())
     
-    default_q = hami.default_queue()
+    default_q = omniback.default_queue()
     while not default_q.wait_until_at_least(total_number, 0.5):
         pass
     print(default_q.size())
     
-    thread = hami.default_queue('thread')
+    thread = omniback.default_queue('thread')
     print('io: ', q.size(), thread.size())
     
     import torch

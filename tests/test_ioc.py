@@ -1,6 +1,6 @@
 import pytest
-import hami._C as _C
-import hami
+import omniback._C as _C
+import omniback
 def test_ioc_initialization():
     # Test IoCV0 container initialization
     ioc = _C.create("IoCV0")
@@ -53,10 +53,10 @@ def test_ioc_phase_initialization():
         "BackendC::param3": "value3"
     }
     kwargs = {}
-    # ioc.init(config, hami.Dict())
+    # ioc.init(config, omniback.Dict())
     with pytest.raises(ValueError):
-        ioc.init(config, hami.Dict())
-    # ioc.init(config, hami.Dict())
+        ioc.init(config, omniback.Dict())
+    # ioc.init(config, omniback.Dict())
 
  
     

@@ -2,7 +2,7 @@
 
 # from .version import __version__
 
-import hami
+import omniback
 
 import torch
 
@@ -13,13 +13,13 @@ __version__ = version("torchpipe")
 from . import libnative, libimage, libmat, libtrt
 
 from . import utils
-if (hami._C.use_cxx11_abi() != torch._C._GLIBCXX_USE_CXX11_ABI):
-    info = f"Incompatible C++ ABI detected. Please re-install PyTorch/Torchpipe or hami with the same C++ ABI. "
-    info += "hami CXX11_ABI = {}, torch CXX11_ABI = {}. ".format(
-        hami._C.use_cxx11_abi(), torch._C._GLIBCXX_USE_CXX11_ABI)
-    info += f"""\nFor hami, you can use 
-        pip3 install hami-core --platform manylinux2014_x86_64 --only-binary=:all:   --target `python3 -c "import site; print(site.getsitepackages()[0])"` 
-        to install the pre-cxx11 abi version. Or use `USE_CXX11_ABI={int(not hami._C.use_cxx11_abi())} pip install -e .` to rebuild hami.
+if (omniback._C.use_cxx11_abi() != torch._C._GLIBCXX_USE_CXX11_ABI):
+    info = f"Incompatible C++ ABI detected. Please re-install PyTorch/Torchpipe or omniback with the same C++ ABI. "
+    info += "omniback CXX11_ABI = {}, torch CXX11_ABI = {}. ".format(
+        omniback._C.use_cxx11_abi(), torch._C._GLIBCXX_USE_CXX11_ABI)
+    info += f"""\nFor omniback, you can use 
+        pip3 install omniback --platform manylinux2014_x86_64 --only-binary=:all:   --target `python3 -c "import site; print(site.getsitepackages()[0])"` 
+        to install the pre-cxx11 abi version. Or use `USE_CXX11_ABI={int(not omniback._C.use_cxx11_abi())} pip install -e .` to rebuild omniback.
     """
     raise RuntimeError(info)
 from .extension import _load_library

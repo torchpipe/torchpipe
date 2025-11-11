@@ -1,12 +1,12 @@
 import pytest
-import hami
+import omniback
 
 @pytest.fixture
 def initialized_page_table():
     page_size = 16
     max_num_req = 10
     max_num_page = 1000
-    page_table = hami.default_page_table()
+    page_table = omniback.default_page_table()
     page_table.init(max_num_req=max_num_req, 
                    max_num_page=max_num_page, 
                    page_size=page_size)

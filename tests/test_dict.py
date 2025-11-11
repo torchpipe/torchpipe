@@ -1,6 +1,6 @@
 import pytest
-import hami._C as _C
-from hami import Dict as hami_dict
+import omniback._C as _C
+from omniback import Dict as omniback_dict
 
 def test_dict_basic():
     # Test construction

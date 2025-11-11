@@ -393,9 +393,9 @@ def _modify_attention(attention: torch.nn.Module):
             if global_kv is None:
                 
                 set_kv(max_num_pages=max_num_pages, num_layers=32, page_size=16, num_kv_heads=32, head_dim=128)
-                import hami
+                import omniback
                 import torchpipe
-                model = hami.init(f"FIAppendTensor", {"max_num_page":max_num_pages})
+                model = omniback.init(f"FIAppendTensor", {"max_num_page":max_num_pages})
             k_append = key_states[0]
             v_append = value_states[0]
             paged_kv_cache = global_kv[self.layer_idx]

@@ -1,7 +1,7 @@
-import hami
+import omniback
 
 
-model = hami.init("ParserTest")
+model = omniback.init("ParserTest")
 
 TESTS = {"A(b,c=1)[D[E[f,g]]]": ['A', {'E::dependency': 'f,g', 'D::dependency': 'E', 'A::dependency': 'D', 'A::args': 'b,c=1'}],
         "A[C;D]": ['A', {'A::dependency': 'C;D'}],

@@ -29,10 +29,10 @@
 #include <torch/torch.h>
 #include <fstream>
 
-#include <hami/extension.hpp>
+#include <omniback/extension.hpp>
 #include "helper/torch.hpp"
 // #include "NvInferRuntime.h"
-#include "hami/helper/timer.hpp"
+#include "omniback/helper/timer.hpp"
 namespace torchpipe {
 
 void save(std::string save_name, torch::Tensor input) {
@@ -75,9 +75,10 @@ torch::Tensor load_tensor(std::string save_name) {
 #if 1
 bool torch_not_use_default_stream(bool high_prio) {
   if (c10::cuda::getCurrentCUDAStream() == c10::cuda::getDefaultCUDAStream()) {
-    c10::cuda::setCurrentCUDAStream(c10::cuda::getStreamFromPool(
-        high_prio,
-        -1)); // Schedule保证了init和forward在同一个线程
+    c10::cuda::setCurrentCUDAStream(
+        c10::cuda::getStreamFromPool(
+            high_prio,
+            -1)); // Schedule保证了init和forward在同一个线程
     return true;
   }
   return false;
@@ -89,8 +90,9 @@ bool torch_not_use_default_stream(int device_id, bool high_prio) {
   }
   if (c10::cuda::getCurrentCUDAStream(device_id) ==
       c10::cuda::getDefaultCUDAStream(device_id)) {
-    c10::cuda::setCurrentCUDAStream(c10::cuda::getStreamFromPool(
-        high_prio, device_id)); // Schedule保证了init和forward在同一个线程
+    c10::cuda::setCurrentCUDAStream(
+        c10::cuda::getStreamFromPool(
+            high_prio, device_id)); // Schedule保证了init和forward在同一个线程
     return true;
   }
   return false;
@@ -132,15 +134,15 @@ bool is_cpu_tensor(torch::Tensor input) {
 #endif
 }
 // Check if the given data variable is of CPU type.
-bool is_any_cpu(hami::any data) {
+bool is_any_cpu(omniback::any data) {
   if (data.type() == typeid(torch::Tensor)) {
-    torch::Tensor tensor = hami::any_cast<torch::Tensor>(data);
+    torch::Tensor tensor = omniback::any_cast<torch::Tensor>(data);
     return is_cpu_tensor(tensor);
   }
 
   if (data.type() == typeid(std::vector<torch::Tensor>)) {
     std::vector<torch::Tensor> tensors =
-        hami::any_cast<std::vector<torch::Tensor>>(data);
+        omniback::any_cast<std::vector<torch::Tensor>>(data);
     return tensors.at(0).is_cpu();
   }
 
@@ -176,7 +178,7 @@ float cuda_time() {
     sync_event.record(get_current_stream());
     sync_event.synchronize();
 
-    auto cpu_elapsed = hami::helper::timestamp();
+    auto cpu_elapsed = omniback::helper::timestamp();
     return cpu_elapsed - start_event().elapsed_time(sync_event);
   }();
 
@@ -506,18 +508,18 @@ torch::Tensor tensor_permute(
 }
 
 std::vector<torch::Tensor> get_tensors(
-    hami::dict input_dict,
+    omniback::dict input_dict,
     const std::string& key) {
   auto iter = input_dict->find(key);
-  HAMI_ASSERT(iter != input_dict->end(), "key not found: " + key);
+  OMNI_ASSERT(iter != input_dict->end(), "key not found: " + key);
   std::vector<torch::Tensor> image_embeds;
-  hami::any& data = iter->second;
+  omniback::any& data = iter->second;
   if (data.type() == typeid(torch::Tensor)) {
-    torch::Tensor input_tensor = hami::any_cast<torch::Tensor>(data);
+    torch::Tensor input_tensor = omniback::any_cast<torch::Tensor>(data);
 
     image_embeds.push_back(input_tensor);
   } else if (data.type() == typeid(std::vector<torch::Tensor>)) {
-    image_embeds = hami::any_cast<std::vector<torch::Tensor>>(data);
+    image_embeds = omniback::any_cast<std::vector<torch::Tensor>>(data);
 
   } else {
     throw std::runtime_error(
@@ -602,7 +604,6 @@ void fix_tensor_shape(
     torch::Tensor& data,
     const NetIOInfo::Dims64 min,
     const NetIOInfo::Dims64& max) {
-  
   const auto& sizes = data.sizes();
 
   if (sizes.size() == 3 && 4 == min.nbDims && max.d[1] == min.d[1] &&
@@ -648,7 +649,7 @@ void fix_tensor_shape(
   if (!err_msg.empty())
     throw std::invalid_argument(
         "fix_tensor_shape: invalid tensor shape : " +
-        hami::str::vec2str(data.sizes().vec()) + " err_msg: " + err_msg);
+        omniback::str::vec2str(data.sizes().vec()) + " err_msg: " + err_msg);
 }
 
 // Function to convert NetIOInfo::Device to torch::Device
@@ -733,7 +734,7 @@ void fix_tensors(
     std::vector<torch::Tensor>& tensors,
     const std::shared_ptr<NetIOInfos>& infos) {
   const auto num_inputs = tensors.size();
-  HAMI_ASSERT(
+  OMNI_ASSERT(
       infos->first.size() >= num_inputs,
       "number of inputs from model does not match that from the data");
 
@@ -772,47 +773,45 @@ std::string print_tensor(
 
 void check_input_tensor(const torch::Tensor& tensor, const NetIOInfo& infos) {
   if (tensor.sizes().size() != infos.min.nbDims) {
-    HAMI_ASSERT(
+    OMNI_ASSERT(
         false,
         std::to_string(tensor.sizes().size()) + " vs " +
             std::to_string(infos.min.nbDims) + "\n" + print_tensor({tensor}));
   }
 
   for (size_t i = 0; i < infos.min.nbDims; ++i) {
-    if (tensor.sizes()[i] < infos.min.d[i]){
+    if (tensor.sizes()[i] < infos.min.d[i]) {
       std::ostringstream oss;
       oss << "Input tensor shape does not match the min shape required by the model. "
-          << "tensor.sizes() = " << tensor.sizes()
-          << ", infos.min.d[" << i << "] = " << infos.min.d[i] << "\n";
-      HAMI_ASSERT(false, oss.str());
+          << "tensor.sizes() = " << tensor.sizes() << ", infos.min.d[" << i
+          << "] = " << infos.min.d[i] << "\n";
+      OMNI_ASSERT(false, oss.str());
     }
-      
-    
-    HAMI_ASSERT(
+
+    OMNI_ASSERT(
         tensor.sizes()[i] <= infos.max.d[i],
         "tensor.sizes()[i] = " + std::to_string(tensor.sizes()[i]) +
             " infos.max.d[i] = " + std::to_string(infos.max.d[i]));
-    HAMI_ASSERT(
+    OMNI_ASSERT(
         tensor.scalar_type() == netinfo2torch_type(infos.type),
         "Input tensor data type does not match the data type "
         "required by the model. " +
             print_torch_scale_type(tensor.scalar_type()) + " vs " +
             print_torch_scale_type(netinfo2torch_type(infos.type)));
-    HAMI_ASSERT(
+    OMNI_ASSERT(
         tensor.is_cuda() & (infos.device == NetIOInfo::Device::GPU),
         std::to_string(tensor.is_cuda()) + " vs " +
             std::to_string(infos.device == NetIOInfo::Device::GPU)); // todo
-    HAMI_ASSERT(tensor.is_contiguous());
+    OMNI_ASSERT(tensor.is_contiguous());
   }
 }
 
 void check_batched_inputs(
     const std::vector<torch::Tensor>& tensors,
     const std::vector<NetIOInfo>& infos) {
-
   // SPDLOG_DEBUG(print_tensor(tensors, "check_batched_inputs"));
   const auto num_inputs = tensors.size();
-  HAMI_ASSERT(
+  OMNI_ASSERT(
       infos.size() == num_inputs,
       "number of inputs from model does not match that from the data");
 

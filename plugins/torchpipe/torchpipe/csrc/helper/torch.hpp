@@ -13,15 +13,15 @@
 // limitations under the License.
 
 #pragma once
-// #include <hami/extension.hpp>
-#include <hami/core/dict.hpp>
-#include <torch/torch.h>
+// #include <omniback/extension.hpp>
 #include <c10/cuda/CUDACachingAllocator.h>
 #include <c10/cuda/CUDAStream.h>
+#include <omniback/core/dict.hpp>
+#include <torch/torch.h>
 #include "helper/net_info.hpp"
 
 namespace torchpipe {
-using dict = hami::dict;
+using dict = omniback::dict;
 
 #if 1
 bool torch_not_use_default_stream(bool high_prio = false);
@@ -31,12 +31,12 @@ torch::Tensor to_current_device(torch::Tensor input);
 
 #endif
 
-torch::Tensor get_tensor_from_any(hami::any input);
+torch::Tensor get_tensor_from_any(omniback::any input);
 std::string print_tensor(
     const std::vector<torch::Tensor>& data,
     const std::string& tag = "");
 
-bool is_any_cpu(hami::any input);
+bool is_any_cpu(omniback::any input);
 bool is_cpu_tensor(torch::Tensor input);
 static inline torch::TensorOptions get_tensor_option(c10::ScalarType dtype) {
   return torch::TensorOptions()
@@ -109,7 +109,7 @@ static inline torch::Tensor torch_allocate(int64_t size) {
 }
 
 std::vector<torch::Tensor> get_tensors(
-    hami::dict input_dict,
+    omniback::dict input_dict,
     const std::string& key);
 
 void copy2ptr(torch::Tensor input, char* ptr);

@@ -1,16 +1,16 @@
 #pragma once
 
-#include <unordered_set>
+#include <omniback/extension.hpp>
 #include <string>
-#include <hami/extension.hpp>
+#include <unordered_set>
 
-#include "c10/cuda/CUDAGuard.h"
 #include <ATen/cuda/CUDAEvent.h>
+#include "c10/cuda/CUDAGuard.h"
 
-using hami::dict;
+using omniback::dict;
 
 namespace torchpipe {
-class SyncTensor : public hami::Backend {
+class SyncTensor : public omniback::Backend {
  public:
   /**
    * @brief
@@ -89,7 +89,7 @@ class SyncTensor : public hami::Backend {
   at::cuda::CUDAEvent event_;
 };
 
-// class StreamGuard : public hami::DependencyV0 {
+// class StreamGuard : public omniback::DependencyV0 {
 //  public:
 //   /**
 //    * @brief

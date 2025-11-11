@@ -1,10 +1,10 @@
 def test_none():
     # import torchpipe
-    # import hami
+    # import omniback
     # import torch
     
     # import pytest
-    import hami
+    import omniback
     import torchpipe
     print(torchpipe.__version__)
 

@@ -1,5 +1,5 @@
 import pytest
-import hami
+import omniback
 from typing import Dict, Any
 
 # import toml
@@ -17,6 +17,6 @@ def test_configs():
     for x in test_config:
         toml_path = f"config/{x}.toml"
 
-        data = hami.parse(toml_path)
+        data = omniback.parse(toml_path)
         print(data)
-        hami._C.init("Interpreter", {}, hami.Dict({"config": data}))
+        omniback._C.init("Interpreter", {}, omniback.Dict({"config": data}))

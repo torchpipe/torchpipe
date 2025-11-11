@@ -8,13 +8,13 @@
 #include <NvInferRuntimePlugin.h>
 #include <cuda_runtime.h>
 
-#include "hami/helper/base_logging.hpp"
-#include "hami/helper/macro.h"
-#include "hami/helper/string.hpp"
+#include "omniback/helper/base_logging.hpp"
+#include "omniback/helper/macro.h"
+#include "omniback/helper/string.hpp"
 
-#include "hami/core/backend.hpp"
-#include "hami/core/reflect.h"
-#include "hami/core/task_keys.hpp"
+#include "omniback/core/backend.hpp"
+#include "omniback/core/reflect.h"
+#include "omniback/core/task_keys.hpp"
 
 #include "tensorrt_torch/tensorrt_helper.hpp"
 #include "tensorrt_torch/tensorrt_plugins.hpp"
@@ -29,23 +29,23 @@ namespace plugin {
 #if NV_TENSORRT_MAJOR >= 10
 TorchPlugin::TorchPlugin(const std::string& params, bool is_build_phase)
     : serialization_(params), is_build_phase_(is_build_phase) {
-  params_ = hami::str::map_split(params, '=', ';');
+  params_ = omniback::str::map_split(params, '=', ';');
 
-  hami::str::try_update(params_, "num_output", torch_params_.num_output);
-  hami::str::try_update(params_, "num_input", torch_params_.num_input);
-  hami::str::try_update(params_, "layer_idx", torch_params_.layer_idx);
-  hami::str::try_update(params_, "workspace", torch_params_.workspace_size);
-  HAMI_ASSERT(
+  omniback::str::try_update(params_, "num_output", torch_params_.num_output);
+  omniback::str::try_update(params_, "num_input", torch_params_.num_input);
+  omniback::str::try_update(params_, "layer_idx", torch_params_.layer_idx);
+  omniback::str::try_update(params_, "workspace", torch_params_.workspace_size);
+  OMNI_ASSERT(
       torch_params_.workspace_size <= std::numeric_limits<long int>::max());
 
-  hami::str::try_update<std::string>(params_, "name", torch_params_.name);
+  omniback::str::try_update<std::string>(params_, "name", torch_params_.name);
 
   std::string dtype = "fp16";
-  hami::str::try_update(params_, "dtype", dtype);
-  std::vector<std::string> types = hami::str::str_split(dtype, ',');
+  omniback::str::try_update(params_, "dtype", dtype);
+  std::vector<std::string> types = omniback::str::str_split(dtype, ',');
   for (const auto& item : types)
     torch_params_.type.push_back(torchpipe::convert2trt(item));
-  HAMI_ASSERT(!torch_params_.type.empty());
+  OMNI_ASSERT(!torch_params_.type.empty());
   if (torch_params_.num_output + torch_params_.num_input >
       torch_params_.type.size()) {
     torch_params_.type.resize(
@@ -61,20 +61,21 @@ TorchPlugin::TorchPlugin(const std::string& params, bool is_build_phase)
   }();
 
   if (!is_build_phase) {
-    // dependency_ = HAMI_INSTANCE_GET(hami::Backend, torch_params_.name);
-    dependency_ = hami::init_backend(torch_params_.name, params_);
-    HAMI_ASSERT(dependency_);
+    // dependency_ = OMNI_INSTANCE_GET(omniback::Backend, torch_params_.name);
+    dependency_ = omniback::init_backend(torch_params_.name, params_);
+    OMNI_ASSERT(dependency_);
   }
 }
 
 void TorchPlugin::initFieldsToSerialize() {
   // Serialize TorchPluginParameters.
   mDataToSerialize.clear();
-  mDataToSerialize.emplace_back(nvinfer1::PluginField(
-      "params",
-      serialization_.data(),
-      PluginFieldType::kCHAR,
-      serialization_.size()));
+  mDataToSerialize.emplace_back(
+      nvinfer1::PluginField(
+          "params",
+          serialization_.data(),
+          PluginFieldType::kCHAR,
+          serialization_.size()));
   mFCToSerialize.nbFields = mDataToSerialize.size();
   mFCToSerialize.fields = mDataToSerialize.data();
 }
@@ -88,7 +89,7 @@ IPluginCapability* TorchPlugin::getCapabilityInterface(
     if (type == PluginCapabilityType::kRUNTIME) {
       return static_cast<IPluginV3OneRuntime*>(this);
     }
-    HAMI_ASSERT(type == PluginCapabilityType::kCORE);
+    OMNI_ASSERT(type == PluginCapabilityType::kCORE);
     return static_cast<IPluginV3OneCore*>(this);
   } catch (std::exception const& e) {
     SPDLOG_ERROR("Got exception: {}", e.what());
@@ -303,11 +304,13 @@ int32_t TorchPlugin::enqueue(
     }
 
     // 创建输入张量视图
-    input_tensors.emplace_back(torch::from_blob(
-        const_cast<void*>(inputs[i]),
-        sizes,
-        strides,
-        torch::TensorOptions().dtype(dtype).device(torch::kCUDA, device_id)));
+    input_tensors.emplace_back(
+        torch::from_blob(
+            const_cast<void*>(inputs[i]),
+            sizes,
+            strides,
+            torch::TensorOptions().dtype(dtype).device(
+                torch::kCUDA, device_id)));
   }
 
   //----------------------------------------------
@@ -354,19 +357,21 @@ int32_t TorchPlugin::enqueue(
     }
 
     // 创建输出张量视图
-    output_tensors.emplace_back(torch::from_blob(
-        outputs[o],
-        sizes,
-        strides,
-        torch::TensorOptions().dtype(dtype).device(torch::kCUDA, device_id)));
+    output_tensors.emplace_back(
+        torch::from_blob(
+            outputs[o],
+            sizes,
+            strides,
+            torch::TensorOptions().dtype(dtype).device(
+                torch::kCUDA, device_id)));
   }
   bool in_err = false;
   try {
-    auto io = hami::make_dict();
-    (*io)[hami::TASK_DATA_KEY] = input_tensors;
-    (*io)[hami::TASK_OUTPUT_KEY] = output_tensors;
+    auto io = omniback::make_dict();
+    (*io)[omniback::TASK_DATA_KEY] = input_tensors;
+    (*io)[omniback::TASK_OUTPUT_KEY] = output_tensors;
     if (torch_params_.workspace_size > 0) {
-      HAMI_FATAL_ASSERT(workspace);
+      OMNI_FATAL_ASSERT(workspace);
       (*io)["workspace"] = torch::from_blob(
           workspace,
           {(long int)(torch_params_.workspace_size)},
@@ -473,7 +478,7 @@ IPluginV3* TorchPluginCreator::createPlugin(
       nvinfer1::PluginField const* fields{fc->fields};
       int32_t nbFields{fc->nbFields};
 
-      HAMI_ASSERT(nbFields >= 1, "nbFields = " + std::to_string(nbFields));
+      OMNI_ASSERT(nbFields >= 1, "nbFields = " + std::to_string(nbFields));
 
       std::string params;
       for (int32_t i{0}; i < nbFields; ++i) {
@@ -481,7 +486,7 @@ IPluginV3* TorchPluginCreator::createPlugin(
         if (!strcmp(attrName, "params")) {
           // SPDLOG_INFO("fields[i].length={}", fields[i].length);
           params.resize(size_t(fields[i].length));
-          HAMI_ASSERT(
+          OMNI_ASSERT(
               fields[i].type == nvinfer1::PluginFieldType::kCHAR,
               std::to_string(int(fields[i].type)));
           memcpy(params.data(), fields[i].data, fields[i].length);
@@ -492,7 +497,8 @@ IPluginV3* TorchPluginCreator::createPlugin(
       }
       SPDLOG_INFO("Plugin Attributes: params -> {}", params);
       // check
-      // [[maybe_unused]] auto map_params = hami::str::str_split(params, ',');
+      // [[maybe_unused]] auto map_params = omniback::str::str_split(params,
+      // ',');
 
       TorchPlugin* const plugin{new TorchPlugin{params, true}};
       return plugin;
@@ -505,12 +511,12 @@ IPluginV3* TorchPluginCreator::createPlugin(
     try {
       nvinfer1::PluginField const* fields{fc->fields};
       int32_t nbFields{fc->nbFields};
-      HAMI_ASSERT(nbFields == 1);
+      OMNI_ASSERT(nbFields == 1);
 
       char const* attrName = fields[0].name;
-      HAMI_ASSERT(!strcmp(attrName, "params"));
+      OMNI_ASSERT(!strcmp(attrName, "params"));
       std::string params;
-      HAMI_ASSERT(fields[0].type == nvinfer1::PluginFieldType::kCHAR);
+      OMNI_ASSERT(fields[0].type == nvinfer1::PluginFieldType::kCHAR);
       params.resize(size_t(fields[0].length));
       memcpy(params.data(), fields[0].data, fields[0].length);
       TorchPlugin* const plugin{new TorchPlugin{params, false}};

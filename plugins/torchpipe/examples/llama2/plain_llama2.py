@@ -1,4 +1,4 @@
-import hami
+import omniback
 import torchpipe
 import torch
 import sys, os
@@ -43,7 +43,7 @@ def set_page_table(max_num_page=4096//page_size):
     print(f'set_page_table: num_layers={g_num_layers}')
     
     if page_table is None:
-        page_table = hami.default_page_table().init(max_num_req=max_num_req, max_num_page=max_num_page,page_size=page_size)
+        page_table = omniback.default_page_table().init(max_num_req=max_num_req, max_num_page=max_num_page,page_size=page_size)
         set_kv(max_num_page, g_num_layers, page_size, 32, 128)
     return page_table
 
@@ -52,16 +52,16 @@ def set_page_table(max_num_page=4096//page_size):
 
 ### --------------------------------------------------- ########## 
 
-import hami
+import omniback
 
 class Pdb:
-    def forward(self, io: List[hami.Dict]):
+    def forward(self, io: List[omniback.Dict]):
         data = io[0]
 
         print("Pdb: data.keys()", list(data.keys()), data['request_size'], data['request_id'], data['node_name'], data['data'])
         data['result'] = data['data']
 
-hami.register("Pdb", Pdb)
+omniback.register("Pdb", Pdb)
 
 
 
@@ -82,13 +82,13 @@ class PyPlugin:
         
         self.layer_idx = int(self.params['layer_idx'])
         if self.layer_idx == 0:
-            hami.print(f'layer_idx: {self.layer_idx}, params: {params}')
+            omniback.print(f'layer_idx: {self.layer_idx}, params: {params}')
         
         self.page_size = page_size
         
         PyPlugin.req_ids = None
 
-    def forward(self, io: List[hami.Dict]):
+    def forward(self, io: List[omniback.Dict]):
 
         try:
             q, k, v = io[0]['data']
@@ -118,7 +118,7 @@ class PyPlugin:
                 self.decode_forward(q[PyPlugin.num_prefill_tok:], k[PyPlugin.num_prefill_tok:], v[PyPlugin.num_prefill_tok:],
                                     output[PyPlugin.num_prefill_tok:])
         except Exception as e:
-            hami.print(f"error {e}")
+            omniback.print(f"error {e}")
             raise e
     def decode_forward(self, q, k, v, output):
         if self.layer_idx == 0:
@@ -209,12 +209,12 @@ def main(num_layers = 32):
     set_num_layers(num_layers)
     
     set_page_table()
-    hami.register("TorchPlugin", PyPlugin)
+    omniback.register("TorchPlugin", PyPlugin)
     
     config = os.path.join(os.path.dirname(__file__),
                           'config/plain_llama2.toml')
-    model = hami.init_from_file(config)
-    hami.init("DebugLogger")
+    model = omniback.init_from_file(config)
+    omniback.init("DebugLogger")
     
     exported_params = "./exported_params"
     tokenizer = AutoTokenizer.from_pretrained(exported_params)
@@ -246,12 +246,12 @@ def main(num_layers = 32):
             max_tokens += 12
         max_tokens = 27
              
-        io = hami.Dict({'data':in_id.squeeze(0),"node_name":'embed_token'})
-        io[hami.TASK_EVENT_KEY] = hami.Event() 
+        io = omniback.Dict({'data':in_id.squeeze(0),"node_name":'embed_token'})
+        io[omniback.TASK_EVENT_KEY] = omniback.Event() 
 
-        events.append(io[hami.TASK_EVENT_KEY])
-        io[hami.TASK_REQUEST_ID_KEY] = f"id-{i}"
-        io[hami.TASK_MSG_KEY] = hami.TypedDict({"req_tokens": in_id.size(-1),
+        events.append(io[omniback.TASK_EVENT_KEY])
+        io[omniback.TASK_REQUEST_ID_KEY] = f"id-{i}"
+        io[omniback.TASK_MSG_KEY] = omniback.TypedDict({"req_tokens": in_id.size(-1),
                                                 "max_tokens": max_tokens,
                                                 "context_length":4096})
         ios.append(io)
@@ -261,7 +261,7 @@ def main(num_layers = 32):
         ev.wait()
         
     tokenizer = AutoTokenizer.from_pretrained('exported_params/')
-    q = hami.default_queue("net_out")
+    q = omniback.default_queue("net_out")
     
     results = {}
     for id in ids:

@@ -1,4 +1,4 @@
-import hami
+import omniback
 import torchpipe
 import torch
 import sys, os
@@ -40,7 +40,7 @@ def set_page_table(max_num_page=4096//page_size):
     print(f'set_page_table: num_layers={g_num_layers}')
     
     if page_table is None:
-        page_table = hami.default_page_table().init(max_num_req=max_num_req, max_num_page=max_num_page,page_size=page_size)
+        page_table = omniback.default_page_table().init(max_num_req=max_num_req, max_num_page=max_num_page,page_size=page_size)
         # set_kv(max_num_page, g_num_layers, page_size, 32, 128)
     return page_table
 
@@ -61,22 +61,22 @@ def clean_up(req_id):
     # del request_status[req_id]
 ### --------------------------------------------------- ########## 
 
-import hami
+import omniback
 
 class Pdb:
-    def forward(self, io: List[hami.Dict]):
+    def forward(self, io: List[omniback.Dict]):
         data = io[0]
 
         print("Pdb: data.keys()", list(data.keys()), data['request_size'], data['request_id'], data['node_name'], data['data'])
         data['result'] = data['data']
 
-hami.register("Pdb", Pdb)
+omniback.register("Pdb", Pdb)
 
 
-attention_kernel = hami.init_from_file('config/attention_kernel_streams.toml')
-prefill_attn = hami.get('prefill.0')
-decode_attns = [hami.get(f'decode{i}.0') for i in range(2)]
-# decode_attn = hami.init("Pool(decode0.0, decode1.0)")
+attention_kernel = omniback.init_from_file('config/attention_kernel_streams.toml')
+prefill_attn = omniback.get('prefill.0')
+decode_attns = [omniback.get(f'decode{i}.0') for i in range(2)]
+# decode_attn = omniback.init("Pool(decode0.0, decode1.0)")
 # https://docs.pytorch.org/docs/stable/notes/cuda.html#cuda-semantics
 streams = [torch.cuda.Stream() for i in range(2)]
 def decode_attn(ios, index):
@@ -96,13 +96,13 @@ class PyPlugin:
         
         self.layer_idx = int(self.params['layer_idx'])
         if self.layer_idx == 0:
-            hami.print(f'layer_idx: {self.layer_idx}, params: {params}')
+            omniback.print(f'layer_idx: {self.layer_idx}, params: {params}')
         
         self.page_size = page_size
         
         PyPlugin.req_ids = None
 
-    def forward(self, io: List[hami.Dict]):
+    def forward(self, io: List[omniback.Dict]):
         try:
         # if True:
             q, k, v = io[0]['data']
@@ -125,7 +125,7 @@ class PyPlugin:
 
                 PyPlugin.cumsum = torch.cumsum(torch.from_numpy(adjusted_sizes), 0)
                 PyPlugin.split_indices = PyPlugin.cumsum[:-1]
-                # hami.print(f"current_size={adjusted_sizes}, split_indices={PyPlugin.split_indices} {PyPlugin.is_prefill}")
+                # omniback.print(f"current_size={adjusted_sizes}, split_indices={PyPlugin.split_indices} {PyPlugin.is_prefill}")
                 
                 
                 PyPlugin.num_decode  = len(PyPlugin.req_ids) - PyPlugin.num_prefill
@@ -152,7 +152,7 @@ class PyPlugin:
                 index += 1
                 status = request_status[id]
                 if is_prefill:
-                    #  hami.print(f"prefill: {id}, {self.layer_idx}, s={qs.shape}, status.cos, status.sin, status.att_mask shape = {status.cos.shape}, {status.sin.shape}, {status.att_mask.shape}")
+                    #  omniback.print(f"prefill: {id}, {self.layer_idx}, s={qs.shape}, status.cos, status.sin, status.att_mask shape = {status.cos.shape}, {status.sin.shape}, {status.att_mask.shape}")
                     shape = qs.shape
                     inputs = [qs.view(1, shape[0], shape[1]*shape[2]), ks.view(1, shape[0], shape[1]*shape[2]), vs.view(1, shape[0], shape[1]*shape[2]), status.cos, status.sin, status.att_mask]
                     
@@ -166,18 +166,18 @@ class PyPlugin:
                     # print(f'out_k = {out_k.shape}/{out_v.shape}')
                     # torch.cuda.synchronize()
 
-                    ios = hami.Dict({'data':inputs,"node_name": 'prefill', "output":[os.view(1, shape[0], shape[1]*shape[2]), out_k, out_v]}) # , out_k, out_v
+                    ios = omniback.Dict({'data':inputs,"node_name": 'prefill', "output":[os.view(1, shape[0], shape[1]*shape[2]), out_k, out_v]}) # , out_k, out_v
                     # assert False, "TODO: pre-defined outputs for k v cache"
                     prefill_attn(ios)
                     # k2 = ios['result'][2]
-                    # hami.print(f'out_v={out_v.shape}, k2={k2.shape}, {out_v.data_ptr() == k2.data_ptr()}')
+                    # omniback.print(f'out_v={out_v.shape}, k2={k2.shape}, {out_v.data_ptr() == k2.data_ptr()}')
                     # out_k, out_v = ios['result'][1], ios['result'][2]
                     status.kvcache[self.layer_idx] = (out_k, out_v)
                     # import pdb; pdb.set_trace()
                 else:
                     k, v = status.kvcache[self.layer_idx]
                     status.kvcache[self.layer_idx] = None
-                    # hami.print(f"decode: {id}, q={qs.shape}, {self.layer_idx}, status.cos, status.sin, status.att_mask shape = {status.cos.shape}, {status.sin.shape}, {status.att_mask.shape}, num_toks={PyPlugin.num_toks}")
+                    # omniback.print(f"decode: {id}, q={qs.shape}, {self.layer_idx}, status.cos, status.sin, status.att_mask shape = {status.cos.shape}, {status.sin.shape}, {status.att_mask.shape}, num_toks={PyPlugin.num_toks}")
                     shape = qs.shape
                     
                     dtype = qs.dtype
@@ -189,7 +189,7 @@ class PyPlugin:
                     out_v = torch.empty(new_shape, dtype=dtype, device=device)
                     
                     inputs = [qs.view(1, shape[0], shape[1]*shape[2]), ks.view(1, shape[0], shape[1]*shape[2]), vs.view(1, shape[0], shape[1]*shape[2]), status.cos, status.sin, status.att_mask, k, v]
-                    ios = hami.Dict({'data':inputs,"node_name":'decode', "output":[os.view(1, shape[0], shape[1]*shape[2]), out_k, out_v]}) #, out_k, out_v
+                    ios = omniback.Dict({'data':inputs,"node_name":'decode', "output":[os.view(1, shape[0], shape[1]*shape[2]), out_k, out_v]}) #, out_k, out_v
                     decode_attn(ios, index)
                     # status.kvcache[self.layer_idx] = (ios['result'][1], ios['result'][2])
                     status.kvcache[self.layer_idx] = (out_k, out_v)
@@ -198,17 +198,17 @@ class PyPlugin:
             assert q_split[0].data_ptr() == q.data_ptr()
             
         except Exception as e:
-            hami.print(f"error {e}")
+            omniback.print(f"error {e}")
             raise e
         
 def main(num_layers = 2):
     set_num_layers(num_layers)
     
     set_page_table()
-    hami.register("TorchPlugin", PyPlugin)
+    omniback.register("TorchPlugin", PyPlugin)
     
-    model = hami.init_from_file('config/plain_llama2.toml')
-    hami.init("DebugLogger")
+    model = omniback.init_from_file('config/plain_llama2.toml')
+    omniback.init("DebugLogger")
     
     exported_params = "./exported_params"
     tokenizer = AutoTokenizer.from_pretrained(exported_params)
@@ -241,12 +241,12 @@ def main(num_layers = 2):
             max_tokens += 12
         max_tokens = 27
              
-        io = hami.Dict({'data':in_id.squeeze(0),"node_name":'embed_token'})
-        io[hami.TASK_EVENT_KEY] = hami.Event() 
+        io = omniback.Dict({'data':in_id.squeeze(0),"node_name":'embed_token'})
+        io[omniback.TASK_EVENT_KEY] = omniback.Event() 
 
-        events.append(io[hami.TASK_EVENT_KEY])
-        io[hami.TASK_REQUEST_ID_KEY] = f"id-{i}"
-        io[hami.TASK_MSG_KEY] = hami.TypedDict({"req_tokens": in_id.size(-1),
+        events.append(io[omniback.TASK_EVENT_KEY])
+        io[omniback.TASK_REQUEST_ID_KEY] = f"id-{i}"
+        io[omniback.TASK_MSG_KEY] = omniback.TypedDict({"req_tokens": in_id.size(-1),
                                                 "max_tokens": max_tokens,
                                                 "context_length":4096})
         ios.append(io)
@@ -256,7 +256,7 @@ def main(num_layers = 2):
         ev.wait()
         
     tokenizer = AutoTokenizer.from_pretrained('exported_params/')
-    q = hami.default_queue("net_out")
+    q = omniback.default_queue("net_out")
     
     results = {}
     for id in ids:

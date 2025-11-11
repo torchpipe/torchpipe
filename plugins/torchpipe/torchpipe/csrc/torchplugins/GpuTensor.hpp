@@ -1,15 +1,15 @@
 #pragma once
 
-#include <unordered_set>
-#include <string>
-#include <hami/extension.hpp>
+#include <omniback/extension.hpp>
 #include <torch/torch.h>
+#include <string>
+#include <unordered_set>
 
-using hami::dict;
+using omniback::dict;
 
 namespace torchpipe {
 
-class IndexSelectTensor : public hami::Backend {
+class IndexSelectTensor : public omniback::Backend {
  private:
   void impl_init(
       const std::unordered_map<std::string, std::string>& config_param,

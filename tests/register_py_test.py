@@ -1,7 +1,7 @@
 import pytest
 
 from typing import List
-import hami
+import omniback
 import time
 
 class TestPyComponent:
@@ -9,7 +9,7 @@ class TestPyComponent:
     def py_instance(self):
         """Fixture to register a PY instance with class scope"""
         instance = PY("test_instance")
-        hami.register('py', instance)
+        omniback.register('py', instance)
         return instance
 
     @pytest.fixture(scope="function")
@@ -28,18 +28,18 @@ class TestPyComponent:
         # Initialize backend components
         import time 
         # time.sleep(15)
-        self.backend_b = hami._C.init(
+        self.backend_b = omniback._C.init(
             "InstancesRegister[BackgroundThread[BackendProxy]]",
             backend_config
         )
-        self.backend_a = hami._C.init(
+        self.backend_a = omniback._C.init(
             "Register[IoCV0[SharedInstancesState,InstanceDispatcher,Batching;DI_v0[Batching, InstanceDispatcher]]]",
             {
                 "node_name": backend_config["node_name"],
                 "instance_num": backend_config["instance_num"]
             }
         )
-        self.list = hami._C.init("List[InstancesRegister[BackgroundThread[BackendProxy]], Register[IoCV0[SharedInstancesState,InstanceDispatcher,Batching;DI_v0[Batching, InstanceDispatcher]]]]",
+        self.list = omniback._C.init("List[InstancesRegister[BackgroundThread[BackendProxy]], Register[IoCV0[SharedInstancesState,InstanceDispatcher,Batching;DI_v0[Batching, InstanceDispatcher]]]]",
                                  {
                                      "node_name": backend_config["node_name_2"],
                                     "instance_num": backend_config["instance_num"],
@@ -65,8 +65,8 @@ class TestPyComponent:
         assert test_data['result'] == expected
 
     def test_get(self):
-        z=hami._C.get("py")
-        # z2=hami._C.get("node.test_node.0")
+        z=omniback._C.get("py")
+        # z2=omniback._C.get("node.test_node.0")
         assert z
         # assert (z2 and z)
         # print(z)
@@ -75,6 +75,6 @@ class PY:
     def __init__(self, *args, **kwargs) -> None:
         pass
 
-    def forward(self, inout: List[hami.Dict]):
+    def forward(self, inout: List[omniback.Dict]):
         """Process data by copying 'data' to 'result'"""
         inout[0]['result'] = inout[0]['data']

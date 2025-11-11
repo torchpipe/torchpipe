@@ -1,6 +1,6 @@
 # filePath: tests/test_DecodeTensor.py
 import pytest
-import hami
+import omniback
 import torchpipe
 import requests
 from io import BytesIO
@@ -9,7 +9,7 @@ import numpy as np
 
 def test_DecodeTensor():
     # Initialize the DecodeTensor model
-    model = hami._C.init("S_v0[DecodeMat,CvtColorMat,ResizeMat,Mat2Tensor]", {"color": "bgr", "resize_h":"221","resize_w":'110'})
+    model = omniback._C.init("S_v0[DecodeMat,CvtColorMat,ResizeMat,Mat2Tensor]", {"color": "bgr", "resize_h":"221","resize_w":'110'})
 
     img = np.ones((1, 1, 3), dtype=np.uint8)*5
     img[0,0,0] = 0

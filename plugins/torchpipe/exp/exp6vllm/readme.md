@@ -1,5 +1,5 @@
 
-##  prepare three docker containers: vllm, hami, benchmark clients
+##  prepare three docker containers: vllm, omniback, benchmark clients
 ```bash
 
 # server
@@ -9,7 +9,7 @@ docker run --name=exp_vllm --runtime=nvidia -e LC_ALL=C -e LANG=C  --ipc=host --
 
 cd torchpipe/
 img_name=nvcr.io/nvidia/pytorch:25.05-py3
-docker run --name=exp_hami --runtime=nvidia --ipc=host --cpus=8 --network=host -v `pwd`:/workspace  --shm-size 1G  --ulimit memlock=-1 --ulimit stack=67108864  --privileged=true  -w/workspace -itd $img_name /bin/bash
+docker run --name=exp_omniback --runtime=nvidia --ipc=host --cpus=8 --network=host -v `pwd`:/workspace  --shm-size 1G  --ulimit memlock=-1 --ulimit stack=67108864  --privileged=true  -w/workspace -itd $img_name /bin/bash
 
 # client for benchmark
 git clone -b v0.8.4 https://github.com/vllm-project/vllm.git
@@ -28,10 +28,10 @@ rm -rf /opt/hpcx/ncclnet_plugin && ldconfig
 CUDA_VISIBLE_DEVICES=1 python3 -m vllm.entrypoints.openai.api_server -tp 1 -pp 1 --gpu-memory-utilization 0.93       --port 8001 --disable-log-stats --disable-log-requests --served-model-name llama2  --model meta-llama/Llama-2-7b-chat-hf # --model Llama-2-7b-chat-hf/
 ```
 
-## export onnx for hami
+## export onnx for omniback
 
 ```bash
-docker exec -it exp_hami bash
+docker exec -it exp_omniback bash
 rm -rf /opt/hpcx/ncclnet_plugin && ldconfig
 
 rm -rf dist/*.whl && python setup.py bdist_wheel && pip install dist/*.whl
@@ -50,7 +50,7 @@ ls -alh exported_params/
 python ../../examples/llama2/plain_llama2.py --num_layers=32
 ```
  
- ## start hami server
+ ## start omniback server
 ```bash
 
 # for A10-24G
@@ -76,9 +76,9 @@ wget https://huggingface.co/datasets/anon8231489123/ShareGPT_Vicuna_unfiltered/r
 
 sh all_clients.sh  && sh all_clients.sh
 
-# python3 benchmarks/benchmark_serving.py         --backend vllm         --model $MODEL_ID         --dataset-name sharegpt         --dataset-path ./ShareGPT_V3_unfiltered_cleaned_split.json         --num-prompts 500         --port 8000         --save-result         --result-dir results/         --result-filename hami_llama7B_tp1_qps_2.json         --request-rate 2
+# python3 benchmarks/benchmark_serving.py         --backend vllm         --model $MODEL_ID         --dataset-name sharegpt         --dataset-path ./ShareGPT_V3_unfiltered_cleaned_split.json         --num-prompts 500         --port 8000         --save-result         --result-dir results/         --result-filename omniback_llama7B_tp1_qps_2.json         --request-rate 2
 
-# python3 benchmarks/benchmark_serving.py         --backend vllm         --model $MODEL_ID         --dataset-name sharegpt         --dataset-path ./ShareGPT_V3_unfiltered_cleaned_split.json         --num-prompts 500         --port 8000         --save-result         --result-dir results/         --result-filename hami_llama7B_tp1_qps_3.json         --request-rate 3
+# python3 benchmarks/benchmark_serving.py         --backend vllm         --model $MODEL_ID         --dataset-name sharegpt         --dataset-path ./ShareGPT_V3_unfiltered_cleaned_split.json         --num-prompts 500         --port 8000         --save-result         --result-dir results/         --result-filename omniback_llama7B_tp1_qps_3.json         --request-rate 3
 
 # python3 benchmarks/benchmark_serving.py         --backend vllm         --model $MODEL_ID         --dataset-name sharegpt         --dataset-path ./ShareGPT_V3_unfiltered_cleaned_split.json         --num-prompts 500         --port 8001         --save-result         --result-dir results/         --result-filename vllm_llama7B_tp1_qps_2.json         --request-rate 2 --served-model-name llama2 
 

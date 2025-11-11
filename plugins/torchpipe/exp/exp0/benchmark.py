@@ -20,7 +20,7 @@ import os
 
 # import torchpipe as tp
 try:
-    import hami
+    import omniback
 except:
     pass
 
@@ -206,7 +206,7 @@ if __name__ == "__main__":
     # time.sleep(5)
     
     if args.debug:
-        hami.init("DebugLogger")
+        omniback.init("DebugLogger")
     config = {}
     onnx_save_path = f"./{args.model}.onnx"
     if (
@@ -269,9 +269,9 @@ if __name__ == "__main__":
         import torchpipe as tp
         import torch
 
-        nodes = hami.pipe(config)
+        nodes = omniback.pipe(config)
         
-        from hami.utils.test import test_from_ids
+        from omniback.utils.test import test_from_ids
         ids = [0]*total_number
         data = torch.randn((1,3,224,224)).cuda()
         def forward(ids):
@@ -297,7 +297,7 @@ if __name__ == "__main__":
             print(config)
             import torchpipe as tp
 
-            nodes = hami.pipe(config)
+            nodes = omniback.pipe(config)
 
         if args.model == "empty":
             print("args.model is empty. test preprocess only")

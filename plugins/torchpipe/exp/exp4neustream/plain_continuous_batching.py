@@ -4,7 +4,7 @@ from helper import exp_config_parser
 import toml
 import json
 import torch
-import hami
+import omniback
 import torchpipe
 from typing import List
 import time
@@ -27,7 +27,7 @@ torch.set_grad_enabled(False)
 config_parser = exp_config_parser.ConfigParser()
 # latency_profile = exp_config_parser.get_latency_profile()
 
-# hami.init("DebugLogger")
+# omniback.init("DebugLogger")
 
 
 torch.set_grad_enabled(False)
@@ -76,7 +76,7 @@ class Clip:
     def init(self, params, options):
         torch.set_grad_enabled(False)
 
-    def forward(self, io: List[hami.Dict]):
+    def forward(self, io: List[omniback.Dict]):
         reqs = []
         for data in io:
             id = data['data']
@@ -100,7 +100,7 @@ class Unet:
         print(f'unet params={params}')
         self.sd_module = sd_modules['UNetModule']
 
-    def forward(self, io: List[hami.Dict]):
+    def forward(self, io: List[omniback.Dict]):
         # print(f'unet forard: {torch.cuda.current_stream()}')
         
         # start_time = time.perf_counter()
@@ -138,7 +138,7 @@ class Vae:
     def init(self, params, options):
         torch.set_grad_enabled(False)
 
-    def forward(self, io: List[hami.Dict]):
+    def forward(self, io: List[omniback.Dict]):
         # print('vae1')
         # print(f'vae bs ={len(io)}')
         # start_time = time.perf_counter()
@@ -161,14 +161,14 @@ class Vae:
         print('xxxxxxxxxxxxxxd')
         return 16
     
-hami.register("Clip", Clip)
-hami.register("Unet", Unet)
-hami.register("Vae", Vae)
+omniback.register("Clip", Clip)
+omniback.register("Unet", Unet)
+omniback.register("Vae", Vae)
 
 @dataclass
 class LoopInfo:
-    data: hami.Dict = None
-    event: hami.Event = None
+    data: omniback.Dict = None
+    event: omniback.Event = None
     loop_index: int = 0
     loop_num: int = 1
     emergency: float = 0.0
@@ -183,7 +183,7 @@ class PyContinuousBatching:
         self._stop_event = threading.Event()
         
         self.cached_data = {}
-        self.target = hami.get(params.pop('target'))
+        self.target = omniback.get(params.pop('target'))
 
         self.max_batch_size = int(params.pop('max_batch_size'))
 
@@ -200,7 +200,7 @@ class PyContinuousBatching:
         self._stop_event.set()
         self.thread.join(timeout=5.0) 
         
-    def forward(self, io: List[hami.Dict]):
+    def forward(self, io: List[omniback.Dict]):
         self.input_queue.put(('start', io))
 
     def task_loop(self):
@@ -288,7 +288,7 @@ class PyContinuousBatching:
             io.append(v.data)
             assert 'event' not in v.data
             
-        ev = hami.Event(len(io))
+        ev = omniback.Event(len(io))
         ev.set_callback(lambda: self.input_queue.put(('finish', None)))
         ev.set_exception_callback(lambda x: print(f'error x')) # not allowed in continuous batching
         for item in io:
@@ -332,11 +332,11 @@ class PyContinuousBatching:
             del self.cached_data[req_id]
             del global_request_pool[req_id]
 
-hami.register("PyContinuousBatching", PyContinuousBatching)
+omniback.register("PyContinuousBatching", PyContinuousBatching)
 
 
 def get_scheduler(max_batch_size):
-    hami.pipe({'unet_backend': {'backend': 'S[Unet,SyncTensor]', 'batching_timeout': 1, 'instance_num': 1},
+    omniback.pipe({'unet_backend': {'backend': 'S[Unet,SyncTensor]', 'batching_timeout': 1, 'instance_num': 1},
                })
 
     config = {
@@ -345,19 +345,19 @@ def get_scheduler(max_batch_size):
         'unet': {'node_entrypoint': 'Register[PyContinuousBatching]', 'target': 'node.unet_backend', 'max_batch_size': max_batch_size},
         'vaesafety': {"backend": 'S[Vae,SyncTensor]', 'batching_timeout': 4, 'instance_num': 1}}
 
-    scheduler = hami.pipe(config)
+    scheduler = omniback.pipe(config)
 
     return scheduler
 
 
 class Model:
     def __init__(self, slo_factor=19):
-        # hami.init('DebugLogger')
+        # omniback.init('DebugLogger')
         max_batch_size = config_parser.get_max_batch_size(int(slo_factor*10))
         self.scheduler = get_scheduler(max_batch_size)
 
     def __call__(self, req_id, request, exc_cb, call_back):
-        event = hami.Event()
+        event = omniback.Event()
         event.set_exception_callback(exc_cb)
         
         def drop_cb():
@@ -377,7 +377,7 @@ class Model:
             io['iter_deadline'] = iter_deadline
             assert emergency_threshold is not None
             io['emergency_threshold'] = emergency_threshold
-        io = hami.Dict(io)
+        io = omniback.Dict(io)
 
         assert req_id not in global_request_pool
         global_request_pool[req_id] = request

@@ -34,7 +34,7 @@ function(cc_dynamic_library)
 
     # Set the output directory for the library
     if(NOT DEFINED CMAKE_LIBRARY_OUTPUT_DIRECTORY)
-      set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/hami)
+      set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/omniback)
     endif()
     set_target_properties(${CC_DYNAMIC_LIB_NAME} PROPERTIES
       LIBRARY_OUTPUT_DIRECTORY "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}"

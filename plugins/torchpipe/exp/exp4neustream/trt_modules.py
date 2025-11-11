@@ -5,7 +5,7 @@ import numpy as np
 import time
 import os
 import random
-import hami
+import omniback
 # torch.set_grad_enabled(False)
 
 load_params = True
@@ -13,7 +13,7 @@ load_params = False
 USE_TRT = os.getenv("USE_TRT", "false").lower() in ("true", "1", "yes")
 assert USE_TRT
 if USE_TRT:
-    # import hami
+    # import omniback
     # import torchpipe
     print(f"USE_TRT = {USE_TRT}")
 
@@ -73,7 +73,7 @@ class UNetModule(StreamModule):
         print(f'kwargs={kwargs}')
         # self.instance_index = 0#int(kwargs.pop('instance_index'))
         self.post = UNetPost()
-        self.post_pipe = hami.register(
+        self.post_pipe = omniback.register(
             f'unet_post', self.post)
 
         """
@@ -118,10 +118,10 @@ class UNetModule(StreamModule):
         # init unet
         if USE_TRT:
 
-            import models_hami
-            self.unet_trt = models_hami.init('unet_trt')
+            import models_omniback
+            self.unet_trt = models_omniback.init('unet_trt')
 
-            self.unet = hami.get(f'unet_trt.0')
+            self.unet = omniback.get(f'unet_trt.0')
 
             print('unet: max min ', self.unet.max(), self.unet.min())
             self.max_batch_size = self.unet.max()
@@ -440,7 +440,7 @@ class UNetModule(StreamModule):
             bs = timestamps.shape[0]
             # latent_model_input = latent_model_input.reshape(bs,2, 4, 32, 32)
             prompt_embeds = prompt_embeds.reshape(bs, 2,77,768)
-            io = hami.Dict({'data': [latent_model_input, timestamps, prompt_embeds], 'request_size':bs})
+            io = omniback.Dict({'data': [latent_model_input, timestamps, prompt_embeds], 'request_size':bs})
             # print(f'unet bs = {bs} ins = {self.instance_index} ')
 
             self.post.set_function(lambda x : self.unet_postprocess(x, guidance_scale_list, batch_request, sigma_list, sigma_to_list, latents))
@@ -561,10 +561,10 @@ class ClipModule(StreamModule):
         # self.text_encoder.save_pretrained("a.bin")
         # import pdb;pdb.set_trace()
         if USE_TRT:
-            import models_hami
-            self.clip_trt = models_hami.init('clip_trt')
+            import models_omniback
+            self.clip_trt = models_omniback.init('clip_trt')
             instance_index = 0  # *int(kwargs.pop('instance_index'))
-            self.text_encoder = (hami.get(f'clip_trt.{instance_index}'))
+            self.text_encoder = (omniback.get(f'clip_trt.{instance_index}'))
             print('clip(text_encoder): max min ',
                   self.text_encoder.max(), self.text_encoder.min())
             self.max_batch_size = self.text_encoder.max()
@@ -631,7 +631,7 @@ class ClipModule(StreamModule):
             attention_mask = None
 
             # print('text_input_ids', text_input_ids.type(), text_input_ids.device,text_input_ids.shape)
-            io = hami.Dict({'data': text_input_ids, 'node_name': "clip_trt", 'request_size':text_input_ids.shape[0]})
+            io = omniback.Dict({'data': text_input_ids, 'node_name': "clip_trt", 'request_size':text_input_ids.shape[0]})
             self.text_encoder.forward(io, None)
             prompt_embeds = io['result']
             # print(f'prompt_embeds {prompt_embeds.dtype} {prompt_embeds.device} {prompt_embeds.shape}')
@@ -675,7 +675,7 @@ class ClipModule(StreamModule):
             attention_mask = None
 
             # print('uncond_input.input_ids', uncond_input.input_ids.type(), uncond_input.input_ids.device,uncond_input.input_ids.shape)
-            io = hami.Dict({'data': uncond_input.input_ids, 'node_name': "clip_trt",'request_size':uncond_input.input_ids.shape[0]})
+            io = omniback.Dict({'data': uncond_input.input_ids, 'node_name': "clip_trt",'request_size':uncond_input.input_ids.shape[0]})
             self.text_encoder.forward(io, None)
             negative_prompt_embeds = io['result']
             # print(f'negative_prompt_embeds {negative_prompt_embeds.dtype} {negative_prompt_embeds.device} {negative_prompt_embeds.shape}')
@@ -724,10 +724,10 @@ class VaeModule(StreamModule):
         from diffusers.models.autoencoders.autoencoder_kl import AutoencoderKL
 
         if USE_TRT:
-            import models_hami
-            self.vae_trt = models_hami.init('vae_trt')
+            import models_omniback
+            self.vae_trt = models_omniback.init('vae_trt')
             instance_index = 0  # *int(kwargs.pop('instance_index'))
-            self.vae = (hami.get(f'vae_trt.{instance_index}'))
+            self.vae = (omniback.get(f'vae_trt.{instance_index}'))
             print('vae(): max min ', self.vae.max(), self.vae.min())
             self.max_batch_size = self.vae.max()
         else:
@@ -769,7 +769,7 @@ class VaeModule(StreamModule):
         # new vision
         # print(f'latents={latents.shape}')
         if USE_TRT:
-            io = hami.Dict({'data': latents, 'request_size': latents.shape[0]})
+            io = omniback.Dict({'data': latents, 'request_size': latents.shape[0]})
             self.vae.forward(io, None)
             images = io['result']
         else:

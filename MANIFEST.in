@@ -3,11 +3,11 @@ include README.md
 include CMakeLists.txt
 
 recursive-include cmake *
-recursive-include hami/utils *.py
-recursive-include hami/csrc *.hpp *.h *.cc *.cpp
+recursive-include omniback/utils *.py
+recursive-include omniback/csrc *.hpp *.h *.cc *.cpp
 recursive-include third_party/spdlog/include/spdlog *.h *.hpp
 
-recursive-include cpp/hami *.h *.hpp
+recursive-include cpp/omniback *.h *.hpp
 
 global-exclude */__pycache__/*
 global-exclude *.pyc

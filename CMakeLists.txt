@@ -75,7 +75,7 @@ endif()
 
 
 project(
-  "hami"
+  "omniback"
   LANGUAGES C CXX  #CUDA
 )
 
@@ -165,5 +165,5 @@ add_subdirectory(third_party)
 add_subdirectory(cpp)
 
 if(BUILD_PYBIND)
-  add_subdirectory(hami/)
+  add_subdirectory(omniback/)
 endif()

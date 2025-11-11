@@ -10,7 +10,7 @@ requires = [
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "hami-core"
+name = "omniback"
 # version = "1.40.0"
 dynamic = ["version", "optional-dependencies"]
 
@@ -41,17 +41,17 @@ dependencies = [
 Homepage = "https://github.com/torchpipe/torchpipe"
 
 [tool.setuptools]
-packages = ["hami", "hami.utils", "hami.csrc"]
-# 不要 include hami._C as a Python package — it's a C extension
+packages = ["omniback", "omniback.utils", "omniback.csrc"]
+# 不要 include omniback._C as a Python package — it's a C extension
 zip-safe = false
 include-package-data = true
 
 # 关键：通过 MANIFEST.in 控制文件包含，避免在 package_data 冗余声明
 [tool.setuptools.package-data]
-hami = [
+omniback = [
   "csrc/*.hpp",
   "csrc/*.h",
-  "include/hami/*.h",
+  "include/omniback/*.h",
   "include/spdlog/*.h",
   "include/spdlog/**/*.h",
   "_build_info.py",
@@ -65,7 +65,7 @@ hami = [
 [tool.setuptools_scm]
 local_scheme = "node-and-timestamp"
 normalize = false
-write_to = "hami/_version.py"  # 推荐生成版本文件
+write_to = "omniback/_version.py"  # 推荐生成版本文件
 
 [tool.mypy]
 strict = true

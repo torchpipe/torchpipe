@@ -1,6 +1,6 @@
 
 #include "tensorrt_torch/allocator.hpp"
-#include <hami/extension.hpp>
+#include <omniback/extension.hpp>
 #include "c10/cuda/CUDACachingAllocator.h"
 #include "c10/cuda/CUDAStream.h"
 

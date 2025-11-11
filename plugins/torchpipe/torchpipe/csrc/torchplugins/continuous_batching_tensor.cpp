@@ -3,13 +3,13 @@
 
 namespace torchpipe {
 
-void TensorPage::forward(const hami::dict& io) {
+void TensorPage::forward(const omniback::dict& io) {
   auto table = page_table_->pop_activated();
   std::vector<int> all_indices;
   std::vector<int> all_lengths;
 
   for (const auto& item : table.first) {
-    const hami::PageTable::PageInfo& info = page_table_->page_info(item);
+    const omniback::PageTable::PageInfo& info = page_table_->page_info(item);
 
     // Append the page indices
     all_indices.insert(
@@ -39,5 +39,5 @@ void TensorPage::forward(const hami::dict& io) {
   (*io)["kv_page_indices"] = indices_tensor;
   (*io)["kv_last_page_len"] = lengths_tensor;
 }
-HAMI_REGISTER_BACKEND(TensorPage);
+OMNI_REGISTER_BACKEND(TensorPage);
 } // namespace torchpipe

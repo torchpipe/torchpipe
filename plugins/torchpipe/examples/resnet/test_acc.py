@@ -1,7 +1,7 @@
 # from transformers import MobileViTImageProcessor, MobileViTV2ForImageClassification
 from PIL import Image
 import requests
-import hami
+import omniback
 import time
 # time.sleep(10)
 import logging 
@@ -50,7 +50,7 @@ def get_model(toml_path) :
 
 
 
-    interp = hami.init("Interpreter", {"backend": "StreamGuard[DecodeTensor]"})
+    interp = omniback.init("Interpreter", {"backend": "StreamGuard[DecodeTensor]"})
     return interp
 
 # def test_model():
@@ -75,15 +75,15 @@ import torchpipe
 
 class Torch2Trt:
     def __init__(self, onnx_path, toml_path):
-        config = hami.parser.parse(toml_path)
+        config = omniback.parser.parse(toml_path)
         for k, v in config.items():
             if 'model' in v.keys():
                 v['model'] = onnx_path
             v['model::cache'] = onnx_path.replace(".onnx",'.trt')
 
-        kwargs = hami.Dict()
+        kwargs = omniback.Dict()
         kwargs['config'] = config
-        pipe = hami.create('Interpreter').init({}, kwargs)
+        pipe = omniback.create('Interpreter').init({}, kwargs)
         print("config = ",config)
         self.model = pipe
         
@@ -123,7 +123,7 @@ def test_v2():
     map_label = helper.align_labels(true_labels, pred_labels, 100)
 
     helper.evaluate_classification(true_labels, [map_label[x] for x in pred_labels])
-    # hami_model  = Torch2Trt(onnx_path, 'config.toml')
+    # omniback_model  = Torch2Trt(onnx_path, 'config.toml')
 
     # - Accuracy:  0.8713
     # - Precision: 0.9386

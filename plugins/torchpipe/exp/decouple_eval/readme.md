@@ -102,14 +102,14 @@ python decouple_eval/benchmark.py  --model faster_vit_1_224 --preprocess cpu --p
 img_name=nvcr.io/nvidia/pytorch:25.05-py3
 docker pull $img_name
 
-docker run --name=zsy_hami_all_cpu --runtime=nvidia --ipc=host  --network=host -v `pwd`:/workspace  --shm-size 1G  --ulimit memlock=-1 --ulimit stack=67108864  --privileged=true  -w/workspace -it $img_name /bin/bash
+docker run --name=zsy_omniback_all_cpu --runtime=nvidia --ipc=host  --network=host -v `pwd`:/workspace  --shm-size 1G  --ulimit memlock=-1 --ulimit stack=67108864  --privileged=true  -w/workspace -it $img_name /bin/bash
  
 # test cuda
 python -c  "import torch; assert (torch.cuda.is_available())"
 
-# install hami
+# install omniback
 python setup.py bdist_wheel
-pip uninstall hami-core -y && pip install dist/*.whl
+pip uninstall omniback -y && pip install dist/*.whl
 
 
 # install torchpipe

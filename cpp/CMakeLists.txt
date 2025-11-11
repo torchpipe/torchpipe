@@ -1,4 +1,4 @@
 
-add_subdirectory(hami)
+add_subdirectory(omniback)
 
 

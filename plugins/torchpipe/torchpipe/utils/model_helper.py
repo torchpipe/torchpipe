@@ -1020,8 +1020,8 @@ class ClassifyModelTester:
                     else:
                         all_result[data_id] = (result, None)
 
-                # import hami, numpy
-                # data, req_size = hami.default_queue().get()
+                # import omniback, numpy
+                # data, req_size = omniback.default_queue().get()
                 # data = data['data']
                 # data = data / 255.0
                 # mean = torch.tensor([0.485, 0.456, 0.406], dtype=data.dtype, device=data.device)

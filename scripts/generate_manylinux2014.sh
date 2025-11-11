@@ -2,7 +2,7 @@
 set -e
 rm -rf wheelhouse/*manylinux2014_x86_64.whl
 
-rm -rf hami*.egg-info/*
+rm -rf omniback*.egg-info/*
 
 git config --global --add safe.directory .
 
@@ -20,8 +20,8 @@ for PYVER in 38 39 310 311 312 313; do
     /opt/python/cp${PYVER}-cp${PYVER}/bin/python3  -m pip install build pybind11 auditwheel-symbols setuptools setuptools_scm
     USE_CXX11_ABI=0 /opt/python/cp${PYVER}-cp${PYVER}/bin/python3 setup.py bdist_wheel 
 
-    auditwheel repair --plat manylinux2014_x86_64 dist/hami*-cp$PYVER-cp$PYVER-linux_x86_64.whl 
+    auditwheel repair --plat manylinux2014_x86_64 dist/omniback*-cp$PYVER-cp$PYVER-linux_x86_64.whl 
 
 done
 
-ldd .setuptools-cmake-build/hami/*.so
+ldd .setuptools-cmake-build/omniback/*.so

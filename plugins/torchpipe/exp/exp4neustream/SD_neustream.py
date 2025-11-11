@@ -151,7 +151,7 @@ if __name__ == "__main__":
                                              self.modules['VaeModule'],
                                              self.modules['SafetyModule']]
             def default_deploy(self, **kwargs):
-                import hami
+                import omniback
                 import torchpipe
                 # for module in self.stream_module_list:
                 for k, v in self.modules.items():

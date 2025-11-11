@@ -1,18 +1,18 @@
 #include "mat_torch/ResizeMat.hpp"
 
 #include "helper/mat.hpp"
+#include "omniback/helper/string.hpp"
 #include "opencv2/imgproc.hpp"
-#include "hami/helper/string.hpp"
 namespace torchpipe {
 
 void ResizeMat::impl_init(
     const std::unordered_map<std::string, std::string>& config,
-    const hami::dict& kwargs) {
-  resize_h_ = hami::str::str2int<size_t>(config, "resize_h");
-  resize_w_ = hami::str::str2int<size_t>(config, "resize_w");
+    const omniback::dict& kwargs) {
+  resize_h_ = omniback::str::str2int<size_t>(config, "resize_h");
+  resize_w_ = omniback::str::str2int<size_t>(config, "resize_w");
 }
 
-void ResizeMat::forward(const hami::dict& input_dict) {
+void ResizeMat::forward(const omniback::dict& input_dict) {
   auto& input = *input_dict;
   if (input[TASK_DATA_KEY].type() != typeid(cv::Mat)) {
     SPDLOG_ERROR(
@@ -20,7 +20,7 @@ void ResizeMat::forward(const hami::dict& input_dict) {
         std::string(input[TASK_DATA_KEY].type().name()));
     return;
   }
-  auto data = hami::any_cast<cv::Mat>(input[TASK_DATA_KEY]);
+  auto data = omniback::any_cast<cv::Mat>(input[TASK_DATA_KEY]);
 
   cv::Mat im_resize;
   cv::resize(data, im_resize, cv::Size(resize_w_, resize_h_));
@@ -37,19 +37,19 @@ void ResizeMat::forward(const hami::dict& input_dict) {
   input[TASK_RESULT_KEY] = im_resize;
 }
 
-HAMI_REGISTER(hami::Backend, ResizeMat);
+OMNI_REGISTER(omniback::Backend, ResizeMat);
 
 void LetterBoxMat::impl_init(
     const std::unordered_map<std::string, std::string>& config,
-    const hami::dict& kwargs) {
-  target_h_ = hami::str::str2int<size_t>(config, "resize_h");
-  target_w_ = hami::str::str2int<size_t>(config, "resize_w");
+    const omniback::dict& kwargs) {
+  target_h_ = omniback::str::str2int<size_t>(config, "resize_h");
+  target_w_ = omniback::str::str2int<size_t>(config, "resize_w");
 
   std::string pad_val_str =
       config.count("pad_val") ? config.at("pad_val") : "0,0,0";
 
   if (pad_val_str.find(',') != std::string::npos) {
-    std::vector<std::string> vals = hami::str::str_split(pad_val_str, ',');
+    std::vector<std::string> vals = omniback::str::str_split(pad_val_str, ',');
     if (vals.size() >= 3) {
       pad_val_ = cv::Scalar(
           std::stoi(vals[0]), std::stoi(vals[1]), std::stoi(vals[2]));
@@ -60,7 +60,7 @@ void LetterBoxMat::impl_init(
   }
 }
 
-void LetterBoxMat::forward(const hami::dict& input_dict) {
+void LetterBoxMat::forward(const omniback::dict& input_dict) {
   auto& input = *input_dict;
   if (input[TASK_DATA_KEY].type() != typeid(cv::Mat)) {
     SPDLOG_ERROR(
@@ -69,7 +69,7 @@ void LetterBoxMat::forward(const hami::dict& input_dict) {
     return;
   }
 
-  cv::Mat src = hami::any_cast<cv::Mat>(input[TASK_DATA_KEY]);
+  cv::Mat src = omniback::any_cast<cv::Mat>(input[TASK_DATA_KEY]);
   if (src.empty()) {
     SPDLOG_ERROR("LetterBoxMat: input image is empty");
     return;
@@ -107,19 +107,19 @@ void LetterBoxMat::forward(const hami::dict& input_dict) {
   input["offset"] = std::make_pair(offset_x, offset_y);
 }
 
-HAMI_REGISTER(hami::Backend, LetterBoxMat);
+OMNI_REGISTER(omniback::Backend, LetterBoxMat);
 
 void TopLeftResizeMat::impl_init(
     const std::unordered_map<std::string, std::string>& config,
-    const hami::dict& kwargs) {
-  target_h_ = hami::str::str2int<size_t>(config, "resize_h");
-  target_w_ = hami::str::str2int<size_t>(config, "resize_w");
+    const omniback::dict& kwargs) {
+  target_h_ = omniback::str::str2int<size_t>(config, "resize_h");
+  target_w_ = omniback::str::str2int<size_t>(config, "resize_w");
 
   std::string pad_val_str =
       config.count("pad_val") ? config.at("pad_val") : "0,0,0";
 
   if (pad_val_str.find(',') != std::string::npos) {
-    std::vector<std::string> vals = hami::str::str_split(pad_val_str, ',');
+    std::vector<std::string> vals = omniback::str::str_split(pad_val_str, ',');
     if (vals.size() >= 3) {
       pad_val_ = cv::Scalar(
           std::stoi(vals[0]), std::stoi(vals[1]), std::stoi(vals[2]));
@@ -130,7 +130,7 @@ void TopLeftResizeMat::impl_init(
   }
 }
 
-void TopLeftResizeMat::forward(const hami::dict& input_dict) {
+void TopLeftResizeMat::forward(const omniback::dict& input_dict) {
   auto& input = *input_dict;
   if (input[TASK_DATA_KEY].type() != typeid(cv::Mat)) {
     SPDLOG_ERROR(
@@ -139,7 +139,7 @@ void TopLeftResizeMat::forward(const hami::dict& input_dict) {
     return;
   }
 
-  cv::Mat src = hami::any_cast<cv::Mat>(input[TASK_DATA_KEY]);
+  cv::Mat src = omniback::any_cast<cv::Mat>(input[TASK_DATA_KEY]);
   if (src.empty()) {
     SPDLOG_ERROR("TopLeftResizeMat: input image is empty");
     return;
@@ -177,7 +177,7 @@ void TopLeftResizeMat::forward(const hami::dict& input_dict) {
   input["offset"] = std::make_pair(offset_x, offset_y);
 }
 
-HAMI_REGISTER(hami::Backend, TopLeftResizeMat);
+OMNI_REGISTER(omniback::Backend, TopLeftResizeMat);
 
 // def postprocess(results, meta):
 //     scale = meta['scale']

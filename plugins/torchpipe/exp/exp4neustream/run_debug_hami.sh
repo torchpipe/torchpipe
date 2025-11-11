@@ -27,7 +27,7 @@ do
         for rate_scale in "3"
         do
             echo "Running with variable rate: $rate_scale"
-            USE_TRT="True" python SD_hami.py --image_size 256 --rate_scale $rate_scale --cv_scale 0.5 --slo_scale $slo_scale --can_drop $can_drop 
+            USE_TRT="True" python SD_omniback.py --image_size 256 --rate_scale $rate_scale --cv_scale 0.5 --slo_scale $slo_scale --can_drop $can_drop 
         done
     done
 done

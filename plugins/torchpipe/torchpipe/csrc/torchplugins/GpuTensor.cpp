@@ -5,7 +5,7 @@
 #include "helper/torch.hpp"
 #include "torchplugins/GpuTensor.hpp"
 
-using namespace hami;
+using namespace omniback;
 
 namespace torchpipe {
 
@@ -13,7 +13,7 @@ namespace torchpipe {
  * @brief cpu->gpu
  */
 
-class GpuTensor : public hami::BackendOne {
+class GpuTensor : public omniback::BackendOne {
  public:
   void forward(const dict& io) override {
     auto data = dict_gets<torch::Tensor>(io, TASK_DATA_KEY);
@@ -28,7 +28,7 @@ class GpuTensor : public hami::BackendOne {
       (*io)[TASK_RESULT_KEY] = data;
   }
 };
-HAMI_REGISTER(Backend, GpuTensor);
+OMNI_REGISTER(Backend, GpuTensor);
 
 /**
  * @brief gpu->cpu
@@ -78,14 +78,14 @@ class CpuTensor : public BackendOne {
   }
 };
 
-HAMI_REGISTER(hami::Backend, CpuTensor, "CpuTensor");
+OMNI_REGISTER(omniback::Backend, CpuTensor, "CpuTensor");
 
 void IndexSelectTensor::impl_init(
     const std::unordered_map<std::string, std::string>& params,
     const dict& options) {
   parser_v2::ArgsKwargs args_kwargs =
       parser_v2::get_args_kwargs(this, reflect_cls_name(), params);
-  HAMI_ASSERT(
+  OMNI_ASSERT(
       args_kwargs.first.size() == 1,
       "Requires exactly 1 argument. Usage: "
       "IndexSelectTensor(weight.pt)/IndexSelectTensor::args=weight.pt");
@@ -112,7 +112,7 @@ void IndexSelectTensor::impl_init(
 
 void IndexSelectTensor::impl_forward(const std::vector<dict>& ios) {
   for (const auto& io : ios) {
-    auto input = hami::dict_get<torch::Tensor>(io, TASK_DATA_KEY);
+    auto input = omniback::dict_get<torch::Tensor>(io, TASK_DATA_KEY);
     if (device_ != input.device()) {
       input = input.to(device_);
     }
@@ -124,11 +124,11 @@ void IndexSelectTensor::impl_forward(const std::vector<dict>& ios) {
     (*io)[TASK_RESULT_KEY] = data_loaded;
   }
 }
-HAMI_REGISTER_BACKEND(IndexSelectTensor);
+OMNI_REGISTER_BACKEND(IndexSelectTensor);
 
 void EmbeddingTensor::impl_forward(const std::vector<dict>& ios) {
   for (const auto& io : ios) {
-    auto input = hami::dict_get<torch::Tensor>(io, TASK_DATA_KEY);
+    auto input = omniback::dict_get<torch::Tensor>(io, TASK_DATA_KEY);
     if (device_ != input.device()) {
       input = input.to(device_);
     }
@@ -140,11 +140,11 @@ void EmbeddingTensor::impl_forward(const std::vector<dict>& ios) {
     (*io)[TASK_RESULT_KEY] = data_loaded;
   }
 }
-HAMI_REGISTER_BACKEND(EmbeddingTensor);
+OMNI_REGISTER_BACKEND(EmbeddingTensor);
 
-class SetTensorRequestSize : public hami::Backend {
+class SetTensorRequestSize : public omniback::Backend {
   void impl_forward(const std::vector<dict>& ios) override {
-    for (const auto& io : ios){
+    for (const auto& io : ios) {
       auto data = dict_gets<torch::Tensor>(io, TASK_DATA_KEY);
 
       const size_t req_size = data.at(0).size(0);
@@ -156,19 +156,19 @@ class SetTensorRequestSize : public hami::Backend {
         (*io)[TASK_RESULT_KEY] = data[0];
       else
         (*io)[TASK_RESULT_KEY] = data;
+    }
   }
-}
 };
 
 #if 0
-class AppendIndexSelectTensor : public hami::Backend {
+class AppendIndexSelectTensor : public omniback::Backend {
   void impl_init(
       const std::unordered_map<std::string, std::string>& params,
-      const hami::dict& options) override {
+      const omniback::dict& options) override {
     throw std::runtime_error("not impl");
     parser_v2::ArgsKwargs args_kwargs =
         parser_v2::get_args_kwargs(this, "AppendIndexSelectTensor", params);
-    HAMI_ASSERT(
+    OMNI_ASSERT(
         args_kwargs.first.size() == 1,
         "Requires exactly 1 argument. Usage: AppendIndexSelectTensor(index)/AppendIndexSelectTensor::args=index");
     const auto& name = args_kwargs.first.at(0);
@@ -223,10 +223,10 @@ class AppendIndexSelectTensor : public hami::Backend {
   std::unique_ptr<torch::Tensor> tensor_cache_0_;
 };
 #endif
-class PrintTensor : public hami::BackendOne {
+class PrintTensor : public omniback::BackendOne {
   void impl_init(
       const std::unordered_map<std::string, std::string>& params,
-      const hami::dict& options) override {}
+      const omniback::dict& options) override {}
   void forward(const dict& io) override {
     auto data = dict_gets<torch::Tensor>(io, TASK_DATA_KEY);
     std::string id;
@@ -254,25 +254,27 @@ class PrintTensor : public hami::BackendOne {
   }
 };
 
-HAMI_REGISTER_BACKEND(SetTensorRequestSize);
-// HAMI_REGISTER_BACKEND(AppendIndexSelectTensor);
-HAMI_REGISTER_BACKEND(PrintTensor);
+OMNI_REGISTER_BACKEND(SetTensorRequestSize);
+// OMNI_REGISTER_BACKEND(AppendIndexSelectTensor);
+OMNI_REGISTER_BACKEND(PrintTensor);
 
-class HAMI_EXPORT LogGPUTime : public hami::Backend {
+class OMNI_EXPORT LogGPUTime : public omniback::Backend {
  private:
   void impl_init(
       const std::unordered_map<std::string, std::string>& params,
       const dict& options) override final {
-    auto args_kwargs = hami::parser_v2::get_args_kwargs(this, "LogGPUTime", params);
-    HAMI_ASSERT(
+    auto args_kwargs =
+        omniback::parser_v2::get_args_kwargs(this, "LogGPUTime", params);
+    OMNI_ASSERT(
         args_kwargs.first.size() == 1,
         "Requires exactly ==1 argument. Usage: LogGPUTime(key)/LogGPUTime::args=key_to_time");
     key_ = args_kwargs.first[0];
   }
-  void impl_forward(const std::vector<hami::dict>& input_output) override final {
+  void impl_forward(
+      const std::vector<omniback::dict>& input_output) override final {
     // float time = get_time();
     c10::cuda::getCurrentCUDAStream().synchronize();
-    float time = hami::helper::timestamp();
+    float time = omniback::helper::timestamp();
     SPDLOG_INFO("timer: {} = {}", key_, time);
     for (const auto& item : input_output) {
       (*item)[TASK_RESULT_KEY] = item->at(TASK_DATA_KEY);
@@ -292,6 +294,6 @@ class HAMI_EXPORT LogGPUTime : public hami::Backend {
   size_t max_{std::numeric_limits<size_t>::max()};
   std::string key_;
 };
-HAMI_REGISTER_BACKEND(LogGPUTime);
+OMNI_REGISTER_BACKEND(LogGPUTime);
 
 } // namespace torchpipe

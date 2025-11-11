@@ -1,6 +1,6 @@
-#include <string>
 #include "tensorrt_torch/TensorrtTensor.hpp"
-#include "hami/builtin/generate_backend.hpp"
+#include <string>
+#include "omniback/builtin/generate_backend.hpp"
 namespace torchpipe {
 
 constexpr auto INIT_STR =
@@ -13,7 +13,7 @@ constexpr auto FORWARD_STR =
 const auto BACKEND_STR =
     std::string() + "IoCV0[" + INIT_STR + "; " + FORWARD_STR + "]";
 
-HAMI_GENERATE_BACKEND(TensorrtTensor, BACKEND_STR, "");
+OMNI_GENERATE_BACKEND(TensorrtTensor, BACKEND_STR, "");
 
 // IoC[ModelLoadder[(.onnx)Onnx2Tensorrt,(.trt)LoadTensorrtEngine],TensorrtInferTensor;
 // CatSplit[S[FixTensor,CatTensor],S[ContiguousTensor,Reflect[pre_processor,Identity],Forward[TensorrtInferTensor],Reflect[post_processor,Identity]],SplitTensor]]]

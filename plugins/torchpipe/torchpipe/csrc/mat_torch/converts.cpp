@@ -3,14 +3,14 @@
 #include "helper/mat.hpp"
 #include "helper/torch.hpp"
 
+#include <torch/torch.h>
 #include "opencv2/imgcodecs.hpp"
 #include "opencv2/imgproc.hpp"
-#include <torch/torch.h>
 
 namespace torchpipe {
 
 inline torch::Tensor cvMat2TorchCPU(const cv::Mat& da) {
-  HAMI_ASSERT(
+  OMNI_ASSERT(
       (da.type() == CV_8UC3 || da.type() == CV_32FC3) && da.isContinuous());
 
   auto image_tensor = torch::from_blob(
@@ -22,15 +22,14 @@ inline torch::Tensor cvMat2TorchCPU(const cv::Mat& da) {
 }
 
 inline torch::Tensor cvMat2TorchCUDA(const cv::Mat& image) {
-    auto re = cvMat2TorchCPU(image);
-    return re.to(torch::kCUDA);
+  auto re = cvMat2TorchCPU(image);
+  return re.to(torch::kCUDA);
 }
 
 inline cv::Mat torchTensortoCVMatV2(torch::Tensor tensor, bool deepcopy) { //
   tensor = img_hwc_guard(tensor);
   cv::Mat mat;
   tensor = tensor.to(torch::kCPU).contiguous();
-
 
   if (tensor.dtype() == torch::kByte) {
     mat = cv::Mat(
@@ -55,7 +54,7 @@ inline cv::Mat torchTensortoCVMatV2(torch::Tensor tensor, bool deepcopy) { //
 
   if (deepcopy) {
     mat = mat.clone();
-    HAMI_ASSERT(mat.isContinuous());
+    OMNI_ASSERT(mat.isContinuous());
 
     return mat;
 
@@ -65,65 +64,64 @@ inline cv::Mat torchTensortoCVMatV2(torch::Tensor tensor, bool deepcopy) { //
 
 void Mat2Tensor::impl_init(
     const std::unordered_map<std::string, std::string>& config,
-    const hami::dict& kwargs) {
-    hami::str::try_update(config, "device", device_, {"cpu", "cuda"});
-    //   capsule
+    const omniback::dict& kwargs) {
+  omniback::str::try_update(config, "device", device_, {"cpu", "cuda"});
+  //   capsule
 }
 
-void Mat2Tensor::forward(const hami::dict& input_dict) {
-    auto& input = *input_dict;
-
-    auto iter = input_dict->find(TASK_DATA_KEY);
-    HAMI_ASSERT(iter != input_dict->end());
-    if (iter->second.type() == typeid(cv::Mat)) {
-        cv::Mat data = hami::any_cast<cv::Mat>(iter->second);
-        if (device_ == "cpu") {
-            if (!data.isContinuous()) {
-                SPDLOG_WARN("Mat is not continuous");
-                data = data.clone();
-            }
-            input[TASK_RESULT_KEY] = cvMat2TorchCPU(data).clone();
-        } else {
-            input[TASK_RESULT_KEY] = cvMat2TorchCUDA(data);
-            
-        }
-
-    } else if (iter->second.type() == typeid(std::vector<cv::Mat>)) {
-        const std::vector<cv::Mat>& data =
-            hami::any_cast<std::vector<cv::Mat>>(iter->second);
-        std::vector<torch::Tensor> result;
-        for (auto d : data) {
-            if (device_ == "cpu") {
-                if (!d.isContinuous()) {
-                    SPDLOG_WARN("Mat is not continuous");
-                    d = d.clone();
-                }
-                result.emplace_back(cvMat2TorchCPU(d).clone());
-            } else
-                result.emplace_back(cvMat2TorchCUDA(d));
-        }
-
-        input[TASK_RESULT_KEY] = result;
-    } else {
-        SPDLOG_ERROR("unknown type: {}", iter->second.type().name());
-        throw std::runtime_error("unknown type: " +
-                                 std::string(iter->second.type().name()));
-    }
-}
-
-HAMI_REGISTER(hami::Backend, Mat2Tensor);
-
-void Tensor2Mat::forward(const hami::dict& input_dict) {
+void Mat2Tensor::forward(const omniback::dict& input_dict) {
   auto& input = *input_dict;
 
   auto iter = input_dict->find(TASK_DATA_KEY);
-  HAMI_ASSERT(iter != input_dict->end());
+  OMNI_ASSERT(iter != input_dict->end());
+  if (iter->second.type() == typeid(cv::Mat)) {
+    cv::Mat data = omniback::any_cast<cv::Mat>(iter->second);
+    if (device_ == "cpu") {
+      if (!data.isContinuous()) {
+        SPDLOG_WARN("Mat is not continuous");
+        data = data.clone();
+      }
+      input[TASK_RESULT_KEY] = cvMat2TorchCPU(data).clone();
+    } else {
+      input[TASK_RESULT_KEY] = cvMat2TorchCUDA(data);
+    }
+
+  } else if (iter->second.type() == typeid(std::vector<cv::Mat>)) {
+    const std::vector<cv::Mat>& data =
+        omniback::any_cast<std::vector<cv::Mat>>(iter->second);
+    std::vector<torch::Tensor> result;
+    for (auto d : data) {
+      if (device_ == "cpu") {
+        if (!d.isContinuous()) {
+          SPDLOG_WARN("Mat is not continuous");
+          d = d.clone();
+        }
+        result.emplace_back(cvMat2TorchCPU(d).clone());
+      } else
+        result.emplace_back(cvMat2TorchCUDA(d));
+    }
+
+    input[TASK_RESULT_KEY] = result;
+  } else {
+    SPDLOG_ERROR("unknown type: {}", iter->second.type().name());
+    throw std::runtime_error(
+        "unknown type: " + std::string(iter->second.type().name()));
+  }
+}
+
+OMNI_REGISTER(omniback::Backend, Mat2Tensor);
+
+void Tensor2Mat::forward(const omniback::dict& input_dict) {
+  auto& input = *input_dict;
+
+  auto iter = input_dict->find(TASK_DATA_KEY);
+  OMNI_ASSERT(iter != input_dict->end());
   if (iter->second.type() == typeid(torch::Tensor)) {
-    torch::Tensor data = hami::any_cast<torch::Tensor>(iter->second);
+    torch::Tensor data = omniback::any_cast<torch::Tensor>(iter->second);
     auto result = torchTensortoCVMatV2(data, true); // true is for 'deepcopy'
     input[TASK_RESULT_KEY] = result;
   } else if (iter->second.type() == typeid(std::vector<torch::Tensor>)) {
-    HAMI_ASSERT(false);
+    OMNI_ASSERT(false);
     /* code */
   } else {
     SPDLOG_ERROR("unknown type: {}", iter->second.type().name());
@@ -132,6 +130,6 @@ void Tensor2Mat::forward(const hami::dict& input_dict) {
   }
 }
 
-HAMI_REGISTER(hami::Backend, Tensor2Mat);
+OMNI_REGISTER(omniback::Backend, Tensor2Mat);
 
-  } // namespace torchpipe
+} // namespace torchpipe

@@ -10,24 +10,24 @@ cd torchpipe/ && git submodule update --init --recursive
 ### ours => A10: ~/paper/v1/torchpipe/
 ```
 
-## hami
+## omniback
 
 ### docker
 img_name=nvcr.io/nvidia/pytorch:25.05-py3
 docker pull $img_name
 
-docker run --name=exp_hami --runtime=nvidia --ipc=host --cpus=8 --network=host -v `pwd`:/workspace  --shm-size 1G  --ulimit memlock=-1 --ulimit stack=67108864  --privileged=true  -w/workspace -it $img_name /bin/bash
+docker run --name=exp_omniback --runtime=nvidia --ipc=host --cpus=8 --network=host -v `pwd`:/workspace  --shm-size 1G  --ulimit memlock=-1 --ulimit stack=67108864  --privileged=true  -w/workspace -it $img_name /bin/bash
  
 ### test cuda
 python -c  "import torch; assert (torch.cuda.is_available())"
 
-### install hami
+### install omniback
 ```bash
 # optional: pip config set global.index-url https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple
 
 pip install --upgrade pip setuptools wheel
 python setup.py bdist_wheel
-pip uninstall hami-core -y && pip install dist/*.whl
+pip uninstall omniback -y && pip install dist/*.whl
 ```
 
 ### install torchpipe
@@ -48,11 +48,11 @@ ls *.onnx
 ``` -->
 
 
-### experiment with hami
+### experiment with omniback
 
-- Hami w/ CPU  GPU
+- Omniback w/ CPU  GPU
 ```bash
- python hami_w_cpu_gpu.py
+ python omniback_w_cpu_gpu.py
 # python ./benchmark.py  --preprocess cpu --model resnet101 --max 5 --preprocess-instances 8 --client 10 --timeout 2 --trt_instance_num 2 --total_number 20000
 
 # python ./benchmark.py  --preprocess gpu --model resnet101 --max 5 --preprocess-instances 6 --client 30 --timeout 2 --trt_instance_num 2 --total_number 20000

@@ -1,16 +1,16 @@
 
 #pragma once
-#include <hami/extension.hpp>
+#include <omniback/extension.hpp>
 #include <opencv2/core/types.hpp>
 namespace torchpipe {
 
-class ResizeMat : public hami::BackendOne {
+class ResizeMat : public omniback::BackendOne {
  public:
   virtual void impl_init(
       const std::unordered_map<std::string, std::string>&,
-      const hami::dict&) override;
+      const omniback::dict&) override;
 
-  virtual void forward(const hami::dict&) override;
+  virtual void forward(const omniback::dict&) override;
 
  private:
   size_t resize_h_;
@@ -23,13 +23,13 @@ class ResizeMat : public hami::BackendOne {
  * - Fills empty areas with specified padding color
  * - Outputs scaling factor and offset values for coordinate mapping
  */
-class LetterBoxMat : public hami::BackendOne {
+class LetterBoxMat : public omniback::BackendOne {
  public:
   virtual void impl_init(
       const std::unordered_map<std::string, std::string>& config,
-      const hami::dict& kwargs) override;
+      const omniback::dict& kwargs) override;
 
-  virtual void forward(const hami::dict& input_dict) override;
+  virtual void forward(const omniback::dict& input_dict) override;
 
  private:
   size_t target_h_; // Target height
@@ -43,13 +43,13 @@ class LetterBoxMat : public hami::BackendOne {
  * - Fills remaining areas with padding color
  * - Outputs scaling factor (offset always 0,0)
  */
-class TopLeftResizeMat : public hami::BackendOne {
+class TopLeftResizeMat : public omniback::BackendOne {
  public:
   virtual void impl_init(
       const std::unordered_map<std::string, std::string>& config,
-      const hami::dict& kwargs) override;
+      const omniback::dict& kwargs) override;
 
-  virtual void forward(const hami::dict& input_dict) override;
+  virtual void forward(const omniback::dict& input_dict) override;
 
  private:
   size_t target_h_;

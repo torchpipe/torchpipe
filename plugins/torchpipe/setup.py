@@ -69,11 +69,11 @@ def cv_lib_dir():
 
 
 
-def prepare_hami():
-    # bash - c 'tmpdir=$(mktemp -d) && pip download hami-core --platform manylinux2014_x86_64 --only-binary=:all: --dest $tmpdir --no-deps && pip install $tmpdir/hami_core-*.whl && rm -rf $tmpdir'
+def prepare_omniback():
+    # bash - c 'tmpdir=$(mktemp -d) && pip download omniback --platform manylinux2014_x86_64 --only-binary=:all: --dest $tmpdir --no-deps && pip install $tmpdir/omniback_core-*.whl && rm -rf $tmpdir'
     try:
-        import hami
-        need_reinstall = hami._C.use_cxx11_abi() != torch._C._GLIBCXX_USE_CXX11_ABI
+        import omniback
+        need_reinstall = omniback._C.use_cxx11_abi() != torch._C._GLIBCXX_USE_CXX11_ABI
     except:
         need_reinstall = True
     # torch >= 1.10.2
@@ -85,21 +85,21 @@ def prepare_hami():
         platform = 'manylinux_2_27_x86_64' if torch._C._GLIBCXX_USE_CXX11_ABI else 'manylinux2014_x86_64'
         with tempfile.TemporaryDirectory() as tmpdir:
             subprocess.run([
-                'pip', 'download', 'hami-core==1.40.0',
+                'pip', 'download', 'omniback==1.40.0',
                 '--platform', platform,
                 '--only-binary=:all:',
                 '--dest', tmpdir,
                 '--no-deps'
             ], check=True)
 
-            wheel_file = next(Path(tmpdir).glob('hami_core-*.whl'))
+            wheel_file = next(Path(tmpdir).glob('omniback_core-*.whl'))
             subprocess.run(['pip', 'install', str(wheel_file)], check=True)
             
             
 class Config:
     def __init__(self):
-        prepare_hami()
-        import hami
+        prepare_omniback()
+        import omniback
         
         self.root_dir = Path(__file__).absolute().parent
         self.csrc_dir = self.root_dir / "torchpipe/csrc"
@@ -107,10 +107,10 @@ class Config:
         # Build flags
         self.debug = os.getenv("DEBUG", "0") == "1"
 
-        # Hami configuration
-        self.hami_includes = hami.get_includes()
-        self.hami_lib_dir = hami.get_library_dir()
-        self.hami_c_so = hami.get_C_path()
+        # Omniback configuration
+        self.omniback_includes = omniback.get_includes()
+        self.omniback_lib_dir = omniback.get_library_dir()
+        self.omniback_c_so = omniback.get_C_path()
 
 
         # Print config
@@ -148,12 +148,12 @@ class BuildHelper:
             "include_dirs": [
                 config.csrc_dir,
                 str(Path(CUDA_HOME) / "include/")
-            ] + config.hami_includes + include_dirs,
+            ] + config.omniback_includes + include_dirs,
             "library_dirs": [
-                config.hami_lib_dir,
+                config.omniback_lib_dir,
                 str(Path(CUDA_HOME) / "lib64/")
             ]+lib_dirs,
-            # "libraries": ["hami"],  # 基类默认库
+            # "libraries": ["omniback"],  # 基类默认库
             "extra_link_args": [
             ] + [
                  *kwargs.get("extra_link_args", []),
@@ -269,7 +269,7 @@ if __name__ == "__main__":
     setup(
         name="torchpipe",
         version="0.50.0",
-        author="Hami/torchpipe Team",
+        author="Omniback/torchpipe Team",
         description="High-performance inference pipeline for PyTorch",
         packages=find_packages(exclude=("test",)),
         package_data={

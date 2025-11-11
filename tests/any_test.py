@@ -1,6 +1,6 @@
 import pytest
-import hami._C as _C
-from hami import Dict as hami_dict
+import omniback._C as _C
+from omniback import Dict as omniback_dict
 
 def test_any_basic_types():
     # Integer
@@ -70,7 +70,7 @@ def test_identity_backend():
     
     # Input with event
     input_event = {"data": 100, 'event': 1}
-    input_event = hami_dict(input_event)
+    input_event = omniback_dict(input_event)
     backend(input_event)
     assert input_event['result'] == 100
 

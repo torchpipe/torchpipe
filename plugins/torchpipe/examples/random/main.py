@@ -1,9 +1,9 @@
 from typing import List
-import hami
+import omniback
 import torchpipe
 
 
-model = hami.pipe('random.toml')
+model = omniback.pipe('random.toml')
 
 import cv2
 img_path = '../../tests/assets/640/640.jpg'
@@ -29,10 +29,10 @@ def get_test_function():
 
 def main(node = "mix"):
     CONFIG['node'] = node
-    # hami.init("DebugLogger")
+    # omniback.init("DebugLogger")
     # import time
     # time.sleep(5)
-    hami.utils.test.test_from_ids(forward_function=[get_test_function() for _ in range(10)],
+    omniback.utils.test.test_from_ids(forward_function=[get_test_function() for _ in range(10)],
                                 ids=[0]*1000,
                                 request_batch = 1)
     

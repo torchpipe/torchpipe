@@ -1,8 +1,8 @@
 def test_mat2tensor():
-    import hami
+    import omniback
     import torchpipe, torch
-    hami.init("DebugLogger")
-    x = hami.init("S[Tensor2Mat,Mat2Tensor]")
+    omniback.init("DebugLogger")
+    x = omniback.init("S[Tensor2Mat,Mat2Tensor]")
     x_i = {'data':torch.zeros((224,224,3))}
     x(x_i)
 

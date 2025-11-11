@@ -4,7 +4,7 @@ import torchpipe
 import torch
 import os
 import tempfile
-import hami
+import omniback
 
 # Pipeline configuration strings
 INIT_STR = "ModelLoadder[(.onnx)Onnx2Tensorrt,(.trt)LoadTensorrtEngine], TensorrtInferTensor"
@@ -66,7 +66,7 @@ def test_tensorrt_inference(model_config):
     config, _ = model_config
     
     # Initialize model
-    model = hami.init(BACKEND_STR, config)
+    model = omniback.init(BACKEND_STR, config)
     
     # Prepare input data
     input_tensor = torch.ones((1, 3, 224, 224))

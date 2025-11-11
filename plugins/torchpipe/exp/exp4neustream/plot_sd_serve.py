@@ -274,8 +274,8 @@ def plot_comparison(data):
     ax4.set_ylim(y_min, y_max)
 
     id_name2name = {
-        'hami_sd_256_candrop0': 'Plain',
-        'hami_sd_256_candrop1': 'Profile-Guided Dropping',
+        'omniback_sd_256_candrop0': 'Plain',
+        'omniback_sd_256_candrop1': 'Profile-Guided Dropping',
         'neustream_sd_256': 'NeuStream'
     }
 

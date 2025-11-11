@@ -1,6 +1,6 @@
 # filePath: tests/test_DecodeTensor.py
 import pytest
-import hami
+import omniback
 import torchpipe
 import requests
 from io import BytesIO
@@ -18,7 +18,7 @@ import numpy as np
 # # Test function
 def test_DecodeTensor():
     # Initialize the DecodeTensor model
-    model = hami._C.init("DecodeTensor")
+    model = omniback._C.init("DecodeTensor")
 
     img = Image.fromarray(np.zeros((1140, 1200, 3), dtype=np.uint8))
     img_byte_arr = BytesIO()

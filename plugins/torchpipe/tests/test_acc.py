@@ -18,7 +18,7 @@ except ImportError:
 
 # Other imports
 import torch
-import hami
+import omniback
 import torchpipe
 import torchpipe.utils.model_helper as helper
 from PIL import Image
@@ -26,15 +26,15 @@ from PIL import Image
 
 class Torch2Trt:
     def __init__(self, onnx_path, toml_path):
-        config = hami.parser.parse(toml_path)
+        config = omniback.parser.parse(toml_path)
         for k, v in config.items():
             if 'model' in v.keys():
                 v['model'] = onnx_path
             v['model::cache'] = onnx_path.replace(".onnx", '.trt')
 
-        kwargs = hami.Dict()
+        kwargs = omniback.Dict()
         kwargs['config'] = config
-        pipe = hami.create('Interpreter').init({}, kwargs)
+        pipe = omniback.create('Interpreter').init({}, kwargs)
         logger.info(f"config = {config}")
         self.model = pipe
         
@@ -45,7 +45,7 @@ class Torch2Trt:
 
 
 def get_model(toml_path):
-    interp = hami.init("Interpreter", {"backend": "StreamGuard[DecodeTensor]"})
+    interp = omniback.init("Interpreter", {"backend": "StreamGuard[DecodeTensor]"})
     return interp
 
 
@@ -59,10 +59,10 @@ def test_resnet50_classification():
     
     # Initialize test utilities and model
     tester = helper.ClassifyModelTester('resnet50', onnx_path)
-    hami_model = Torch2Trt(onnx_path, 'config/resnet50.toml')
+    omniback_model = Torch2Trt(onnx_path, 'config/resnet50.toml')
     
     # Run test
-    tester.test(hami_model)
+    tester.test(omniback_model)
     # try:
     #     import shutil
     #     shutil.rmtree(os.path.dirname(onnx_path))

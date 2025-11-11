@@ -2,7 +2,7 @@
 import os
 
 try:
-    import hami
+    import omniback
 except:
     pass
 
@@ -145,7 +145,7 @@ def get_config(args):
 if __name__ == "__main__":
     
     if args.debug:
-        hami.init("DebugLogger")
+        omniback.init("DebugLogger")
     config = {}
     onnx_save_path = f"./{args.model}.onnx"
     if (
@@ -199,7 +199,7 @@ if __name__ == "__main__":
         print(config)
         import torchpipe as tp
 
-        nodes = hami.pipe(config)
+        nodes = omniback.pipe(config)
 
     if args.model == "empty":
         print("args.model is empty. test preprocess only")

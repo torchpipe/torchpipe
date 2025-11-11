@@ -179,7 +179,7 @@ add_compile_options(-fvisibility=default)  # Linux/macOS
 
 # if no CMAKE_LIBRARY_OUTPUT_DIRECTORY
   if(NOT DEFINED CMAKE_LIBRARY_OUTPUT_DIRECTORY)
-    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/hami)
+    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/omniback)
   endif()
   
 

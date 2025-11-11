@@ -41,12 +41,12 @@ def extract_qps(data_list):
 
 try:
     # 读取文件
-    hami_data = read_json_file('hami_cpu_gpu_results.json')
+    omniback_data = read_json_file('omniback_cpu_gpu_results.json')
     triton_data = read_json_file('triton_cpu_gpu_results.json')
 
     # 提取各配置的QPS数据
-    hami_cpu_qps = extract_qps(hami_data['hamirun_cpu_preprocess_cmd'])
-    hami_gpu_qps = extract_qps(hami_data['hamirun_gpu_preprocess_cmd'])
+    omniback_cpu_qps = extract_qps(omniback_data['omnibackrun_cpu_preprocess_cmd'])
+    omniback_gpu_qps = extract_qps(omniback_data['omnibackrun_gpu_preprocess_cmd'])
 
     triton_process_qps = extract_qps(triton_data['triton_resnet_process'])
     triton_thread_qps = extract_qps(triton_data['triton_resnet_thread'])
@@ -63,8 +63,8 @@ try:
         'Triton Multi-Proc.': triton_process_qps,
         'Triton Ensem. w/ CPU': triton_ensemble_cpu_qps,
         'Triton Ensem. w/ GPU': triton_ensemble_gpu_qps,
-        'Hami w/ CPU': hami_cpu_qps,
-        'Hami w/ GPU': hami_gpu_qps
+        'Omniback w/ CPU': omniback_cpu_qps,
+        'Omniback w/ GPU': omniback_gpu_qps
     }
 
     df = pd.DataFrame(data)
@@ -73,7 +73,7 @@ try:
     # 添加LoC数据
     loc_data = {
         'Method': ['Triton Multi-Thread', 'Triton Multi-Proc.', 'Triton Ensem. w/ CPU',
-                   'Triton Ensem. w/ GPU', 'Hami w/ CPU', 'Hami w/ GPU'],
+                   'Triton Ensem. w/ GPU', 'Omniback w/ CPU', 'Omniback w/ GPU'],
         'LoC': [36, '-', 78, 78, 19, 19]
     }
 
@@ -111,12 +111,12 @@ try:
 
     latex_output.append("\\midrule")
 
-    # Hami w/ CPU (在20并发处添加****)
-    row = f"Hami w/ CPU & {hami_cpu_qps[0]} & {hami_cpu_qps[1]} & \\textbf{{{hami_cpu_qps[2]}}} & {hami_cpu_qps[3]}  & {hami_cpu_qps[4]} & \\textbf{{{loc_df.loc['Hami w/ CPU', 'LoC']}}}\\\\"
+    # Omniback w/ CPU (在20并发处添加****)
+    row = f"Omniback w/ CPU & {omniback_cpu_qps[0]} & {omniback_cpu_qps[1]} & \\textbf{{{omniback_cpu_qps[2]}}} & {omniback_cpu_qps[3]}  & {omniback_cpu_qps[4]} & \\textbf{{{loc_df.loc['Omniback w/ CPU', 'LoC']}}}\\\\"
     latex_output.append(row)
 
-    # Hami w/ GPU (在20并发处添加****和脚注)
-    row = f"Hami w/ GPU & {hami_gpu_qps[0]}\\tablefootnote{{Improvement from Hami's adaptive timeout tuning.}} & {hami_gpu_qps[1]} & \\textbf{{{hami_gpu_qps[2]}}} & {hami_gpu_qps[3]}  & {hami_gpu_qps[4]} & \\textbf{{{loc_df.loc['Hami w/ GPU', 'LoC']}}}\\\\"
+    # Omniback w/ GPU (在20并发处添加****和脚注)
+    row = f"Omniback w/ GPU & {omniback_gpu_qps[0]}\\tablefootnote{{Improvement from Omniback's adaptive timeout tuning.}} & {omniback_gpu_qps[1]} & \\textbf{{{omniback_gpu_qps[2]}}} & {omniback_gpu_qps[3]}  & {omniback_gpu_qps[4]} & \\textbf{{{loc_df.loc['Omniback w/ GPU', 'LoC']}}}\\\\"
     latex_output.append(row)
 
     latex_output.append("\\bottomrule")
@@ -138,6 +138,6 @@ try:
 
 except FileNotFoundError as e:
     print(f"文件未找到: {e}")
-    print("请确保 hami_cpu_gpu_results.json 和 triton_cpu_gpu_results.json 文件在当前目录中")
+    print("请确保 omniback_cpu_gpu_results.json 和 triton_cpu_gpu_results.json 文件在当前目录中")
 except Exception as e:
     print(f"处理数据时出错: {e}")

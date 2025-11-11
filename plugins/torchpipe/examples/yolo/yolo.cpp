@@ -1,15 +1,15 @@
-#include "hami/csrc/python.hpp"
-#include "hami/csrc/box.hpp"
-#include "hami/core/any.hpp"
-#include "hami/core/reflect.h"
-#include "hami/core/backend.hpp"
+#include "omniback/core/any.hpp"
+#include "omniback/core/backend.hpp"
+#include "omniback/core/reflect.h"
+#include "omniback/csrc/box.hpp"
+#include "omniback/csrc/python.hpp"
 
-#include "hami/csrc/dict.hpp"
+#include "omniback/csrc/dict.hpp"
 
 #include <torch/extension.h>
 #include <torch/torch.h>
-using hami::Box;
-using hami::Boxes;
+using omniback::Box;
+using omniback::Boxes;
 
 float iou(const Box& a, const Box& b) {
   const float inter_x1 = std::max(a.x1, b.x1);
@@ -26,8 +26,8 @@ float iou(const Box& a, const Box& b) {
   return union_area > 0 ? inter_area / union_area : 0.0f;
 }
 
-hami::Boxes nms(
-    const std::vector<hami::Box>& boxes,
+omniback::Boxes nms(
+    const std::vector<omniback::Box>& boxes,
     float iou_threshold,
     bool class_agnostic = false) {
   Boxes result;
@@ -81,7 +81,7 @@ hami::Boxes nms(
 
   return result;
 }
-hami::Boxes yolo11_post_cpp(
+omniback::Boxes yolo11_post_cpp(
     torch::Tensor& prediction,
     float conf_thres,
     float iou_thres,
@@ -104,7 +104,8 @@ hami::Boxes yolo11_post_cpp(
 
   id = id.index({keep_mask});
   boxes = boxes.index({keep_mask});
-  scores = scores.index({keep_mask}).gather(1, id.unsqueeze(1)); // 仅保留最高分数的类别
+  scores = scores.index({keep_mask})
+               .gather(1, id.unsqueeze(1)); // 仅保留最高分数的类别
   scores = scores.cpu().contiguous(); // 过滤后的分数
   boxes = boxes.cpu().contiguous(); // 过滤后的边界框
   id = id.cpu().contiguous();
@@ -112,7 +113,7 @@ hami::Boxes yolo11_post_cpp(
   float* pboxes = boxes.data_ptr<float>();
   float* pscores = scores.data_ptr<float>();
   int64_t* pid = id.data_ptr<int64_t>();
-  hami::Boxes re_boxes;
+  omniback::Boxes re_boxes;
   re_boxes.add_batch_cxcywh(pboxes, pscores, pid, num_boxes);
   re_boxes = nms(re_boxes.boxes, iou_thres);
   if (re_boxes.boxes.size() > max_det)
@@ -128,11 +129,11 @@ py::object yolo11_post(
     int max_det) {
   // 检查输入张量维度
   auto re_boxes = yolo11_post_cpp(prediction, conf_thres, iou_thres, max_det);
-  return hami::cast(re_boxes);
+  return omniback::cast(re_boxes);
 }
 
-namespace hami {
-class Yolo11Post : public hami::BackendOne {
+namespace omniback {
+class Yolo11Post : public omniback::BackendOne {
   void impl_init(
       const std::unordered_map<std::string, std::string>& params,
       const dict& options) override {}
@@ -153,8 +154,8 @@ class Yolo11Post : public hami::BackendOne {
     (*io)["result"] = result;
   }
 };
-HAMI_REGISTER(hami::Backend, Yolo11Post);
-} // namespace hami
+OMNI_REGISTER(omniback::Backend, Yolo11Post);
+} // namespace omniback
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   m.def(
       "yolo11_post",

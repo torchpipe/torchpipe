@@ -33,7 +33,7 @@ manylinux_2_28 + manylinux2014
 
 
 
-- HAMI_GENERATE_BACKEND   A[B]?    Z=A=>A;Z=A[B,C]=>C;Z=A[B,C[D]] => D;
+- OMNI_GENERATE_BACKEND   A[B]?    Z=A=>A;Z=A[B,C]=>C;Z=A[B,C[D]] => D;
 
 
 [data ... data]
@@ -114,10 +114,10 @@ test : pip install torch==2.7 --index-url https://download.pytorch.org/whl/night
 
 
 ```bash
-pip3 install hami-core --platform manylinux2014_x86_64 --only-binary=:all: --target `python3 -c "import site; print(site.getusersitepackages())"`
+pip3 install omniback --platform manylinux2014_x86_64 --only-binary=:all: --target `python3 -c "import site; print(site.getusersitepackages())"`
 
 # or system wide install: 
-# pip3 install hami-core --platform manylinux2014_x86_64 --only-binary=:all:   --target `python3 -c "import site; print(site.getsitepackages()[0])"`
+# pip3 install omniback --platform manylinux2014_x86_64 --only-binary=:all:   --target `python3 -c "import site; print(site.getsitepackages()[0])"`
 
 ```
 
@@ -174,7 +174,7 @@ E.g., different schedulers for different hardware backends
 
 img_name=nvcr.io/nvidia/pytorch:25.02-py3
 docker run --rm --gpus=all --ipc=host  --network=host -v `pwd`:/workspace  --shm-size 1G  --ulimit memlock=-1 --ulimit stack=67108864  --privileged=true  -w/workspace -it $img_name /bin/bash
-docker run --gpus=all --ipc=host --name debug_hami --network=host -v `pwd`:/workspace  --shm-size 1G  --ulimit memlock=-1 --ulimit stack=67108864  --privileged=true  -w/workspace -it $img_name /bin/bash
+docker run --gpus=all --ipc=host --name debug_omniback --network=host -v `pwd`:/workspace  --shm-size 1G  --ulimit memlock=-1 --ulimit stack=67108864  --privileged=true  -w/workspace -it $img_name /bin/bash
 
 <!-- https://aijishu.com/a/1060000000503090 -->
 

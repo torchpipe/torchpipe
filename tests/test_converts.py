@@ -1,5 +1,5 @@
 import pytest
-import hami._C as _C
+import omniback._C as _C
 
 def test_type_converts():
     # Test basic type conversions

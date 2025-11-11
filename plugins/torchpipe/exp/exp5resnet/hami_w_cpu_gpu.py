@@ -173,7 +173,7 @@ def run_cmd(cmd):
 
 if __name__ == "__main__":
 
-    file = 'hami_cpu_gpu_results.json'
+    file = 'omniback_cpu_gpu_results.json'
     targets = [run_cpu_preprocess_cmd, run_gpu_preprocess_cmd]
     if args.cmd:
         targets = [run_cmd(args.cmd)]
@@ -192,7 +192,7 @@ if __name__ == "__main__":
 
     final_json = {}
     for k, v in zip(targets, results):
-        final_json["hami"+k.__name__] = v
+        final_json["omniback"+k.__name__] = v
 
     import json
     with open(file, "a") as f:

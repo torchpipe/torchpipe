@@ -24,8 +24,8 @@
 
 # python
 /*.egg-info/
-/hami/*.pyd
-/hami/*.so
+/omniback/*.pyd
+/omniback/*.so
 **/__pycache__/*
 build/*
 .setuptools-cmake-build/*

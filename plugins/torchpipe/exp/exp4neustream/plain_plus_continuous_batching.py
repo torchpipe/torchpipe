@@ -6,7 +6,7 @@ from helper import exp_config_parser
 import toml
 import json
 import torch
-import hami
+import omniback
 import torchpipe
 from typing import List
 import time
@@ -26,7 +26,7 @@ global_request_pool = {}
 # NORM_TIME = 1
 torch.set_grad_enabled(False)
 
-# hami.init("DebugLogger")
+# omniback.init("DebugLogger")
 
 latency_profile = exp_config_parser.get_latency_profile()
 
@@ -87,7 +87,7 @@ class Clip:
     def init(self, params, options):
         torch.set_grad_enabled(False)
 
-    def forward(self, io: List[hami.Dict]):
+    def forward(self, io: List[omniback.Dict]):
         # print(f'clip bs ={len(io)}')
         reqs = []
         for data in io:
@@ -113,7 +113,7 @@ class Unet:
         print(f'unet params={params}')
         self.sd_module = sd_modules['UNetModule']
 
-    def forward(self, io: List[hami.Dict]):
+    def forward(self, io: List[omniback.Dict]):
         # print(f'unet bs = {len(io)}')
         # start_time = time.perf_counter()
         reqs = []
@@ -150,7 +150,7 @@ class Vae:
     def init(self, params, options):
         torch.set_grad_enabled(False)
 
-    def forward(self, io: List[hami.Dict]):
+    def forward(self, io: List[omniback.Dict]):
         # print('vae1')
         # print(f'vae bs ={len(io)}')
         # start_time = time.perf_counter()
@@ -176,8 +176,8 @@ class Vae:
 
 @dataclass
 class LoopInfo:
-    data: hami.Dict = None
-    event: hami.Event = None
+    data: omniback.Dict = None
+    event: omniback.Event = None
     loop_index: int = 0
     loop_num: int = 1
     emergency: float = 0.0
@@ -196,7 +196,7 @@ class PyContinuousBatching:
         self.lock = threading.Lock()
 
         self.cached_data = {}
-        self.target = hami.get(params.pop('target'))
+        self.target = omniback.get(params.pop('target'))
 
         slo_factor = params.pop('slo_factor')
         print(f'params.pop(slo_factor) = {slo_factor}')
@@ -234,7 +234,7 @@ class PyContinuousBatching:
         if self.thread.is_alive():
             print("Warning: Worker thread did not exit cleanly")
 
-    def forward(self, io: List[hami.Dict]):
+    def forward(self, io: List[omniback.Dict]):
         self.input_queue.put(('forward', io))
 
     def task_loop(self):
@@ -369,7 +369,7 @@ class PyContinuousBatching:
             assert 'event' not in v.data
             req = global_request_pool[k]
 
-        ev = hami.Event(len(io))
+        ev = omniback.Event(len(io))
         ev.set_callback(lambda: self.input_queue.put(('finish', None)))
         ev.set_exception_callback(lambda x: print(f'error x'))
         for item in io:
@@ -454,16 +454,16 @@ class PyContinuousBatching:
 
         return
 
-hami.register("Clip", Clip)
-hami.register("Unet", Unet)
-hami.register("Vae", Vae)
-hami.register("PyContinuousBatching", PyContinuousBatching)
+omniback.register("Clip", Clip)
+omniback.register("Unet", Unet)
+omniback.register("Vae", Vae)
+omniback.register("PyContinuousBatching", PyContinuousBatching)
 
 
 def get_scheduler(slo_factor):
-    # hami.pipe({'unet_backend':{'backend':'S[unet, SyncTensor,TimeStamp(finish_iter)]','batching_timeout':1,'instance_num':1},
+    # omniback.pipe({'unet_backend':{'backend':'S[unet, SyncTensor,TimeStamp(finish_iter)]','batching_timeout':1,'instance_num':1},
     #     })
-    hami.pipe({'unet_backend': {'backend': 'SyncTensor[Unet]', 'batching_timeout': 1, 'instance_num': 1},
+    omniback.pipe({'unet_backend': {'backend': 'SyncTensor[Unet]', 'batching_timeout': 1, 'instance_num': 1},
                })
 
     config = {
@@ -472,21 +472,21 @@ def get_scheduler(slo_factor):
         'unet': {'node_entrypoint': 'Register[PyContinuousBatching]', 'target': 'node.unet_backend', 'slo_factor': slo_factor},
         'vaesafety': {"backend": 'SyncTensor[Vae]', 'batching_timeout': 8, 'instance_num': 1}}
 
-    scheduler = hami.pipe(config)
+    scheduler = omniback.pipe(config)
 
     return scheduler
 
 
 class Model:
     def __init__(self, slo_factor):
-        # hami.init('DebugLogger')
+        # omniback.init('DebugLogger')
         if isinstance(slo_factor, tuple):
             assert len(slo_factor) == 2
             slo_factor = str(slo_factor[0]) + ','+str(slo_factor[1])
         self.scheduler = get_scheduler(slo_factor)
 
     def __call__(self, req_id, request, exc_cb, call_back):
-        event = hami.Event()
+        event = omniback.Event()
         # print('before set_exception_callback')
         event.set_exception_callback(exc_cb)
         # print('after set_exception_callback')
@@ -503,7 +503,7 @@ class Model:
         event.set_callback(drop_cb)
         # print(f'id={req_id}')
 
-        io = hami.Dict({'data': req_id, 'node_name': 'clip', 'event': event,
+        io = omniback.Dict({'data': req_id, 'node_name': 'clip', 'event': event,
                        'stage': 0, 'loop_num': request['loop_num']["UNetModule"]})
         # io.pop('event', None)
         # print(io)

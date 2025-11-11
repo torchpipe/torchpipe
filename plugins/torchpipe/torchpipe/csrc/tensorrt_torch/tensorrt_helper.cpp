@@ -8,7 +8,7 @@
 #include <NvOnnxParser.h>
 #include <c10/core/ScalarType.h> // Add this line
 #include <c10/cuda/CUDAStream.h>
-#include <hami/extension.hpp>
+#include <omniback/extension.hpp>
 #include "NvInferPlugin.h"
 #include "tensorrt_torch/tensorrt_helper.hpp"
 
@@ -76,7 +76,7 @@ void force_layernorn_fp32(nvinfer1::INetworkDefinition* network) {
   for (std::size_t index_l = 0; index_l < network->getNbLayers(); ++index_l) {
     nvinfer1::ILayer* layer = network->getLayer(index_l);
 
-    HAMI_ASSERT(layer);
+    OMNI_ASSERT(layer);
     std::string start_name = layer->getName();
     std::vector<nvinfer1::ILayer*> target;
     bool find_ln = false;
@@ -135,9 +135,9 @@ bool precision_fpx_count(
     const std::set<std::string>& target,
     std::string layer_name,
     std::set<std::string>& layers_founded) {
-  layer_name = hami::str::tolower(layer_name);
+  layer_name = omniback::str::tolower(layer_name);
   for (const auto& item : target) {
-    const std::string lower_item = hami::str::tolower(item);
+    const std::string lower_item = omniback::str::tolower(item);
     if (layer_name.find(lower_item) != std::string::npos) {
       layers_founded.insert(item);
       return true;
@@ -156,7 +156,7 @@ void modify_layers_precision(
       precision_fpx_input.begin(),
       precision_fpx_input.end(),
       std::inserter(precision_fpx, precision_fpx.begin()),
-      [](const std::string& item) { return hami::str::tolower(item); });
+      [](const std::string& item) { return omniback::str::tolower(item); });
 
   std::set<std::string> layers_founded;
 
@@ -165,7 +165,7 @@ void modify_layers_precision(
        ++index_l) {
     nvinfer1::ILayer* layer = network->getLayer(index_l);
 
-    HAMI_ASSERT(layer);
+    OMNI_ASSERT(layer);
 
     if (precision_fpx_count(
             precision_fpx, std::string(layer->getName()), layers_founded)) {
@@ -222,13 +222,13 @@ void print_colored_net(
   std::stringstream ss;
 
   // Header
-  ss << hami::colored("\n====== Network Inputs =====") << "\n";
+  ss << omniback::colored("\n====== Network Inputs =====") << "\n";
 
   // Print each input's name and dimensions
   for (std::size_t i = 0; i < net_inputs_ordered_dims.size(); ++i) {
     const auto& item = net_inputs_ordered_dims[i];
-    ss << hami::colored("Input " + std::to_string(input_reorder[i]) + ": ")
-       << hami::colored(item.first) << " [";
+    ss << omniback::colored("Input " + std::to_string(input_reorder[i]) + ": ")
+       << omniback::colored(item.first) << " [";
     for (int j = 0; j < item.second.nbDims; ++j) {
       const int inputS = item.second.d[j];
       ss << inputS;
@@ -239,11 +239,11 @@ void print_colored_net(
   }
 
   // Footer with instructions
-  ss << hami::colored(
+  ss << omniback::colored(
             "========================================================")
      << "\n";
-  ss << hami::colored("Instructions:") << "\n";
-  ss << hami::colored(
+  ss << omniback::colored("Instructions:") << "\n";
+  ss << omniback::colored(
             "1. Use the above information to set ranges (through parameters: "
             "max/min) for "
             "profiles.")
@@ -305,7 +305,7 @@ void print_net(
 
   // // Print the final output (assuming SPDLOG_INFO and colored functions are
   // // defined)
-  // SPDLOG_INFO(hami::colored(ss.str()));
+  // SPDLOG_INFO(omniback::colored(ss.str()));
 }
 c10::ScalarType trt2torch_type(nvinfer1::DataType dtype) {
   switch (dtype) {
@@ -443,7 +443,7 @@ void merge_mean_std(
 //     if (std::find(names.begin(), names.end(), layer->getName()) !=
 //         names.end()) {
 //       // target_layers.push_back(layer);
-//       HAMI_ASSERT(layer->getNbOutputs() == 1);
+//       OMNI_ASSERT(layer->getNbOutputs() == 1);
 //       outputs[i].push_back(layer->getOutput(0));
 //     }
 //   }
@@ -463,7 +463,7 @@ nvinfer1::Dims infer_shape(
     std::vector<int> config_shape,
     const nvinfer1::Dims& net_input) {
   nvinfer1::Dims out = net_input;
-  HAMI_ASSERT(config_shape.size() == net_input.nbDims);
+  OMNI_ASSERT(config_shape.size() == net_input.nbDims);
   for (std::size_t i = 0; i < net_input.nbDims; ++i) {
     if (config_shape[i] == -1) {
       if (-1 == net_input.d[i]) {
@@ -532,7 +532,7 @@ void update_min_max_setting(
     // Process each input
     for (size_t i = 0; i < net_inputs; ++i) {
       const auto& input_dims = net_inputs_ordered_dims[i].second;
-      HAMI_ASSERT(
+      OMNI_ASSERT(
           input_dims.nbDims > 0,
           "Input " + std::to_string(i) + " has no dimensions");
 
@@ -560,11 +560,11 @@ void update_min_max_setting(
             }
           } else {
             if (min_profile[i][d] == -1) {
-              HAMI_ASSERT(max_profile[i][d] != -1);
+              OMNI_ASSERT(max_profile[i][d] != -1);
               min_profile[i][d] = max_profile[i][d];
             }
             if (max_profile[i][d] == -1) {
-              HAMI_ASSERT(min_profile[i][d] != -1);
+              OMNI_ASSERT(min_profile[i][d] != -1);
               max_profile[i][d] = min_profile[i][d];
             }
           }
@@ -576,7 +576,7 @@ void update_min_max_setting(
           if (max_profile[i][d] == -1) {
             max_profile[i][d] = current_net_dim;
           }
-          HAMI_ASSERT(
+          OMNI_ASSERT(
               max_profile[i][d] == current_net_dim &&
                   min_profile[i][d] == current_net_dim,
               "For input " + std::to_string(i) + ", dimension " +
@@ -597,27 +597,27 @@ void update_min_max_setting(
   // Validate the configurations
   for (size_t p = 0; p < profile_num; ++p) {
     // Check for matching input and dimension sizes in each profile
-    HAMI_ASSERT(
+    OMNI_ASSERT(
         mins[p].size() == net_inputs,
         "Profile " + std::to_string(p) + " has mismatched input size");
-    HAMI_ASSERT(
+    OMNI_ASSERT(
         maxs[p].size() == net_inputs,
         "Profile " + std::to_string(p) + " has mismatched input size");
 
     for (size_t i = 0; i < net_inputs; ++i) {
       const auto& input_dims = net_inputs_ordered_dims[i].second;
-      HAMI_ASSERT(
+      OMNI_ASSERT(
           input_dims.nbDims == mins[p][i].size(),
           "Input " + std::to_string(i) + " in profile " + std::to_string(p) +
               " has mismatched dimension size");
-      HAMI_ASSERT(
+      OMNI_ASSERT(
           input_dims.nbDims == maxs[p][i].size(),
           "Input " + std::to_string(i) + " in profile " + std::to_string(p) +
               " has mismatched dimension size");
 
       // Check max >= min for each dimension
       for (int d = 0; d < input_dims.nbDims; ++d) {
-        HAMI_ASSERT(
+        OMNI_ASSERT(
             maxs[p][i][d] >= mins[p][i][d],
             "For profile " + std::to_string(p) + ", input " +
                 std::to_string(i) + ", dimension " + std::to_string(d) +
@@ -629,7 +629,7 @@ void update_min_max_setting(
 }
 
 std::unique_ptr<nvinfer1::IHostMemory> onnx2trt(OnnxParams& params) {
-  HAMI_ASSERT(initTrtPlugins());
+  OMNI_ASSERT(initTrtPlugins());
   const auto explicitBatch =
       1U << static_cast<uint32_t>(
           nvinfer1::NetworkDefinitionCreationFlag::kEXPLICIT_BATCH);
@@ -656,17 +656,16 @@ std::unique_ptr<nvinfer1::IHostMemory> onnx2trt(OnnxParams& params) {
   auto b_parsed = parser->parseFromFile(
       params.model.c_str(),
       static_cast<int>(trt_get_log_level(params.log_level)));
-  HAMI_ASSERT(b_parsed, "parsed failed for " + params.model);
+  OMNI_ASSERT(b_parsed, "parsed failed for " + params.model);
   // todo max workspace size for setMemoryPoolLimit
 
   // todo ampere_plus
-#if NV_TENSORRT_MAJOR >= 9 
-  if(params.hardward_compatibility == "AMPERE_PLUS")
-{
-  SPDLOG_INFO("set HardwareCompatibilityLevel to AMPERE_PLUS");
-  config->setHardwareCompatibilityLevel(
-      nvinfer1::HardwareCompatibilityLevel::kAMPERE_PLUS);
-}
+#if NV_TENSORRT_MAJOR >= 9
+  if (params.hardward_compatibility == "AMPERE_PLUS") {
+    SPDLOG_INFO("set HardwareCompatibilityLevel to AMPERE_PLUS");
+    config->setHardwareCompatibilityLevel(
+        nvinfer1::HardwareCompatibilityLevel::kAMPERE_PLUS);
+  }
 #endif
 
   bool use_only_fp32 = true;
@@ -717,17 +716,17 @@ std::unique_ptr<nvinfer1::IHostMemory> onnx2trt(OnnxParams& params) {
 
     // mins: multiple profiles x multiple inputs x multiDims
     // if (params.mins[index_p].size() < network->getNbInputs()) {
-    //     HAMI_ASSERT(!params.mins[index_p].empty());
+    //     OMNI_ASSERT(!params.mins[index_p].empty());
     //     params.mins[index_p].resize(network->getNbInputs(),
     //                                 params.mins[index_p].back());
     // }
     // if (params.maxs[index_p].size() < network->getNbInputs()) {
-    //     HAMI_ASSERT(!params.maxs[index_p].empty());
+    //     OMNI_ASSERT(!params.maxs[index_p].empty());
     //     params.maxs[index_p].resize(network->getNbInputs(),
     //                                 params.maxs[index_p].back());
     // }
-    HAMI_ASSERT(params.mins[index_p].size() == network->getNbInputs());
-    HAMI_ASSERT(params.maxs[index_p].size() == network->getNbInputs());
+    OMNI_ASSERT(params.mins[index_p].size() == network->getNbInputs());
+    OMNI_ASSERT(params.maxs[index_p].size() == network->getNbInputs());
 
     std::stringstream ss;
     ss << "==================== Engine Profiles ====================\n";
@@ -748,17 +747,17 @@ std::unique_ptr<nvinfer1::IHostMemory> onnx2trt(OnnxParams& params) {
         }
         ss << "\n";
 
-        HAMI_ASSERT(profile->setShapeValues(
+        OMNI_ASSERT(profile->setShapeValues(
             network->getInput(input_reorder[i])->getName(),
             nvinfer1::OptProfileSelector::kMIN,
             min_dim.data(),
             min_dim.size()));
-        HAMI_ASSERT(profile->setShapeValues(
+        OMNI_ASSERT(profile->setShapeValues(
             network->getInput(input_reorder[i])->getName(),
             nvinfer1::OptProfileSelector::kMAX,
             max_dim.data(),
             max_dim.size()));
-        HAMI_ASSERT(profile->setShapeValues(
+        OMNI_ASSERT(profile->setShapeValues(
             network->getInput(input_reorder[i])->getName(),
             nvinfer1::OptProfileSelector::kOPT,
             max_dim.data(),
@@ -833,11 +832,11 @@ std::unique_ptr<nvinfer1::IHostMemory> onnx2trt(OnnxParams& params) {
       profile_num,
       params.precision);
 
-  auto time_now = hami::helper::now();
+  auto time_now = omniback::helper::now();
   std::unique_ptr<nvinfer1::IHostMemory> engine_plan(
       builder->buildSerializedNetwork(*network, *config));
-  HAMI_ASSERT(engine_plan->size() > 0);
-  auto time_pass = hami::helper::time_passed(time_now);
+  OMNI_ASSERT(engine_plan->size() > 0);
+  auto time_pass = omniback::helper::time_passed(time_now);
   SPDLOG_INFO(
       "Engine building completed in {:.2f} seconds", time_pass / 1000.0);
   if (params.model_cache.size() > 0) {
@@ -854,30 +853,30 @@ OnnxParams config2onnxparams(
   OnnxParams params;
 
   params.instance_num = 1;
-  hami::str::try_update(config, "instance_num", params.instance_num);
-  hami::str::try_update(config, "model", params.model);
-  hami::str::try_update(config, "model::cache", params.model_cache);
+  omniback::str::try_update(config, "instance_num", params.instance_num);
+  omniback::str::try_update(config, "model", params.model);
+  omniback::str::try_update(config, "model::cache", params.model_cache);
 
-  hami::str::try_update(
+  omniback::str::try_update(
       config, "max_workspace_size", params.max_workspace_size);
-  HAMI_ASSERT(
+  OMNI_ASSERT(
       params.max_workspace_size >= 1 &&
           params.max_workspace_size < 1'000'000'000,
       "max_workspace_size must be in MB and between 1 and 1,000,000,000");
   params.max_workspace_size = 1024 * 1024 * params.max_workspace_size;
 
-  hami::str::try_update(config, "model::timingcache", params.timingcache);
-  hami::str::try_update(
+  omniback::str::try_update(config, "model::timingcache", params.timingcache);
+  omniback::str::try_update(
       config, "hardward_compatibility", params.hardward_compatibility);
-  HAMI_ASSERT(
+  OMNI_ASSERT(
       params.hardward_compatibility == "NONE" ||
           params.hardward_compatibility == "AMPERE_PLUS",
       "hardward_compatibility must be one of [NONE|AMPERE_PLUS]");
 
-  hami::str::try_update(config, "log_level", params.log_level);
+  omniback::str::try_update(config, "log_level", params.log_level);
 
   // 处理精度相关参数
-  hami::str::try_update(config, "precision", params.precision);
+  omniback::str::try_update(config, "precision", params.precision);
   if (params.precision.empty()) {
     // params.precision = "fp16";
     // auto sm = get_sm();
@@ -894,7 +893,7 @@ OnnxParams config2onnxparams(
   // 处理精度层设置
   if (config.find("precision::fp32") != config.end()) {
     auto precision_fp32 =
-        hami::str::str_split(config.at("precision::fp32"), ',');
+        omniback::str::str_split(config.at("precision::fp32"), ',');
     params.precision_fp32 =
         std::set<std::string>(precision_fp32.begin(), precision_fp32.end());
     SPDLOG_INFO("these layers keep fp32: {}", config.at("precision::fp32"));
@@ -902,35 +901,37 @@ OnnxParams config2onnxparams(
 
   if (config.find("precision::fp16") != config.end()) {
     auto precision_fp16 =
-        hami::str::str_split(config.at("precision::fp16"), ',');
+        omniback::str::str_split(config.at("precision::fp16"), ',');
     params.precision_fp16 =
         std::set<std::string>(precision_fp16.begin(), precision_fp16.end());
     SPDLOG_INFO("these layers keep fp16: {}", config.at("precision::fp16"));
   }
 
   // 处理其他参数
-  hami::str::try_update(
+  omniback::str::try_update(
       config,
       "force_layer_norm_pattern_fp32",
       params.force_layer_norm_pattern_fp32);
 
   // 处理 mean 和 std
   if (config.find("mean") != config.end()) {
-    params.mean = hami::str::str_split<float>(config.at("mean"));
+    params.mean = omniback::str::str_split<float>(config.at("mean"));
   }
   if (config.find("std") != config.end()) {
-    params.std = hami::str::str_split<float>(config.at("std"));
+    params.std = omniback::str::str_split<float>(config.at("std"));
   }
 
   // 处理 min 和 max shapes
   if (config.find("min") != config.end() && !config.at("min").empty()) {
-    auto min_shapes = hami::str::str_split(config.at("min"), ';');
-    params.mins = hami::str::str_split<int>(config.at("min"), 'x', ',', ';');
+    auto min_shapes = omniback::str::str_split(config.at("min"), ';');
+    params.mins =
+        omniback::str::str_split<int>(config.at("min"), 'x', ',', ';');
     SPDLOG_INFO("min_shapes = {}", config.at("min"));
   }
 
   if (config.find("max") != config.end() && !config.at("max").empty()) {
-    params.maxs = hami::str::str_split<int>(config.at("max"), 'x', ',', ';');
+    params.maxs =
+        omniback::str::str_split<int>(config.at("max"), 'x', ',', ';');
   }
 
   return params;
@@ -982,7 +983,7 @@ NetIOInfos get_context_shape(
     if (tensorType == nvinfer1::TensorIOMode::kINPUT) {
       nvinfer1::Dims min_dims = engine.getProfileShape(
           name, profile_index, nvinfer1::OptProfileSelector::kMIN);
-      HAMI_ASSERT(context->setInputShape(name, min_dims));
+      OMNI_ASSERT(context->setInputShape(name, min_dims));
       io_infos[j].min = convert_dims(min_dims);
 
       num_input++;
@@ -1003,7 +1004,7 @@ NetIOInfos get_context_shape(
     if (tensorType == nvinfer1::TensorIOMode::kINPUT) {
       nvinfer1::Dims max_dims = engine.getProfileShape(
           name, profile_index, nvinfer1::OptProfileSelector::kMAX);
-      HAMI_ASSERT(context->setInputShape(name, max_dims));
+      OMNI_ASSERT(context->setInputShape(name, max_dims));
       // memcpy(&io_infos[j].max, &max_dims, sizeof(nvinfer1::Dims));
       io_infos[j].max = convert_dims(max_dims);
     }
@@ -1026,7 +1027,7 @@ std::unique_ptr<nvinfer1::IExecutionContext> create_context(
     nvinfer1::ICudaEngine* engine,
     size_t instance_index) {
   const auto num_profiles = engine->getNbOptimizationProfiles();
-  HAMI_ASSERT(
+  OMNI_ASSERT(
       instance_index < num_profiles,
       "instance_index out of range. instance_index=" +
           std::to_string(instance_index));

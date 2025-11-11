@@ -1,21 +1,21 @@
 #include <numeric>
 #include <unordered_map>
 
-#include "hami/builtin/page_table.hpp"
-#include "hami/core/backend.hpp"
 #include <cuda_runtime_api.h>
 #include "c10/cuda/CUDAStream.h"
+#include "omniback/builtin/page_table.hpp"
+#include "omniback/core/backend.hpp"
 
 #include <torch/torch.h>
-#include "hami/helper/base_logging.hpp"
+#include "omniback/helper/base_logging.hpp"
 
 namespace torchpipe {
 class LocationManager {
  public:
 };
 
-using namespace hami;
-class FIAppendTensor : public hami::BackendOne {
+using namespace omniback;
+class FIAppendTensor : public omniback::BackendOne {
  private:
   size_t max_num_req_{16};
   size_t max_num_page_{0};
@@ -42,7 +42,7 @@ class FIAppendTensor : public hami::BackendOne {
     // str::try_update(params, "num_layer", num_layer_);
     // str::try_update(params, "head_num", head_num_);
     // str::try_update(params, "head_dim", head_dim_);
-    HAMI_ASSERT(max_context_len_ % page_size_ == 0);
+    OMNI_ASSERT(max_context_len_ % page_size_ == 0);
     max_num_page_per_seq_ = max_context_len_ / page_size_;
   }
 
@@ -88,14 +88,14 @@ class FIAppendTensor : public hami::BackendOne {
     std::vector<id_type> id = dict_gets<id_type>(io, "request_ids");
     // https://docs.flashinfer.ai/generated/flashinfer.page.append_paged_kv_cache.html#flashinfer.page.append_paged_kv_cache
     torch::Tensor seq_lens = dict_get<torch::Tensor>(io, "kv_append_length");
-    HAMI_ASSERT(id.size() == seq_lens.size(0) && seq_lens.is_cpu());
+    OMNI_ASSERT(id.size() == seq_lens.size(0) && seq_lens.is_cpu());
     size_t total{0};
 
     for (size_t i = 0; i < id.size(); ++i) {
       SPDLOG_INFO("id = {}", id[i]);
       auto seq_len = seq_lens[i].item<int>();
       success = success && pool_->alloc(id[i], seq_len);
-      HAMI_ASSERT(success);
+      OMNI_ASSERT(success);
       const auto& infor = pool_->page_info(id[i]);
       total += infor.kv_page_indices.size();
     }
@@ -156,5 +156,5 @@ class FIAppendTensor : public hami::BackendOne {
     inited_ = true;
   }
 };
-HAMI_REGISTER_BACKEND(FIAppendTensor);
+OMNI_REGISTER_BACKEND(FIAppendTensor);
 } // namespace torchpipe

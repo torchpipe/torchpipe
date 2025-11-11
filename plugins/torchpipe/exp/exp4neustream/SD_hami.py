@@ -4,7 +4,7 @@ import torch
 import json
 import os
 import pickle
-import hami
+import omniback
 
 
 # max_batch_size = 1
@@ -53,7 +53,7 @@ def handle_output(output_queue, log_name, workload_request_count, rate, cv, slo_
             formatted_time = now.strftime("%Y-%m-%d %H:%M:%S")
 
             slos = 0#[slo2bs_bable[int(x*10)] for x in slo_scale]
-            statistics = f"time:{formatted_time}, id:hami_sd_256_candrop{can_drop}, rate:{rate} qps, cv={cv}, goodput_rate={goodput_request_count}/{workload_request_count}, goodput speed={goodput_request_count/total_trace_time}, dropped: {drop_count} slo_scale={slo_scale}, mbs={slos}\n"
+            statistics = f"time:{formatted_time}, id:omniback_sd_256_candrop{can_drop}, rate:{rate} qps, cv={cv}, goodput_rate={goodput_request_count}/{workload_request_count}, goodput speed={goodput_request_count/total_trace_time}, dropped: {drop_count} slo_scale={slo_scale}, mbs={slos}\n"
             print(statistics)
 
             result_file = open("stable_diffusion_serve_result.txt", "a")

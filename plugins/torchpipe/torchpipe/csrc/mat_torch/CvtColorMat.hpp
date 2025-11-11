@@ -1,17 +1,18 @@
 
 #pragma once
-#include <hami/extension.hpp>
+#include <omniback/extension.hpp>
 
 namespace torchpipe {
 
-class CvtColorMat : public hami::BackendOne {
-   public:
-    virtual void impl_init(const std::unordered_map<std::string, std::string>&,
-                           const hami::dict&) override;
+class CvtColorMat : public omniback::BackendOne {
+ public:
+  virtual void impl_init(
+      const std::unordered_map<std::string, std::string>&,
+      const omniback::dict&) override;
 
-    virtual void forward(const hami::dict&) override;
+  virtual void forward(const omniback::dict&) override;
 
-   private:
-    std::string color_;
+ private:
+  std::string color_;
 };
-}  // namespace torchpipe
+} // namespace torchpipe

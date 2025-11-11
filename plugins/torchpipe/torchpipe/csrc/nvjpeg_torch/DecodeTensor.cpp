@@ -1,22 +1,25 @@
 #include "nvjpeg_torch/DecodeTensor.hpp"
-#include <torch/torch.h>
 #include <c10/cuda/CUDAStream.h>
+#include <torch/torch.h>
 #include "helper/torch.hpp"
-namespace str = hami::str;
+namespace str = omniback::str;
 namespace {
 [[maybe_unused]] void check_nvjpeg_result(nvjpegStatus_t _e) {
-  HAMI_ASSERT(
+  OMNI_ASSERT(
       _e == NVJPEG_STATUS_SUCCESS,
       ("nvjpeg error: nvjpegStatus_t = " + std::to_string(int(_e))));
 }
 
-#define CHECK_NVJPEG_RESULT(EVAL)                                             \
-  {                                                                           \
-    nvjpegStatus_t _e = EVAL;                                                 \
-    if (_e != NVJPEG_STATUS_SUCCESS) {                                        \
-      throw std::runtime_error(str::format(                                   \
-          "nvjpeg error: nvjpegStatus_t = {0}, EVAL = {1}", int(_e), #EVAL)); \
-    }                                                                         \
+#define CHECK_NVJPEG_RESULT(EVAL)                               \
+  {                                                             \
+    nvjpegStatus_t _e = EVAL;                                   \
+    if (_e != NVJPEG_STATUS_SUCCESS) {                          \
+      throw std::runtime_error(                                 \
+          str::format(                                          \
+              "nvjpeg error: nvjpegStatus_t = {0}, EVAL = {1}", \
+              int(_e),                                          \
+              #EVAL));                                          \
+    }                                                           \
   }
 
 bool decode(
@@ -137,12 +140,12 @@ DecodeTensor::~DecodeTensor() {
 }
 void DecodeTensor::impl_init(
     const std::unordered_map<std::string, std::string>& config,
-    const hami::dict& kwargs) {
+    const omniback::dict& kwargs) {
   str::try_update(config, "color", color_);
   str::try_update(config, "data_format", data_format_);
 
-  HAMI_ASSERT(color_ == "rgb" || color_ == "bgr");
-  HAMI_ASSERT(data_format_ == "nchw" || data_format_ == "hwc");
+  OMNI_ASSERT(color_ == "rgb" || color_ == "bgr");
+  OMNI_ASSERT(data_format_ == "nchw" || data_format_ == "hwc");
 
   auto tmp =
       torch::empty({1, 1}, torch::TensorOptions().device(torch::kCUDA, -1));
@@ -172,7 +175,7 @@ void DecodeTensor::impl_init(
   //   handle_));
 }
 
-void DecodeTensor::forward(const hami::dict& input_dict) {
+void DecodeTensor::forward(const omniback::dict& input_dict) {
   auto& input = *input_dict;
 
   if (typeid(std::string) != input[TASK_DATA_KEY].type()) {
@@ -183,7 +186,7 @@ void DecodeTensor::forward(const hami::dict& input_dict) {
         std::string("DecodeTensor: unsupported the input type: ") +
         c10::demangle(input[TASK_DATA_KEY].type().name()));
   }
-  std::string data = hami::any_cast<std::string>(input[TASK_DATA_KEY]);
+  std::string data = omniback::any_cast<std::string>(input[TASK_DATA_KEY]);
 
   torch::Tensor tensor;
 
@@ -196,5 +199,5 @@ void DecodeTensor::forward(const hami::dict& input_dict) {
   }
 }
 
-HAMI_REGISTER(hami::Backend, DecodeTensor, "DecodeTensor");
+OMNI_REGISTER(omniback::Backend, DecodeTensor, "DecodeTensor");
 } // namespace torchpipe

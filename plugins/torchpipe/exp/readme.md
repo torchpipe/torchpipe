@@ -1,5 +1,5 @@
 
-## experiment with Hami
+## experiment with Omniback
 ```bash
 
 ```
@@ -17,14 +17,14 @@ cd torchpipe/ && git submodule update --init --recursive
 img_name=nvcr.io/nvidia/pytorch:25.05-py3
 docker pull $img_name
 
-docker run --name=zsy_hami --runtime=nvidia --ipc=host --cpus=8 --network=host -v `pwd`:/workspace  --shm-size 1G  --ulimit memlock=-1 --ulimit stack=67108864  --privileged=true  -w/workspace -it $img_name /bin/bash
+docker run --name=zsy_omniback --runtime=nvidia --ipc=host --cpus=8 --network=host -v `pwd`:/workspace  --shm-size 1G  --ulimit memlock=-1 --ulimit stack=67108864  --privileged=true  -w/workspace -it $img_name /bin/bash
  
 # test cuda
 python -c  "import torch; assert (torch.cuda.is_available())"
 
-# install hami
+# install omniback
 python setup.py bdist_wheel
-pip uninstall hami-core -y && pip install dist/*.whl
+pip uninstall omniback -y && pip install dist/*.whl
 
 
 # install torchpipe
@@ -40,19 +40,19 @@ cd exp/
 ```
 
 
-- Hami w/ CPU 
+- Omniback w/ CPU 
 ```bash
-sh hamiwcpu.sh
+sh omnibackwcpu.sh
 #   python decouple_eval/benchmark.py  --preprocess cpu --model resnet101 --preprocess-instances 8 --client 20 --timeout 5 --trt_instance_num 2 --total_number 20000
 ```
-- Hami w/ GPU 
+- Omniback w/ GPU 
 ```bash
-sh hamiwgpu.sh
+sh omnibackwgpu.sh
 ```
 
-- Hami w/ CPU/GPU 
+- Omniback w/ CPU/GPU 
 ```bash
-CUDA_VISIBLE_DEVICES=0 python hami_w_cpu_gpu.py
+CUDA_VISIBLE_DEVICES=0 python omniback_w_cpu_gpu.py
 
 640: run_cpu_preprocess_cmd =  [{1: {'QPS': 119.18, 'TP50': 8.38, 'TP99': 8.49, 'GPU Usage': 21.0}}, {10: {'QPS': 1528.11, 'TP50': 5.92, 'TP99': 8.88, 'GPU Usage': 64.0}}, {20: {'QPS': 2311.98, 'TP50': 8.8, 'TP99': 19.39, 'GPU Usage': 90.0}}, {30: {'QPS': 2419.04, 'TP50': 11.97, 'TP99': 24.18, 'GPU Usage': 91.0}}]
 run_gpu_preprocess_cmd =  [{1: {'QPS': 129.67, 'TP50': 7.71, 'TP99': 7.75, 'GPU Usage': 24.0}}, {10: {'QPS': 1533.84, 'TP50': 6.3, 'TP99': 8.97, 'GPU Usage': 73.0}}, {20: {'QPS': 2316.98, 'TP50': 8.51, 'TP99': 10.56, 'GPU Usage': 99.0}}, {30: {'QPS': 2439.99, 'TP50': 12.49, 'TP99': 16.17, 'GPU Usage': 99.0}}]
@@ -73,7 +73,7 @@ python3 decouple_eval/benchmark.py --model ensemble_dali_resnet \
 -----------------为整理---------------
 
 
-- Hami w/ Pure-CPU
+- Omniback w/ Pure-CPU
 ```bash
 export  CUDA_VISIBLE_DEVICES=1
 python decouple_eval/benchmark.py  --model empty --preprocess cpu --preprocess-instances 8 --total_number 5000 --client 10 --timeout 0

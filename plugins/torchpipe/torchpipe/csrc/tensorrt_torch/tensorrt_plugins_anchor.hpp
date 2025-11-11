@@ -1,18 +1,18 @@
 #ifndef TENSORRT_PLUGIN_ANCHOR_PLUGIN_H
 #define TENSORRT_PLUGIN_ANCHOR_PLUGIN_H
 
-#include <string>
-#include <vector>
-#include <unordered_map>
 #include <NvInferRuntime.h>
 #include <NvInferRuntimePlugin.h>
+#include <string>
+#include <unordered_map>
+#include <vector>
 
 // In IPluginV3 interface, the plugin name, version, and name space must be
 // specified for the plugin and plugin creator exactly the same.
 constexpr char const* const kANCHOR_PLUGIN_NAME{"AnchorPlugin"};
 constexpr char const* const kANCHOR_PLUGIN_VERSION{"1"};
 constexpr char const* const kANCHOR_PLUGIN_NAMESPACE{""};
-namespace hami {
+namespace omniback {
 class Backend;
 }
 namespace nvinfer1 {
@@ -96,10 +96,11 @@ class AnchorPlugin : public IPluginV3,
       void* workspace,
       cudaStream_t stream) noexcept override;
 
-  #if (NV_TENSORRT_MAJOR >= 10 && NV_TENSORRT_MINOR >= 3) || NV_TENSORRT_MAJOR >= 11
-    int32_t  getAliasedInput(	int32_t outputIndex) noexcept	override{
-      return outputIndex;
-    }
+#if (NV_TENSORRT_MAJOR >= 10 && NV_TENSORRT_MINOR >= 3) || \
+    NV_TENSORRT_MAJOR >= 11
+  int32_t getAliasedInput(int32_t outputIndex) noexcept override {
+    return outputIndex;
+  }
 #endif
 
   int32_t onShapeChange(
@@ -131,7 +132,7 @@ class AnchorPlugin : public IPluginV3,
   std::vector<nvinfer1::PluginField> mDataToSerialize;
   nvinfer1::PluginFieldCollection mFCToSerialize;
 
-  hami::Backend* dependency_{nullptr};
+  omniback::Backend* dependency_{nullptr};
 
   bool is_build_phase_{false};
 };

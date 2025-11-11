@@ -1,8 +1,8 @@
 
+#include "tensorrt_torch/model.hpp"
 #include <filesystem>
 #include <fstream>
-#include "hami/helper/macro.h"
-#include "tensorrt_torch/model.hpp"
+#include "omniback/helper/macro.h"
 #include "tensorrt_torch/allocator.hpp"
 #include "tensorrt_torch/tensorrt_helper.hpp"
 
@@ -116,7 +116,7 @@ class LocalFileStreamReader //: public nvinfer1::IStreamReader
   }
 
   void reset() {
-    HAMI_ASSERT(file_stream.good());
+    OMNI_ASSERT(file_stream.good());
     file_stream.seekg(0);
   }
 #else
@@ -137,17 +137,17 @@ namespace torchpipe {
 
 void LoadTensorrtEngine::impl_init(
     const std::unordered_map<std::string, std::string>& config,
-    const hami::dict& kwargs) {
+    const omniback::dict& kwargs) {
   size_t independent_index = 0;
-  hami::str::try_update(config, TASK_INDEX_KEY, independent_index);
-  HAMI_ASSERT(kwargs);
+  omniback::str::try_update(config, TASK_INDEX_KEY, independent_index);
+  OMNI_ASSERT(kwargs);
   if (kwargs->find(TASK_ENGINE_KEY) != kwargs->end()) {
-    HAMI_ASSERT(
+    OMNI_ASSERT(
         kwargs->at(TASK_ENGINE_KEY).type() == typeid(nvinfer1::ICudaEngine*));
 
     nvinfer1::ICudaEngine* engine =
-        hami::any_cast<nvinfer1::ICudaEngine*>(kwargs->at(TASK_ENGINE_KEY));
-    HAMI_ASSERT(engine && independent_index != 0);
+        omniback::any_cast<nvinfer1::ICudaEngine*>(kwargs->at(TASK_ENGINE_KEY));
+    OMNI_ASSERT(engine && independent_index != 0);
     size_t num_profiles = engine->getNbOptimizationProfiles();
     if (independent_index % num_profiles != 0) {
       SPDLOG_INFO(
@@ -158,15 +158,15 @@ void LoadTensorrtEngine::impl_init(
   }
   // handle instance index
   int instance_num{1};
-  hami::str::try_update(config, "instance_num", instance_num);
+  omniback::str::try_update(config, "instance_num", instance_num);
 
-  HAMI_ASSERT(instance_num >= 1);
+  OMNI_ASSERT(instance_num >= 1);
 
   // initialize converter, get std::shared_ptr<ICudaEngine>
-  HAMI_ASSERT(
+  OMNI_ASSERT(
       config.find("model") != config.end(), "`model` is not found in config");
 
-  HAMI_ASSERT(hami::filesystem::exists(config.at("model")));
+  OMNI_ASSERT(omniback::filesystem::exists(config.at("model")));
   LocalFileStreamReader reader(config.at("model"));
   runtime_ = std::unique_ptr<nvinfer1::IRuntime>(
       nvinfer1::createInferRuntime(*get_trt_logger()));
@@ -177,7 +177,7 @@ void LoadTensorrtEngine::impl_init(
   auto data = reader.read(); // core dump if directly use reader...
   auto* engine_ptr = runtime_->deserializeCudaEngine(data.data(), data.size());
   engine_ = std::unique_ptr<nvinfer1::ICudaEngine>(engine_ptr);
-  // HAMI_ASSERT(engine_->getNbOptimizationProfiles() == instance_num);
+  // OMNI_ASSERT(engine_->getNbOptimizationProfiles() == instance_num);
 
   (*kwargs)[TASK_ENGINE_KEY] = engine_ptr;
   // engine_ = nullptr;
@@ -185,10 +185,10 @@ void LoadTensorrtEngine::impl_init(
 
 void Onnx2Tensorrt::impl_init(
     const std::unordered_map<std::string, std::string>& config,
-    const hami::dict& kwargs) {
-  HAMI_ASSERT(kwargs);
+    const omniback::dict& kwargs) {
+  OMNI_ASSERT(kwargs);
   if (kwargs->find(TASK_ENGINE_KEY) != kwargs->end()) {
-    HAMI_ASSERT(
+    OMNI_ASSERT(
         kwargs->at(TASK_ENGINE_KEY).type() == typeid(nvinfer1::ICudaEngine*));
     SPDLOG_INFO(
         "Onnx2Tensorrt: aready loaded engine in kwargs, skip "
@@ -197,9 +197,9 @@ void Onnx2Tensorrt::impl_init(
   }
   // handle instance index
   // int instance_num{1};
-  // hami::str::try_update(config, "instance_num", instance_num);
-  // // HAMI_ASSERT(instance_num >= 1 && instance_index_ == 0);
-  // HAMI_ASSERT(instance_num >= 1);
+  // omniback::str::try_update(config, "instance_num", instance_num);
+  // // OMNI_ASSERT(instance_num >= 1 && instance_index_ == 0);
+  // OMNI_ASSERT(instance_num >= 1);
 
   // set runtime && allocator
   runtime_ = std::unique_ptr<nvinfer1::IRuntime>(
@@ -210,22 +210,22 @@ void Onnx2Tensorrt::impl_init(
 #endif
 
   // initialize converter, get std::shared_ptr<ICudaEngine>
-  HAMI_ASSERT(
+  OMNI_ASSERT(
       config.find("model") != config.end() ||
           config.find("model::cache") != config.end(),
       "Neither `model` nor `model::cache` is found in config");
 
   OnnxParams params = config2onnxparams(config);
 
-  bool model_cache_exist = hami::filesystem::exists(params.model_cache);
+  bool model_cache_exist = omniback::filesystem::exists(params.model_cache);
   // auto mem = !model_cache_exist ? onnx2trt(params) : nullptr;
 
   if (!model_cache_exist) {
-    HAMI_ASSERT(
-        hami::filesystem::exists(params.model),
+    OMNI_ASSERT(
+        omniback::filesystem::exists(params.model),
         "file of `model(and model::cache)` not found: " + params.model);
     auto mem = onnx2trt(params);
-    HAMI_ASSERT(mem);
+    OMNI_ASSERT(mem);
     if (!params.model_cache.empty()) {
       std::ofstream ff(params.model_cache, std::ios::binary);
       ff.write((char*)mem->data(), mem->size());
@@ -238,7 +238,7 @@ void Onnx2Tensorrt::impl_init(
     auto* engine_ptr =
         runtime_->deserializeCudaEngine(mem->data(), mem->size());
     engine_ = std::unique_ptr<nvinfer1::ICudaEngine>(engine_ptr);
-    HAMI_ASSERT(
+    OMNI_ASSERT(
         engine_ && engine_->getNbOptimizationProfiles() == params.instance_num,
         std::to_string(engine_->getNbOptimizationProfiles()) + " vs " +
             std::to_string(params.instance_num));
@@ -252,7 +252,7 @@ void Onnx2Tensorrt::impl_init(
     auto* engine_ptr =
         runtime_->deserializeCudaEngine(data.data(), data.size());
     engine_ = std::unique_ptr<nvinfer1::ICudaEngine>(engine_ptr);
-    HAMI_ASSERT(
+    OMNI_ASSERT(
         engine_ && engine_->getNbOptimizationProfiles() == params.instance_num,
         std::to_string(engine_->getNbOptimizationProfiles()) + " vs " +
             std::to_string(params.instance_num) +
@@ -265,8 +265,8 @@ void Onnx2Tensorrt::impl_init(
 
 void ModelLoadder::post_init(
     const std::unordered_map<std::string, std::string>& config,
-    const hami::dict& kwargs) {
-  HAMI_ASSERT(kwargs);
+    const omniback::dict& kwargs) {
+  OMNI_ASSERT(kwargs);
   auto iter = kwargs->find(TASK_ENGINE_KEY);
   if (iter != kwargs->end())
     return;
@@ -283,13 +283,13 @@ void ModelLoadder::post_init(
 
     if ((model_type == filter) || ("." + model_type == filter) ||
         (config.find("model") != config.end() &&
-         hami::str::endswith(config.at("model"), filter))) {
+         omniback::str::endswith(config.at("model"), filter))) {
       backend = base_dependencies_[i].get();
       lazy_init_func_[i]();
       break;
     }
   }
-  HAMI_ASSERT(
+  OMNI_ASSERT(
       backend,
       "ModelLoader: You must set one of the parameters `model_type` or "
       "`model`. We will select the appropriate model loader based on the "
@@ -299,10 +299,10 @@ void ModelLoadder::post_init(
   min_ = backend->min();
 
   iter = kwargs->find(TASK_ENGINE_KEY);
-  HAMI_ASSERT(iter != kwargs->end());
+  OMNI_ASSERT(iter != kwargs->end());
 }
 
-HAMI_REGISTER(hami::Backend, ModelLoadder);
-HAMI_REGISTER(hami::Backend, Onnx2Tensorrt);
-HAMI_REGISTER(hami::Backend, LoadTensorrtEngine);
+OMNI_REGISTER(omniback::Backend, ModelLoadder);
+OMNI_REGISTER(omniback::Backend, Onnx2Tensorrt);
+OMNI_REGISTER(omniback::Backend, LoadTensorrtEngine);
 } // namespace torchpipe

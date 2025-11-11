@@ -9,8 +9,8 @@ from torch.utils import cpp_extension
 
 import torch
 
-import hami._C
-import hami
+import omniback._C
+import omniback
 import cv2
 
 
@@ -18,9 +18,9 @@ cpp = torch.utils.cpp_extension.load(
     name="yolo_cpp_extension",
     sources=["yolo.cpp"],
     extra_cflags=["-O3", "-Wall", "-std=c++17"],
-    extra_include_paths=[]+hami.get_includes(),
-    extra_ldflags=[f"-L{hami.get_library_dir()}", '-lhami',
-                   f'-l:{os.path.basename(hami._C.__file__)}'],
+    extra_include_paths=[]+omniback.get_includes(),
+    extra_ldflags=[f"-L{omniback.get_library_dir()}", '-lomniback',
+                   f'-l:{os.path.basename(omniback._C.__file__)}'],
     verbose=True,
     is_python_module=True,
 )
@@ -51,7 +51,7 @@ def main(
                   'std': '255,255,255', }
     }
 
-    model = hami.pipe(config)
+    model = omniback.pipe(config)
     import requests
     from PIL import Image
     from io import BytesIO

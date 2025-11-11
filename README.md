@@ -69,7 +69,7 @@ result = data['result']
 
 ## Setup
 
-> Note: compiling torchpipe depends on the TensorRT c++ API. Please follow the [TensorRT Installation Guide](https://docs.nvidia.com/deeplearning/tensorrt/install-guide/index.html).  You may also try installing torchpipe inside one of the NGC PyTorch docker containers(e.g. nvcr.io/nvidia/pytorch:25.05-py3). Similar to the structure of Triton Inference Server, torchpipe is a plugin collection (TensorRT, OpenCV, etc...) built on top of the core library (named Hami, used to standardize both computation backends and scheduling backends).
+> Note: compiling torchpipe depends on the TensorRT c++ API. Please follow the [TensorRT Installation Guide](https://docs.nvidia.com/deeplearning/tensorrt/install-guide/index.html).  You may also try installing torchpipe inside one of the NGC PyTorch docker containers(e.g. nvcr.io/nvidia/pytorch:25.05-py3). Similar to the structure of Triton Inference Server, torchpipe is a plugin collection (TensorRT, OpenCV, etc...) built on top of the core library (named Omniback, used to standardize both computation backends and scheduling backends).
 
 ### Installation
 To install the torchpipe Python library, call the following
@@ -77,7 +77,7 @@ To install the torchpipe Python library, call the following
 - [Quick Installation](./README.md#quick-installation)
 - [Inside NGC Docker](./plugins/torchpipe/docs/getting_started.md#inside-ngc-docker)
 - [uv environment](./plugins/torchpipe/docs/getting_started.md#uv-environment) 
-- [Rebuild the core library Hami](./plugins/torchpipe/docs/getting_started.md#rebuild-the-core-library-hami).
+- [Rebuild the core library Omniback](./plugins/torchpipe/docs/getting_started.md#rebuild-the-core-library-omniback).
 
 #### Quick Installation
 ```bash
@@ -109,7 +109,7 @@ python setup.py install --cv2
 
 ## Version Migration Notes 
 
-The core functionality of [TorchPipe (v0)](https://github.com/torchpipe/torchpipe/tree/v0) has been extracted into the standalone Hami library.  
+The core functionality of [TorchPipe (v0)](https://github.com/torchpipe/torchpipe/tree/v0) has been extracted into the standalone Omniback library.  
 
 
-TorchPipe (v1, this version)  is a collection of deep learning computation backends built on  Hami library, primarily integrating third-party libraries including TensorRT, OpenCV, and LibTorch. Not all computation backends from TorchPipe (v0) have been ported to TorchPipe (v1) yet.
+TorchPipe (v1, this version)  is a collection of deep learning computation backends built on  Omniback library, primarily integrating third-party libraries including TensorRT, OpenCV, and LibTorch. Not all computation backends from TorchPipe (v0) have been ported to TorchPipe (v1) yet.

@@ -1,13 +1,13 @@
 #pragma once
 
-#include <hami/extension.hpp>
+#include <omniback/extension.hpp>
 #include <string>
 #include <unordered_set>
 
-using hami::dict;
+using omniback::dict;
 
 namespace torchpipe {
-class CvtColorTensor : public hami::BackendOne {
+class CvtColorTensor : public omniback::BackendOne {
  private:
   void impl_init(
       const std::unordered_map<std::string, std::string>& config_param,

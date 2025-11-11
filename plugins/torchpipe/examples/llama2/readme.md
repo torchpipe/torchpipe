@@ -64,7 +64,7 @@ docker run --name=exp_vllmclient --runtime=nvidia -e LC_ALL=C -e LANG=C  --ipc=h
 
     python3 vllm/benchmarks/benchmark_serving.py         --backend vllm         --model Llama-2-7b-chat-hf/         --dataset-name sharegpt         --dataset-path ./ShareGPT_V3_unfiltered_cleaned_split.json         --num-prompts 500         --port 8001         --save-result         --result-dir results/         --result-filename vllm_llama7B_tp1_qps_3.json         --request-rate 3
 
-============ Serving Benchmark Result ============(hami)
+============ Serving Benchmark Result ============(omniback)
 Successful requests:                     500
 Benchmark duration (s):                  200.87
 Total input tokens:                      117316

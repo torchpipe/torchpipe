@@ -3,7 +3,7 @@
 
 import os, sys
 from abc import ABC, abstractmethod
-import hami
+import omniback
 from typing import List
 
 class BackendEngine(ABC):
@@ -12,7 +12,7 @@ class BackendEngine(ABC):
         pass
     
     @abstractmethod
-    def forward(self, ios:List[hami.Dict]):
+    def forward(self, ios:List[omniback.Dict]):
         pass
 
     

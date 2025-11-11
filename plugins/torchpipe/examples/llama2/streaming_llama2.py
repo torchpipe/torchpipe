@@ -3,7 +3,7 @@ from torchpipe.serve.register import BackendEngine, register_engine
 from torchpipe.serve.openai.openai_server_api import SamplingParams
 from torchpipe.serve.output import RequestOutput, SequenceOutput,  Status, StatusCode
 import shortuuid
-import hami
+import omniback
 from transformers import AutoTokenizer, AutoModelForCausalLM, AutoConfig
 from typing import List, Callable, Any
 from dataclasses import dataclass, astuple, field
@@ -16,7 +16,7 @@ CURRENT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '.'))
 @dataclass
 class RequestState:
     # 没有默认值的字段必须放在前面
-    event: Any  # 替换为实际类型，如 asyncio.Event 或 hami.Event
+    event: Any  # 替换为实际类型，如 asyncio.Event 或 omniback.Event
     request_callback: Callable
     sampling_params: Any  # 替换为 SamplingParams
     args: Any
@@ -33,7 +33,7 @@ class RequestState:
         return astuple(self)
 
 # class OnPause:
-#     def forward(self, ios: List[hami.Dict]):
+#     def forward(self, ios: List[omniback.Dict]):
 #         ids = []
 #         for io in ios:
 #             # id = io['request_id']
@@ -41,7 +41,7 @@ class RequestState:
 #         print(f"paused: {ids}")
             
 # class OnResume:
-#     def forward(self, ios: List[hami.Dict]):
+#     def forward(self, ios: List[omniback.Dict]):
 #         pass
     
 class CustomBackendEngine(BackendEngine):
@@ -55,9 +55,9 @@ class CustomBackendEngine(BackendEngine):
         else:
             from plain_llama2 import PyPlugin, page_size, get_num_layers, clean_up
             
-        hami.register("TorchPlugin", PyPlugin)
-        hami.register("custom_backend_engine", self)
-        self.page_table =  hami.default_page_table()
+        omniback.register("TorchPlugin", PyPlugin)
+        omniback.register("custom_backend_engine", self)
+        self.page_table =  omniback.default_page_table()
         self.page_size = page_size
         exported_params = "./exported_params"
         assert os.path.exists(exported_params), f"dir exported_params not found: {exported_params}"
@@ -69,12 +69,12 @@ class CustomBackendEngine(BackendEngine):
 
         # import pdb; pdb.set_trace()
         config = os.path.join(os.path.dirname(__file__), 'config/streaming_llama2.toml')
-        self.model = hami.init_from_file(config)
+        self.model = omniback.init_from_file(config)
         self.request_status = {}
         
-        self.continuous_batching  = hami.get("node.continuous_batching")
+        self.continuous_batching  = omniback.get("node.continuous_batching")
         
-        self.index = hami._C.AtomicInt()
+        self.index = omniback._C.AtomicInt()
         
         # memory
         
@@ -140,19 +140,19 @@ class CustomBackendEngine(BackendEngine):
         old_request_id = kwargs.pop("old_request_id", None)
         if old_request_id:
             print('restarted: CustomBackendEngine: ', args, kwargs, request_id)
-            timestamp = kwargs.pop("timestamp", hami.timestamp())
+            timestamp = kwargs.pop("timestamp", omniback.timestamp())
         else:
-            timestamp = hami.timestamp()
+            timestamp = omniback.timestamp()
             
         # print(f'input_ids ', type(input_ids))
-        event = hami.Event()
-        io = hami.Dict({
+        event = omniback.Event()
+        io = omniback.Dict({
             'data': input_ids,
             'node_name': 'embed_token',
             'event': event,
         })
-        io[hami.TASK_REQUEST_ID_KEY] = request_id
-        io[hami.TASK_MSG_KEY] = hami.TypedDict({"req_tokens": len(input_ids),
+        io[omniback.TASK_REQUEST_ID_KEY] = request_id
+        io[omniback.TASK_MSG_KEY] = omniback.TypedDict({"req_tokens": len(input_ids),
                                                 "max_tokens": sampling_params.max_tokens,
                                                 "context_length":4096,
                                                 "timestamp":timestamp})
@@ -174,18 +174,18 @@ class CustomBackendEngine(BackendEngine):
         try:
             status.event.try_throw()
         except Exception as e:
-            hami.print('into exception handle')
+            omniback.print('into exception handle')
             self.clean_up(request_id)
             
             output.status = Status(StatusCode.UNKNOWN, str(e))
             output.usage = None
             output.finished = True
-            hami.print(f"ERROR MSG: \n{e}")
+            omniback.print(f"ERROR MSG: \n{e}")
             # no need
             # self.finish_continuous_batching(request_id)
             status.request_callback(output)
         else:
-            hami.print('no exception')
+            omniback.print('no exception')
             self.clean_up(request_id)
 
             self.continuous_batching_action(request_id)
@@ -204,7 +204,7 @@ class CustomBackendEngine(BackendEngine):
                 status.kwargs['timestamp'] = status.time
                 self.add_request(*status.args, **status.kwargs)
         
-    def forward(self, ios: List[hami.Dict]):
+    def forward(self, ios: List[omniback.Dict]):
         
         for io in ios:
             request_id = io['request_id']#.decode('utf-8')
@@ -243,7 +243,7 @@ class CustomBackendEngine(BackendEngine):
                     status.dropped = True
                 else:
                     raise RuntimeError("unsupported reason: "+finish_reason)
-                hami.print(f"{request_id} - finish/restart because of `{finish_reason}`")
+                omniback.print(f"{request_id} - finish/restart because of `{finish_reason}`")
                 assert not io.contains("restart")  
                 if text is None:
                     seq.text = ""
@@ -251,7 +251,7 @@ class CustomBackendEngine(BackendEngine):
                     seq.text = text
             
             elif text is None:
-                hami.print(f"id={request_id} - tok={data_item} - no text")
+                omniback.print(f"id={request_id} - tok={data_item} - no text")
                 # todo: 29871? SPIECE_UNDERLINE / 
                 output.finished = False 
                 seq.text = ''
@@ -269,17 +269,17 @@ class CustomBackendEngine(BackendEngine):
         
     
     def continuous_batching_action(self, req_id): # finish pause2prefill pause decode2prefill
-        io = hami.Dict({})
-        io[hami.TASK_REQUEST_ID_KEY] = req_id
-        io[hami.TASK_MSG_KEY] = hami.TypedDict({"action": "finish"})
+        io = omniback.Dict({})
+        io[omniback.TASK_REQUEST_ID_KEY] = req_id
+        io[omniback.TASK_MSG_KEY] = omniback.TypedDict({"action": "finish"})
         ev = io.set_event()
         ev.set_exception_callback(lambda e: self.python_callback(e)) # would not happen
         self.continuous_batching(io)
 
     # def finish_continuous_batching(self, req_id):
-    #     io = hami.Dict({})
-    #     io[hami.TASK_REQUEST_ID_KEY] = req_id
-    #     io[hami.TASK_MSG_KEY] = hami.TypedDict({"action": "finish"})
+    #     io = omniback.Dict({})
+    #     io[omniback.TASK_REQUEST_ID_KEY] = req_id
+    #     io[omniback.TASK_MSG_KEY] = omniback.TypedDict({"action": "finish"})
     #     ev = io.set_event()
     #     ev.set_exception_callback(lambda e: self.python_callback(e)) # would not happen
     #     self.continuous_batching(io)
@@ -297,7 +297,7 @@ class CustomBackendEngine(BackendEngine):
 def main(num_layers = 2, max_num_page = 0, port=8000, use_trt=False):
     print( f"CXX11_ABI = {torch._C._GLIBCXX_USE_CXX11_ABI}")
     
-    # hami.init("DebugLogger")
+    # omniback.init("DebugLogger")
     os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
     
     if use_trt:
@@ -311,7 +311,7 @@ def main(num_layers = 2, max_num_page = 0, port=8000, use_trt=False):
         per_page_mem =  2 * page_size * 32 * 128 * 2/(1024.0**2) * num_layers
         free_mem = torch.cuda.mem_get_info()[0]/(1024.0**2)
         max_num_page = int(free_mem* 0.2 / per_page_mem)
-        hami.print(f"max_num_page: {max_num_page}")
+        omniback.print(f"max_num_page: {max_num_page}")
     page_table = set_page_table(max_num_page)
     
     register_engine("llama2", CustomBackendEngine(use_trt=use_trt))

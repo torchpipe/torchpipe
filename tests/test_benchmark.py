@@ -3,7 +3,7 @@ import pytest
 # import torchpipe
 import os
 import tempfile
-import hami
+import omniback
 
 # Pipeline configuration strings
 BACKEND_STR = "Identity"
@@ -32,9 +32,9 @@ def test_tensorrt_inference():
     config, torch_model, tmp_onnx = model_config()
 
     # Initialize model
-    # model = hami.init(BACKEND_STR, config)
+    # model = omniback.init(BACKEND_STR, config)
     config["backend"] = BACKEND_STR
-    model = hami.init("Interpreter", config)
+    model = omniback.init("Interpreter", config)
 
     # Prepare input data
     input_tensor = 1
@@ -43,11 +43,11 @@ def test_tensorrt_inference():
     # Run inference
     # model(data)
 
-    bench = hami.init(
+    bench = omniback.init(
         "Benchmark", {"num_clients": "4", "total_number": "10000"})
     bench.forward([data]*100, model)
 
-    q = hami._C.default_queue()
+    q = omniback._C.default_queue()
     print(q.size())
     print(q)
     assert not q.empty()

@@ -64,7 +64,7 @@ for dep in required_setup_deps:
 TOP_DIR = os.path.realpath(os.path.dirname(__file__))
 
 CMAKE_BUILD_DIR = os.path.join(TOP_DIR, ".setuptools-cmake-build")
-CMAKE_LIBRARY_OUTPUT_DIRECTORY = os.path.join(CMAKE_BUILD_DIR, ("hami/"))
+CMAKE_LIBRARY_OUTPUT_DIRECTORY = os.path.join(CMAKE_BUILD_DIR, ("omniback/"))
 
 _debug = int(os.environ.get("DEBUG", 0))
 CMAKE_BUILD_TYPE = "Debug" if _debug else "Release"
@@ -271,15 +271,15 @@ class build_ext(setuptools.command.build_ext.build_ext):
         self.run_command("cmake_build")
 
         self.copy_header_files(
-            src_dir="cpp/hami",
-            dst_dir=os.path.join(self.build_lib, "hami/include/hami"),
+            src_dir="cpp/omniback",
+            dst_dir=os.path.join(self.build_lib, "omniback/include/omniback"),
             extensions=('.h', '.hpp')
         )
 
         # 复制 spdlog 头文件
         self.copy_header_files(
             src_dir="third_party/spdlog/include/spdlog",
-            dst_dir=os.path.join(self.build_lib, "hami/include/spdlog"),
+            dst_dir=os.path.join(self.build_lib, "omniback/include/spdlog"),
             extensions=('.h', '.hpp')
         )
 
@@ -288,7 +288,7 @@ class build_ext(setuptools.command.build_ext.build_ext):
     def build_extensions(self):
 
         build_lib = self.build_lib
-        extension_dst_dir = os.path.join(build_lib, "hami/")
+        extension_dst_dir = os.path.join(build_lib, "omniback/")
 
         os.makedirs(extension_dst_dir, exist_ok=True)
         # print(
@@ -318,7 +318,7 @@ cmdclass = {
 ################################################################################
 
 ext_modules = [
-    setuptools.Extension(name=str("hami._C"), sources=[])
+    setuptools.Extension(name=str("omniback._C"), sources=[])
 ]
 
 
@@ -338,8 +338,8 @@ def get_install_files_old():
 
 
 setuptools.setup(
-    name="hami-core",
-    packages=["hami", "hami.utils"],
+    name="omniback",
+    packages=["omniback", "omniback.utils"],
     ext_modules=ext_modules,
     cmdclass=cmdclass,
     include_package_data=True,

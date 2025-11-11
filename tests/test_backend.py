@@ -1,5 +1,5 @@
 import pytest
-import hami._C as _C
+import omniback._C as _C
 
 def test_backend_creation():
     # Test Identity backend

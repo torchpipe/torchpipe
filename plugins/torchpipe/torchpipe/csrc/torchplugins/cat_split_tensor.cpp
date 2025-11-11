@@ -1,8 +1,8 @@
 #include "torchplugins/cat_split_tensor.hpp"
 #include "helper/task_keys.hpp"
 #include "helper/torch.hpp"
-#include "hami/helper/timer.hpp"
-using namespace hami;
+#include "omniback/helper/timer.hpp"
+using namespace omniback;
 
 namespace torchpipe {
 void CatTensor::impl_init(
@@ -25,7 +25,6 @@ void CatTensor::impl_forward(const std::vector<dict>& input_dict) {
     cated_inputs.push_back(std::move(data));
   }
   auto total_bs = std::accumulate(req_size.begin(), req_size.end(), 0);
-  
 
   // row2col
   const size_t num_tensors = cated_inputs.front().size();
@@ -33,7 +32,7 @@ void CatTensor::impl_forward(const std::vector<dict>& input_dict) {
   // const size_t batch_size = cated_inputs.size();
   std::vector<std::vector<torch::Tensor>> nchws(num_tensors);
   for (size_t i = 0; i < cated_inputs.size(); ++i) {
-    HAMI_ASSERT(
+    OMNI_ASSERT(
         cated_inputs[i].size() == num_tensors,
         "All inputs must have the same number of tensors");
     for (size_t j = 0; j < num_tensors; ++j) {
@@ -83,7 +82,7 @@ void CatTensor::impl_forward(const std::vector<dict>& input_dict) {
   }
 }
 
-HAMI_REGISTER(Backend, CatTensor);
+OMNI_REGISTER(Backend, CatTensor);
 
 void FixTensor::impl_init(
     const std::unordered_map<std::string, std::string>& config_param,
@@ -92,7 +91,7 @@ void FixTensor::impl_init(
     net_shapes_ =
         dict_get<std::shared_ptr<NetIOInfos>>(kwargs, TASK_IO_INFO_KEY);
     for (const auto& item : net_shapes_->first) {
-      HAMI_ASSERT(item.max.nbDims == item.min.nbDims && 0 != item.max.nbDims);
+      OMNI_ASSERT(item.max.nbDims == item.min.nbDims && 0 != item.max.nbDims);
     }
   }
 }
@@ -103,7 +102,7 @@ void FixTensor::impl_forward(const std::vector<dict>& input_dict) {
     if (net_shapes_) {
       fix_tensors(data, net_shapes_);
     }
-    
+
     if (data.size() == 1) {
       (*input)[TASK_RESULT_KEY] = data[0];
     } else {
@@ -112,9 +111,9 @@ void FixTensor::impl_forward(const std::vector<dict>& input_dict) {
   }
 }
 
-HAMI_REGISTER(Backend, FixTensor);
+OMNI_REGISTER(Backend, FixTensor);
 
-class ContiguousTensor : public hami::BackendOne {
+class ContiguousTensor : public omniback::BackendOne {
  public:
   void forward(const dict& input_output) override {
     auto data = dict_gets<torch::Tensor>(input_output, TASK_DATA_KEY);
@@ -129,7 +128,7 @@ class ContiguousTensor : public hami::BackendOne {
       (*input_output)[TASK_RESULT_KEY] = data;
   }
 };
-HAMI_REGISTER(Backend, ContiguousTensor);
+OMNI_REGISTER(Backend, ContiguousTensor);
 
 void SplitTensor::impl_init(
     const std::unordered_map<std::string, std::string>& config_param,
@@ -140,7 +139,7 @@ void SplitTensor::impl_forward(const std::vector<dict>& input_dict) {
   std::vector<int> req_sizes(input_dict.size(), 1);
   size_t curr_index = cated_inputs[0].size(0);
   if (curr_index == input_dict.size()) {
-    // HAMI_FATAL_ASSERT(
+    // OMNI_FATAL_ASSERT(
     //     cated_inputs.size() == 1,
     //     "no implementation for multiple outputs yet"); // todo
     // for (auto i = 0; i < curr_index; ++i) {
@@ -160,7 +159,7 @@ void SplitTensor::impl_forward(const std::vector<dict>& input_dict) {
     //     dict_get<int>(input_dict[index], TASK_REQUEST_SIZE_KEY);
     const size_t req_size = req_sizes[index];
     // SPDLOG_INFO("req_size = {}/{}", req_size, input_dict.size());
-    HAMI_FATAL_ASSERT(
+    OMNI_FATAL_ASSERT(
         curr_index > req_size,
         "curr_index=" + std::to_string(curr_index) +
             ", req_size=" + std::to_string(req_size));
@@ -183,7 +182,7 @@ void SplitTensor::impl_forward(const std::vector<dict>& input_dict) {
       (*input_dict[i])[TASK_RESULT_KEY] = results[i];
   }
 }
-HAMI_REGISTER(Backend, SplitTensor);
+OMNI_REGISTER(Backend, SplitTensor);
 
 void ArgMaxTensor::impl_init(
     const std::unordered_map<std::string, std::string>& params,
@@ -211,7 +210,7 @@ void SoftmaxArgMaxTensor::impl_forward(const std::vector<dict>& io) {
   }
 }
 
-HAMI_REGISTER_BACKEND(SoftmaxArgMaxTensor);
+OMNI_REGISTER_BACKEND(SoftmaxArgMaxTensor);
 
-HAMI_REGISTER_BACKEND(ArgMaxTensor);
+OMNI_REGISTER_BACKEND(ArgMaxTensor);
 } // namespace torchpipe

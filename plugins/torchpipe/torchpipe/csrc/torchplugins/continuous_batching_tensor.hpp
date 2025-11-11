@@ -1,18 +1,18 @@
 #pragma once
-#include "hami/core/backend.hpp"
-#include "hami/builtin/page_table.hpp"
+#include "omniback/builtin/page_table.hpp"
+#include "omniback/core/backend.hpp"
 
 namespace torchpipe {
-using hami::dict;
-class TensorPage : public hami::BackendOne {
+using omniback::dict;
+class TensorPage : public omniback::BackendOne {
   void impl_init(
       const std::unordered_map<std::string, std::string>& config,
-      const hami::dict& kwargs) {
-    page_table_ = &hami::default_page_table();
+      const omniback::dict& kwargs) {
+    page_table_ = &omniback::default_page_table();
   }
-  void forward(const hami::dict& io) override;
+  void forward(const omniback::dict& io) override;
 
  private:
-  hami::PageTable* page_table_{nullptr};
+  omniback::PageTable* page_table_{nullptr};
 };
 } // namespace torchpipe

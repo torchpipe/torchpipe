@@ -1,9 +1,9 @@
 #pragma once
 
-#include <unordered_set>
+#include <omniback/extension.hpp>
 #include <string>
-#include <hami/extension.hpp>
+#include <unordered_set>
 
-using hami::dict;
+using omniback::dict;
 
-namespace torchpipe {}  // namespace torchpipe
+namespace torchpipe {} // namespace torchpipe
