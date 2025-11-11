@@ -45,4 +45,4 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }} # 使用 GITHUB_TOKEN
           publish_dir: ./site  # MkDocs build 的输出目录
           publish_branch: gh-pages # 推送到 gh-pages 分支
-          # force_orphan: true 
+          force_orphan: true 
