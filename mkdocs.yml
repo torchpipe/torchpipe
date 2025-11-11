@@ -34,7 +34,7 @@ markdown_extensions:
 
 nav:
   - Home: index.md
-  - Getting Started: installation.md
+  - Installation: installation.md
   - Usage:
       - Basic Usage: usage/basic_usage.md
 

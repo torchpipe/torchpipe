@@ -1,4 +1,4 @@
-# Getting Started
+# Installation
 
 Follow these steps to get started using torchpipe.
 
