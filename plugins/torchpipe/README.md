@@ -71,10 +71,15 @@ result = data['result']
 
 > Note: compiling torchpipe depends on the TensorRT c++ API. Please follow the [TensorRT Installation Guide](https://docs.nvidia.com/deeplearning/tensorrt/install-guide/index.html).  You may also try installing torchpipe inside one of the NGC PyTorch docker containers(e.g. nvcr.io/nvidia/pytorch:25.05-py3). Similar to the structure of Triton Inference Server, torchpipe is a plugin collection (TensorRT, OpenCV, etc...) built on top of the core library (named Hami, used to standardize both computation backends and scheduling backends).
 
-### Quick Install
-
+### Installation
 To install the torchpipe Python library, call the following
 
+- [Quick Installation](./README.md#quick-installation)
+- [Inside NGC Docker](./docs/getting_started.md#inside-ngc-docker)
+- [uv environment](./docs/getting_started.md#uv-environment) 
+- [Rebuild the core library Hami](./docs/getting_started.md#rebuild-the-core-library-hami).
+
+#### Quick Installation
 ```bash
 git clone -b v1 https://github.com/torchpipe/torchpipe.git      
 cd torchpipe/plugins/torchpipe
@@ -94,9 +99,7 @@ python setup.py install --cv2
 # export TENSORRT_INCLUDE=~/tensorrt_install/include
 # export TENSORRT_LIB=~/tensorrt_install/lib
 ```
-for more installation options, please refer to [Inside NGC Docker](./docs/getting_started.md#inside), [uv environment](./docs/getting_started.md#uv) and.
-
-   
+ 
 
 
 ## How does it work?
