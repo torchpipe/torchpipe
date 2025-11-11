@@ -1,4 +1,6 @@
 site_name: torchpipe
+docs_dir: plugins/torchpipe/docs  # 指定文档源目录
+
 theme:
     name: "material"
     palette:
@@ -31,7 +33,6 @@ markdown_extensions:
 # borrowed from https://github.com/NVIDIA-AI-IOT/torch2trt/
 
 nav:
-
   - Home: index.md
   - Getting Started: getting_started.md
   - Usage:
