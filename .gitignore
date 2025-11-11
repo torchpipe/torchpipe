@@ -7,7 +7,7 @@ __pycache__/
 lib*.so
 *.cpython*.so
 core
-core.*
+!core.*
 !core/
 .tox
 version.py
