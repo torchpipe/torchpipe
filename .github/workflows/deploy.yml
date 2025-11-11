@@ -10,7 +10,7 @@ on:
       - '.github/workflows/deploy.yml'
 
 permissions:
-  contents: write  # 关键：授予写入权限给 peaceiris/actions-gh-pages
+  contents: write  
   pages: write
   id-token: write
 
@@ -45,5 +45,4 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }} # 使用 GITHUB_TOKEN
           publish_dir: ./site  # MkDocs build 的输出目录
           publish_branch: gh-pages # 推送到 gh-pages 分支
-          # 可选：强制使用孤儿分支，每次只保留最新的构建结果
           # force_orphan: true 

@@ -5,7 +5,7 @@ theme:
         primary: green
         secondary: light green
 
-repo_url: https://https://github.com/torchpipe/torchpipe/
+repo_url: https://github.com/torchpipe/torchpipe/
 
 plugins:
   - search
