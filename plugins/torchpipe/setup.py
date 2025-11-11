@@ -1,57 +1,114 @@
-import hami
 import os
 import sys
-import glob
-import shutil
-import warnings
 import subprocess
 from pathlib import Path
 from typing import Tuple, List, Dict, Optional
 
 import torch
-from setuptools import setup, find_packages
+from setuptools import setup, find_packages, Extension
 from setuptools.command.build_ext import build_ext
 from distutils import log
 from distutils.util import get_platform
 from distutils.command.clean import clean as CleanCommand
 from torch.utils.cpp_extension import (
-    CppExtension,
     CUDAExtension,
     BuildExtension,
     CUDA_HOME,
 )
 
-# Environment Configuration
+def trt_inc_dir():
+    incs = ["/usr/include/aarch64-linux-gnu",
+            "/usr/include", "/usr/local/include"]
+    inc = os.getenv("TENSORRT_INCLUDE")
+    if inc is not None:
+        incs.insert(0, inc)
+    for idir in incs:
+        if os.path.exists(os.path.join(idir, "NvInfer.h")):
+            return idir
+    raise RuntimeError(
+        "TensorRT include directory not found. Set TENSORRT_INCLUDE environment variable to specify its location.")
 
-build_dir = None
+
+def cv_inc_dir():
+    incs = ["/usr/include/aarch64-linux-gnu/opencv4",
+            "/usr/include/opencv4", "/usr/local/include/opencv4", os.path.expanduser("~/opencv_install/include/opencv4")]
+    inc = os.getenv("OPENCV_INCLUDE")
+    if inc is not None:
+        incs.insert(0, inc)
+    for idir in incs:
+        if os.path.exists(os.path.join(idir, "opencv2/core.hpp")):
+            return idir
+    raise RuntimeError(
+        "OpenCV include directory not found. Set OPENCV_INCLUDE environment variable to specify its location.")
 
 
+def trt_lib_dir():
+    libs = ["/usr/lib/aarch64-linux-gnu",
+            "/usr/lib", "/usr/local/lib"]
+    lib = os.getenv("TENSORRT_LIB")
+    if lib is not None:
+        libs.insert(0, lib)
+    for ldir in libs:
+        if os.path.exists(os.path.join(ldir, "libnvinfer.so")):
+            return ldir
+    raise RuntimeError(
+        "TensorRT library directory not found. Set TENSORRT_LIB environment variable to specify its location.")
+
+
+def cv_lib_dir():
+    libs = ["/usr/lib/aarch64-linux-gnu",
+            "/usr/lib", "/usr/local/lib", os.path.expanduser("~/opencv_install/lib")]
+    lib = os.getenv("OPENCV_LIB")
+    if lib is not None:
+        libs.insert(0, lib)
+    for ldir in libs:
+        if os.path.exists(os.path.join(ldir, "libopencv_core.so")):
+            return ldir
+    raise RuntimeError(
+        "OpenCV library directory not found. Set OPENCV_LIB environment variable to specify its location.")
+
+
+
+def prepare_hami():
+    # bash - c 'tmpdir=$(mktemp -d) && pip download hami-core --platform manylinux2014_x86_64 --only-binary=:all: --dest $tmpdir --no-deps && pip install $tmpdir/hami_core-*.whl && rm -rf $tmpdir'
+    try:
+        import hami
+        need_reinstall = hami._C.use_cxx11_abi() != torch._C._GLIBCXX_USE_CXX11_ABI
+    except:
+        need_reinstall = True
+    
+    if need_reinstall:
+        import tempfile
+        platform = 'manylinux_2_27_x86_64' if torch._C._GLIBCXX_USE_CXX11_ABI else 'manylinux2014_x86_64'
+        with tempfile.TemporaryDirectory() as tmpdir:
+            subprocess.run([
+                'pip', 'download', 'hami-core==1.40.0',
+                '--platform', platform,
+                '--only-binary=:all:',
+                '--dest', tmpdir,
+                '--no-deps'
+            ], check=True)
+
+            wheel_file = next(Path(tmpdir).glob('hami_core-*.whl'))
+            subprocess.run(['pip', 'install', str(wheel_file)], check=True)
+            
+            
 class Config:
     def __init__(self):
+        prepare_hami()
+        import hami
+        
         self.root_dir = Path(__file__).absolute().parent
         self.csrc_dir = self.root_dir / "torchpipe/csrc"
 
         # Build flags
-        self.force_cuda = os.getenv("FORCE_CUDA", "1") == "1"
         self.debug = os.getenv("DEBUG", "0") == "1"
-        self.use_nvjpeg = os.getenv("TORCHPIPE_USE_NVJPEG", "1") == "1"
-
-        # Dependency paths
-        self.opencv_include = os.getenv(
-            "OPENCV_INCLUDE", "/usr/local/include/opencv4/")
-        self.opencv_lib = os.getenv("OPENCV_LIB", "/usr/local/lib/")
-        self.tensorrt_include = os.getenv(
-            "TENSORRT_INCLUDE", "/usr/local/include/")
-        self.tensorrt_lib = os.getenv("TENSORRT_LIB", "/usr/local/lib/")
 
         # Hami configuration
         self.hami_includes = hami.get_includes()
         self.hami_lib_dir = hami.get_library_dir()
         self.hami_c_so = hami.get_C_path()
 
-        # System checks
-        self.cuda_available = torch.cuda.is_available() and CUDA_HOME is not None
-        self.build_cuda = self.cuda_available or self.force_cuda
 
         # Print config
         log.info("\nTorchpipe Build Configuration:")
@@ -62,76 +119,10 @@ class Config:
 
 config = Config()
 
-# Version Handling
-
-
-def get_version() -> Tuple[str, str]:
-    version = (config.root_dir / "version.txt").read_text().strip()
-    sha = "Unknown"
-    try:
-        sha = subprocess.check_output(["git", "rev-parse", "HEAD"],
-                                      cwd=str(config.root_dir)).decode().strip()
-    except Exception:
-        pass
-
-    if os.getenv("BUILD_VERSION"):
-        version = os.getenv("BUILD_VERSION")
-    elif sha != "Unknown":
-        version += f"+{sha[:7]}"
-
-    return version, sha
-
-
-def write_version_file(version: str, sha: str):
-    content = f"""__version__ = '{version}'
-git_version = {repr(sha)}
-from torchpipe.extension import _check_cuda_version
-if _check_cuda_version() > 0:
-    cuda = _check_cuda_version()
-"""
-    (config.root_dir / "torchpipe/version.py").write_text(content)
-
-# Dependency Management
-
-
-class DependencyManager:
-    @staticmethod
-    def validate_library(header: str, include_dir: Path, lib_dir: Path) -> bool:
-        return (include_dir / header).exists()
-
-    @classmethod
-    def handle_opencv(cls):
-        if not cls.validate_library("opencv2/core.hpp",
-                                    Path(config.opencv_include),
-                                    Path(config.opencv_lib)):
-            log.warn("OpenCV not found. Attempting to install...")
-            from download_and_build_opencv import download_and_build_opencv
-            new_include, new_lib = download_and_build_opencv()
-            config.opencv_include = new_include
-            config.opencv_lib = new_lib
-            # raise RuntimeError(new_include, new_lib, new_lib)
-            # import pdb; pdb.set_trace()
-
-    @classmethod
-    def handle_tensorrt(cls):
-        if not cls.validate_library("NvInfer.h",
-                                    Path(config.tensorrt_include),
-                                    Path(config.tensorrt_lib)):
-            log.warn("TensorRT not found. Attempting to install... tensorrt_include={config.tensorrt_include}")
-            # import pdb;pdb.set_trace()
-            from download_and_install_tensorrt import download_and_install_trt
-            new_include, new_lib = download_and_install_trt()
-            config.tensorrt_include = new_include
-            config.tensorrt_lib = new_lib
-
-# Build Helpers
-
 
 class BuildHelper:
     @staticmethod
     def get_compile_args() -> Tuple[List[Tuple[str, None]], Dict[str, List[str]]]:
-        macros = [("WITH_CUDA", None)] if config.build_cuda else []
-
         compile_args = {
             "cxx": ["-std=c++17", "-Wno-sign-compare", "-Wno-deprecated-declarations", "-Wno-reorder"]
         }
@@ -141,62 +132,31 @@ class BuildHelper:
         else:
             compile_args["cxx"] += ["-O2", "-g0"]
 
-        if config.build_cuda:
-            nvcc_flags = os.getenv("NVCC_FLAGS", "").split()
-            if config.debug:
-                nvcc_flags = [
-                    f for f in nvcc_flags if "-O" not in f and "-g" not in f]
-                nvcc_flags += ["-O0", "-g"]
-            compile_args["nvcc"] = nvcc_flags
+        compile_args["nvcc"] = []
 
-        return macros, compile_args
+        return [], compile_args
 
     @classmethod
-    def create_extension(cls, name: str, sources: List[str], **kwargs):
+    def create_extension(cls, name: str, sources: List[str], include_dirs:List[str] =[], lib_dirs: List[str] =[], ** kwargs):
         if not isinstance(sources, list):
             sources = list(sources)
-        extra_path = []
-        if not name.startswith('lib'):
-            name = 'lib'+name
-        if name != "libnative":
-            native_so_path = os.path.join(
-                os.path.dirname(__file__), "torchpipe/libnative.so")
-            #     if not os.path.exists(native_so_path):
-            #         build_lib_dir = Path(os.getcwd(
-            #         )) / "build" / f"lib.{get_platform()}-cpython-{sys.version_info.major}{sys.version_info.minor}"
-            #         native_so_rel_path = Path("torchpipe") / "native.so"
-            #         native_so_path = build_lib_dir / native_so_rel_path
 
-            # extra_path = [f'-L{os.path.dirname(native_so_path)}', '-lnative']
         base_params = {
             "include_dirs": [
                 config.csrc_dir,
-                config.opencv_include,
-                config.tensorrt_include,
                 str(Path(CUDA_HOME) / "include/")
-            ] + config.hami_includes,
+            ] + config.hami_includes + include_dirs,
             "library_dirs": [
                 config.hami_lib_dir,
-                config.opencv_lib,
-                config.tensorrt_lib,
                 str(Path(CUDA_HOME) / "lib64/")
-            ],
-            "libraries": ["hami"],  # 基类默认库
+            ]+lib_dirs,
+            # "libraries": ["hami"],  # 基类默认库
             "extra_link_args": [
-                os.path.join(hami.get_library_dir(), "libhami.so"),
-                config.hami_c_so]
-            + extra_path
-            + [f'-Wl,-rpath,{config.opencv_lib}',
-               f'-Wl,-rpath,{config.tensorrt_lib}',
-               f'-Wl,-rpath,$ORIGIN',
-               *kwargs.get("extra_link_args", []),
-               '-Wl,--no-as-needed'
-               ]
+            ] + [
+                 *kwargs.get("extra_link_args", []),
+                 '-Wl,--no-as-needed'
+                 ]
         }
-        if name != "libnative":
-            # base_params["library_dirs"] += [
-            #     os.path.join(build_dir, "torchpipe")]
-            base_params["libraries"] += ['native']
 
         list_params = ["include_dirs", "library_dirs",
                        "libraries", "extra_link_args"]
@@ -222,7 +182,7 @@ class BuildHelper:
             merged_params['define_macros'] += define_macros
 
         merged_params['extra_compile_args'] = extra_compile_args
-        # CppExtension
+
         sources = [str(x) for x in sources]
         ext = CUDAExtension(
             name=f"torchpipe.{name}",
@@ -232,8 +192,6 @@ class BuildHelper:
 
         return ext
 
-# Extension Builders
-
 
 def build_core_extension():
     sources = [
@@ -242,10 +200,8 @@ def build_core_extension():
         *config.csrc_dir.glob("helper/*.cpp"),
         *config.csrc_dir.glob("pybind/*.cpp"),
     ]
-    # print(config.csrc_dir, type(sources), sources)
     sources = [str(x) for x in sources]
-    if config.build_cuda:
-        sources += config.csrc_dir.glob("cuda/*.cu")
+    sources += config.csrc_dir.glob("cuda/*.cu")
 
     return BuildHelper.create_extension(
         name="native",
@@ -254,10 +210,7 @@ def build_core_extension():
 
 
 def build_nvjpeg_extension():
-    DependencyManager.handle_opencv()
-
     sources = config.csrc_dir.glob("nvjpeg_torch/*.cpp")
-
     sources = [str(x) for x in sources]
     return BuildHelper.create_extension(
         name="image",
@@ -268,86 +221,60 @@ def build_nvjpeg_extension():
 
 
 def build_opencv_extension():
-    DependencyManager.handle_opencv()
-
     sources = config.csrc_dir.glob("mat_torch/*.cpp")
 
     opencv_libs = ["opencv_core", "opencv_imgproc", "opencv_imgcodecs"]
+
     for lib in opencv_libs:
-        assert any(Path(config.opencv_lib).glob(f"lib{lib}.so*")), \
-            f"OpenCV library {lib} not found in {config.opencv_lib}"
+        assert any(Path(cv_lib_dir()).glob(f"lib{lib}.so*")), \
+            f"OpenCV library {lib} not found in {cv_lib_dir()}"
 
     sources = [str(x) for x in sources]
     return BuildHelper.create_extension(
         name="mat",
         sources=sources,
         libraries=opencv_libs,
-        define_macros=[("OPENCV_FOUND", 1)],
+        include_dirs=[cv_inc_dir()],
+        lib_dirs=[cv_lib_dir()],
+        define_macros=[("BUILD_CV2", 1)],
     )
 
 
 def build_trt_extension():
-    DependencyManager.handle_tensorrt()
     sources = config.csrc_dir.glob("tensorrt_torch/*.cpp")
 
     return BuildHelper.create_extension(
         name="trt",
         sources=sources,
+        include_dirs=[trt_inc_dir()],
+        lib_dirs=[trt_lib_dir()],
         libraries=["nvinfer", "nvinfer_plugin", "nvonnxparser"],
-        define_macros=[("TENSORRT_FOUND", 1)],
+        define_macros=[("BUILD_TRT", 1)],
     )
 
-
-class custom_build_ext(BuildExtension):
-    def build_extension(self, ext):
-        ext.library_dirs += [os.path.join(self.build_lib, 'torchpipe')]
-        super().build_extension(ext)
-
-    def run(self):
-        print(f"Build temp directory: {self.build_temp}")
-        print(f"Build lib directory: {self.build_lib}")
-        super().run()
-
-
-# Setup Main
 if __name__ == "__main__":
-    # Validate environment
-    assert os.path.exists(config.hami_c_so), "Hami C extension not found!"
-
-    # Prepare version
-    version, sha = get_version()
-    write_version_file(version, sha)
-
-    # Build extensions
+    
     extensions = [
         build_core_extension(),
-        build_opencv_extension(),
         build_nvjpeg_extension(),
         build_trt_extension(),
     ]
+    if '--cv2' in sys.argv:
+        extensions.append(build_opencv_extension())
+        sys.argv.remove('--cv2')
 
-    # Setup configuration
     setup(
-        name=os.getenv("TORCHPIPE_PACKAGE_NAME", "torchpipe"),
-        version=version,
+        name="torchpipe",
+        version="0.50.0",
         author="Hami/torchpipe Team",
         description="High-performance inference pipeline for PyTorch",
-        long_description=Path("README.md").read_text(),
-        long_description_content_type="text/markdown",
-        url="https://github.com/torchpipe/torchpipe",
         packages=find_packages(exclude=("test",)),
         package_data={
-            "torchpipe": ["*.so", "*.pyi", "py.typed"],
+            "torchpipe": ["*.so*", "*.pyi", "py.typed"],
         },
         ext_modules=extensions,
-        install_requires=[
-            "numpy",
-            "hami-core",
-        ],
         cmdclass={
-            "build_ext": custom_build_ext.with_options(no_python_abi_suffix=True),
-            "clean": CleanCommand,
+            "build_ext": BuildExtension.with_options(no_python_abi_suffix=True),
         },
-        zip_safe=False,
         python_requires=">=3.8",
     )

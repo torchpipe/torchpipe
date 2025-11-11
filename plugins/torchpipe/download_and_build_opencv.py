@@ -14,18 +14,12 @@ import zipfile
 POSSIBLE_OPENCV_LIB_DIR = set({"/usr/local/lib/"})
 POSSIBLE_OPENCV_INCLUDE_DIR = set({"/usr/local/include/opencv4/"})
 
-# import torch
 from pkg_resources import DistributionNotFound, get_distribution, parse_version
 # from setuptools import find_packages, setup
 import logging
 def default_cxx11_abi():
-    use_cxx11_abi = False
-    try:
-        import hami
-        use_cxx11_abi = hami._C.use_cxx11_abi()
-    except ImportError:
-        pass
-    return use_cxx11_abi
+    import torch
+    return torch._C._GLIBCXX_USE_CXX11_ABI
 
 
 def exist_return(install_dir):
@@ -33,11 +27,12 @@ def exist_return(install_dir):
         OPENCV_LIB = os.path.join(install_dir, "lib")
         opencv_found =  (Path(OPENCV_INCLUDE) / "opencv2/core.hpp").exists() and ( Path(OPENCV_LIB) / "libopencv_core.so").exists()
         if opencv_found:
-            logging.info(f" Opencv founded in {install_dir}.  Setting it through OPENCV_INCLUDE and OPENCV_LIB")
-            # raise RuntimeError(OPENCV_INCLUDE, install_dir, OPENCV_LIB)
+            logging.warning(
+                f" Opencv founded in {install_dir}.  Setting OPENCV_INCLUDE={OPENCV_INCLUDE} and OPENCV_LIB={OPENCV_LIB} -> SKIP the task.")
             return OPENCV_INCLUDE, OPENCV_LIB
         else:
             return None, None
+        
 def download_and_build_opencv(cxx11_abi : bool = default_cxx11_abi(), install_dir=None):
     """
     Downloads and builds OpenCV from source if not already installed.
@@ -185,7 +180,6 @@ def download_and_build_opencv(cxx11_abi : bool = default_cxx11_abi(), install_di
     print(f"OpenCV installation complete. Please manully set OPENCV_INCLUDE={OPENCV_INCLUDE} and OPENCV_LIB={OPENCV_LIB} in your environment.")
 
     return OPENCV_INCLUDE, OPENCV_LIB
-# ... (rest of your existing code)
 
 if __name__ == "__main__":
     # Download and build OpenCV if needed

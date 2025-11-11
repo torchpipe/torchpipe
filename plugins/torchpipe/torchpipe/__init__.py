@@ -1,6 +1,6 @@
 # from ._C import *
 
-from .version import __version__
+# from .version import __version__
 import hami
 
 import torch
