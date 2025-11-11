@@ -41,7 +41,7 @@ cd tests && pytest
 
 
 
-## Rebuild the core library Hami
+### Rebuild the core library Hami
 Hami is usually not needed to be rebuilt if you only use the precompiled torchpipe wheel by:
 
 ```bash
