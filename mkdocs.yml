@@ -14,7 +14,7 @@ plugins:
   
 use_directory_urls: False
 
-edit_uri: blob/v1/plugins/torchpipe/docs
+edit_uri: blob/v1/plugins/torchpipe/docs/
 markdown_extensions:
   - pymdownx.tabbed
   - pymdownx.keys
