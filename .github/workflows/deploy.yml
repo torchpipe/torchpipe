@@ -7,11 +7,12 @@ on:
     paths:
       - 'mkdocs.yml'
       - 'plugins/torchpipe/docs/**' 
+      - '.github/workflows/deploy.yml'
 
 permissions:
-  contents: read  # 其他操作需要读取权限
-  pages: write    # 允许部署到 GitHub Pages
-  id-token: write # 允许使用 OIDC 令牌进行身份验证
+  contents: write  # 关键：授予写入权限给 peaceiris/actions-gh-pages
+  pages: write
+  id-token: write
 
 concurrency:
   group: "pages"
@@ -19,15 +20,6 @@ concurrency:
 
 jobs:
   deploy:
-    # --- 确保这个权限设置存在 ---
-    permissions:
-      contents: write  # 关键：授予写入内容的权限
-      pages: write
-      id-token: write
-    # --- 确保这个权限设置存在 ---
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -46,23 +38,12 @@ jobs:
       - name: Build docs
         run: mkdocs build --clean
 
-      # 使用 GitHub 官方的 actions-gh-pages action
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: ./site # MkDocs build 生成的目录
-
-  # 部署步骤 (Separate job for deployment)
-  deploy-pages:
-    needs: deploy
-    runs-on: ubuntu-latest
-    permissions:
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
+      # 使用 peaceiris/actions-gh-pages 进行部署
       - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4 # 使用 GitHub 官方部署 action
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }} # 使用 GITHUB_TOKEN
+          publish_dir: ./site  # MkDocs build 的输出目录
+          publish_branch: gh-pages # 推送到 gh-pages 分支
+          # 可选：强制使用孤儿分支，每次只保留最新的构建结果
+          # force_orphan: true 
