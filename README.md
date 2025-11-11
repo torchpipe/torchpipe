@@ -75,9 +75,9 @@ result = data['result']
 To install the torchpipe Python library, call the following
 
 - [Quick Installation](./README.md#quick-installation)
-- [Inside NGC Docker](./plugins/torchpipe/docs/getting_started.md#inside-ngc-docker)
-- [uv environment](./plugins/torchpipe/docs/getting_started.md#uv-environment) 
-- [Rebuild the core library Omniback](./plugins/torchpipe/docs/getting_started.md#rebuild-the-core-library-omniback).
+- [Inside NGC Docker](./plugins/torchpipe/docs/installation.md#inside-ngc-docker)
+- [uv environment](./plugins/torchpipe/docs/installation.md#uv-environment) 
+- [Rebuild the core library Omniback](./plugins/torchpipe/docs/installation.md#rebuild-the-core-library-omniback).
 
 #### Quick Installation
 ```bash

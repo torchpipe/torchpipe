@@ -33,7 +33,7 @@ jobs:
       - name: Install Dependencies
         run: |
           pip install mkdocs-material
-          pip install pymdown-extensions  # 包含你使用的 pymdownx.* 扩展
+          pip install pymdown-extensions 
 
       - name: Build docs
         run: mkdocs build --clean

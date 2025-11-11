@@ -1,5 +1,5 @@
 
-For torchpipe docs, see [Getting Started](../plugins/torchpipe/docs/getting_started.md).
+For torchpipe docs, see [Getting Started](../plugins/torchpipe/docs/index.md).
 
 
-For old version torchpipe (v0) docs, see [here](https://torchpipe.github.io/)
+For old version torchpipe (v0) docs, see [here](https://github.com/torchpipe/torchpipe.github.io)
