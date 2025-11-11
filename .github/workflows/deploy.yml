@@ -3,15 +3,15 @@ name: Deploy Docs to GitHub Pages
 on:
   push:
     branches:
-      - v1  # 或者你的默认分支，如 master
+      - v1  
     paths:
       - 'mkdocs.yml'
       - 'plugins/torchpipe/docs/**' 
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: read  # 其他操作需要读取权限
+  pages: write    # 允许部署到 GitHub Pages
+  id-token: write # 允许使用 OIDC 令牌进行身份验证
 
 concurrency:
   group: "pages"
@@ -19,6 +19,12 @@ concurrency:
 
 jobs:
   deploy:
+    # --- 确保这个权限设置存在 ---
+    permissions:
+      contents: write  # 关键：授予写入内容的权限
+      pages: write
+      id-token: write
+    # --- 确保这个权限设置存在 ---
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -37,14 +43,26 @@ jobs:
           pip install mkdocs-material
           pip install pymdown-extensions  # 包含你使用的 pymdownx.* 扩展
 
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./site
-          publish_branch: gh-pages  # 分支名称可以自定义，但通常为 gh-pages
-          keep_files: false         # 是否保留现有文件，false 表示完全覆盖
+      - name: Build docs
+        run: mkdocs build --clean
 
-      - name: Build and Deploy
-        run: |
-          mkdocs build --clean
+      # 使用 GitHub 官方的 actions-gh-pages action
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./site # MkDocs build 生成的目录
+
+  # 部署步骤 (Separate job for deployment)
+  deploy-pages:
+    needs: deploy
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4 # 使用 GitHub 官方部署 action
