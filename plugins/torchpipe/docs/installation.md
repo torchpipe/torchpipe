@@ -50,7 +50,7 @@ bash -c 'tmpdir=$(mktemp -d) && pip download omniback --platform manylinux2014_x
 # python -c "import torch; print(torch._C._GLIBCXX_USE_CXX11_ABI)" => True
 pip install omniback 
 ```
- However, if you want to modify the core library or encounter any compatibility issues, you may need to rebuild Omniback first.
+ However, if you want to modify the core library or encounter any compatibility issues, you can rebuild Omniback first.
 
 ```bash
 git clone -b v1 https://github.com/torchpipe/torchpipe.git --recurse-submodules

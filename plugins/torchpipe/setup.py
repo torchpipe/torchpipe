@@ -78,21 +78,19 @@ def prepare_omniback():
         need_reinstall = True
     # torch >= 1.10.2
     
-    
-    
     if need_reinstall:
         import tempfile
         platform = 'manylinux_2_27_x86_64' if torch._C._GLIBCXX_USE_CXX11_ABI else 'manylinux2014_x86_64'
         with tempfile.TemporaryDirectory() as tmpdir:
             subprocess.run([
-                'pip', 'download', 'omniback==1.40.0',
+                'pip', 'download', 'omniback==1.50.0',
                 '--platform', platform,
                 '--only-binary=:all:',
                 '--dest', tmpdir,
                 '--no-deps'
             ], check=True)
 
-            wheel_file = next(Path(tmpdir).glob('omniback_core-*.whl'))
+            wheel_file = next(Path(tmpdir).glob('omniback-*.whl'))
             subprocess.run(['pip', 'install', str(wheel_file)], check=True)
             
             
@@ -153,11 +151,12 @@ class BuildHelper:
                 config.omniback_lib_dir,
                 str(Path(CUDA_HOME) / "lib64/")
             ]+lib_dirs,
-            # "libraries": ["omniback"],  # 基类默认库
+            "libraries": ["omniback"],  # 基类默认库
             "extra_link_args": [
             ] + [
                  *kwargs.get("extra_link_args", []),
-                 '-Wl,--no-as-needed'
+                 '-Wl,--no-as-needed',
+                 "-Wl,-rpath,$ORIGIN",
                  ]
         }
 

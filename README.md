@@ -17,44 +17,41 @@ Below are some usage examples, for more check out the [examples](./plugins/torch
 
 ```python
 from torchpipe import pipe
-import tempfile
 import torch
 
-with tempfile.TemporaryDirectory() as tmpdir:
-    from torchvision.models.resnet import resnet18
+from torchvision.models.resnet import resnet18
 
-    # create some regular pytorch model...
-    model = resnet18(pretrained=True).eval().cuda()
+# create some regular pytorch model...
+model = resnet18(pretrained=True).eval().cuda()
 
-    # create example model
-    model_path = f"{tmpdir}/resnet18.onnx"
-    x = torch.ones((1, 3, 224, 224)).cuda()
-    torch.onnx.export(model, x, model_path, opset_version=17,
-                      input_names=['input'], output_names=['output'], 
-                      dynamic_axes={'input': {0: 'batch_size'},
-                                    'output': {0: 'batch_size'}})
+# create example model
+model_path = f"./resnet18.onnx"
+x = torch.ones((1, 3, 224, 224)).cuda()
+torch.onnx.export(model, x, model_path, opset_version=17,
+                    input_names=['input'], output_names=['output'], 
+                    dynamic_axes={'input': {0: 'batch_size'},
+                                'output': {0: 'batch_size'}})
 
-    thread_safe_pipe = pipe{
-        "preprocessor": {
-            "backend": "S[DecodeTensor,ResizeTensor,CvtColorTensor,SyncTensor]",
-            'instance_num': 2,
-            'color':'rgb',
-            'resize_h': '224',
-            'resize_w': '224',
-            'next': 'model',
-
-        },
-        "model": {
-            "backend": "SyncTensor[TensorrtTensor]",
-            "model": model_path,
-            "model::cache": model_path.replace(".onnx", ".trt"),
-            "max": '4',
-            'batching_timeout': 4, # ms, timeout for batching
-            'instance_num': 2,
-            'mean': "123.675, 116.28, 103.53", 
-            'std': "58.395, 57.120, 57.375", # merged into trt
-        }
-    }
+thread_safe_pipe = pipe({
+    "preprocessor": {
+        "backend": "S[DecodeTensor,ResizeTensor,CvtColorTensor,SyncTensor]",
+        'instance_num': 2,
+        'color': 'rgb',
+        'resize_h': '224',
+        'resize_w': '224',
+        'next': 'model',
+    },
+    "model": {
+        "backend": "SyncTensor[TensorrtTensor]",
+        "model": model_path,
+        "model::cache": model_path.replace(".onnx", ".trt"),
+        "max": '4',
+        'batching_timeout': 4,  # ms, timeout for batching
+        'instance_num': 2,
+        'mean': "123.675, 116.28, 103.53",
+        'std': "58.395, 57.120, 57.375",  # merged into trt
+    }}
+)
 ```
 
 ### Execute
@@ -104,12 +101,11 @@ python setup.py install --cv2
 
 ## How does it work?
 
-## How to 
-
+## How to add (or override) a backend
 
 ## Version Migration Notes 
 
 The core functionality of [TorchPipe (v0)](https://github.com/torchpipe/torchpipe/tree/v0) has been extracted into the standalone Omniback library.  
 
 
-TorchPipe (v1, this version)  is a collection of deep learning computation backends built on  Omniback library, primarily integrating third-party libraries including TensorRT, OpenCV, and LibTorch. Not all computation backends from TorchPipe (v0) have been ported to TorchPipe (v1) yet.
+TorchPipe (v1, this version)  is a collection of deep learning computation backends built on  Omniback library. Not all computation backends from TorchPipe (v0) have been ported to TorchPipe (v1) yet.

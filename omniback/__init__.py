@@ -19,7 +19,7 @@ except Exception:
 
 from .commands import get_cmake_dir, get_includes, get_pkgconfig_dir, get_library_dir, get_root, get_C_path
 
-
+# from . import _C
 from omniback._C import Any, Dict, Backend, Event, create, register, get, TypedDict, print, timestamp, init
 
 from omniback._C import (Queue, default_queue, default_page_table)
