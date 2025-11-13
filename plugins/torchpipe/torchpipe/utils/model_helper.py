@@ -2,7 +2,6 @@ from __future__ import annotations
 
 # Model_helper.py
 from collections import defaultdict
-from tabulate import tabulate
 import importlib
 import os
 import subprocess
@@ -399,7 +398,6 @@ def evaluate_classification(
 
 import_or_install_package('tabulate')
 
-
 def report_classification(all_results, top_k=5):
     """
     Analyze classification model performance with formatted reporting.
@@ -417,6 +415,8 @@ def report_classification(all_results, top_k=5):
         - Most confused class pairs
         - Samples with largest prediction confidence gaps
     """
+    from tabulate import tabulate  # no-
+
     # Initialize metrics
     total = 0
     correct = 0
