@@ -8,32 +8,7 @@
 
 namespace torchpipe {
 
-inline nvinfer1::DataType convert2trt(const std::string& type_name) {
-  if (type_name == "fp16" || type_name == "float16") {
-    return nvinfer1::DataType::kHALF;
-  } else if (
-      type_name == "fp32" || type_name == "float32" || type_name == "float") {
-    return nvinfer1::DataType::kFLOAT;
-  } else if (type_name == "int8") {
-    return nvinfer1::DataType::kINT8;
-  } else if (type_name == "int32") {
-    return nvinfer1::DataType::kINT32;
-  } else if (type_name == "bool") {
-    return nvinfer1::DataType::kBOOL;
-  } else if (type_name == "uint8") {
-    return nvinfer1::DataType::kUINT8;
-  } else if (type_name == "fp8") {
-    return nvinfer1::DataType::kFP8;
-  } else if (type_name == "bf16" || type_name == "bfloat16") {
-    return nvinfer1::DataType::kBF16;
-  } else if (type_name == "int64") {
-    return nvinfer1::DataType::kINT64;
-    //  } else if (type_name == "int4") {
-    //    return nvinfer1::DataType::kINT4;
-  } else {
-    throw std::invalid_argument("convert2trt(plugin): Unsupported data type: " + type_name);
-  }
-}
+nvinfer1::DataType convert2trt(const std::string& type_name);
 
 inline NetIOInfo::Dims64 convert_dims(const nvinfer1::Dims& dims) {
   NetIOInfo::Dims64 dims64;
