@@ -4,7 +4,7 @@
 ```bash
 
 # clone code 
-git clone -b v1 ...
+git clone ...
 cd torchpipe/ && git submodule update --init --recursive
 
 ### ours => A10: ~/paper/v1/torchpipe/

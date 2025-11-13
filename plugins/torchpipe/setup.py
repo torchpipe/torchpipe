@@ -279,7 +279,7 @@ if __name__ == "__main__":
 
     setup(
         name="torchpipe",
-        version="0.50.0",
+        version="0.60.0.1",
         author="Omniback/torchpipe Team",
         description="High-performance inference pipeline for PyTorch",
         packages=find_packages(exclude=("test",)),

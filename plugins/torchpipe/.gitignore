@@ -4,3 +4,4 @@ _C.so
 *.so
 torchpipe/*.so
 .venv/
+model.plan

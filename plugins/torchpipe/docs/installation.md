@@ -7,7 +7,7 @@ Follow these steps to get started using torchpipe.
 
 ### Quick Installation
 ```bash
-git clone -b v1 https://github.com/torchpipe/torchpipe.git      
+git clone https://github.com/torchpipe/torchpipe.git      
 cd torchpipe/plugins/torchpipe
 
 python setup.py install --cv2
@@ -28,7 +28,7 @@ python setup.py install --cv2
  
 ### Inside NGC Docker(test on 25.05 and 22.12)
 ```bash
-git clone -b v1 https://github.com/torchpipe/torchpipe.git
+git clone https://github.com/torchpipe/torchpipe.git
 cd torchpipe/
 
 img_name=nvcr.io/nvidia/pytorch:25.05-py3
@@ -45,7 +45,7 @@ cd /workspace/plugins/torchpipe && python setup.py install --cv2
 
 ### uv environment
 ```bash
-git clone -b v1 https://github.com/torchpipe/torchpipe.git
+git clone https://github.com/torchpipe/torchpipe.git
 cd torchpipe/plugins/torchpipe
 
 python3 -m pip install uv
@@ -75,7 +75,7 @@ pip install omniback
  However, if you want to modify the core library or encounter any compatibility issues, you can rebuild Omniback first.
 
 ```bash
-git clone -b v1 https://github.com/torchpipe/torchpipe.git --recurse-submodules
+git clone https://github.com/torchpipe/torchpipe.git --recurse-submodules
 cd torchpipe/
 
 USE_CXX11_ABI=$(python -c "import torch; print(int(torch._C._GLIBCXX_USE_CXX11_ABI))") python setup.py install

@@ -79,7 +79,7 @@ To install the torchpipe Python library, call the following
 
 #### Quick Installation
 ```bash
-git clone -b v1 https://github.com/torchpipe/torchpipe.git      
+git clone https://github.com/torchpipe/torchpipe.git      
 cd torchpipe/plugins/torchpipe
 
 python setup.py install --cv2
