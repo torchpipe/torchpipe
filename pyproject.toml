@@ -11,7 +11,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "omniback"
-# version = "1.50.0"
+# version = "1.x.x"
 dynamic = ["version", "optional-dependencies"]
 
 description = "A Python library for batched backend scheduling"
