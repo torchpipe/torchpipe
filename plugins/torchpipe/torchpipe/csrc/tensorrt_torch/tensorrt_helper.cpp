@@ -350,8 +350,10 @@ c10::ScalarType trt2torch_type(nvinfer1::DataType dtype) {
       return c10::ScalarType::Int;
     case nvinfer1::DataType::kINT8:
       return c10::ScalarType::Char; // 或 c10::ScalarType::Byte
+#if NV_TENSORRT_MAJOR >= 9
     case nvinfer1::DataType::kINT64:
       return c10::ScalarType::Long;
+#endif
     case nvinfer1::DataType::kBOOL:
       return c10::ScalarType::Bool;
     case nvinfer1::DataType::kHALF:
@@ -985,10 +987,12 @@ static NetIOInfo::DataType convert_type(const nvinfer1::DataType& data_type) {
 
     case nvinfer1::DataType::kHALF:
       return NetIOInfo::DataType::FP16;
+#if NV_TENSORRT_MAJOR >= 9
     case nvinfer1::DataType::kINT64:
       return NetIOInfo::DataType::INT64;
     case nvinfer1::DataType::kBOOL:
       return NetIOInfo::DataType::BOOL;
+#endif
     default:
       break;
   }

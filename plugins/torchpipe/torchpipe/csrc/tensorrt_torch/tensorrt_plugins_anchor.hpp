@@ -3,7 +3,6 @@
 
 #include <NvInferRuntime.h>
 #if NV_TENSORRT_MAJOR >= 10
-
 #include <NvInferRuntimePlugin.h>
 #endif
 #include <string>
