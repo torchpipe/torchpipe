@@ -19,8 +19,8 @@ thread_safe_pipe = pipe({
         "backend": "S[DecodeTensor,ResizeTensor,CvtColorTensor,SyncTensor]",
         'instance_num': 2,
         'color': 'rgb',
-        'resize_h': '224',
-        'resize_w': '224',
+        'resize_h': '448',
+        'resize_w': '448',
         'next': 'model',
 
     },

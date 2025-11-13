@@ -15,7 +15,7 @@ name = "omniback"
 dynamic = ["version", "optional-dependencies"]
 
 description = "A Python library for batched backend scheduling"
-readme = "README.md"
+readme = "docs/readme.md"
 license = {text = "Apache-2.0"}
 requires-python = ">=3.8"
 authors = [{name = "torchpipe Team", email = "hydzhang@hotmail.com"}]
@@ -31,7 +31,7 @@ classifiers = [
   "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 dependencies = [
-  'tomli>=2.0.1; python_version < "3.14"',
+  'tomli>=2.0.1; python_version >= "3.8"',
   'numpy>=1.19',
 ]
 
@@ -41,7 +41,7 @@ dependencies = [
 Homepage = "https://github.com/torchpipe/torchpipe"
 
 [tool.setuptools]
-packages = ["omniback", "omniback.utils", "omniback.csrc"]
+packages = ["omniback", "omniback.utils"] # , "omniback.csrc"
 # 不要 include omniback._C as a Python package — it's a C extension
 zip-safe = false
 include-package-data = true

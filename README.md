@@ -5,7 +5,7 @@
 
 torchpipe is an alternative choice for Triton Inference Server, mainly featuring similar functionalities such as [Shared-momory](https://docs.nvidia.com/deeplearning/triton-inference-server/user-guide/docs/protocol/extension_shared_memory.html), [Ensemble](https://github.com/triton-inference-server/server/blob/main/docs/user_guide/architecture.md#ensemble-models), and [BLS](https://github.com/triton-inference-server/python_backend#business-logic-scripting) mechanism.
 
-It is a multi-instance pipeline parallel library that acts as a bridge between lower-level acceleration libraries (such as TensorRT, OpenCV, CVCUDA) and RPC frameworks (e.g. Thrift). It offers a thread-safe function interface for the PyTorch frontend.
+ For serving scenarios, TorchPipe is designed to support multi-instance deployment, pipeline parallelism, adaptive batching, GPU-accelerated operators, and reduced head-of-line (HOL) blocking.It acts as a bridge between lower-level acceleration libraries (e.g., TensorRT, OpenCV, CVCUDA) and RPC frameworks (e.g., Thrift).
 
 If you find an issue, please [let us know](../..//issues)!
 
@@ -35,6 +35,7 @@ torch.onnx.export(model, x, model_path, opset_version=17,
 thread_safe_pipe = pipe({
     "preprocessor": {
         "backend": "S[DecodeTensor,ResizeTensor,CvtColorTensor,SyncTensor]",
+        # "backend": "S[DecodeMat,ResizeMat,CvtColorMat,Mat2Tensor,SyncTensor]",
         'instance_num': 2,
         'color': 'rgb',
         'resize_h': '224',

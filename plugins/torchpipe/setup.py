@@ -17,7 +17,7 @@ from torch.utils.cpp_extension import (
 )
 
 def trt_inc_dir():
-    incs = ["/usr/include/aarch64-linux-gnu",
+    incs = ["/usr/include/aarch64-linux-gnu", '/usr/include/x86_64-linux-gnu/',
             "/usr/include", "/usr/local/include"]
     inc = os.getenv("TENSORRT_INCLUDE")
     if inc is not None:
@@ -43,30 +43,42 @@ def cv_inc_dir():
 
 
 def trt_lib_dir():
-    libs = ["/usr/lib/aarch64-linux-gnu",
-            "/usr/lib", "/usr/local/lib"]
+    libs = ["/usr/lib/aarch64-linux-gnu", '/usr/lib/x86_64-linux-gnu/']
     lib = os.getenv("TENSORRT_LIB")
     if lib is not None:
         libs.insert(0, lib)
+    else:
+        ld_lib_path = os.getenv("LD_LIBRARY_PATH")
+        if ld_lib_path is not None:
+            # 分割路径并添加到搜索列表的前面
+            ld_paths = ld_lib_path.split(':')
+            libs = ld_paths + libs
+        libs += ["/usr/lib", "/usr/local/lib"]
+
     for ldir in libs:
-        if os.path.exists(os.path.join(ldir, "libnvinfer.so")):
+        if ldir and os.path.exists(os.path.join(ldir, "libnvinfer.so")):
             return ldir
     raise RuntimeError(
         "TensorRT library directory not found. Set TENSORRT_LIB environment variable to specify its location.")
 
 
 def cv_lib_dir():
-    libs = ["/usr/lib/aarch64-linux-gnu",
-            "/usr/lib", "/usr/local/lib", os.path.expanduser("~/opencv_install/lib")]
+    libs = ["/usr/lib/aarch64-linux-gnu", os.path.expanduser("~/opencv_install/lib")]
     lib = os.getenv("OPENCV_LIB")
     if lib is not None:
         libs.insert(0, lib)
+    else:
+        ld_lib_path = os.getenv("LD_LIBRARY_PATH")
+        if ld_lib_path is not None:
+            ld_paths = ld_lib_path.split(':')
+            libs = ld_paths + libs
+        libs += ["/usr/lib", "/usr/local/lib"]
+
     for ldir in libs:
-        if os.path.exists(os.path.join(ldir, "libopencv_core.so")):
+        if ldir and os.path.exists(os.path.join(ldir, "libopencv_core.so")):
             return ldir
     raise RuntimeError(
         "OpenCV library directory not found. Set OPENCV_LIB environment variable to specify its location.")
-
 
 
 def prepare_omniback():

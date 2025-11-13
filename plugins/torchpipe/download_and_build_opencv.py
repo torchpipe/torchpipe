@@ -33,7 +33,7 @@ def exist_return(install_dir):
         else:
             return None, None
         
-def download_and_build_opencv(cxx11_abi : bool = default_cxx11_abi(), install_dir=None):
+def download_and_build_opencv(cxx11_abi : bool = default_cxx11_abi(), install_dir=None, force_reinstall=False):
     """
     Downloads and builds OpenCV from source if not already installed.
     """
@@ -44,9 +44,6 @@ def download_and_build_opencv(cxx11_abi : bool = default_cxx11_abi(), install_di
 
     if install_dir is None:
         install_dir = "/usr/local/"
-        OPENCV_INCLUDE, OPENCV_LIB = exist_return(install_dir)
-        if OPENCV_INCLUDE and OPENCV_LIB:
-            return OPENCV_INCLUDE, OPENCV_LIB
     
     if not os.path.exists(install_dir):
         try:
@@ -59,19 +56,20 @@ def download_and_build_opencv(cxx11_abi : bool = default_cxx11_abi(), install_di
         print(f"No write permission for {install_dir}. Using {new_install_dir} instead.")
         install_dir = new_install_dir
 
-        OPENCV_INCLUDE, OPENCV_LIB = exist_return(install_dir)
+    OPENCV_INCLUDE, OPENCV_LIB = exist_return(install_dir)
+    if not force_reinstall:
         if OPENCV_INCLUDE and OPENCV_LIB:
             return OPENCV_INCLUDE, OPENCV_LIB
-    for dir_path in POSSIBLE_OPENCV_INCLUDE_DIR:
-        if os.path.exists(os.path.join(dir_path, "opencv2/opencv.hpp")):
-            OPENCV_INCLUDE = dir_path
-            break
-    for dir_path in POSSIBLE_OPENCV_LIB_DIR:
-        if os.path.exists(os.path.join(dir_path, "libopencv_core.so")):
-            OPENCV_LIB = dir_path
-            break
-    if OPENCV_INCLUDE and OPENCV_LIB:
-        return OPENCV_INCLUDE, OPENCV_LIB
+        for dir_path in POSSIBLE_OPENCV_INCLUDE_DIR:
+            if os.path.exists(os.path.join(dir_path, "opencv2/opencv.hpp")):
+                OPENCV_INCLUDE = dir_path
+                break
+        for dir_path in POSSIBLE_OPENCV_LIB_DIR:
+            if os.path.exists(os.path.join(dir_path, "libopencv_core.so")):
+                OPENCV_LIB = dir_path
+                break
+        if OPENCV_INCLUDE and OPENCV_LIB:
+            return OPENCV_INCLUDE, OPENCV_LIB
         
     OPENCV_VERSION = "4.5.4"
     OPENCV_URL = f"https://codeload.github.com/opencv/opencv/zip/refs/tags/{OPENCV_VERSION}"
@@ -117,11 +115,8 @@ def download_and_build_opencv(cxx11_abi : bool = default_cxx11_abi(), install_di
         "-D", "INSTALL_C_EXAMPLES=OFF",
         "-D", "INSTALL_PYTHON_EXAMPLES=OFF",
         "-D", "ENABLE_NEON=OFF",
-        "-D", "WITH_TBB=ON",
-        "-D", "BUILD_TBB=ON",
         "-D", "BUILD_WEBP=OFF",
         "-D", "BUILD_ITT=OFF",
-        "-D", "WITH_IPP=OFF",
         "-D", "WITH_V4L=OFF",
         "-D", "WITH_QT=OFF",
         "-D", "WITH_OPENGL=OFF",
@@ -164,6 +159,14 @@ def download_and_build_opencv(cxx11_abi : bool = default_cxx11_abi(), install_di
         "-D", "BUILD_opencv_video=OFF",
         "-D", "BUILD_videoio_plugins=OFF",
         "-D", "BUILD_opencv_videostab=OFF",
+        "-D", "WITH_IPP=ON",
+        "-D", "WITH_MKL=ON",        # 启用 Intel MKL
+        "-D", "MKL_USE_TBB=ON",
+        "-D", "WITH_TBB=ON",
+        "-D", "BUILD_TBB=ON",
+        "-D", "WITH_TURBOJPEG=ON",
+        "-D", "WITH_LAPACK=ON",
+        "-D", "WITH_BLAS=ON",
         ".."
     ], check=True)
     subprocess.run(["make", "-j4"], check=True)
