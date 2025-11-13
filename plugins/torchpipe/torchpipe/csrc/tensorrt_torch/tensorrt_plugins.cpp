@@ -5,7 +5,10 @@
 #include <vector>
 
 #include <NvInferRuntime.h>
+
+#if NV_TENSORRT_MAJOR >= 10
 #include <NvInferRuntimePlugin.h>
+#endif
 #include <cuda_runtime.h>
 
 #include "omniback/helper/base_logging.hpp"
