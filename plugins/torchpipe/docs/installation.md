@@ -82,3 +82,14 @@ USE_CXX11_ABI=$(python -c "import torch; print(int(torch._C._GLIBCXX_USE_CXX11_A
 
 cd tests && pytest
 ```
+
+### Dependency Compatibility
+
+
+| Library |  Required Version | Recommended Version | Notes |
+| :--- | :--- | :--- | :--- |
+| **TensorRT** | [`8.5`, `~10.9`] | `>=9.3`| Not all version tested |
+| **OpenCV** | - | `>=4.5.0` |  |
+| **PyTorch** | - | `>=2.7.0` |  |
+| **CUDA** |   [`11`,`12`] |  |  |
+
