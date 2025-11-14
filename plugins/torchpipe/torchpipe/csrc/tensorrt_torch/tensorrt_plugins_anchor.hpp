@@ -29,17 +29,27 @@ struct AnchorPluginParameters {
   std::string name{"AnchorPlugin"};
 };
 
-#if NV_TENSORRT_MAJOR >= 10
+#if (NV_TENSORRT_MAJOR >= 10 && NV_TENSORRT_MINOR >= 3) || \
+    NV_TENSORRT_MAJOR >= 11
 class AnchorPlugin : public IPluginV3,
                      public IPluginV3OneCore,
                      public v_2_0::IPluginV3OneBuild,
                      public IPluginV3OneRuntime {
- public:
-  AnchorPlugin(std::string const& params, bool is_build_phase = false);
 
-  ~AnchorPlugin() override {
-    delete dependency_;
-    dependency_ = nullptr;
+#elif NV_TENSORRT_MAJOR >= 10
+class AnchorPlugin : public IPluginV3,
+                     public IPluginV3OneCore,
+                     public IPluginV3OneBuild,
+                     public IPluginV3OneRuntime {
+#endif
+
+#if NV_TENSORRT_MAJOR >= 10
+public:
+AnchorPlugin(std::string const& params, bool is_build_phase = false);
+
+~AnchorPlugin() override {
+  delete dependency_;
+  dependency_ = nullptr;
   }
 
   // IPluginV3 Methods

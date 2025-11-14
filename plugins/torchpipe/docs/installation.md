@@ -1,8 +1,7 @@
-# Installation
+<!-- ## Installation -->
 
 Follow these steps to get started using torchpipe.
 
-<!-- ## Installation -->
 
 
 ### Quick Installation
@@ -26,7 +25,7 @@ python setup.py install --cv2
 # export TENSORRT_LIB=~/tensorrt_install/lib
 ```
  
-### Inside NGC Docker(test on 25.05 and 22.12)
+### Inside NGC Docker(test on 25.05, 24.05, 23.05,, and 22.12)
 ```bash
 git clone https://github.com/torchpipe/torchpipe.git
 cd torchpipe/
@@ -39,6 +38,8 @@ docker run --rm --gpus all -it --rm --network host \
     -w /workspace/ \
     $img_name \
     bash
+
+# pip config set global.index-url https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple
 
 cd /workspace/plugins/torchpipe && python setup.py install --cv2
 ```

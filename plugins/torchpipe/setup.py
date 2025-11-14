@@ -95,7 +95,7 @@ def prepare_omniback():
         platform = 'manylinux_2_27_x86_64' if torch._C._GLIBCXX_USE_CXX11_ABI else 'manylinux2014_x86_64'
         with tempfile.TemporaryDirectory() as tmpdir:
             subprocess.run([
-                'pip', 'download', 'omniback==1.50.0',
+                'pip', 'download', 'omniback==1.50.1',
                 '--platform', platform,
                 '--only-binary=:all:',
                 '--dest', tmpdir,
@@ -279,8 +279,8 @@ if __name__ == "__main__":
 
     setup(
         name="torchpipe",
-        version="0.60.0.1",
-        author="Omniback/torchpipe Team",
+        version="0.8.2",
+        author="torchpipe Team",
         description="High-performance inference pipeline for PyTorch",
         packages=find_packages(exclude=("test",)),
         package_data={

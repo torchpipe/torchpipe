@@ -21,6 +21,8 @@ Benchmark results (throughput) with different concurrent requests are as follows
 | 2                   | -         | 159         | 156                  | 45                     | 114       |
 | 5                   | -         | 267        | 265                | 89                  | 233       |
 | 10                  | -         | 315         | 304                   | 161                      | 307     |
+| **Line of Code** | very low         | low         | low                   | middle                      | high     |
+
 - Note: TorchPipe and Triton Ensemble use GPU for preprocessing, while others use torchvision.transforms.
 - Under a single concurrent request, TorchPipe dynamically adjusts the timeout based on the observed traffic pattern.
 

@@ -1,0 +1,52 @@
+[project]
+site_name = "torchpipe"
+
+docs_dir = "plugins/torchpipe/docs"
+
+repo_url = "https://github.com/torchpipe/torchpipe/"
+repo_name = "torchpipe/torchpipe"
+
+copyright = "Copyright &copy; 2025 YIDUN-AI"
+
+use_directory_urls = false
+
+edit_uri = "edit/main/plugins/torchpipe/docs/"
+
+# markdown_extensions 需要作为一个数组处理，其中包含表
+markdown_extensions = [
+    "pymdownx.tabbed",
+    "pymdownx.keys",
+    "pymdownx.snippets",
+    "pymdownx.inlinehilite",
+    { "pymdownx.highlight" = { use_pygments = true } },
+    "admonition",
+    "pymdownx.details",
+    "pymdownx.superfences",
+    "attr_list"
+]
+
+[project.theme]
+features = [
+        "header.autohide",
+        "announce.dismiss",
+        "content.action.edit",
+        "search.highlight"]
+
+[project.theme.icon]
+repo = "fontawesome/brands/github"
+edit = "material/pencil"
+
+
+
+nav = [
+    {"Home" = "index.md"},
+    {"Installation" = "installation.md"},
+    {"Usage" = [
+        "usage/basic_usage.md"
+    ]}
+]
+
+
+[project.extra]
+generator = false
+

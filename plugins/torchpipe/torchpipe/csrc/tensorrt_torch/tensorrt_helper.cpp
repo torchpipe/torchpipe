@@ -65,7 +65,7 @@ nvinfer1::ILogger* get_trt_logger() {
   return &gLogger_inplace;
 }
 
-inline nvinfer1::DataType convert2trt(const std::string& type_name) {
+nvinfer1::DataType convert2trt(const std::string& type_name) {
   if (type_name == "fp16" || type_name == "float16") {
     return nvinfer1::DataType::kHALF;
   } else if (

@@ -1,1 +1,0 @@
-clear && pip uninstall -y omniback && rm -f dist/*.whl && python setup.py bdist_wheel && pip install dist/*.whl

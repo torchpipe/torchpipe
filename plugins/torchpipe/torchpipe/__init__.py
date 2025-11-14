@@ -14,7 +14,12 @@ __version__ = version("torchpipe")
 
 ctypes.CDLL(os.path.join(os.path.dirname(__file__), "native.so"), mode=ctypes.RTLD_GLOBAL)
 
-from . import native, image, mat, trt
+from . import native, image, trt
+
+try:
+    from . import mat
+except ImportError:
+    print(f'opencv related backends not loaded')
 
 from . import utils
 if (omniback._C.use_cxx11_abi() != torch._C._GLIBCXX_USE_CXX11_ABI):
