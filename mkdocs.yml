@@ -38,10 +38,7 @@ nav:
   - Usage:
       - Basic Usage: usage/basic_usage.md
 
-extra_css:
-    - css/version-select.css
-extra_javascript:
-    - js/version-select.js
+
     
 google_analytics:
     - UA-135919510-3
