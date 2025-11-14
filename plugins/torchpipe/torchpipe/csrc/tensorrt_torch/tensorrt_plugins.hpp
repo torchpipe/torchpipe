@@ -5,7 +5,9 @@
 #include <vector>
 
 #include <NvInferRuntime.h>
+#if NV_TENSORRT_MAJOR >= 10
 #include <NvInferRuntimePlugin.h>
+#endif
 #include "omniback/core/backend.hpp"
 
 // In IPluginV3 interface, the plugin name, version, and name space must be

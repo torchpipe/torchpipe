@@ -2,7 +2,9 @@
 #define TENSORRT_PLUGIN_ANCHOR_PLUGIN_H
 
 #include <NvInferRuntime.h>
+#if NV_TENSORRT_MAJOR >= 10
 #include <NvInferRuntimePlugin.h>
+#endif
 #include <string>
 #include <unordered_map>
 #include <vector>

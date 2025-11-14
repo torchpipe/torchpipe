@@ -65,6 +65,41 @@ nvinfer1::ILogger* get_trt_logger() {
   return &gLogger_inplace;
 }
 
+inline nvinfer1::DataType convert2trt(const std::string& type_name) {
+  if (type_name == "fp16" || type_name == "float16") {
+    return nvinfer1::DataType::kHALF;
+  } else if (
+      type_name == "fp32" || type_name == "float32" || type_name == "float") {
+    return nvinfer1::DataType::kFLOAT;
+  } else if (type_name == "int8") {
+    return nvinfer1::DataType::kINT8;
+  } else if (type_name == "int32") {
+    return nvinfer1::DataType::kINT32;
+  } else if (type_name == "bool") {
+    return nvinfer1::DataType::kBOOL;
+  } else if (type_name == "uint8") {
+    return nvinfer1::DataType::kUINT8;
+  }
+// --- 版本宏改造开始 ---
+#if NV_TENSORRT_MAJOR >= 10
+  else if (type_name == "fp8") {
+    return nvinfer1::DataType::kFP8;
+  }
+#elif NV_TENSORRT_MAJOR >= 9
+  else if (type_name == "bf16" || type_name == "bfloat16") {
+    return nvinfer1::DataType::kBF16;
+  } else if (type_name == "int64") {
+    return nvinfer1::DataType::kINT64;
+    //  } else if (type_name == "int4") {
+    //    return nvinfer1::DataType::kINT4;
+  }
+#endif
+  else {
+    throw std::invalid_argument(
+        "convert2trt(plugin): Unsupported data type: " + type_name);
+  }
+}
+
 // https://github.com/maggiez0138/Swin-Transformer-TensorRT/blob/master/trt/trt_utils.py
 void force_layernorn_fp32(nvinfer1::INetworkDefinition* network) {
   const static std::string POW_NAME = "Pow";
@@ -315,8 +350,10 @@ c10::ScalarType trt2torch_type(nvinfer1::DataType dtype) {
       return c10::ScalarType::Int;
     case nvinfer1::DataType::kINT8:
       return c10::ScalarType::Char; // 或 c10::ScalarType::Byte
+#if NV_TENSORRT_MAJOR >= 9
     case nvinfer1::DataType::kINT64:
       return c10::ScalarType::Long;
+#endif
     case nvinfer1::DataType::kBOOL:
       return c10::ScalarType::Bool;
     case nvinfer1::DataType::kHALF:
@@ -950,10 +987,12 @@ static NetIOInfo::DataType convert_type(const nvinfer1::DataType& data_type) {
 
     case nvinfer1::DataType::kHALF:
       return NetIOInfo::DataType::FP16;
+#if NV_TENSORRT_MAJOR >= 9
     case nvinfer1::DataType::kINT64:
       return NetIOInfo::DataType::INT64;
     case nvinfer1::DataType::kBOOL:
       return NetIOInfo::DataType::BOOL;
+#endif
     default:
       break;
   }
