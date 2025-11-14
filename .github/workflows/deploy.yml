@@ -1,4 +1,4 @@
-name: Deploy Docs on PR
+name: Deploy Docs to GitHub Pages
 
 on:
   push:
@@ -10,46 +10,39 @@ on:
       - '.github/workflows/deploy.yml'
 
 permissions:
-  contents: read
+  contents: write  
   pages: write
   id-token: write
 
 concurrency:
-  group: "pages-${{ github.head_ref }}"  # 按 PR 分支区分并发
+  group: "pages"
   cancel-in-progress: true
 
 jobs:
-  build-and-preview:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    
+  deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.head_ref }}  # 检查 PR 分支的代码
-          
+
       - name: Setup Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.x'
-          
-      - name: Install dependencies
-        run: pip install zensical
-        
-      - name: Build documentation
+          python-version: 3.x
+
+      - name: Install Dependencies
+        run: |
+          pip install zensical
+          pip install pymdown-extensions 
+
+      - name: Build docs
         run: zensical build --clean
-        
-      - name: Setup Pages
-        uses: actions/configure-pages@v4
-        
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: ./site
-          
+
+      # 使用 peaceiris/actions-gh-pages 进行部署
       - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }} # 使用 GITHUB_TOKEN
+          publish_dir: ./site  # MkDocs build 的输出目录
+          publish_branch: gh-pages # 推送到 gh-pages 分支
+          force_orphan: true 
