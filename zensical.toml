@@ -22,7 +22,8 @@ markdown_extensions = [
     "admonition",
     "pymdownx.details",
     "pymdownx.superfences",
-    "attr_list"
+    "attr_list",
+    "footnotes"
 ]
 
 [project.theme]
@@ -30,7 +31,8 @@ features = [
         "header.autohide",
         "announce.dismiss",
         "content.action.edit",
-        "search.highlight"]
+        "search.highlight",
+        "content.footnote.tooltips"]
 
 [project.theme.icon]
 repo = "fontawesome/brands/github"
