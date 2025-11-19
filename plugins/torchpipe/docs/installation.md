@@ -25,7 +25,7 @@ python setup.py install --cv2
 # export TENSORRT_LIB=~/tensorrt_install/lib
 ```
  
-### Inside NGC Docker(test on 25.05, 24.05, 23.05,, and 22.12)
+### Inside NGC Docker(test on 25.05, 24.05, 23.05, and 22.12)
 ```bash
 git clone https://github.com/torchpipe/torchpipe.git
 cd torchpipe/
@@ -50,7 +50,7 @@ git clone https://github.com/torchpipe/torchpipe.git
 cd torchpipe/plugins/torchpipe
 
 python3 -m pip install uv
-uv venv
+uv venv # --python 3.11
 source .venv/bin/activate # deactivate by 'deactivate' command if needed
 uv pip install "torch>=2.7.1" omniback -i https://mirrors.aliyun.com/pypi/simple 
 # For torch>=2.7.1, it is known torch._C._GLIBCXX_USE_CXX11_ABI==True by default. For pre-11 abi, install omniback by: 

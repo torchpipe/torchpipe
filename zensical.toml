@@ -1,7 +1,7 @@
 [project]
 site_name = "torchpipe"
-
 docs_dir = "plugins/torchpipe/docs"
+
 
 repo_url = "https://github.com/torchpipe/torchpipe/"
 repo_name = "torchpipe/torchpipe"
@@ -32,7 +32,10 @@ features = [
         "announce.dismiss",
         "content.action.edit",
         "search.highlight",
-        "content.footnote.tooltips"]
+        "content.footnote.tooltips"
+        ]
+logo = "assets/image.png"
+favicon = "assets/image.png"
 
 [project.theme.icon]
 repo = "fontawesome/brands/github"

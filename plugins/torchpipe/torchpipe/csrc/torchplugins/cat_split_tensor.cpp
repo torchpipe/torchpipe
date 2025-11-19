@@ -199,8 +199,8 @@ void ArgMaxTensor::impl_forward(const std::vector<dict>& io) {
   }
 }
 
-void SoftmaxArgMaxTensor::impl_forward(const std::vector<dict>& io) {
-  for (const auto& item : io) {
+void SoftmaxArgMaxTensor::impl_forward(const std::vector<dict>& ios) {
+  for (const auto& item : ios) {
     auto input_tensor = dict_get<torch::Tensor>(item, TASK_DATA_KEY);
 
     input_tensor = torch::softmax(input_tensor, -1);

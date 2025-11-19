@@ -36,7 +36,10 @@ torch.cuda.init()
 
 torch.set_num_threads(torch.get_num_threads())
 
+import omniback as omni #
 pipe = omniback.pipe
+Dict = omniback.Dict
+register = omniback.register
 # class pipe:
 #     """python interface for the c++ library. A simple wrapper for :ref:`Interpreter <Interpreter>` . Usage:
 

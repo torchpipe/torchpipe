@@ -55,7 +55,7 @@ class SoftmaxArgMaxTensor : public omniback::Backend {
   void impl_init(
       const std::unordered_map<std::string, std::string>& config_param,
       const dict& kwargs) override {}
-  void impl_forward(const std::vector<dict>& io) override;
+  void impl_forward(const std::vector<dict>& ios) override;
 };
 
 } // namespace torchpipe

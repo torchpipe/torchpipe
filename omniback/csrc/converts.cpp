@@ -13,6 +13,15 @@ PYBIND11_MAKE_OPAQUE(omniback::str::str_map);
 namespace omniback {
 namespace py = pybind11;
 
+std::string GetFullyQualifiedName(py::handle h) {
+  py::handle type = h.get_type();
+
+  std::ostringstream ss;
+  ss << type.attr("__module__").cast<std::string>() << '.'
+     << type.attr("__qualname__").cast<std::string>();
+  return ss.str();
+}
+
 std::optional<any> object2any_base_type(pybind11::handle data) {
   if (py::isinstance<py::str>(data)) {
     return py::cast<std::string>(data);

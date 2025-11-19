@@ -159,7 +159,7 @@ class OMNI_EXPORT Backend {
     return "UnReflectClassIDontKnowTheClassName";
   }
 
- private:
+ protected:
   // User API
   virtual void impl_init(
       const std::unordered_map<string, string>& params,
@@ -192,7 +192,7 @@ class OMNI_EXPORT Backend {
  * be provided.
  */
 class OMNI_EXPORT BackendOne : public Backend {
- private:
+ protected:
   /**
    * @brief Returns the maximum number of inputs supported (always 1).
    *
