@@ -11,8 +11,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "omniback"
-# version = "1.x.x"
-dynamic = ["version", "optional-dependencies"]
+version = "1.60.0"
+dynamic = ["optional-dependencies"]
 
 description = "A Python library for batched backend scheduling"
 readme = "docs/readme.md"
@@ -55,24 +55,23 @@ omniback = [
   "include/spdlog/*.h",
   "include/spdlog/**/*.h",
   "_build_info.py",
-  "_version.py",
   "*.so"
 ]
 
 [tool.setuptools.exclude-package-data]
 "*" = ["*.cc", "*.cpp", "*.cu", "*.bak", "*.in", "CMakeLists.txt", "test_*"]
 
-[tool.setuptools_scm]
-local_scheme = "node-and-timestamp"
-normalize = false
-write_to = "omniback/_version.py"  # 推荐生成版本文件
+# [tool.setuptools_scm]
+# local_scheme = "node-and-timestamp"
+# normalize = false
+# write_to = "omniback/_version.py"  # 推荐生成版本文件
 
-[tool.mypy]
-strict = true
-show_error_codes = true
-warn_unreachable = true
-enable_error_code = ["ignore-without-code", "redundant-expr", "truthy-bool"]
-files = ["setup.py"]
+# [tool.mypy]
+# strict = true
+# show_error_codes = true
+# warn_unreachable = true
+# enable_error_code = ["ignore-without-code", "redundant-expr", "truthy-bool"]
+# files = ["setup.py"]
 
 # [project.optional-dependencies]
 # dev = ["pytest", "mypy", "black"]

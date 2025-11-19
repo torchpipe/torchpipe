@@ -7,10 +7,14 @@ from importlib.metadata import version, PackageNotFoundError
 # except PackageNotFoundError:
 #     # package is not installed
 #     pass
-try:
-    from ._version import version as __version__
-except Exception:
-    __version__ = "0.0.0+unknown"
+# try:
+#     from ._version import version as __version__
+# except Exception:
+#     __version__ = "0.0.0+unknown"
+
+from importlib.metadata import version
+
+__version__ = version("omniback")
 
 # if os.path.exists("./omniback/"):
 #     # if /omniback/_C*.so exits
@@ -19,7 +23,7 @@ except Exception:
 
 from .commands import get_cmake_dir, get_includes, get_pkgconfig_dir, get_library_dir, get_root, get_C_path
 
-# from . import _C
+from . import _C
 from omniback._C import Any, Dict, Backend, Event, create, register, get, TypedDict, print, timestamp, init
 
 from omniback._C import (Queue, default_queue, default_page_table)
@@ -31,7 +35,13 @@ from .parser import parse, init_from_file, pipe
 from . import utils
 
 
-__all__ = ["Any", "Dict", 'Backend', 'Event', 'create', 'create', 'register', 'parse', 'init', 'get', 'default_page_table', "timestamp", "pipe", 'init']
+def load_kwargs():
+    return {"extra_include_paths": get_includes(), "extra_ldflags": [f"-L{get_library_dir()}", '-lomniback',
+                                                                     f'-l:{os.path.basename(_C.__file__)}']}   
+
+
+__all__ = ["Any", "Dict", 'Backend', 'Event', 'create', 'create', 'register', 'parse',
+           'init', 'get', 'default_page_table', "timestamp", "pipe", 'init', 'load_kwargs']
 
 __all__.extend(['Queue', 'default_queue'])
 

@@ -65,6 +65,7 @@ void Proxy::impl_init(
 
   proxy_backend_ = OMNI_INSTANCE_GET(Backend, name);
   OMNI_ASSERT(proxy_backend_, "Proxy: backend not found : " + name);
+  proxy_backend_->init(config, kwargs);
 }
 
 OMNI_REGISTER(Backend, Proxy, "Proxy");

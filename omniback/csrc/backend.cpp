@@ -19,6 +19,7 @@
 
 namespace omniback {
 using namespace omniback::python;
+
 class OMNI_EXPORT PyInstance : public Backend {
  private:
   void impl_init(
@@ -93,8 +94,26 @@ class OMNI_EXPORT PyInstance : public Backend {
       try {
         obj_->attr("forward")(py_input_output);
       } catch (py::error_already_set& e) {
-        SPDLOG_ERROR("Python error: " + std::string(e.what()));
-        throw std::runtime_error("Python error: " + std::string(e.what()));
+        std::string error_string = e.what();
+
+        // 如果需要更详细的 traceback
+        try {
+          py::module_ traceback = py::module_::import("traceback");
+          auto format_exc = traceback.attr("format_exc");
+          std::string full_traceback = format_exc().cast<std::string>();
+
+          SPDLOG_ERROR(
+              "Python error: {}\nFull traceback:\n{}",
+              error_string,
+              full_traceback);
+          throw std::runtime_error(
+              "Python error: " + error_string + "\nTraceback:\n" +
+              full_traceback);
+        } catch (...) {
+          // 如果 traceback 获取失败，至少记录基本错误信息
+          SPDLOG_ERROR("Python error (traceback failed): {}", error_string);
+          throw std::runtime_error("Python error: " + error_string);
+        }
       }
     }
 
@@ -142,31 +161,6 @@ class OMNI_EXPORT PyInstance : public Backend {
 namespace omniback {
 namespace py = pybind11;
 using namespace pybind11::literals;
-
-// class PYBackend : public Backend {
-//  public:
-//   using Backend::Backend;
-//   virtual void impl_init(const std::unordered_map<std::string, std::string>&
-//   config,
-//                     const dict& kwargs) override {
-//     PYBIND11_OVERRIDE(void, Backend, init, config, kwargs);
-//   }
-//   virtual void impl_forward(const std::vector<dict>& input_output) override {
-//     PYBIND11_OVERRIDE(void, Backend, forward, input_output);
-//   }
-
-//   virtual void impl_init(const std::unordered_map<std::string, std::string>&
-//   config,
-//                     const PyDict& kwargs) override {
-//     PYBIND11_OVERRIDE(void, Backend, init, config, kwargs);
-//   }
-//   virtual void forward(const std::vector<PyDict>& input_output) override {
-//     PYBIND11_OVERRIDE(void, Backend, forward, input_output);
-//   }
-// };
-// is_alive(){
-//   static atomic_bool is_alive_ = true;
-// }
 
 namespace {
 static std::shared_ptr<Backend> create_backend_from_py(

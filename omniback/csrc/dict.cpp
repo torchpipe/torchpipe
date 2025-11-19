@@ -20,6 +20,38 @@
 #include "omniback/helper/base_logging.hpp"
 #include "omniback/helper/macro.h"
 
+namespace pybind11 {
+namespace detail {
+
+template <>
+struct type_caster<omniback::dict> {
+ public:
+  PYBIND11_TYPE_CASTER(omniback::dict, _("Dict"));
+
+  // Python -> C++
+  bool load(handle src, bool convert) {
+    if (py::isinstance<omniback::PyDict>(src)) {
+      auto py_dict = py::cast<omniback::PyDict>(src);
+      value = py_dict.to_dict();
+      return true;
+    }
+    return false;
+  }
+
+  // C++ -> Python
+  static handle cast(
+      omniback::dict src,
+      return_value_policy policy,
+      handle parent) {
+    // 我们创建一个 PyDict 对象来包装 dict
+    auto py_dict = omniback::PyDict(src);
+    return py::cast(py_dict).release();
+  }
+};
+
+} // namespace detail
+} // namespace pybind11
+
 namespace omniback {
 
 namespace py = pybind11;

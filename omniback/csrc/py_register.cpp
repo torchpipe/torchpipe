@@ -46,7 +46,8 @@ void try_insert(
 
 #define REGISTER_VECTOR_CONVERTER(type)                 \
   SPDLOG_DEBUG("REGISTER_VECTOR_CONVERTER {} ", #type); \
-  register_any_object_hash_converter<std::vector<type>>();
+  register_any_object_hash_converter<std::vector<type>>(); \
+  register_any_object_hash_converter<std::vector<std::vector<type>>>();
 
 #define REGISTER_STRMAP_CONVERTER(type) \
   register_any_object_hash_converter<std::unordered_map<std::string, type>>();

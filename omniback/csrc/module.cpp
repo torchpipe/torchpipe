@@ -31,8 +31,26 @@ bool use_cxx11_abi() {
 #endif
 }
 
+void translate_python_error() {
+  if (PyErr_Occurred()) {
+    py::error_already_set e;
+    throw std::runtime_error(e.what());
+  }
+}
+
+
 PYBIND11_MODULE(PY_MODULE_NAME, m) {
   m.doc() = "omniback C++ extension";
+
+  py::register_exception_translator([](std::exception_ptr p) {
+    try {
+      if (p)
+        std::rethrow_exception(p);
+    } catch (const py::error_already_set& e) {
+      translate_python_error();
+    }
+  });
+  
   m.def("get_version", &get_version);
   m.def("use_cxx11_abi", &use_cxx11_abi);
   m.def("_GLIBCXX_USE_CXX11_ABI", &use_cxx11_abi);

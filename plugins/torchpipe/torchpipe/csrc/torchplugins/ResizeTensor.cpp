@@ -64,4 +64,44 @@ class ResizeTensor : public BackendOne {
 
 OMNI_REGISTER(omniback::Backend, ResizeTensor, "ResizeTensor");
 
+class DynamicResizeTensor : public BackendOne {
+ private:
+  virtual void forward(const dict& input_dict) override {
+    auto input_tensor = dict_get<torch::Tensor>(input_dict, TASK_DATA_KEY);
+     resize_h_ =
+        dict_get<int>(input_dict, "resize_h");
+     resize_w_ = dict_get<int>(input_dict, "resize_w");
+
+     bool is_hwc_tensor = is_hwc(input_tensor);
+
+     input_tensor = img_1chw_guard(input_tensor);
+     if (input_tensor.dtype() != torch::kFloat) {
+       input_tensor = input_tensor.to(torch::kFloat);
+    }
+
+    if (!input_tensor.is_contiguous())
+      input_tensor = input_tensor.contiguous();
+
+    torch::Tensor im_resize;
+
+    if (input_tensor.size(2) == resize_h_ &&
+        input_tensor.size(3) == resize_w_) {
+      im_resize = input_tensor;
+    } else {
+      im_resize = torch::upsample_bilinear2d(
+          input_tensor, {resize_h_, resize_w_}, true);
+    }
+    if (is_hwc_tensor) {
+      im_resize = im_resize.permute({0, 2, 3, 1}).squeeze(0);
+    }
+
+    (*input_dict)[TASK_RESULT_KEY] = im_resize;
+  }
+
+ private:
+  long resize_h_{0};
+  long resize_w_{0};
+};
+
+OMNI_REGISTER(omniback::Backend, DynamicResizeTensor, "DynamicResizeTensor");
 } // namespace torchpipe
