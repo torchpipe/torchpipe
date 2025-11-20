@@ -25,13 +25,14 @@ python setup.py install --cv2
 # export TENSORRT_LIB=~/tensorrt_install/lib
 ```
  
-### Inside NGC Docker(test on 25.05, 24.05, 23.05, and 22.12)
+### Inside NGC Docker Containers
+
+#### test on 25.05, 24.05, 23.05, and 22.12
 ```bash
 git clone https://github.com/torchpipe/torchpipe.git
 cd torchpipe/
 
-img_name=nvcr.io/nvidia/pytorch:25.05-py3
-# img_name=nvcr.io/nvidia/pytorch:22.12-py3 
+img_name=nvcr.io/nvidia/pytorch:25.05-py3 # you can also try 24.05, 23.05, 22.12
 
 docker run --rm --gpus all -it --rm --network host \
     -v $(pwd):/workspace/ --privileged \
@@ -42,6 +43,24 @@ docker run --rm --gpus all -it --rm --network host \
 # pip config set global.index-url https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple
 
 cd /workspace/plugins/torchpipe && python setup.py install --cv2
+```
+
+#### test on 25.06
+```bash
+git clone https://github.com/torchpipe/torchpipe.git
+cd torchpipe/
+
+img_name=nvcr.io/nvidia/pytorch:25.06-py3
+
+docker run --rm --gpus all -it --rm --network host \
+    -v $(pwd):/workspace/ --privileged \
+    -w /workspace/ \
+    $img_name \
+    bash
+
+cd /workspace/plugins/torchpipe 
+python download_and_build_opencv.py
+python setup.py install --cv2
 ```
 
 ### uv environment
@@ -89,7 +108,7 @@ cd tests && pytest
 
 | Library |  Required Version | Recommended Version | Notes |
 | :--- | :--- | :--- | :--- |
-| **TensorRT** | [`8.5`, `~10.9`] | `>=9.3`| Not all version tested |
+| **TensorRT** | [`8.5`, `~10.9`] | `9.3`, `10.9` | Not all version tested |
 | **OpenCV** | - | `>=4.5.0` |  |
 | **PyTorch** | - | `>=2.7.0` |  |
 | **CUDA** |   [`11`,`12`] |  |  |
