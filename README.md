@@ -71,24 +71,24 @@ result = data['result']
 
 ## Setup
 
-> Note: compiling torchpipe depends on the TensorRT c++ API. Please follow the [TensorRT Installation Guide](https://docs.nvidia.com/deeplearning/tensorrt/install-guide/index.html).  You may also try installing torchpipe inside one of the NGC PyTorch docker containers(e.g. nvcr.io/nvidia/pytorch:25.05-py3).
+> Note: compiling torchpipe depends on the TensorRT C++ API. Please follow the [TensorRT Installation Guide](https://docs.nvidia.com/deeplearning/tensorrt/install-guide/index.html).  You may also try installing torchpipe inside one of the NGC PyTorch docker containers(e.g. nvcr.io/nvidia/pytorch:25.05-py3).
 
 ### Installation
 To install the torchpipe Python library, call the following
 
-- [Inside NGC Docker](./README.md#inside-ngc-docker-test-on-2505-2405-2305-and-2212)
+- [Inside NGC Docker Containers](./README.md#inside-ngc-docker-containers)
 - [Quick Installation](./plugins/torchpipe/docs/installation.md#quick-installation)
 - [uv environment](./plugins/torchpipe/docs/installation.md#uv-environment) 
 - [Rebuild the core library Omniback](./plugins/torchpipe/docs/installation.md#rebuild-the-core-library-omniback).
 
 
-#### Inside NGC Docker (test on 25.05, 24.05, 23.05, and 22.12)
+#### Inside NGC Docker Containers
+#### test on 25.05, 24.05, 23.05, and 22.12
 ```bash
 git clone https://github.com/torchpipe/torchpipe.git
 cd torchpipe/
 
 img_name=nvcr.io/nvidia/pytorch:25.05-py3
-# img_name=nvcr.io/nvidia/pytorch:22.12-py3 
 
 docker run --rm --gpus all -it --rm --network host \
     -v $(pwd):/workspace/ --privileged \
@@ -100,6 +100,8 @@ docker run --rm --gpus all -it --rm --network host \
 
 cd /workspace/plugins/torchpipe && python setup.py install --cv2
 ```
+
+> For [other NGC docker containers](./plugins/torchpipe/docs/installation.md#inside-ngc-docker-containers).
 
  
 
