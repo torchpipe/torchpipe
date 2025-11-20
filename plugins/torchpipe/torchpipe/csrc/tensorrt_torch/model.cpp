@@ -5,7 +5,7 @@
 #include "omniback/helper/macro.h"
 #include "tensorrt_torch/allocator.hpp"
 #include "tensorrt_torch/tensorrt_helper.hpp"
-
+#include "tensorrt_torch/encrypt.hpp"
 namespace {
 
 #if NV_TENSORRT_MAJOR > 10 || \
@@ -227,9 +227,13 @@ void Onnx2Tensorrt::impl_init(
     auto mem = onnx2trt(params);
     OMNI_ASSERT(mem);
     if (!params.model_cache.empty()) {
-      std::ofstream ff(params.model_cache, std::ios::binary);
-      ff.write((char*)mem->data(), mem->size());
-
+      if (omniback::str::endswith(params.model_cache, ".enc")) {
+        torchpipe::encrypt2file(
+            (char*)mem->data(), mem->size(), params.model_cache);
+      } else {
+        std::ofstream ff(params.model_cache, std::ios::binary);
+        ff.write((char*)mem->data(), mem->size());
+      }
       SPDLOG_INFO(
           "engine saved to {}. Now start to deserializeCudaEngine",
           params.model_cache);
@@ -247,10 +251,17 @@ void Onnx2Tensorrt::impl_init(
         "load engine from cache {}, delete it if "
         "you want to rebuild engine.",
         params.model_cache);
-    LocalFileStreamReader reader(params.model_cache);
-    auto data = reader.read(); // core dump without this...
-    auto* engine_ptr =
-        runtime_->deserializeCudaEngine(data.data(), data.size());
+    
+    nvinfer1::ICudaEngine* engine_ptr {nullptr};
+    if (omniback::str::endswith(params.model_cache, ".enc")) {
+      auto data = torchpipe::decrypt_file(params.model_cache);
+      engine_ptr = runtime_->deserializeCudaEngine(data.data(), data.size());
+    } else {
+      LocalFileStreamReader reader(params.model_cache);
+      auto data = reader.read();
+      engine_ptr = runtime_->deserializeCudaEngine(data.data(), data.size());
+    }
+
     engine_ = std::unique_ptr<nvinfer1::ICudaEngine>(engine_ptr);
     OMNI_ASSERT(
         engine_ && engine_->getNbOptimizationProfiles() == params.instance_num,

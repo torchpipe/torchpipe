@@ -30,7 +30,7 @@ class Torch2Trt:
         for k, v in config.items():
             if 'model' in v.keys():
                 v['model'] = onnx_path
-            v['model::cache'] = onnx_path.replace(".onnx", '.trt')
+            v['model::cache'] = onnx_path.replace(".onnx", '.trt')+".enc"
 
         kwargs = omniback.Dict()
         kwargs['config'] = config
