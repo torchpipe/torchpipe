@@ -26,6 +26,18 @@ markdown_extensions = [
     "footnotes"
 ]
 
+
+nav = [
+    "index.md",
+    "installation.md",
+    {"Usage" = [
+        "usage/basic_usage.md"
+    ]},
+    {"Examples" = [
+        {"CV-CUDA Python Examples"="https://github.com/torchpipe/torchpipe/tree/main/plugins/torchpipe/examples/cvcuda-python/"}
+    ]}
+]
+
 [project.theme]
 features = [
         "header.autohide",
@@ -49,13 +61,6 @@ edit = "material/pencil"
 
 
 
-nav = [
-    "index.md",
-    "installation.md",
-    {"Usage" = [
-        "usage/basic_usage.md"
-    ]}
-]
 
 
 [project.extra]

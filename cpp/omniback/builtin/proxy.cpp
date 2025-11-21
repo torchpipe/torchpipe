@@ -61,6 +61,7 @@ OMNI_REGISTER(Backend, Reflect, "Reflect,ProxyFromParam");
 void Proxy::impl_init(
     const std::unordered_map<string, string>& config,
     const dict& kwargs) {
+  OMNI_ASSERT(proxy_backend_ == nullptr && owned_backend_ == nullptr, "Proxy: already initialized");
   auto name = backend::get_dependency_name(this, config, "Proxy");
 
   proxy_backend_ = OMNI_INSTANCE_GET(Backend, name);
