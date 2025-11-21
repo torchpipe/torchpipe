@@ -1,4 +1,4 @@
-# torchpipe
+# Home
 
 
 | Concurrent Requests[^2] | torch2trt | TorchPipe | TorchPipe w/ Thrift | Triton Inference Server |Triton Ensemble w/ DALI |

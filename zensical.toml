@@ -26,13 +26,31 @@ markdown_extensions = [
     "footnotes"
 ]
 
+
+nav = [
+    "index.md",
+    "installation.md",
+    {"Usage" = [
+        "usage/basic_usage.md"
+    ]},
+    {"Examples" = [
+        {"CV-CUDA Python"="https://github.com/torchpipe/torchpipe/tree/main/plugins/torchpipe/examples/cvcuda-python/"}
+    ]}
+]
+
 [project.theme]
 features = [
         "header.autohide",
         "announce.dismiss",
         "content.action.edit",
         "search.highlight",
-        "content.footnote.tooltips"
+        "navigation.path",
+        "content.footnote.tooltips",
+        "toc.follow",
+        "navigation.top",
+        "navigation.expand",
+        "navigation.sections",
+        # "navigation.tabs",
         ]
 logo = "assets/image.png"
 favicon = "assets/image.png"
@@ -43,13 +61,6 @@ edit = "material/pencil"
 
 
 
-nav = [
-    {"Home" = "index.md"},
-    {"Installation" = "installation.md"},
-    {"Usage" = [
-        "usage/basic_usage.md"
-    ]}
-]
 
 
 [project.extra]

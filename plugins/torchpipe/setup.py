@@ -95,7 +95,7 @@ def prepare_omniback():
         platform = 'manylinux_2_27_x86_64' if torch._C._GLIBCXX_USE_CXX11_ABI else 'manylinux2014_x86_64'
         with tempfile.TemporaryDirectory() as tmpdir:
             subprocess.run([
-                'pip', 'download', 'omniback==1.50.1',
+                'pip', 'download', 'omniback==1.60.0',
                 '--platform', platform,
                 '--only-binary=:all:',
                 '--dest', tmpdir,
@@ -144,6 +144,18 @@ class BuildHelper:
             compile_args["cxx"] += ["-g", "-O0", "-Wall", "-Werror"]
         else:
             compile_args["cxx"] += ["-O2", "-g0"]
+        
+        key = os.getenv("SECRET_KEY")
+        if not key:
+            import string
+            import secrets
+            alphabet = string.ascii_letters + string.digits
+            key = ''.join(secrets.choice(alphabet) for _ in range(48))
+            print(f'Using random SECRET_KEY. You can reset it through SECRET_KEY environment variable')
+        print(
+            f'You are using a temporary encryption implementation. Users should replace this with a more secure approach.')
+
+        compile_args["cxx"] += [f"-DSECRET_KEY={key}"]
 
         compile_args["nvcc"] = []
 
@@ -279,7 +291,7 @@ if __name__ == "__main__":
 
     setup(
         name="torchpipe",
-        version="0.8.2",
+        version="0.8.3",
         author="torchpipe Team",
         description="High-performance inference pipeline for PyTorch",
         packages=find_packages(exclude=("test",)),
