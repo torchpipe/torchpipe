@@ -32,7 +32,13 @@ features = [
         "announce.dismiss",
         "content.action.edit",
         "search.highlight",
-        "content.footnote.tooltips"
+        "navigation.path",
+        "content.footnote.tooltips",
+        "toc.follow",
+        "navigation.top",
+        "navigation.expand",
+        "navigation.sections",
+        # "navigation.tabs",
         ]
 logo = "assets/image.png"
 favicon = "assets/image.png"
@@ -44,8 +50,8 @@ edit = "material/pencil"
 
 
 nav = [
-    {"Home" = "index.md"},
-    {"Installation" = "installation.md"},
+    "index.md",
+    "installation.md",
     {"Usage" = [
         "usage/basic_usage.md"
     ]}

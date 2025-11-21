@@ -1,30 +1,9 @@
 <!-- ## Installation -->
-
+# Installation
 Follow these steps to get started using torchpipe.
 
 
 
-### Quick Installation
-```bash
-git clone https://github.com/torchpipe/torchpipe.git      
-cd torchpipe/plugins/torchpipe
-
-python setup.py install --cv2
-# by default, torchpipe will check torch._C._GLIBCXX_USE_CXX11_ABI to set compilation options
-
-# the '--cv2' enabled opencv-related backends support for whom needed.
-
-# If you are not inside the NGC docker, you **may** need to download and build opencv first by running
-# python download_and_build_opencv.py --install_dir ~/opencv_install
-# export OPENCV_INCLUDE=~/opencv_install/include
-# export OPENCV_LIB=~/opencv_install/lib
-
-# TensorRT-related backends support is enabled by default, you **may** need to download and install tensorrt first by:
-# python download_and_build_tensorrt.py --install_dir ~/tensorrt_install
-# export TENSORRT_INCLUDE=~/tensorrt_install/include
-# export TENSORRT_LIB=~/tensorrt_install/lib
-```
- 
 ### Inside NGC Docker Containers
 
 #### test on 25.05, 24.05, 23.05, and 22.12
@@ -63,6 +42,28 @@ python download_and_build_opencv.py
 python setup.py install --cv2
 ```
 
+### Quick Installation
+```bash
+git clone https://github.com/torchpipe/torchpipe.git      
+cd torchpipe/plugins/torchpipe
+
+python setup.py install --cv2
+# by default, torchpipe will check torch._C._GLIBCXX_USE_CXX11_ABI to set compilation options
+
+# the '--cv2' enabled opencv-related backends support for whom needed.
+
+# If you are not inside the NGC docker, you **may** need to download and build opencv first by running
+# python download_and_build_opencv.py --install_dir ~/opencv_install
+# export OPENCV_INCLUDE=~/opencv_install/include
+# export OPENCV_LIB=~/opencv_install/lib
+
+# TensorRT-related backends support is enabled by default, you **may** need to download and install tensorrt first by:
+# python download_and_build_tensorrt.py --install_dir ~/tensorrt_install
+# export TENSORRT_INCLUDE=~/tensorrt_install/include
+# export TENSORRT_LIB=~/tensorrt_install/lib
+```
+ 
+ 
 ### uv environment
 ```bash
 git clone https://github.com/torchpipe/torchpipe.git
