@@ -34,7 +34,7 @@ nav = [
         "usage/basic_usage.md"
     ]},
     {"Examples" = [
-        {"CV-CUDA Python Examples"="https://github.com/torchpipe/torchpipe/tree/main/plugins/torchpipe/examples/cvcuda-python/"}
+        {"CV-CUDA Python"="https://github.com/torchpipe/torchpipe/tree/main/plugins/torchpipe/examples/cvcuda-python/"}
     ]}
 ]
 
