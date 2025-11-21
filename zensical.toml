@@ -12,7 +12,6 @@ use_directory_urls = false
 
 edit_uri = "edit/main/plugins/torchpipe/docs/"
 
-# markdown_extensions 需要作为一个数组处理，其中包含表
 markdown_extensions = [
     "pymdownx.tabbed",
     "pymdownx.keys",
@@ -54,6 +53,27 @@ features = [
         ]
 logo = "assets/image.png"
 favicon = "assets/image.png"
+
+
+
+# [[project.theme.palette]]
+# media = "(prefers-color-scheme)"
+# toggle.icon = "lucide/sun-moon"
+# toggle.name = "Switch to light mode"
+
+# # Palette toggle for light mode
+# [[project.theme.palette]]
+# media = "(prefers-color-scheme: light)"
+# scheme = "default"
+# toggle.icon = "lucide/sun"
+# toggle.name = "Switch to dark mode"
+
+# # Palette toggle for dark mode
+# [[project.theme.palette]]
+# media = "(prefers-color-scheme: dark)"
+# scheme = "slate"
+# toggle.icon = "lucide/moon"
+# toggle.name = "Switch to system preference"
 
 [project.theme.icon]
 repo = "fontawesome/brands/github"
