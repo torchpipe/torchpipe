@@ -2,10 +2,13 @@ Yolo11:
 - 获取 n s m l, x 模型的 ONNX 格式
 
 ```bash
-python yolo_onnx.py --model_size m --input_width -1 --input_height -1 --batch_size -1
-python yolo_onnx.py --model_size l --input_width -1 --input_height -1 --batch_size -1
 
 pip install --upgrade ultralytics
+
+
+python yolo_onnx.py --model_size m --input_width -1 --input_height -1 --batch_size -1 --opset 18
+python yolo_onnx.py --model_size l --input_width -1 --input_height -1 --batch_size -1 --opset 18
+
 
 # python yolo_onnx.py --model_name yolo12 --model_size m --input_width -1 --input_height -1 --batch_size -1
 

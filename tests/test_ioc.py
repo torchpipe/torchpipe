@@ -1,5 +1,7 @@
 import pytest
-import omniback._C as _C
+from omniback import _C
+
+
 import omniback
 def test_ioc_initialization():
     # Test IoCV0 container initialization

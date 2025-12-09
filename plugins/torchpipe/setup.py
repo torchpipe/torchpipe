@@ -85,12 +85,13 @@ def prepare_omniback():
     # bash - c 'tmpdir=$(mktemp -d) && pip download omniback --platform manylinux2014_x86_64 --only-binary=:all: --dest $tmpdir --no-deps && pip install $tmpdir/omniback_core-*.whl && rm -rf $tmpdir'
     try:
         import omniback
-        need_reinstall = omniback._C.use_cxx11_abi() != torch._C._GLIBCXX_USE_CXX11_ABI
+        need_reinstall = omniback.ffi.use_cxx11_abi() != torch._C._GLIBCXX_USE_CXX11_ABI
     except:
         need_reinstall = True
     # torch >= 1.10.2
     
     if need_reinstall:
+        assert False, "omniback not installed or incompatible C++ ABI with Pytorch."
         import tempfile
         platform = 'manylinux_2_27_x86_64' if torch._C._GLIBCXX_USE_CXX11_ABI else 'manylinux2014_x86_64'
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -118,9 +119,9 @@ class Config:
         self.debug = os.getenv("DEBUG", "0") == "1"
 
         # Omniback configuration
-        self.omniback_includes = omniback.get_includes()
-        self.omniback_lib_dir = omniback.get_library_dir()
-        self.omniback_c_so = omniback.get_C_path()
+        self.omniback_includes = omniback.libinfo.include_paths()
+        self.omniback_lib_dir = os.path.dirname(omniback.libinfo.find_libomniback()) 
+        # self.omniback_c_so = omniback._C.__file__
 
 
         # Print config

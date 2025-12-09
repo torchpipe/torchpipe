@@ -1,10 +1,10 @@
 #include "omniback/core/any.hpp"
 #include "omniback/core/backend.hpp"
 #include "omniback/core/reflect.h"
-#include "omniback/csrc/box.hpp"
-#include "omniback/csrc/python.hpp"
+#include "omniback/pybind/box.hpp"
+#include "omniback/pybind/python.hpp"
 
-#include "omniback/csrc/dict.hpp"
+#include "omniback/pybind/dict.hpp"
 
 #include <torch/extension.h>
 #include <torch/torch.h>

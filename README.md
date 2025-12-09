@@ -13,6 +13,10 @@ torchpipe is an alternative choice for Triton Inference Server, mainly featuring
 
 If you find an issue, please [let us know](../..//issues)!
 
+## update
+- We are going to use [tvm_ffi](https://github.com/apache/tvm-ffi) to provide a C API, enabling simpler C++/Python interoperability and gradually reducing our dependency on pybind11.
+
+
 ## Usage
 
 Below are some usage examples, for more check out the [examples](./plugins/torchpipe/examples/).

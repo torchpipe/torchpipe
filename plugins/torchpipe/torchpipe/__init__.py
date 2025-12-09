@@ -22,13 +22,13 @@ except ImportError:
     print(f'opencv related backends not loaded')
 
 from . import utils
-if (omniback._C.use_cxx11_abi() != torch._C._GLIBCXX_USE_CXX11_ABI):
+if (omniback.ffi.use_cxx11_abi() != torch._C._GLIBCXX_USE_CXX11_ABI):
     info = f"Incompatible C++ ABI detected. Please re-install PyTorch/Torchpipe or omniback with the same C++ ABI. "
     info += "omniback CXX11_ABI = {}, torch CXX11_ABI = {}. ".format(
-        omniback._C.use_cxx11_abi(), torch._C._GLIBCXX_USE_CXX11_ABI)
+        omniback.ffi.use_cxx11_abi(), torch._C._GLIBCXX_USE_CXX11_ABI)
     info += f"""\nFor omniback, you can use 
         pip3 install omniback --platform manylinux2014_x86_64 --only-binary=:all:   --target `python3 -c "import site; print(site.getsitepackages()[0])"` 
-        to install the pre-cxx11 abi version. Or use `USE_CXX11_ABI={int(not omniback._C.use_cxx11_abi())} pip install -e .` to rebuild omniback.
+        to install the pre-cxx11 abi version. Or use `USE_CXX11_ABI={int(not omniback.ffi.use_cxx11_abi())} pip install -e .` to rebuild omniback.
     """
     raise RuntimeError(info)
 
