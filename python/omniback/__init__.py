@@ -1,6 +1,5 @@
 
 
-from . import _ffi_api
 import sys
 import os
 from pathlib import Path
@@ -8,22 +7,16 @@ import tvm_ffi
 
 # isort: off
 from . import libinfo
+
+# from . import _ffi_api
+
+from ._ffi_api import ffi
 # libinfo.load_lib_ctypes('omniback', 'omniback', "RTLD_GLOBAL")
-ffi = tvm_ffi.load_module(libinfo.find_libomniback())
 from . import omniback_py as _C # noqa F401
 sys.modules['omniback._C'] = _C
 
 
-@tvm_ffi.register_object("omniback.FFIQueue")
-class FFIQueue(tvm_ffi.Object):
-    def __init__(self) -> None:
-        """Construct the object."""
-        # __ffi_init__ call into the refl::init<> registered
-        # in the static initialization block of the extension library
-        self.__ffi_init__()
 
-
-ffi.Queue = FFIQueue
 # isort: on
 
 try:

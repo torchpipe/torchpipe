@@ -10,6 +10,7 @@
 #include <tvm/ffi/memory.h>
 #include <tvm/ffi/any.h>
 #include <tvm/ffi/optional.h>
+#include <tvm/ffi/error.h>
 
 #include <condition_variable>
 #include <deque>
@@ -28,53 +29,54 @@ class FFIQueueObj : public tvm::ffi::Object {
   FFIQueueObj() = default;
   // https://github.com/apache/tvm-ffi/blob/f7e09d6a96b54554190bae0d7ba9ff7a6e9a109e/include/tvm/ffi/object.h#L175
   static constexpr bool _type_mutable = true;
-  
-  void push(const tvm::ffi::Any& value) {
+
+  void put(const tvm::ffi::Any& value) {
     std::lock_guard<std::mutex> lock(mutex_);
     queue_.push_back(value);
     cv_not_empty_.notify_one();
   }
 
-  void push(tvm::ffi::Any&& value) {
+  void put(tvm::ffi::Any&& value) {
     std::lock_guard<std::mutex> lock(mutex_);
     queue_.push_back(std::move(value));
     cv_not_empty_.notify_one();
   }
 
-  tvm::ffi::Optional<tvm::ffi::Any> pop(
-      std::chrono::milliseconds timeout = std::chrono::milliseconds::max()) {
-    std::unique_lock<std::mutex> lock(mutex_);
+  // tvm::ffi::Optional<tvm::ffi::Any> try_pop(
+  //     std::chrono::milliseconds timeout = std::chrono::milliseconds::max()) {
+  //   std::unique_lock<std::mutex> lock(mutex_);
 
-    if (timeout == std::chrono::milliseconds::max()) {
-      cv_not_empty_.wait(lock, [this]() { return !queue_.empty(); });
-    } else {
-      if (!cv_not_empty_.wait_for(
-              lock, timeout, [this]() { return !queue_.empty(); })) {
-        return tvm::ffi::Optional<tvm::ffi::Any>();
+  //   if (timeout == std::chrono::milliseconds::max()) {
+  //     cv_not_empty_.wait(lock, [this]() { return !queue_.empty(); });
+  //   } else {
+  //     if (!cv_not_empty_.wait_for(
+  //             lock, timeout, [this]() { return !queue_.empty(); })) {
+  //       return tvm::ffi::Optional<tvm::ffi::Any>();
+  //     }
+  //   }
+
+  //   tvm::ffi::Any value = std::move(queue_.front());
+  //   queue_.pop_front();
+  //   return tvm::ffi::Optional<tvm::ffi::Any>(std::move(value));
+  // }
+
+  tvm::ffi::Any get() {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (queue_.empty()) {
+      TVM_FFI_THROW(IndexError) << "empty queue";
+    }
+    tvm::ffi::Any value = std::move(queue_.front());
+    queue_.pop_front();
+    return value;
+  }
+
+  tvm::ffi::Any front() const {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (queue_.empty()) {
+        // throw std::out_of_range("empty queue");
+        TVM_FFI_THROW(IndexError) << "empty queue";
       }
-    }
-
-    tvm::ffi::Any value = std::move(queue_.front());
-    queue_.pop_front();
-    return tvm::ffi::Optional<tvm::ffi::Any>(std::move(value));
-  }
-
-  tvm::ffi::Optional<tvm::ffi::Any> try_pop() {
-    std::lock_guard<std::mutex> lock(mutex_);
-    if (queue_.empty()) {
-      return tvm::ffi::Optional<tvm::ffi::Any>();
-    }
-    tvm::ffi::Any value = std::move(queue_.front());
-    queue_.pop_front();
-    return tvm::ffi::Optional<tvm::ffi::Any>(std::move(value));
-  }
-
-  tvm::ffi::Optional<tvm::ffi::Any> front() const {
-    std::lock_guard<std::mutex> lock(mutex_);
-    if (queue_.empty()) {
-      return tvm::ffi::Optional<tvm::ffi::Any>();
-    }
-    return tvm::ffi::Optional<tvm::ffi::Any>(queue_.front());
+    return queue_.front();
   }
 
   size_t size() const {
@@ -108,33 +110,26 @@ class FFIQueueObj : public tvm::ffi::Object {
  */
 class FFIQueue : public tvm::ffi::ObjectRef {
  public:
-  // explicit FFIQueue(tvm::ffi::String tag){
-  //   data_ = 
+
+   void put(const tvm::ffi::Any& value) {
+     GetMutableObj()->put(value);
+  }
+
+  void put(tvm::ffi::Any&& value) {
+    GetMutableObj()->put(std::move(value));
+  }
+
+
+  // tvm::ffi::Any get() {
+  //   return GetMutableObj()->get();
   // }
-
-   void push(const tvm::ffi::Any& value) {
-    GetMutableObj()->push(value);
-  }
-
-  void push(tvm::ffi::Any&& value) {
-    GetMutableObj()->push(std::move(value));
-  }
-
-  tvm::ffi::Optional<tvm::ffi::Any> pop(
-      std::chrono::milliseconds timeout = std::chrono::milliseconds::max()) {
-    return GetMutableObj()->pop(timeout);
-  }
-
-  tvm::ffi::Optional<tvm::ffi::Any> try_pop() {
-    return GetMutableObj()->try_pop();
-  }
 
   void clear() {
     GetMutableObj()->clear();
   }
 
   // const版本：只读操作
-  tvm::ffi::Optional<tvm::ffi::Any> front() const {
+  tvm::ffi::Any front() const {
     return GetImmutableObj()->front();
   }
 
@@ -161,7 +156,8 @@ class FFIQueue : public tvm::ffi::ObjectRef {
   }
 };
 
-
+using QueueObj = FFIQueueObj;
+using Queue = FFIQueue;
 
 } // namespace ffi
 } // namespace omniback
