@@ -23,14 +23,6 @@ static py::object get_version() {
   }
 }
 
-// bool use_cxx11_abi() {
-// #ifdef _GLIBCXX_USE_CXX11_ABI && _GLIBCXX_USE_CXX11_ABI == 1
-//   return true;
-// #else
-//   return false;
-// #endif
-// }
-
 void translate_python_error() {
   if (PyErr_Occurred()) {
     py::error_already_set e;
@@ -52,8 +44,6 @@ PYBIND11_MODULE(PY_MODULE_NAME, m) {
   });
   
   m.def("get_version", &get_version);
-  // m.def("use_cxx11_abi", &use_cxx11_abi);
-  // m.def("_GLIBCXX_USE_CXX11_ABI", &use_cxx11_abi);
 
   init_any(m);
   init_dict(m);

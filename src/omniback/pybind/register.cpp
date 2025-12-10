@@ -4,18 +4,9 @@
 #include "omniback/core/event.hpp"
 #include "omniback/pybind/py_register.hpp"
 #include "omniback/pybind/register.hpp"
+#include "omniback/core/queue.hpp"
+
 namespace omniback {
-
-// template <typename From, typename To>
-// OMNI_EXPORT ConverterRegistryBase<From, To>& converterRegistryInstance() {
-//   static ConverterRegistryBase<From, To> registry;
-//   return registry;
-// }
-
-// template class OMNI_EXPORT ConverterRegistryBase<pybind11::handle, any>&
-// converterRegistryInstance<pybind11::handle, any>();
-// template class OMNI_EXPORT ConverterRegistryBase<any, pybind11::object>&
-// converterRegistryInstance<any, pybind11::object>();
 
 // 定义特化版本
 template <>
@@ -34,6 +25,8 @@ converterRegistryInstance<any, pybind11::object>() {
 
 // OMNI_ADD_HASH(TypedDict);
 OMNI_ADD_HASH(std::shared_ptr<TypedDict>);
+// OMNI_ADD_HASH(std::shared_ptr<Queue>);
+
 OMNI_ADD_HASH(std::shared_ptr<Event>);
 OMNI_ADD_HASH(
     std::pair<std::unordered_map<std::string, std::string>, std::string>)(

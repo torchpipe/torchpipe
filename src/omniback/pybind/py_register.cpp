@@ -84,6 +84,7 @@ static auto _tmp = []() {
 
 py::object any2object_from_hash_register(const any& input) {
   static auto& g_type_names = get_type_map();
+  
   auto iter = g_type_names.find(input.type().hash_code());
   if (iter != g_type_names.end()) {
     // if (input.type() == typeid(std::string))
@@ -109,7 +110,6 @@ std::optional<any> object2any_from_hash_register(const py::handle& input) {
     // throw std::runtime_error("type_hash test");
     const static auto& g_type_names = get_type_map();
     size_t hash = py::cast<size_t>(input.attr("type_hash"));
-    // SPDLOG_INFO("hash from type: {}", hash);
     auto iter = g_type_names.find(hash);
     if (iter != g_type_names.end()) {
       return iter->second.second(handle2object(input));

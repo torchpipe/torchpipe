@@ -9,7 +9,7 @@ model = resnet18(pretrained=True).eval().cuda()
 # create example model
 model_path = f"./resnet18.onnx"
 x = torch.ones((1, 3, 224, 224)).cuda()
-torch.onnx.export(model, x, model_path, opset_version=17,
+torch.onnx.export(model, x, model_path, opset_version=17, dynamo=False,
                     input_names=['input'], output_names=['output'],
                     dynamic_axes={'input': {0: 'batch_size'},
                                 'output': {0: 'batch_size'}})

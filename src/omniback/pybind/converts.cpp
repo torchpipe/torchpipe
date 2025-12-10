@@ -7,6 +7,7 @@
 #include "omniback/pybind/register.hpp"
 #include "omniback/helper/base_logging.hpp"
 #include "omniback/helper/string.hpp"
+#include "omniback/core/queue.hpp"
 
 PYBIND11_MAKE_OPAQUE(omniback::str::str_map);
 
@@ -32,9 +33,6 @@ std::optional<any> object2any_base_type(pybind11::handle data) {
   } else if (py::isinstance<py::bytes>(data)) {
     return py::cast<std::string>(data);
   }
-  //  else if (py::isinstance<TypedDict>(data)) {
-  //   return py::cast<std::shared_ptr<TypedDict>>(data);
-  // }
   else if (py::isinstance<str::str_map>(data)) {
     return py::cast<str::str_map>(data);
   }
@@ -124,6 +122,7 @@ std::optional<any> object2any(const py::handle& obj) {
   auto tm = omniback::reg::object2any_from_hash_register(obj);
   if (tm)
     return tm;
+
 
   auto re = convert_py2any(obj);
   if (re)

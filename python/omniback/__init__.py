@@ -1,5 +1,6 @@
 
 
+from . import _ffi_api
 import sys
 import os
 from pathlib import Path
@@ -11,6 +12,18 @@ from . import libinfo
 ffi = tvm_ffi.load_module(libinfo.find_libomniback())
 from . import omniback_py as _C # noqa F401
 sys.modules['omniback._C'] = _C
+
+
+@tvm_ffi.register_object("omniback.FFIQueue")
+class FFIQueue(tvm_ffi.Object):
+    def __init__(self) -> None:
+        """Construct the object."""
+        # __ffi_init__ call into the refl::init<> registered
+        # in the static initialization block of the extension library
+        self.__ffi_init__()
+
+
+ffi.Queue = FFIQueue
 # isort: on
 
 try:
@@ -36,11 +49,18 @@ def get_library_dir():
     return os.path.dirname(libinfo.find_libomniback())
 def get_include_dirs():
     return libinfo.include_paths()
+def extra_include_paths():
+    return libinfo.include_paths(),
+def extra_ldflags():
+    return [f"-L{get_library_dir()}", '-lomniback',
+                 f'{_C.__file__}'],
 
 __all__ = ["Any", "Dict", 'Backend', 'Event', 'create', 'create', 'register', 'parse',
            'init', 'get', 'default_page_table', "timestamp", "pipe", 'init', 'load_kwargs', "_C"]
 
 __all__.extend(['Queue', 'default_queue'])
 
+__all__.extend(['print', 'utils', 'libinfo', 'ffi'])
+
 __all__.extend(['print', 'utils', 'libinfo', 'ffi',
-               'get_library_dir', 'get_include_dirs'])
+               'extra_include_paths', 'extra_ldflags'])

@@ -1,3 +1,4 @@
+import sys
 import os
 import fire
 import omniback
@@ -6,7 +7,6 @@ from pathlib import Path
 import tempfile
 import torchpipe.utils.model_helper as helper
 
- 
 
 def onnx2trt(onnx_path, toml_path, register_name):
     """Convert ONNX model to TensorRT using OMNI configurations."""
@@ -43,6 +43,9 @@ if __name__ == "__main__":
     # import pdb;pdb.set_trace()
     
     q = omniback.default_queue(tag = 'src_queue')
+    # pool({'data': "q"})
+    # raise RuntimeError("d")
+    print(type(q))
     pool({'data':q}) # async
     
     total_number = 10000

@@ -20,7 +20,7 @@ cpp = torch.utils.cpp_extension.load(
     extra_cflags=["-O3", "-Wall", "-std=c++17"],
     extra_include_paths=[]+omniback.libinfo.include_paths(),
     extra_ldflags=[f"-L{omniback.get_library_dir()}", '-lomniback',
-                   f'-l:{os.path.basename(omniback._C.__file__)}'],
+                   f'{omniback._C.__file__}'],
     verbose=True,
     is_python_module=True,
 )

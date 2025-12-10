@@ -601,10 +601,11 @@ void init_dict(py::module_& m) {
       .def("empty", &Queue::empty)
       .def("status", &Queue::status)
       .def("join", &Queue::join)
-      .def_static("type_hash", []() {
-        // SPDLOG_INFO("type_hash : {}", typeid(Queue*).name());
-        return typeid(Queue).hash_code();
-      });
+      .attr("type_hash")=typeid(Queue).hash_code();
+      // .def_static("type_hash", []() {
+      //   // SPDLOG_INFO("type_hash : {}", typeid(Queue*).name());
+      //   return typeid(Queue).hash_code();
+      // });
 
   reg::register_any_ptr_object_hash_converter<Queue>();
 }
