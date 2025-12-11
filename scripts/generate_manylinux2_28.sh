@@ -24,10 +24,19 @@ for PYVER in 38 39 310 311 312 313; do
 
     pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
 
-    /opt/python/cp${PYVER}-cp${PYVER}/bin/python3  -m pip install build pybind11 auditwheel-symbols setuptools setuptools_scm
+    /opt/python/cp${PYVER}-cp${PYVER}/bin/python3 -m pip install --upgrade \
+    pip \
+    build \
+    wheel \
+    scikit-build-core \
+    ninja \
+    pybind11[global] \
+    setuptools-scm \
+    auditwheel \
+    auditwheel-symbols
     # python3 -m build
-    USE_CXX11_ABI=1 /opt/python/cp${PYVER}-cp${PYVER}/bin/python3 setup.py -q bdist_wheel 
-    auditwheel repair --plat manylinux_2_28_x86_64 dist/omniback*-cp$PYVER-cp$PYVER-linux_x86_64.whl 
+    USE_CXX11_ABI=1 /opt/python/cp${PYVER}-cp${PYVER}/bin/python3 -m build --wheel --no-isolation
+    auditwheel repair --plat manylinux_2_28_x86_64 dist/omniback*-cp${PYVER}-cp${PYVER}-linux_x86_64.whl
     # cibuildwheel --platform linux
     # for whl in dist/omniback*-cp${PYVER}*-linux_x86_64.whl; do
     #     auditwheel repair --plat manylinux_2_28_x86_64 "$whl"
@@ -35,4 +44,4 @@ for PYVER in 38 39 310 311 312 313; do
 
 done
 
-ldd .setuptools-cmake-build/omniback/*.so
+ldd build/*.so

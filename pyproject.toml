@@ -86,3 +86,6 @@ sdist.exclude = [
 version_file = "python/omniback/_version.py"
 write_to = "python/omniback/_version.py"
 fallback_version = "0.0.1-dev"
+tag_regex = "^t(v)?(\\d+\\.\\d+\\.\\d+.*)$"
+local_scheme = "no-local-version"
+git_describe_command = ["git", "describe", "--tags", "--long", "--match", "t*"]

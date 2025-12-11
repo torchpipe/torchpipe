@@ -2,7 +2,7 @@ name: Build Manylinux Wheels
 
 on:
   push:
-    tags: [ 'o*' ]
+    tags: [ 't*' ]
 
 jobs:
   build-manylinux2014:
@@ -57,7 +57,7 @@ jobs:
 
   publish-to-pypi:
     needs: [build-manylinux2014, build-manylinux2_28]
-    if: startsWith(github.ref, 'refs/tags/o')
+    if: startsWith(github.ref, 'refs/tags/t')
     runs-on: [self-hosted, linux, X64]
     steps:
     - name: Download all artifacts
