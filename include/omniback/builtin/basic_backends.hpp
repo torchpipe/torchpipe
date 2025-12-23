@@ -32,11 +32,11 @@ class OMNI_EXPORT DependencyV0 : public Backend {
     custom_forward_with_dep(input_output, dependency);
   }
 
-  [[nodiscard]] size_t impl_max() const override {
+  [[nodiscard]] uint32_t impl_max() const override {
     return injected_dependency_ ? injected_dependency_->max()
-                                : std::numeric_limits<size_t>::max();
+                                : std::numeric_limits<uint32_t>::max();
   }
-  [[nodiscard]] size_t impl_min() const override {
+  [[nodiscard]] uint32_t impl_min() const override {
     return injected_dependency_ ? injected_dependency_->min() : 1;
   }
 
@@ -115,8 +115,8 @@ class OMNI_EXPORT Dependency : public Backend {
     dep.forward(ios);
   }
 
-  [[nodiscard]] size_t impl_max() const override;
-  [[nodiscard]] size_t impl_min() const override;
+  [[nodiscard]] uint32_t impl_max() const override;
+  [[nodiscard]] uint32_t impl_min() const override;
 
  protected:
   Backend* injected_dependency_{nullptr}; ///< The injected dependency.
@@ -153,25 +153,25 @@ class Container : public Backend {
   virtual void post_init(
       const std::unordered_map<std::string, std::string>& config,
       const dict& kwargs) {};
-  [[nodiscard]] size_t impl_max() const override final {
+  [[nodiscard]] uint32_t impl_max() const override final {
     return max_;
   }
-  [[nodiscard]] size_t impl_min() const override final {
+  [[nodiscard]] uint32_t impl_min() const override final {
     return min_;
   }
 
  private:
-  virtual std::pair<size_t, size_t> update_min_max(
+  virtual std::pair<uint32_t, uint32_t> update_min_max(
       const std::vector<Backend*>& depends);
-  virtual std::vector<size_t> set_init_order(size_t max_range) const;
+  virtual std::vector<uint32_t> set_init_order(uint32_t max_range) const;
 
  protected:
   std::vector<std::unique_ptr<Backend>> base_dependencies_;
   std::vector<std::string> backends_;
   std::vector<std::unordered_map<std::string, std::string>> base_config_;
   std::vector<std::function<void()>> lazy_init_func_;
-  size_t max_{std::numeric_limits<std::size_t>::max()};
-  size_t min_{1};
+  uint32_t max_{std::numeric_limits<uint32_t>::max()};
+  uint32_t min_{1};
 };
 
 class OMNI_EXPORT List : public Backend {
@@ -180,11 +180,11 @@ class OMNI_EXPORT List : public Backend {
       const std::unordered_map<std::string, std::string>& config,
       const dict& kwargs) override final;
   void impl_forward(const std::vector<dict>& input_output) override final;
-  [[nodiscard]] size_t impl_max() const override final {
+  [[nodiscard]] uint32_t impl_max() const override final {
     return 1;
   }
-  [[nodiscard]] size_t impl_min() const override final {
-    return std::numeric_limits<size_t>::max();
+  [[nodiscard]] uint32_t impl_min() const override final {
+    return std::numeric_limits<uint32_t>::max();
   }
 
  private:

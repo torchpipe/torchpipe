@@ -126,7 +126,7 @@ std::optional<any> object2any_from_hash_register(const py::handle& input) {
 //   } else if (py::isinstance<py::float_>(data)) {
 //     return py::cast<float>(data);
 //   } else if (py::isinstance<Event>(data)) {
-//     return py::cast<std::shared_ptr<Event>>(data);
+//     return py::cast<Event>(data);
 //   } else if (py::isinstance<py::bytes>(data)) {
 //     return py::cast<std::string>(data);
 //   } else if (py::isinstance<TypedDict>(data)) {

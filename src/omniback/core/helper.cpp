@@ -40,9 +40,9 @@ HasEventHelper::HasEventHelper(const std::vector<dict>& data) : dicts_(data) {
   if (none_have_event) {
     // SPDLOG_INFO(
     //     "HasEventHelper: none_have_event. data.size() = {}", data.size());
-    event_ = make_event(data.size());
+    event_ = Event(data.size());
     for (auto& item : data) {
-      (*item)[TASK_EVENT_KEY] = event_;
+      (*item)[TASK_EVENT_KEY] = event_.value();
     }
   } else {
     throw std::logic_error(
@@ -55,19 +55,19 @@ HasEventHelper::HasEventHelper(const std::vector<dict>& data) : dicts_(data) {
 }
 
 void HasEventHelper::wait() {
-  if (event_) {
-    event_->wait_finish();
+  if (event_.has_value()) {
+    event_.value()->wait_finish();
     for (std::size_t i = 0; i < dicts_.size(); ++i) {
       dicts_[i]->erase(TASK_EVENT_KEY);
     }
-    std::shared_ptr<Event> tmp;
+    std::optional<Event> tmp;
     std::swap(tmp, event_);
-    tmp->try_throw();
+    tmp.value()->try_throw();
   }
 }
 
 HasEventHelper::~HasEventHelper() {
-  if (event_) {
+  if (event_.has_value()) {
     SPDLOG_ERROR("HasEventHelper: event not cleared. call wait()");
     std::terminate();
   }
@@ -91,7 +91,7 @@ void event_guard_forward(
       });
 
   if (none_have_event) {
-    auto ev = make_event(inputs.size());
+    auto ev = Event(inputs.size());
     for (auto& item : inputs) {
       (*item)[TASK_EVENT_KEY] = ev;
     }
@@ -228,7 +228,7 @@ void notify_event(const std::vector<dict>& io) {
   for (const auto& item : io) {
     auto iter = item->find(TASK_EVENT_KEY);
     if (iter != item->end()) {
-      auto ev = any_cast<std::shared_ptr<Event>>(iter->second);
+      auto ev = any_cast<Event>(iter->second);
       // SPDLOG_INFO("event notified before");
       ev->notify_all();
       // SPDLOG_INFO("event notified");

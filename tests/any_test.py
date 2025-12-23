@@ -1,6 +1,6 @@
 import pytest
-import omniback._C as _C
-from omniback import Dict as omniback_dict
+from omniback import ffi
+# from omniback.ffi import Dict as omniback_dict
 
 def test_any_basic_types():
     # Integer

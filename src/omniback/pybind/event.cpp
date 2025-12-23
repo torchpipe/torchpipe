@@ -16,7 +16,7 @@ namespace py = pybind11;
 using namespace pybind11::literals;
 
 void init_event(py::module_& m) {
-  py::class_<Event, std::shared_ptr<Event>> omniback_event(m, "Event");
+  py::class_<Event, Event> omniback_event(m, "Event");
 
   omniback_event.doc() =
       "omniback.Event provides an object similar to Python's threading.Event.";
@@ -66,7 +66,7 @@ void init_event(py::module_& m) {
           "set_final_callback",
           &Event::set_final_callback,
           "Set a callback function.")
-      .attr("type_hash") = typeid(std::shared_ptr<Event>).hash_code();
+      .attr("type_hash") = typeid(Event).hash_code();
 
   m.attr("TASK_EVENT_KEY") = py::cast(TASK_EVENT_KEY);
   m.def(

@@ -44,10 +44,10 @@ class Loop : public Backend {
   std::thread thread_;
   Queue* src_queue_{nullptr};
 
-  [[nodiscard]] size_t impl_max() const override {
+  [[nodiscard]] uint32_t impl_max() const override {
     return injected_dependency_->max();
   };
-  [[nodiscard]] size_t impl_min() const override {
+  [[nodiscard]] uint32_t impl_min() const override {
     return injected_dependency_->min();
   };
 
@@ -109,10 +109,10 @@ class BackgroundThread : public Backend {
   void impl_forward(const std::vector<dict>& inputs) override final;
 
   virtual void run();
-  [[nodiscard]] size_t impl_max() const override final {
+  [[nodiscard]] uint32_t impl_max() const override final {
     return dependency_->max();
   }
-  [[nodiscard]] size_t impl_min() const override final {
+  [[nodiscard]] uint32_t impl_min() const override final {
     return dependency_->min();
   }
 
@@ -145,18 +145,18 @@ class InstanceDispatcher : public Backend {
       const dict& kwargs) override final;
   virtual void impl_forward(const std::vector<dict>& inputs) override;
 
-  [[nodiscard]] size_t impl_max() const override final {
+  [[nodiscard]] uint32_t impl_max() const override final {
     return max_;
   }
-  [[nodiscard]] size_t impl_min() const override final {
+  [[nodiscard]] uint32_t impl_min() const override final {
     return min_;
   }
 
  private:
   void update_min_max(const std::vector<Backend*>& deps);
 
-  size_t max_{1};
-  size_t min_{std::numeric_limits<std::size_t>::max()};
+  uint32_t max_{1};
+  uint32_t min_{std::numeric_limits<uint32_t>::max()};
 
  protected:
   std::vector<Backend*> base_dependencies_;
@@ -172,11 +172,11 @@ class FakeInstance : public Backend {
 
   void impl_forward(const std::vector<dict>& ios);
 
-  [[nodiscard]] size_t impl_max() const override {
+  [[nodiscard]] uint32_t impl_max() const override {
     return max_;
   }
 
-  [[nodiscard]] size_t impl_min() const override {
+  [[nodiscard]] uint32_t impl_min() const override {
     return min_;
   }
 
@@ -214,8 +214,8 @@ class FakeInstance : public Backend {
   std::vector<std::unique_ptr<Backend>> backends_;
 
   size_t fake_instance_num_;
-  size_t max_{0};
-  size_t min_{0};
+  uint32_t max_{0};
+  uint32_t min_{0};
 
   std::vector<std::size_t> sorted_max_;
 

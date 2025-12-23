@@ -24,7 +24,7 @@ void print_check_distance(
     std::string strtem,
     const std::vector<std::string>& targets) {
   std::string re;
-  size_t min_distance = std::numeric_limits<size_t>::max();
+  size_t min_distance = std::numeric_limits<uint32_t>::max();
   std::string all_items;
   for (auto& target : targets) {
     all_items += target + ";";

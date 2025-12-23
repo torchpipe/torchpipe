@@ -22,7 +22,7 @@ class Select : public Container {
   virtual std::function<size_t(const dict&)> select_impl() const = 0;
 
  private:
-  virtual std::pair<size_t, size_t> update_min_max(
+  virtual std::pair<uint32_t, uint32_t> update_min_max(
       const std::vector<Backend*>& depends) override;
 
  private:

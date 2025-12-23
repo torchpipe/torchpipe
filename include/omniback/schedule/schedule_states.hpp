@@ -8,6 +8,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
+#include <optional>
 
 // InstanceDispatcher, Batching (动态dependency)
 // forward instance="node_name.0"
@@ -43,8 +44,8 @@ class InstancesState {
     return instances_.size() - available_instances_.size();
   }
 
-  std::optional<size_t> query_available(
-      size_t req_size,
+  std::optional<uint32_t> query_available(
+      uint32_t req_size,
       size_t timeout,
       bool lock_queried,
       std::string node_name = "");
@@ -71,7 +72,7 @@ class InstancesState {
 
   std::unordered_set<size_t> available_instances_;
   std::unordered_set<size_t> locked_available_instances_;
-  std::unordered_map<size_t, std::pair<size_t, size_t>> instances_;
+  std::unordered_map<size_t, std::pair<uint32_t, uint32_t>> instances_;
 };
 
 #if 0

@@ -1,5 +1,5 @@
 import pytest
-from omniback import _C
+# from omniback import _C
 
 
 import omniback

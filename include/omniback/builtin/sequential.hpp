@@ -70,8 +70,8 @@ class Sequential final : public ControlPlane {
  private:
   std::vector<bool> filter_or_;
   std::vector<std::unique_ptr<Backend>> backends_;
-  // size_t min_{1};
-  // size_t max_{std::numeric_limits<std::size_t>::max()};
+  // uint32_t min_{1};
+  // uint32_t max_{std::numeric_limits<uint32_t>::max()};
 };
 
 } // namespace omniback

@@ -127,10 +127,10 @@ class OMNI_EXPORT PyInstance : public Backend {
     }
 #endif
   }
-  size_t impl_max() const override final {
+  uint32_t impl_max() const override final {
     return max_;
   }
-  size_t impl_min() const override final {
+  uint32_t impl_min() const override final {
     return min_;
   }
 
@@ -151,7 +151,7 @@ class OMNI_EXPORT PyInstance : public Backend {
 
  private:
   omniback::python::unique_ptr<> obj_;
-  size_t max_ = std::numeric_limits<size_t>::max();
+  size_t max_ = std::numeric_limits<uint32_t>::max();
   size_t min_ = 1;
   size_t init_default_params_ = 0;
   size_t init_num_params_ = 0;
@@ -330,8 +330,8 @@ void forward_backend(Backend& self, const py::object& input_output) {
                 py::dict py_dict = py::cast<py::dict>(input_output);
                 dict input = PyDict::py2dict(py_dict);
                 data.push_back(input);
-                auto pyevent = any_cast<std::shared_ptr<Event>>(input->at(TASK_EVENT_KEY));
-                auto event = make_event();
+                auto pyevent = any_cast<Event>(input->at(TASK_EVENT_KEY));
+                auto event = Event();
                 (*input)[TASK_EVENT_KEY] = event;
                 static const std::unordered_set<std::string> ignore_keys = {TASK_DATA_KEY};
                 event->set_final_callback([input, py_dict, pyevent, event]() {

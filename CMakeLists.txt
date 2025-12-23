@@ -23,6 +23,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 option(TVM_FFI_EXT_SHIP_DEBUG_SYMBOLS "Ship debug symbols" ON)
 option(USE_CXX11_ABI "Use C++11 ABI" ON)
+option(BUILD_PY "build omniback pybind11 module" OFF)
 
 
 if(USE_CXX11_ABI)
@@ -31,18 +32,27 @@ else()
     add_definitions(-D_GLIBCXX_USE_CXX11_ABI=0)
 endif()
 
-# Find necessary packages
-find_package(
-  Python
-  COMPONENTS Interpreter Development.Module
-  REQUIRED
-)
+set(USE_FFI ON)
+
+if(USE_FFI)
+    add_definitions(-DUSE_FFI)
+else()
+    message(FATAL_ERROR "USE_FFI must be set to ON at this moment")
+endif()
+
+
+
 find_package(tvm_ffi CONFIG REQUIRED)
-find_package(pybind11 REQUIRED)  # Required for Python bindings
 
 # Core library: compile all cpp files in cpp/omniback/
 file(GLOB_RECURSE ALL_SOURCES 
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/omniback/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/omniback/core/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/omniback/builtin/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/omniback/ffi/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/omniback/helper/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/omniback/schedule/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/omniback/py/*.cpp"
+
 )
 
 list(FILTER ALL_SOURCES EXCLUDE REGEX "src/omniback/pybind/")
@@ -85,34 +95,44 @@ set_target_properties(omniback_core PROPERTIES
     SUFFIX ".so"
 )
 
-# Python bindings: compile pybind files in omniback/pybind/
-file(GLOB_RECURSE PYTHON_SOURCES 
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/omniback/pybind/*.cpp"
-)
-pybind11_add_module(omniback_py MODULE ${PYTHON_SOURCES})
+if(BUILD_PY)
+    # Find necessary packages
+    find_package(
+    Python
+    COMPONENTS Interpreter Development.Module
+    REQUIRED
+    )
+    find_package(pybind11 REQUIRED)  # Required for Python bindings
 
-target_compile_definitions(omniback_py
-    PRIVATE PY_MODULE_NAME=omniback_py
-)
-target_compile_features(omniback_py INTERFACE cxx_std_17)
+    # Python bindings: compile pybind files in omniback/pybind/
+    file(GLOB_RECURSE PYTHON_SOURCES 
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/omniback/pybind/*.cpp"
+    )
+    pybind11_add_module(omniback_py MODULE ${PYTHON_SOURCES})
 
-# Configure Python module
-# target_include_directories(omniback_py PRIVATE
-#     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-# )
-target_link_libraries(omniback_py PRIVATE
-    omniback_core
-    tvm_ffi_header
-    tvm_ffi_shared
-    omniback_header
-    Python::Module
-)
+    target_compile_definitions(omniback_py
+        PRIVATE PY_MODULE_NAME=omniback_py
+    )
+    target_compile_features(omniback_py INTERFACE cxx_std_17)
 
-# # Set Python module output name to match expected import name
-# set_target_properties(omniback_py PROPERTIES 
-#     PREFIX ""
-#     SUFFIX ".${PYTHON_EXTENSION_SUFFIX}"
-# )
+    # Configure Python module
+    # target_include_directories(omniback_py PRIVATE
+    #     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    # )
+    target_link_libraries(omniback_py PRIVATE
+        omniback_core
+        tvm_ffi_header
+        tvm_ffi_shared
+        omniback_header
+        Python::Module
+    )
+
+    # # Set Python module output name to match expected import name
+    # set_target_properties(omniback_py PROPERTIES 
+    #     PREFIX ""
+    #     SUFFIX ".${PYTHON_EXTENSION_SUFFIX}"
+    # )
+endif()
 
 # Handle debug symbols for core library
 if(TVM_FFI_EXT_SHIP_DEBUG_SYMBOLS)
@@ -129,4 +149,6 @@ endif()
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/omniback/ DESTINATION include/omniback/)
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/spdlog/include/ DESTINATION include/)
 install(TARGETS omniback_core DESTINATION lib)
-install(TARGETS omniback_py DESTINATION .)
+if(BUILD_PY)
+    install(TARGETS omniback_py DESTINATION .)
+endif()

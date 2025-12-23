@@ -28,10 +28,10 @@ class IoCV0 : public Backend {
   void impl_forward(const std::vector<dict>& input_output) override {
     forward_backend_->forward(input_output);
   }
-  [[nodiscard]] size_t impl_max() const override {
+  [[nodiscard]] uint32_t impl_max() const override {
     return forward_backend_->max();
   }
-  [[nodiscard]] size_t impl_min() const override {
+  [[nodiscard]] uint32_t impl_min() const override {
     return forward_backend_->min();
   }
 

@@ -35,11 +35,11 @@ void Select::impl_forward(const std::vector<dict>& input_output) {
   }
 }
 
-std::pair<size_t, size_t> Select::update_min_max(
+std::pair<uint32_t, uint32_t> Select::update_min_max(
     const std::vector<Backend*>& depends) {
   // union
-  size_t max_value = 1;
-  size_t min_value = std::numeric_limits<size_t>::max();
+  uint32_t max_value = 1;
+  uint32_t min_value = std::numeric_limits<uint32_t>::max();
 
   for (Backend* depend : depends) {
     min_value = std::min(min_value, depend->min());

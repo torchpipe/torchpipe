@@ -155,7 +155,7 @@ class Send2Queue : public BackendOne {
 
  protected:
   Queue* queue_{nullptr};
-  size_t queue_max_{std::numeric_limits<size_t>::max()};
+  size_t queue_max_{std::numeric_limits<uint32_t>::max()};
   int keep_result_{1};
 };
 
@@ -184,7 +184,7 @@ class SrcQueue : public BackendOne {
 
  protected:
   Queue* queue_{nullptr};
-  size_t queue_max_{std::numeric_limits<size_t>::max()};
+  size_t queue_max_{std::numeric_limits<uint32_t>::max()};
 };
 
 OMNI_REGISTER_BACKEND(SrcQueue);
@@ -218,7 +218,7 @@ class CreateQueue : public Backend {
  protected:
   Queue* queue_{nullptr};
   std::unique_ptr<Queue> owned_queue_{std::make_unique<Queue>()};
-  size_t queue_max_{std::numeric_limits<size_t>::max()};
+  size_t queue_max_{std::numeric_limits<uint32_t>::max()};
 };
 
 OMNI_REGISTER_BACKEND(Send2Queue, "Send2Queue");

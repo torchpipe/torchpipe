@@ -31,9 +31,9 @@ void EventGuard::custom_forward_with_dep(
     // evented_data.size());
     dependency.forward(evented_data);
   } else {
-    std::vector<std::shared_ptr<Event>> events(data.size());
+    std::vector<Event> events(data.size());
     std::generate_n(events.begin(), data.size(), []() {
-      return std::make_shared<Event>();
+      return Event();
     });
     for (size_t i = 0; i < data.size(); i++) {
       (*data[i])[TASK_EVENT_KEY] = events[i];
@@ -99,7 +99,7 @@ class ThreadPoolExecutor : public Dependency {
     }
   }
 
-  // [[nodiscard]] size_t impl_max() const { return max_workers_; }
+  // [[nodiscard]] uint32_t impl_max() const { return max_workers_; }
   void impl_forward_with_dep(const std::vector<dict>& input, Backend& dep)
       override {
     (void)pool_->submit_task(

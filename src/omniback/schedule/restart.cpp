@@ -65,9 +65,9 @@ void RestartEvent::on_start_node(
   pstack->dependency = &dependency;
   pstack->task_queue_index = task_queue_index;
   pstack->input_event =
-      any_cast<std::shared_ptr<Event>>(tmp_data->at(TASK_EVENT_KEY));
+      any_cast<Event>(tmp_data->at(TASK_EVENT_KEY));
 
-  auto current_event = make_event();
+  auto current_event = Event();
   (*tmp_data)[TASK_EVENT_KEY] = current_event;
 
   pstack->input_data = tmp_data;
@@ -91,9 +91,9 @@ void RestartEvent::on_finish_node(dict tmp_data) {
   iter = tmp_data->find(TASK_EVENT_KEY);
 
   OMNI_FATAL_ASSERT(iter != tmp_data->end());
-  std::shared_ptr<Event> pre_event =
-      any_cast<std::shared_ptr<Event>>(iter->second);
-  OMNI_FATAL_ASSERT((pre_event));
+  Event pre_event =
+      any_cast<Event>(iter->second);
+  // OMNI_FATAL_ASSERT((pre_event));
   //   tmp_data->erase(iter);
 
   // TODO the following is useless and should be removed
@@ -139,7 +139,7 @@ void RestartEvent::on_finish_node(dict tmp_data) {
     (*tmp_data)[TASK_DATA_KEY] = iter->second;
 
     // new iteration
-    auto curr_event = make_event();
+    auto curr_event = Event();
     (*tmp_data)[TASK_EVENT_KEY] = curr_event;
     tmp_data->erase(TASK_STACK_KEY);
 

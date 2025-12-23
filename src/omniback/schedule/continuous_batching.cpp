@@ -64,7 +64,7 @@ void PlainContinuousBatching::task_loop() {
   //       std::chrono::duration<float>(
   //           std::chrono::system_clock::now().time_since_epoch())
   //           .count();
-  //   auto ev = dict_get<std::shared_ptr<Event>>(tmp_data, TASK_EVENT_KEY);
+  //   auto ev = dict_get<Event>(tmp_data, TASK_EVENT_KEY);
   //   tmp_data->erase(TASK_EVENT_KEY);
   //   receiving_data_[id] = TaskInfo({id, tmp_data, time_now, ev, 0, 0});
   //   if (!all_received()){
@@ -375,7 +375,7 @@ void ContinuousBatching::impl_forward(const std::vector<dict>& io) {
       // SPDLOG_INFO("prefill: {} req_tokens={}", pro.req_id,
       // pro.req_tokens); page_table_->alloc(pro.req_id, pro.req_tokens);
       pro.data = item;
-      // pro.event = dict_get<std::shared_ptr<Event>>(item, TASK_EVENT_KEY);
+      // pro.event = dict_get<Event>(item, TASK_EVENT_KEY);
       if (pro.time <= 0)
         pro.time = helper::timestamp();
       req_status_.emplace(pro.req_id, std::move(pro));
@@ -479,10 +479,10 @@ void ContinuousBatching::impl_forward_handle_except(
   // We remove the event here to enforce synchronous semantics.
   // Alternatively, asynchronous semantics can be maintained by setting the
   // callback: ev->set_exception_callback()
-  std::vector<std::shared_ptr<Event>> events;
+  std::vector<Event> events;
   for (const auto& item : ios) {
     auto iter = item->find(TASK_EVENT_KEY);
-    events.push_back(any_cast<std::shared_ptr<Event>>(iter->second));
+    events.push_back(any_cast<Event>(iter->second));
     item->erase(iter);
     item->erase(TASK_RESULT_KEY);
   }

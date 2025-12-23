@@ -10,14 +10,15 @@ from . import libinfo
 
 # from . import _ffi_api
 
-from ._ffi_api import ffi
-# libinfo.load_lib_ctypes('omniback', 'omniback', "RTLD_GLOBAL")
-from . import omniback_py as _C # noqa F401
-sys.modules['omniback._C'] = _C
+from . import _ffi_api as ffi
+from ._ffi_api import _C
 
 
+from ._ffi_api import Dict, Queue, default_queue, Event, Backend
 
-# isort: on
+def create(name, register_name=None):
+    return ffi.create(name, register_name)
+
 
 try:
     # type: ignore[import-not-found]
@@ -25,12 +26,6 @@ try:
 except ImportError:
     __version__ = "0.0.0.dev0"
     __version_tuple__ = (0, 0, 0, "dev0", "unknown")
-
-
-# isort: off
-from ._C import Any, Dict, Backend, Event, create, register, get, TypedDict, print, timestamp, init
-from ._C import (Queue, default_queue, default_page_table)
-from ._C import TASK_DATA_KEY, TASK_RESULT_KEY, TASK_MSG_KEY, TASK_REQUEST_ID_KEY,TASK_EVENT_KEY,TASK_WAITING_EVENT_KEY
 
 
 from .parser import parse, init_from_file, pipe
@@ -45,8 +40,7 @@ def get_include_dirs():
 def extra_include_paths():
     return libinfo.include_paths(),
 def extra_ldflags():
-    return [f"-L{get_library_dir()}", '-lomniback',
-                 f'{_C.__file__}'],
+    return [f"-L{get_library_dir()}", '-lomniback'],
 
 __all__ = ["Any", "Dict", 'Backend', 'Event', 'create', 'create', 'register', 'parse',
            'init', 'get', 'default_page_table', "timestamp", "pipe", 'init', 'load_kwargs', "_C"]

@@ -41,11 +41,11 @@ class Proxy : public Backend {
   void impl_forward(const std::vector<dict>& ios) override {
     proxy_backend_->forward(ios);
   }
-  [[nodiscard]] virtual size_t impl_max() const override {
+  [[nodiscard]] virtual uint32_t impl_max() const override {
     return proxy_backend_->max();
   }
 
-  [[nodiscard]] virtual size_t impl_min() const override {
+  [[nodiscard]] virtual uint32_t impl_min() const override {
     return proxy_backend_->min();
   }
 
@@ -125,11 +125,11 @@ class ProxyV2 : public Backend {
   void impl_forward(const std::vector<dict>& inputs) override {
     proxy_backend_->forward(inputs);
   }
-  [[nodiscard]] virtual size_t impl_max() const override {
+  [[nodiscard]] virtual uint32_t impl_max() const override {
     return proxy_backend_->max();
   }
 
-  [[nodiscard]] virtual size_t impl_min() const override {
+  [[nodiscard]] virtual uint32_t impl_min() const override {
     return proxy_backend_->min();
   }
 

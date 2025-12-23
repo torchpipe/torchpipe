@@ -89,14 +89,14 @@ void Dependency::impl_inject_dependency(Backend* dependency) {
 
   injected_dependency_ = dependency;
 }
-size_t Dependency::impl_max() const {
+uint32_t Dependency::impl_max() const {
   OMNI_ASSERT(
       injected_dependency_,
       "Dependency not initialized. Call inject_dependency first.");
   return injected_dependency_->max();
 }
 
-size_t Dependency::impl_min() const {
+uint32_t Dependency::impl_min() const {
   OMNI_ASSERT(
       injected_dependency_,
       "Dependency not initialized. Call inject_dependency first.");
@@ -212,17 +212,17 @@ void Container::impl_init(
   post_init(config, kwargs);
 }
 
-std::vector<size_t> Container::set_init_order(size_t max_range) const {
-  std::vector<size_t> order(max_range, 0);
+std::vector<uint32_t> Container::set_init_order(uint32_t max_range) const {
+  std::vector<uint32_t> order(max_range, 0);
   std::iota(order.rbegin(), order.rend(), 0);
   return order;
 }
 
-std::pair<size_t, size_t> Container::update_min_max(
+std::pair<uint32_t, uint32_t> Container::update_min_max(
     const std::vector<Backend*>& depends) {
-  size_t max_value = std::numeric_limits<size_t>::max();
-  size_t min_value = 1;
-  size_t num_one = 0;
+  uint32_t max_value = std::numeric_limits<uint32_t>::max();
+  uint32_t min_value = 1;
+  uint32_t num_one = 0;
   for (Backend* depend : depends) {
     if (depend->max() == 1) {
       num_one++;

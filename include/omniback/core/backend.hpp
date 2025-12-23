@@ -70,9 +70,9 @@ class OMNI_EXPORT Backend {
    * called.
    *
    * @return Maximum number of inputs supported. Default to
-   * std::numeric_limits<size_t>::max()
+   * std::numeric_limits<uint32_t>::max()
    */
-  [[nodiscard]] size_t max() const {
+  [[nodiscard]] uint32_t max() const {
     return impl_max();
   }
 
@@ -84,7 +84,7 @@ class OMNI_EXPORT Backend {
    *
    * @return Minimum number of inputs supported.
    */
-  [[nodiscard]] size_t min() const {
+  [[nodiscard]] uint32_t min() const {
     return impl_min();
   }
 
@@ -175,11 +175,11 @@ class OMNI_EXPORT Backend {
         "Neither impl_forward nor impl_forward_with_dep is implemented");
   }
 
-  [[nodiscard]] virtual size_t impl_min() const {
+  [[nodiscard]] virtual uint32_t impl_min() const {
     return 1;
   }
-  [[nodiscard]] virtual size_t impl_max() const {
-    return std::numeric_limits<size_t>::max();
+  [[nodiscard]] virtual uint32_t impl_max() const {
+    return std::numeric_limits<uint32_t>::max();
   };
   virtual void impl_inject_dependency(Backend* dependency) {}
 };
@@ -198,7 +198,7 @@ class OMNI_EXPORT BackendOne : public Backend {
    *
    * @return Maximum number of inputs supported.
    */
-  [[nodiscard]] size_t impl_max() const override final {
+  [[nodiscard]] uint32_t impl_max() const override final {
     return 1;
   }
 
@@ -238,8 +238,8 @@ class OMNI_EXPORT BackendOne : public Backend {
  */
 class OMNI_EXPORT BackendMax : public Backend {
  private:
-  [[nodiscard]] size_t impl_max() const override final {
-    return std::numeric_limits<std::size_t>::max();
+  [[nodiscard]] uint32_t impl_max() const override final {
+    return std::numeric_limits<uint32_t>::max();
   }
   void impl_forward(const std::vector<dict>& io) override;
 };

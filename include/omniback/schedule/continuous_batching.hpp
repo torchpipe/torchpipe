@@ -23,7 +23,7 @@ class PlainContinuousBatching : public Backend {
     //                        .count())
     dict data;
     float time{0};
-    std::shared_ptr<Event> event;
+    Event event;
     int loop_index = 0;
     int delay = 0;
   };
@@ -89,7 +89,7 @@ class ContinuousBatching : public Backend {
     bool running = false;
     dict data;
 
-    std::shared_ptr<Event> event;
+    Event event;
 
     double time{0};
     // std::string req_type = "prefill";

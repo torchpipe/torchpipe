@@ -24,7 +24,7 @@ bool InstancesState::wait_for(size_t req_size, size_t timeout) {
       lock,
       std::chrono::milliseconds(timeout),
       [this, req_size, &best_match]() {
-        size_t min_size = std::numeric_limits<size_t>::max();
+        size_t min_size = std::numeric_limits<uint32_t>::max();
 
         for (const auto& ins : available_instances_) {
           const auto& [lower, upper] = instances_.at(ins);
@@ -40,18 +40,18 @@ bool InstancesState::wait_for(size_t req_size, size_t timeout) {
   return bool(best_match);
 }
 
-std::optional<size_t> InstancesState::query_available(
-    size_t req_size,
+std::optional<uint32_t> InstancesState::query_available(
+    uint32_t req_size,
     size_t timeout,
     bool lock_queried,
     std::string node_name) {
   std::unique_lock<std::mutex> lock(mtx_);
-  std::optional<size_t> best_match;
+  std::optional<uint32_t> best_match;
   cv_.wait_for(
       lock,
       std::chrono::milliseconds(timeout),
       [this, lock_queried, req_size, &best_match]() {
-        size_t min_size = std::numeric_limits<size_t>::max();
+        uint32_t min_size = std::numeric_limits<uint32_t>::max();
 
         for (const auto& ins : available_instances_) {
           const auto& [lower, upper] = instances_.at(ins);

@@ -12,116 +12,177 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#pragma once
+ 
+#ifndef OMNIBACK_ANY_H_
+#define OMNIBACK_ANY_H_
 
 #include <any>
+#include <stdexcept>
 #include <type_traits>
 #include <utility>
+#include <variant>
+#include <iostream>
 
-namespace omniback {
-template <typename T>
-struct is_prohibited_type
-    : std::disjunction<
-          std::is_same<std::decay_t<T>, std::size_t>,
-          std::is_same<std::decay_t<T>, const char*>,
-          std::is_same<std::decay_t<T>, char*>,
-          std::is_same<std::decay_t<T>, const unsigned char*>,
-          std::is_same<std::decay_t<T>, unsigned char*>> {};
+#include <tvm/ffi/base_details.h>
+#include <tvm/ffi/c_api.h>
+#include <tvm/ffi/object.h>
+#include <tvm/ffi/type_traits.h>
 
-class any {
- public:
-  // Default constructor
-  any() = default;
+#include "tvm/ffi/any.h"
+#include "omniback/ffi/any.h"
+// #include "omniback/types/basic.h"
 
-  // Copy/move constructors
-  any(const any&) = default;
-  any(any&&) = default;
+namespace omniback::detail {
 
-  // Templated constructor with prohibition check
-  template <
-      typename T,
-      std::enable_if_t<
-          !is_prohibited_type<T>::value &&
-              !std::is_same_v<std::decay_t<T>, any>,
-          int> = 0>
-  any(T&& value) : impl_(std::forward<T>(value)) {}
-
-  // Assignment operators
-  any& operator=(const any&) = default;
-  any& operator=(any&&) = default;
-
-  template <
-      typename T,
-      std::enable_if_t<
-          !is_prohibited_type<T>::value &&
-              !std::is_same_v<std::decay_t<T>, any>,
-          int> = 0>
-  any& operator=(T&& value) {
-    impl_ = std::forward<T>(value);
-    return *this;
-  }
-
-  // Modifiers
-  template <typename T, typename... Args>
-  std::enable_if_t<!is_prohibited_type<T>::value, void> emplace(
-      Args&&... args) {
-    impl_.emplace<T>(std::forward<Args>(args)...);
-  }
-
-  void reset() noexcept {
-    impl_.reset();
-  }
-  void swap(any& other) noexcept {
-    impl_.swap(other.impl_);
-  }
-
-  // Observers
-  bool has_value() const noexcept {
-    return impl_.has_value();
-  }
-  const std::type_info& type() const noexcept {
-    return impl_.has_value() ? impl_.type() : typeid(void);
-  }
-
-  // Friend declarations for any_cast
-  template <typename T>
-  friend T any_cast(const any&);
-  template <typename T>
-  friend T any_cast(any&);
-  template <typename T>
-  friend T any_cast(any&&);
-  template <typename T>
-  friend const T* any_cast(const any*) noexcept;
-  template <typename T>
-  friend T* any_cast(any*) noexcept;
-
+class Any {
  private:
-  std::any impl_;
+  tvm::ffi::Any storage_; // todo
+
+  friend struct tvm::ffi::details::AnyUnsafe;
+
+  template <typename T>
+  static constexpr bool is_tvm_convertible_v =
+      tvm::ffi::TypeTraits<std::decay_t<T>>::convert_enabled ||
+      std::is_same_v<std::decay_t<T>, ::tvm::ffi::Any>;
+
+  template <typename T>
+  void construct(T&& value) {
+    if constexpr (is_tvm_convertible_v<T>) {
+      storage_ = std::forward<T>(value);
+    } else {
+      storage_ = omniback::ffi::Any(std::forward<T>(value));
+    }
+  }
+
+ public:
+
+  operator tvm::ffi::AnyView() const { // NOLINT(google-explicit-constructor)
+    return storage_;
+  }
+
+  operator tvm::ffi::Any() const { // NOLINT(google-explicit-constructor)
+    return storage_;
+  }
+
+  TVMFFIAny MoveAnyToTVMFFIAny() {
+    return tvm::ffi::details::AnyUnsafe::MoveAnyToTVMFFIAny(
+        std::move(storage_));
+  }
+
+  public : Any() = default;
+
+
+  template <typename T>
+  std::optional<T> try_cast() const {
+    if constexpr (
+        ::tvm::ffi::TypeTraits<T>::convert_enabled ||
+        std::is_same_v<T, ::tvm::ffi::Any>) {
+      return storage_.try_cast<T>();
+    } else {
+      auto wrapper = storage_.try_cast<omniback::ffi::Any>();
+      if (!wrapper) return std::nullopt;
+      return wrapper.value()->try_cast<T>();
+    }
+  }
+
+  template <typename T>
+  T cast() const {
+    if constexpr (
+        ::tvm::ffi::TypeTraits<T>::convert_enabled ||
+        std::is_same_v<T, ::tvm::ffi::Any>) {
+      return storage_.cast<T>();
+    } else {
+      return storage_.cast<omniback::ffi::Any>()->cast<T>();
+    }
+  }
+
+  template <
+      typename T,
+      std::enable_if_t<!std::is_same_v<std::decay_t<T>, Any>, bool> = true>
+  Any(T&& value) {
+    construct(std::forward<T>(value));
+  }
+
+  Any(const Any& other) = default;
+  Any(Any&& other) = default;
+  Any& operator=(const Any& other) = default;
+  Any& operator=(Any&& other) = default;
+
+  // bool has_value() const noexcept {
+  //   return storage_ != nullptr;
+  // }
+
+  void reset() {
+    storage_.reset();
+  }
+
+  std::string type_name() const {
+    return storage_.GetTypeKey();
+  }
 };
 
-// any_cast implementations
 template <typename T>
-T any_cast(const any& operand) {
-  return std::any_cast<T>(operand.impl_);
+T any_cast(const Any& operand){
+  return operand.cast<T>();
 }
 
 template <typename T>
-T any_cast(any& operand) {
-  return std::any_cast<T>(operand.impl_);
+Any make_any(T&& value) {
+  return Any(std::forward<T>(value));
 }
 
-template <typename T>
-T any_cast(any&& operand) {
-  return std::any_cast<T>(std::move(operand.impl_));
-}
+// template <typename T>
+// bool is_type(const ::tvm::ffi::Any& operand) {
+//   if constexpr (
+//       ::tvm::ffi::TypeTraits<T>::convert_enabled ||
+//       std::is_same_v<T, ::tvm::ffi::Any>) {
+//     return ::tvm::ffi::details::AnyUnsafe::CheckAnyStrict<T>(operand);
+//   }
+//   else {
+//     auto wrapper = operand.cast<omniback::ffi::Any>();
+//     return typeid(T) == wrapper->type();
+//   }
+// }
 
-template <typename T>
-const T* any_cast(const any* operand) noexcept {
-  return std::any_cast<T>(&operand->impl_);
-}
+} // namespace omniback::detail
 
-template <typename T>
-T* any_cast(any* operand) noexcept {
-  return std::any_cast<T>(&operand->impl_);
-}
+namespace tvm::ffi 
+{
+template <>
+inline constexpr bool use_default_type_traits_v<omniback::detail::Any> = false;
+
+template <>
+struct TypeTraits<omniback::detail::Any> : public TypeTraitsBase {
+   public:
+    using Self = omniback::detail::Any;
+
+    TVM_FFI_INLINE static void CopyToAnyView(
+        const Self& src,
+        TVMFFIAny* result) {
+      auto view = tvm::ffi::AnyView(src);
+      *result = view.CopyToTVMFFIAny();
+      std::cout << "CopyToAnyView Any" << std::endl;
+    }
+    TVM_FFI_INLINE static void MoveToAny(Self&& src, TVMFFIAny* result){
+      *result = src.MoveAnyToTVMFFIAny();
+      // std::cout << "MoveToAny Any" << std::endl;
+      }
+
+      TVM_FFI_INLINE static std::string TypeStr() {
+        return "omniback::detail::any";
+      }
+      TVM_FFI_INLINE static std::string TypeSchema() {
+        return R"({"type":"omniback::detail::any"})";
+      }
+  };
+
+}; // namespace tvm::ffi
+
+namespace omniback {
+// using ffi::detail::is_type;
+using detail::make_any;
+using any = detail::Any;
+using detail::any_cast;
 } // namespace omniback
+#endif // OMNIBACK_ANY_H_
+ 

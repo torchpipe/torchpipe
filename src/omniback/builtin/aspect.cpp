@@ -52,7 +52,7 @@ void Aspect::impl_forward(const std::vector<dict>& input_output) {
   base_dependencies_.front()->safe_forward(input_output);
 }
 
-std::pair<size_t, size_t> Aspect::update_min_max(
+std::pair<uint32_t, uint32_t> Aspect::update_min_max(
     const std::vector<Backend*>& depends) {
   // union
   size_t max_value = base_dependencies_.front()->max();

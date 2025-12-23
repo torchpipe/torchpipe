@@ -21,10 +21,10 @@ class ControlPlane : public Backend {
 
   virtual void update_min_max() = 0;
 
-  [[nodiscard]] size_t impl_max() const override final {
+  [[nodiscard]] uint32_t impl_max() const override final {
     return max_;
   }
-  [[nodiscard]] size_t impl_min() const override final {
+  [[nodiscard]] uint32_t impl_min() const override final {
     return min_;
   }
 
@@ -40,8 +40,8 @@ class ControlPlane : public Backend {
       delimiters_; //[',',';'] delimiters_.size() +1 == backend_cfgs_.size()
   std::vector<std::string> main_backends_; // [A, X, C]
 
-  size_t min_{1};
-  size_t max_{std::numeric_limits<std::size_t>::max()};
+  uint32_t min_{1};
+  uint32_t max_{std::numeric_limits<uint32_t>::max()};
 };
 
 } // namespace omniback

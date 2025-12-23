@@ -127,7 +127,7 @@ std::string DagDispatcher::on_start_node(
 
   pstack->task_queue_index = task_queue_index;
   pstack->input_event =
-      any_cast<std::shared_ptr<Event>>(tmp_data->at(TASK_EVENT_KEY));
+      any_cast<Event>(tmp_data->at(TASK_EVENT_KEY));
 
   // Check if node_name is present in the input
   auto iter_node_name = tmp_data->find(TASK_NODE_NAME_KEY);
@@ -153,7 +153,7 @@ std::string DagDispatcher::on_start_node(
   } else
     node_name = any_cast<std::string>(iter_node_name->second);
   // new event
-  auto current_event = make_event();
+  auto current_event = Event();
   (*tmp_data)[TASK_EVENT_KEY] = current_event;
 
   pstack->input_data = tmp_data;
@@ -186,9 +186,9 @@ void DagDispatcher::on_finish_node(
   // handle event
   auto iter = tmp_data->find(TASK_EVENT_KEY);
   if (iter != tmp_data->end()) {
-    std::shared_ptr<Event> curr_event =
-        any_cast<std::shared_ptr<Event>>(iter->second);
-    IPIPE_ASSERT((curr_event));
+    Event curr_event =
+        any_cast<Event>(iter->second);
+    // IPIPE_ASSERT((curr_event));
     while (bInited_.load()) {
       // call back called before notify. May be not needed?
       if (curr_event->wait_finish(SHUTDOWN_TIMEOUT)) {
@@ -318,7 +318,7 @@ void DagDispatcher::execute(
     std::string node_name,
     std::shared_ptr<Stack> pstack,
     dict curr_data) {
-  auto curr_event = make_event();
+  auto curr_event = Event();
   ThreadSafeQueue<dict>* local_queue =
       task_queues_[pstack->task_queue_index].get();
   curr_event->set_final_callback([local_queue, curr_data, pstack, node_name]() {

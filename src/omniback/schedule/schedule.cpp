@@ -44,7 +44,7 @@ void Loop::impl_init(
   std::string name_dep = str::get<std::string>(kwargs, "target");
   Backend* dependency_ = OMNI_INSTANCE_GET(Backend, name_dep);
   OMNI_ASSERT(dependency_);
-  OMNI_FATAL_ASSERT(dependency_->max() == std::numeric_limits<size_t>::max());
+  OMNI_FATAL_ASSERT(dependency_->max() == std::numeric_limits<uint32_t>::max());
   inject_dependency(dependency_);
 
   bInited_.store(true);
@@ -59,10 +59,10 @@ void Loop::impl_forward_sync(const std::vector<dict>& ios) {
   injected_dependency_->forward(ios);
   // SPDLOG_INFO("impl_forward_sync end");
   return;
-  std::vector<std::shared_ptr<Event>> events;
+  std::vector<Event> events;
   for (const auto& item : ios) {
     auto iter = item->find(TASK_EVENT_KEY);
-    events.push_back(any_cast<std::shared_ptr<Event>>(iter->second));
+    events.push_back(any_cast<Event>(iter->second));
     item->erase(iter);
     item->erase(TASK_RESULT_KEY);
   }
@@ -138,8 +138,8 @@ void Loop::run() {
         input_data_size += src_queue_->front_size();
         input_data.push_back(src_queue_->get());
       }
-      std::shared_ptr<Event> event =
-          any_cast<std::shared_ptr<Event>>(input_data[0]->at(TASK_EVENT_KEY));
+      Event event =
+          any_cast<Event>(input_data[0]->at(TASK_EVENT_KEY));
       auto time_es = event->time_passed();
       int time = int(timeout_ - time_es);
       if (time > 0) {
@@ -283,8 +283,8 @@ void Batching::run(size_t max_bs) {
     } else {
       // std::size_t new_pop = 0;
 
-      std::shared_ptr<Event> event =
-          any_cast<std::shared_ptr<Event>>(cached_data[0]->at(TASK_EVENT_KEY));
+      Event event =
+          any_cast<Event>(cached_data[0]->at(TASK_EVENT_KEY));
       auto time_es = int(event->time_passed());
 
       if (time_es < batching_timeout_) {
@@ -324,7 +324,7 @@ void InstanceDispatcher::impl_init(
 
 void InstanceDispatcher::update_min_max(const std::vector<Backend*>& deps) {
   // union
-  OMNI_ASSERT(max_ == 1 && min_ == std::numeric_limits<size_t>::max());
+  OMNI_ASSERT(max_ == 1 && min_ == std::numeric_limits<uint32_t>::max());
   for (const Backend* depend : deps) {
     min_ = std::min(min_, depend->min());
     max_ = std::max(max_, depend->max());
@@ -341,12 +341,12 @@ void InstanceDispatcher::impl_forward(const std::vector<dict>& ios) {
   //
   std::string node_name = dict_get<std::string>(ios[0], "node_name", true);
 
-  std::optional<size_t> index;
+  std::optional<uint32_t> index;
   do {
     index = instances_state_->query_available(req_size, 100, true, node_name);
   } while (!index);
 
-  size_t valid_index{*index};
+  uint32_t valid_index{*index};
   // SPDLOG_INFO(
   //     "InstanceDispatcher, num deps = {}, req_size = {}, ios = {}",
   //     base_dependencies_.size(),
@@ -355,12 +355,12 @@ void InstanceDispatcher::impl_forward(const std::vector<dict>& ios) {
 
   OMNI_FATAL_ASSERT(valid_index < base_dependencies_.size());
 
-  std::shared_ptr<Event> event;
+  Event event;
   auto iter = ios.back()->find(TASK_EVENT_KEY);
   if (iter != ios.back()->end()) {
-    event = any_cast<std::shared_ptr<Event>>(iter->second);
-  }
-  if (event) {
+    event = any_cast<Event>(iter->second);
+  // }
+  // if (event) {
     event->append_callback(
         [this, valid_index]() { instances_state_->remove_lock(valid_index); });
     base_dependencies_[valid_index]->forward(ios);
@@ -462,12 +462,12 @@ void BackgroundThread::run() {
       //     0);
     }
 
-    std::vector<std::shared_ptr<Event>> events;
+    std::vector<Event> events;
     for (std::size_t i = 0; i < tasks.size(); ++i) {
       auto iter_time = tasks[i]->find(TASK_EVENT_KEY);
       if (iter_time != tasks[i]->end()) {
-        std::shared_ptr<Event> ti_p =
-            any_cast<std::shared_ptr<Event>>(iter_time->second);
+        Event ti_p =
+            any_cast<Event>(iter_time->second);
         events.push_back(ti_p);
       }
     }
@@ -553,8 +553,8 @@ void FakeInstance::impl_init(
     backends_.push_back(std::move(backend));
   }
 
-  std::vector<size_t> mins;
-  std::vector<size_t> maxs;
+  std::vector<uint32_t> mins;
+  std::vector<uint32_t> maxs;
   for (std::size_t i = 0; i < backends_.size(); ++i) {
     mins.push_back(backends_[i]->min());
     maxs.push_back(backends_[i]->max());

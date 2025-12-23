@@ -15,19 +15,19 @@
 # throughput and lantecy test
 from __future__ import annotations
 
-version = "20250429"
+version = "20251217"
 
 """! @package test-tools
-# update 0.0.1 2022-03-15 整理出基础版本。 by zsy
-# update 0.1.1 2022-03-16 增加一次发送多个请求。 by zsy
-# update 0.1.2 2022-03-18 在一次发送多个请求的情况下修复avg 时间的计算。 by zsy
-# update 0.1.3 2022-03-18 在一次发送多个请求的情况每个数据都随机。 by zsy
-# update 0.1.4 2022-03-18 文档， typo. by zsy
+# update 0.0.1 2022-03-15 整理出基础版本。 nan
+# update 0.1.1 2022-03-16 增加一次发送多个请求。 by nan
+# update 0.1.2 2022-03-18 在一次发送多个请求的情况下修复avg 时间的计算。 by nan
+# update 0.1.3 2022-03-18 在一次发送多个请求的情况每个数据都随机。 by nan
+# update 0.1.4 2022-03-18 文档， typo. by nan
 # update 0.1.5 2022-03-24 整理文档，格式调整， typo, 增加MEAN. 实际上MEAN～=avg，
 #                         但是少了数据选取（choice）和结果打印等时间, 根据avg和MEAN的值的差距推断，这部分影响在千分之三以内；
-#                         可以限制最长边大小，需要手动取消# img=pre_resize(img) 的注释  by zsy
-# update 0.1.6 2022-05-26 增加输出当前进程cpu使用情况和内存使用情况中位数  by zsy
-# update 0.1.7 2022-06-17 可设置pid；pid不存在时提示并退出；cpu利用率过小时，不显示结果（大概率匹配到错误的进程）fix batch_size>1   by zsy wlc
+#                         可以限制最长边大小，需要手动取消# img=pre_resize(img) 的注释  by nan
+# update 0.1.6 2022-05-26 增加输出当前进程cpu使用情况和内存使用情况中位数  by nan
+# update 0.1.7 2022-06-17 可设置pid；pid不存在时提示并退出；cpu利用率过小时，不显示结果（大概率匹配到错误的进程）fix batch_size>1   by nan wlc
 # update 0.1.8 2022-07-28  直接读取jpg binary， 不在预先解码（文件名后缀需要为 ".jpg", '.JPG', '.jpeg', '.JPEG'）
 # update 2022-09-08  增加callback， 用于接收和处理结果；此时推理函数返回类型需要是list类型；
 #                           当 total_number <=0 时，变为只跑一遍的模式；
@@ -698,7 +698,8 @@ def test_function(
     ]
     return test(forwards, total_number)
 
-def example_mutil_clients_speed_test(host, port, num_clients, file_dir, total_number):
+
+def example_mutil_clients_speed_test(file_dir, port, num_clients=10, total_number=5000, host="127.0.0.1" ):
     class Client:
         """wrapper for thrift's python API. You may need to re-implement this class."""
         def __init__(self, host, port, request_batch, id2data) -> None:
@@ -713,9 +714,9 @@ def example_mutil_clients_speed_test(host, port, num_clients, file_dir, total_nu
             ## example thrift service:
             import sys
             sys.path.append("src")
-            from api import InferenceService
+            from serve import InferenceService
 
-            from api.ttypes import InferenceParams
+            from serve.ttypes import InferenceParams
 
             self.InferenceParams = InferenceParams
             
@@ -772,7 +773,23 @@ def example_mutil_clients_speed_test(host, port, num_clients, file_dir, total_nu
         ids=ids)
 
 
-def example_mutil_clients_inference(host, port, num_clients, file_dir):
+
+def multiple_round_inference(file_dir, port, num_round=10, save_prefix="result", host="127.0.0.1", num_clients=10):
+    import pickle
+    for i in range(num_round):
+        result = example_mutil_clients_inference(
+            file_dir=file_dir,
+            port=port,
+            host=host,
+            num_clients=num_clients,
+            shuffle=(i%2!=0)
+        )
+        pkl_name = f'{save_prefix}_{i}.pkl'
+        with open(pkl_name, 'wb') as f:
+            pickle.dump(result, f)
+            print(f'{pkl_name} saved.')
+            
+def example_mutil_clients_inference(file_dir, port, host="127.0.0.1", num_clients=10,shuffle=False):
     final_result = {}
     class Client:
         """wrapper for thrift's python API. You may need to re-implement this class."""
@@ -788,9 +805,9 @@ def example_mutil_clients_inference(host, port, num_clients, file_dir):
             ## example thrift service:
             import sys
             sys.path.append("src")
-            from api import InferenceService
+            from serve import InferenceService
 
-            from api.ttypes import InferenceParams
+            from serve.ttypes import InferenceParams
 
             self.InferenceParams = InferenceParams
             
@@ -834,9 +851,43 @@ def example_mutil_clients_inference(host, port, num_clients, file_dir):
     
     instances = [Client(host, port, 1, list_images) for i in range(num_clients)]
     
+    ids = list(range(len(list_images)))
+    if shuffle:
+        random.shuffle(ids)  # 原地打乱
+        
     test_from_ids(
         forward_function=[x.forward for x in instances],
-        ids=list(range(len(list_images)))
+        ids=ids
     )
     return final_result
   
+
+if __name__ == "__main__":
+    import fire
+
+    fire.Fire({
+        "example_mutil_clients_inference": example_mutil_clients_inference,
+        "example_mutil_clients_speed_test": example_mutil_clients_speed_test,
+        "test_from_raw_file": test_from_raw_file,
+        "test_function": test_function,
+        "test_from_ids": test_from_ids,
+        "multiple_round_inference": multiple_round_inference,
+    })
+    
+
+    #压测脚本： 跑多次，并将结果保存在result*.pkl ：
+    # nohup python src/test.py multiple_round_inference /app/ocr202507121_11w/download_12w/ --port=8090 --num_round=100 --save_prefix=result &
+
+    # 速度测试：
+    # python src/test.py example_mutil_clients_speed_test /app/ocr202507121_11w/download_12w/ --port=8090
+
+
+    # img_name=harbor.yidunai.service.gy.ntes/neteaseis/ai/contraband-cnmap:master-20231008-5c22aff
+    # docker run --name=zsy_cnmap --gpus=all --ipc=host  --network=host -v `pwd`:/workspace \
+    #    --shm-size 1G  --ulimit memlock=-1 \
+    #        --ulimit stack=67108864  --privileged=true \
+    #          -v  /mnt/data2/zhangshiyang/ocr202507121_11w:/testdata \
+    #                   --ulimit core=-1:-1 \
+    #            -it $img_name /bin/bash
+    # python src/test.py example_mutil_clients_speed_test /testdata/download_12w --port=8090
+    # nohup python src/test.py multiple_round_inference /testdata/download_12w --port=8090 --num_round=100 --save_prefix=result &

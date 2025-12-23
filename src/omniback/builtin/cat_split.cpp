@@ -16,13 +16,13 @@ void CatSplit::post_init(
           std::to_string(base_dependencies_.size()));
 
   OMNI_ASSERT(
-      base_dependencies_[0]->max() == std::numeric_limits<size_t>::max(),
+      base_dependencies_[0]->max() == std::numeric_limits<uint32_t>::max(),
       "CatSplit requires a concating backend with max() == "
-      "std::numeric_limits<size_t>::max()");
+      "std::numeric_limits<uint32_t>::max()");
   OMNI_ASSERT(
-      base_dependencies_[2]->max() == std::numeric_limits<size_t>::max(),
+      base_dependencies_[2]->max() == std::numeric_limits<uint32_t>::max(),
       "CatSplit requires a spliting backend with max() == "
-      "std::numeric_limits<size_t>::max()");
+      "std::numeric_limits<uint32_t>::max()");
   SPDLOG_INFO("CatSplit: range=[{}, {}]", min_, max_);
 }
 
@@ -49,12 +49,12 @@ void CatSplit::impl_forward(const std::vector<dict>& data) {
   base_dependencies_.at(2)->forward(data);
 }
 
-std::pair<size_t, size_t> CatSplit::update_min_max(
+std::pair<uint32_t, uint32_t> CatSplit::update_min_max(
     const std::vector<Backend*>& depends) {
   return {depends.at(1)->min(), depends.at(1)->max()};
 }
 
-std::vector<size_t> CatSplit::set_init_order(size_t max_range) const {
+std::vector<uint32_t> CatSplit::set_init_order(uint32_t max_range) const {
   OMNI_ASSERT(max_range == 3);
   return {1, 0, 2};
 }

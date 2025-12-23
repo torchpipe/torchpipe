@@ -21,11 +21,11 @@ class LaunchBase : public Backend {
     custom_forward_with_dep(input_output, dependency);
   }
 
-  [[nodiscard]] size_t impl_max() const override {
+  [[nodiscard]] uint32_t impl_max() const override {
     return injected_dependency_ ? injected_dependency_->max()
-                                : std::numeric_limits<size_t>::max();
+                                : std::numeric_limits<uint32_t>::max();
   }
-  [[nodiscard]] size_t impl_min() const override {
+  [[nodiscard]] uint32_t impl_min() const override {
     return injected_dependency_ ? injected_dependency_->min() : 1;
   }
 
@@ -78,11 +78,11 @@ class Forward : public LaunchBase {
   }
   void impl_inject_dependency(Backend* dependency) override final;
 
-  [[nodiscard]] size_t impl_max() const override {
+  [[nodiscard]] uint32_t impl_max() const override {
     return injected_dependency_ ? injected_dependency_->max()
-                                : std::numeric_limits<size_t>::max();
+                                : std::numeric_limits<uint32_t>::max();
   }
-  [[nodiscard]] size_t impl_min() const override {
+  [[nodiscard]] uint32_t impl_min() const override {
     return injected_dependency_ ? injected_dependency_->min() : 1;
   }
 };

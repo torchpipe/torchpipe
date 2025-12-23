@@ -30,15 +30,12 @@
 
 namespace omniback {
 
-#ifdef CUSTOM_DICT
-using dict = CustomDict;
-#else
+ 
 using dict = std::shared_ptr<std::unordered_map<string, omniback::any>>;
 inline dict make_dict() {
   return std::make_shared<std::unordered_map<string, omniback::any>>();
 }
 
-#endif
 
 inline dict make_dict(string node_name, dict data = nullptr) {
   dict data_out;
@@ -64,6 +61,7 @@ inline dict copy_dict(dict data) {
   return data_out;
 }
 
+
 #define OMNI_NOEXCEPT noexcept
 using dicts = std::vector<dict>;
 
@@ -80,10 +78,7 @@ template <typename T = string>
 T dict_get(dict data, const string& key, bool return_default = false) {
   auto iter = data->find(key);
   if (iter != data->end()) {
-    if (iter->second.type() != typeid(T))
-      throw_wrong_type(typeid(T).name(), iter->second.type().name());
-    T result = any_cast<T>(iter->second);
-    return result;
+    return iter->second.cast<T>();
   } else {
     if (return_default)
       return T();
@@ -97,9 +92,7 @@ template <typename T = string>
 T dict_pop(dict data, const string& key) {
   auto iter = data->find(key);
   if (iter != data->end()) {
-    if (iter->second.type() != typeid(T))
-      throw_wrong_type(typeid(T).name(), iter->second.type().name());
-    T result = any_cast<T>(iter->second);
+    T result = iter->second.cast<T>();
     data->erase(iter);
     return result;
   } else {
@@ -107,29 +100,34 @@ T dict_pop(dict data, const string& key) {
   }
 }
 
-template <typename T = string>
-std::vector<T> dict_gets(dict data, const string& key) {
+template <typename T = std::string>
+std::vector<T> dict_gets(dict data, const std::string& key) {
   auto iter = data->find(key);
-  if (iter != data->end()) {
-    if (iter->second.type() == typeid(T)) {
-      T* result = any_cast<T>(&iter->second);
-      return std::vector<T>{*result};
-    } else if (iter->second.type() == typeid(std::vector<T>)) {
-      return *any_cast<std::vector<T>>(&iter->second);
-    } else {
-      throw_wrong_type(typeid(T).name(), iter->second.type().name());
-    }
-  } else {
-    throw std::invalid_argument("dict_get: can not found key: " + key);
+  if (iter == data->end()) {
+    throw std::invalid_argument("dict_gets: key not found: " + key);
   }
-  return std::vector<T>(); // make gcc happy
+
+  const auto& val = iter->second;
+
+  if (auto vec_opt = val.try_cast<std::vector<T>>()) {
+    return std::move(vec_opt.value());
+  }
+
+  // Try scalar T
+  if (auto scalar_opt = val.try_cast<T>()) {
+    return std::vector<T>{std::move(scalar_opt.value())};
+  }
+  // If neither cast succeeded, error
+  throw std::invalid_argument(
+      "dict_gets: value for key '" + key + "' is neither " + typeid(T).name() +
+      " nor vector<" + typeid(T).name() + ">");
 }
 
 // template <typename T>
 // std::optional<T> try_get(dict data, const string& key) {
 //   auto iter = data->find(key);
 //   if (iter != data->end()) {
-//     if (iter->second.type() != typeid(T)) return std::nullopt;
+//     if (auto value = iter->second.try_cast<T>) return std::nullopt;
 //     T* result = any_cast<T>(&iter->second);
 //     return *result;
 //   } else {
@@ -141,7 +139,7 @@ template <typename T>
 std::optional<T> try_get(dict data, const string& key) {
   auto iter = data->find(key);
   if (iter != data->end()) {
-    if (iter->second.type() != typeid(T))
+    if (auto value = iter->second.try_cast<T>)
       return std::nullopt;
     T* result = any_cast<T>(&iter->second);
     return *result;

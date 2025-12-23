@@ -45,14 +45,18 @@ minimum-version = "build-system.requires"
 ninja.version = ">=1.11"
 ninja.make-fallback = false
 
+
 # Build configuration
 build-dir = "build"
+
+
 build.verbose = true
 
 # CMake configuration
 cmake.version = "CMakeLists.txt"
 cmake.build-type = "RelWithDebugInfo"
 cmake.define.USE_CXX11_ABI = { env = "USE_CXX11_ABI" }  # 读取环境变量
+# cmake.define.CMAKE_BUILD_PARALLEL_LEVEL = { env = "CMAKE_BUILD_PARALLEL_LEVEL" }
 
 # Logging
 logging.level = "INFO"
@@ -86,6 +90,6 @@ sdist.exclude = [
 version_file = "python/omniback/_version.py"
 write_to = "python/omniback/_version.py"
 fallback_version = "0.0.1-dev"
-tag_regex = "^t(v)?(\\d+\\.\\d+\\.\\d+.*)$"
+tag_regex = "^t(.*)"
 local_scheme = "no-local-version"
 git_describe_command = ["git", "describe", "--tags", "--long", "--match", "t*"]

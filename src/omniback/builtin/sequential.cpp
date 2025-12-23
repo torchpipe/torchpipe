@@ -87,7 +87,7 @@ void Sequential::impl_custom_init(
 
 void Sequential::update_min_max() {
   // union of all backends
-  max_ = std::numeric_limits<size_t>::max();
+  max_ = std::numeric_limits<uint32_t>::max();
   min_ = 1;
   size_t num_one = 0;
   for (const auto& depend : backends_) {
@@ -101,13 +101,13 @@ void Sequential::update_min_max() {
 
   if (num_one == backends_.size()) {
     max_ = 1;
-  } else if (max_ == std::numeric_limits<size_t>::max() && num_one != 0) {
+  } else if (max_ == std::numeric_limits<uint32_t>::max() && num_one != 0) {
     max_ = 1;
   }
-  // else if (num_one != 0 && max_ == std::numeric_limits<size_t>::max()) {
+  // else if (num_one != 0 && max_ == std::numeric_limits<uint32_t>::max()) {
   //   max_ = 1;
   // }
-  // if (num_one != 0 && max_ == std::numeric_limits<size_t>::max()) {
+  // if (num_one != 0 && max_ == std::numeric_limits<uint32_t>::max()) {
   //   max_ = 1;
   // }
 

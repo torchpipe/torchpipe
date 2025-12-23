@@ -1,24 +1,33 @@
 import pytest
-import omniback._C as _C
+import omniback as om
+import omniback
+import numpy as np
 
+def test_backend():
+    bk = om.Backend()
+    
 def test_backend_creation():
     # Test Identity backend
-    backend = _C.create("Identities")
+    backend = omniback.create("Identities", None)
     assert backend is not None
-    assert backend.max() == 18446744073709551615
+    print(backend.max())
+    assert backend.max() == np.iinfo(np.uint32).max
+    backend.init({'max': "5"}, {})
+    assert backend.max() == 5
 
 def test_backend_initialization():
-    backend = _C.create("Identity")
+    backend = om.create("Identity")
     # Test chained initialization
-    backend.init({"param1": "value1"}).init({})
+    a=backend.init({"param1": "value1"}, None)
+    assert isinstance(a, om.Backend)
     
     # Test with empty config
-    backend.init({})
+    backend.init({}, None)
     
 
 
 def test_backend_execution():
-    backend = _C.create("Identity")
+    backend = om.create("Identity")
     backend.init({})
     
     # Test with different input types
@@ -31,15 +40,18 @@ def test_backend_execution():
     ]
     
     for test_input in test_cases:
-        input_dict = _C.Dict(test_input)
+        input_dict = Dict(test_input)
         backend(input_dict)
         assert pytest.approx(input_dict["result"]) == test_input["data"]
 
 def test_backend_with_event():
-    backend = _C.create("Identity")
+    backend = om.create("Identity")
     backend.init({})
     
     # Test with event
-    input_data = _C.Dict({"data": 100, "event": 1})
+    input_data = om.Dict({"data": 100, "event": 1})
     backend(input_data)
     assert input_data["result"] == 100
+    
+if __name__ == "__main__":
+    test_backend_initialization()

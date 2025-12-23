@@ -25,7 +25,7 @@ class RestartEvent : public DependencyV0 {
  protected:
   struct Stack {
     dict input_data;
-    std::shared_ptr<Event> input_event;
+    Event input_event;
     std::size_t task_queue_index = 0;
     std::string request_id;
     Backend* dependency = nullptr;

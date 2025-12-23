@@ -1,0 +1,443 @@
+/*
+ * omniback_any_ext.h
+ * 对TVM FFI Any的扩展实现，不修改原始代码
+ */
+
+#ifndef OMNIBACK_ANY_EXT_H_
+#define OMNIBACK_ANY_EXT_H_
+
+#include <optional>
+#include <string>
+#include <typeinfo>
+#include <type_traits>
+
+// 假设你已经包含了TVM FFI的Any头文件
+// #include "tvm/ffi/any.h"
+
+namespace omniback {
+namespace ffi {
+
+// 前向声明
+class AnyType;
+
+/**
+ * @brief 将Any强制转换为指定类型
+ *
+ * @tparam T 目标类型
+ * @param any 要转换的Any对象
+ * @return T 转换后的值
+ * @throws std::bad_cast 如果转换失败
+ */
+template <typename T>
+T any_cast(const ::tvm::ffi::Any& any) {
+  // 使用Any的try_cast方法
+  std::optional<T> result = any.try_cast<T>();
+  if (!result.has_value()) {
+    throw std::bad_cast();
+  }
+  return std::move(*result);
+}
+
+/**
+ * @brief 将Any强制转换为指定类型（移动版本）
+ *
+ * @tparam T 目标类型
+ * @param any 要转换的Any对象（将被移动）
+ * @return T 转换后的值
+ * @throws std::bad_cast 如果转换失败
+ */
+template <typename T>
+T any_cast(::tvm::ffi::Any&& any) {
+  // 使用移动版本的as方法
+  auto result = std::move(any).as<T>();
+  if (!result.has_value()) {
+    throw std::bad_cast();
+  }
+  return std::move(*result);
+}
+
+/**
+ * @brief 将AnyView强制转换为指定类型
+ *
+ * @tparam T 目标类型
+ * @param view 要转换的AnyView对象
+ * @return T 转换后的值
+ * @throws std::bad_cast 如果转换失败
+ */
+template <typename T>
+T any_cast(const ::tvm::ffi::AnyView& view) {
+  std::optional<T> result = view.try_cast<T>();
+  if (!result.has_value()) {
+    throw std::bad_cast();
+  }
+  return std::move(*result);
+}
+
+/**
+ * @brief 安全的any_cast，返回std::optional
+ *
+ * @tparam T 目标类型
+ * @param any 要转换的Any对象
+ * @return std::optional<T> 转换结果，如果失败则为std::nullopt
+ */
+template <typename T>
+std::optional<T> any_cast_optional(const ::tvm::ffi::Any& any) {
+  return any.try_cast<T>();
+}
+
+/**
+ * @brief 安全的any_cast，返回std::optional（移动版本）
+ *
+ * @tparam T 目标类型
+ * @param any 要转换的Any对象（将被移动）
+ * @return std::optional<T> 转换结果，如果失败则为std::nullopt
+ */
+template <typename T>
+std::optional<T> any_cast_optional(::tvm::ffi::Any&& any) {
+  return std::move(any).as<T>();
+}
+
+/**
+ * @brief 安全的any_cast，返回std::optional（AnyView版本）
+ *
+ * @tparam T 目标类型
+ * @param view 要转换的AnyView对象
+ * @return std::optional<T> 转换结果，如果失败则为std::nullopt
+ */
+template <typename T>
+std::optional<T> any_cast_optional(const ::tvm::ffi::AnyView& view) {
+  return view.try_cast<T>();
+}
+
+/**
+ * @brief 表示Any类型的类型信息类
+ */
+class AnyType {
+ private:
+  int32_t type_index_;
+  omniback::string type_key_;
+
+  // 私有构造函数，只能通过fromAny创建
+  explicit AnyType(int32_t type_index, omniback::string type_key)
+      : type_index_(type_index), type_key_(std::move(type_key)) {}
+
+ public:
+  /**
+   * @brief 从Any对象创建AnyType
+   *
+   * @param any 源Any对象
+   * @return AnyType 对应的类型信息
+   */
+  static AnyType fromAny(const ::tvm::ffi::Any& any) {
+    return AnyType(any.type_index(), any.GetTypeKey());
+  }
+
+  /**
+   * @brief 从AnyView对象创建AnyType
+   *
+   * @param view 源AnyView对象
+   * @return AnyType 对应的类型信息
+   */
+  static AnyType fromAny(const ::tvm::ffi::AnyView& view) {
+    return AnyType(view.type_index(), view.GetTypeKey());
+  }
+
+  /**
+   * @brief 获取类型索引
+   *
+   * @return int32_t 类型索引
+   */
+  int32_t type_index() const {
+    return type_index_;
+  }
+
+  /**
+   * @brief 获取类型键
+   *
+   * @return const omniback::string& 类型键
+   */
+  const omniback::string& type_key() const {
+    return type_key_;
+  }
+
+  /**
+   * @brief 检查是否是特定类型
+   *
+   * @tparam T 要检查的类型
+   * @return true 如果Any包含T类型
+   * @return false 如果Any不包含T类型
+   */
+  template <typename T>
+  bool is() const {
+    // 检查类型索引是否匹配
+    // 注意：这里需要根据TVM的类型系统进行扩展
+    // 以下是一些常见类型的检查示例
+
+    if constexpr (std::is_same_v<T, int32_t>) {
+      return type_index_ == ::tvm::ffi::TypeIndex::kTVMFFIInt32;
+    } else if constexpr (std::is_same_v<T, int64_t>) {
+      return type_index_ == ::tvm::ffi::TypeIndex::kTVMFFIInt64;
+    } else if constexpr (std::is_same_v<T, float>) {
+      return type_index_ == ::tvm::ffi::TypeIndex::kTVMFFIFloat32;
+    } else if constexpr (std::is_same_v<T, double>) {
+      return type_index_ == ::tvm::ffi::TypeIndex::kTVMFFIFloat64;
+    } else if constexpr (std::is_same_v<T, omniback::string>) {
+      return type_index_ == ::tvm::ffi::TypeIndex::kTVMFFIStr ||
+          type_index_ == ::tvm::ffi::TypeIndex::kTVMFFISmallStr;
+    } else if constexpr (std::is_same_v<T, bool>) {
+      return type_index_ == ::tvm::ffi::TypeIndex::kTVMFFIBool;
+    } else if constexpr (std::is_same_v<T, void>) {
+      return type_index_ == ::tvm::ffi::TypeIndex::kTVMFFINone;
+    } else {
+      // 对于其他类型，可能需要更复杂的检查
+      // 这里可以根据type_key_进行字符串匹配
+      return false;
+    }
+  }
+
+  /**
+   * @brief 检查是否是数值类型（整型或浮点型）
+   *
+   * @return true 如果是数值类型
+   * @return false 如果不是数值类型
+   */
+  bool is_numeric() const {
+    return is<int32_t>() || is<int64_t>() || is<float>() || is<double>();
+  }
+
+  /**
+   * @brief 检查是否是整数类型
+   *
+   * @return true 如果是整数类型
+   * @return false 如果不是整数类型
+   */
+  bool is_integer() const {
+    return is<int32_t>() || is<int64_t>();
+  }
+
+  /**
+   * @brief 检查是否是浮点类型
+   *
+   * @return true 如果是浮点类型
+   * @return false 如果不是浮点类型
+   */
+  bool is_floating_point() const {
+    return is<float>() || is<double>();
+  }
+
+  /**
+   * @brief 检查是否是字符串类型
+   *
+   * @return true 如果是字符串类型
+   * @return false 如果不是字符串类型
+   */
+  bool is_string() const {
+    return is<omniback::string>();
+  }
+
+  /**
+   * @brief 检查是否是布尔类型
+   *
+   * @return true 如果是布尔类型
+   * @return false 如果不是布尔类型
+   */
+  bool is_boolean() const {
+    return is<bool>();
+  }
+
+  /**
+   * @brief 检查是否是None/void类型
+   *
+   * @return true 如果是None类型
+   * @return false 如果不是None类型
+   */
+  bool is_none() const {
+    return is<void>();
+  }
+
+  /**
+   * @brief 比较操作符==
+   *
+   * @param other 另一个AnyType
+   * @return true 如果类型相同
+   * @return false 如果类型不同
+   */
+  bool operator==(const AnyType& other) const {
+    return type_index_ == other.type_index_;
+  }
+
+  /**
+   * @brief 比较操作符!=
+   *
+   * @param other 另一个AnyType
+   * @return true 如果类型不同
+   * @return false 如果类型相同
+   */
+  bool operator!=(const AnyType& other) const {
+    return !(*this == other);
+  }
+
+  /**
+   * @brief 与C++ type_info比较
+   *
+   * @param info C++ type_info
+   * @return true 如果类型匹配
+   * @return false 如果类型不匹配
+   */
+  bool operator==(const std::type_info& info) const {
+    // 将C++类型映射到TVM类型索引
+    if (info == typeid(int32_t)) {
+      return is<int32_t>();
+    } else if (info == typeid(int64_t)) {
+      return is<int64_t>();
+    } else if (info == typeid(float)) {
+      return is<float>();
+    } else if (info == typeid(double)) {
+      return is<double>();
+    } else if (info == typeid(bool)) {
+      return is<bool>();
+    } else if (info == typeid(omniback::string)) {
+      return is<omniback::string>();
+    } else if (info == typeid(void)) {
+      return is<void>();
+    }
+    return false;
+  }
+
+  /**
+   * @brief 与C++ type_info比较
+   *
+   * @param info C++ type_info
+   * @return true 如果类型不匹配
+   * @return false 如果类型匹配
+   */
+  bool operator!=(const std::type_info& info) const {
+    return !(*this == info);
+  }
+
+  /**
+   * @brief 转换为字符串表示
+   *
+   * @return omniback::string 类型字符串
+   */
+  omniback::string to_string() const {
+    return type_key_;
+  }
+};
+
+/**
+ * @brief 获取Any对象的类型信息
+ *
+ * @param any 源Any对象
+ * @return AnyType 类型信息
+ */
+inline AnyType type(const ::tvm::ffi::Any& any) {
+  return AnyType::fromAny(any);
+}
+
+/**
+ * @brief 获取AnyView对象的类型信息
+ *
+ * @param view 源AnyView对象
+ * @return AnyType 类型信息
+ */
+inline AnyType type(const ::tvm::ffi::AnyView& view) {
+  return AnyType::fromAny(view);
+}
+
+/**
+ * @brief 类型检查辅助函数
+ *
+ * @tparam T 要检查的类型
+ * @param any 要检查的Any对象
+ * @return true 如果Any包含T类型
+ * @return false 如果Any不包含T类型
+ */
+template <typename T>
+bool is_type(const ::tvm::ffi::Any& any) {
+  return type(any).is<T>();
+}
+
+/**
+ * @brief 类型检查辅助函数（AnyView版本）
+ *
+ * @tparam T 要检查的类型
+ * @param view 要检查的AnyView对象
+ * @return true 如果AnyView包含T类型
+ * @return false 如果AnyView不包含T类型
+ */
+template <typename T>
+bool is_type(const ::tvm::ffi::AnyView& view) {
+  return type(view).is<T>();
+}
+
+/**
+ * @brief 专门用于float类型检查的便捷函数
+ *
+ * @param any 要检查的Any对象
+ * @return true 如果是float类型
+ * @return false 如果不是float类型
+ */
+inline bool is_float(const ::tvm::ffi::Any& any) {
+  return type(any).is<float>();
+}
+
+/**
+ * @brief 专门用于double类型检查的便捷函数
+ *
+ * @param any 要检查的Any对象
+ * @return true 如果是double类型
+ * @return false 如果不是double类型
+ */
+inline bool is_double(const ::tvm::ffi::Any& any) {
+  return type(any).is<double>();
+}
+
+/**
+ * @brief 专门用于int32_t类型检查的便捷函数
+ *
+ * @param any 要检查的Any对象
+ * @return true 如果是int32_t类型
+ * @return false 如果不是int32_t类型
+ */
+inline bool is_int32(const ::tvm::ffi::Any& any) {
+  return type(any).is<int32_t>();
+}
+
+/**
+ * @brief 专门用于int64_t类型检查的便捷函数
+ *
+ * @param any 要检查的Any对象
+ * @return true 如果是int64_t类型
+ * @return false 如果不是int64_t类型
+ */
+inline bool is_int64(const ::tvm::ffi::Any& any) {
+  return type(any).is<int64_t>();
+}
+
+/**
+ * @brief 专门用于字符串类型检查的便捷函数
+ *
+ * @param any 要检查的Any对象
+ * @return true 如果是字符串类型
+ * @return false 如果不是字符串类型
+ */
+inline bool is_string(const ::tvm::ffi::Any& any) {
+  return type(any).is<omniback::string>();
+}
+
+/**
+ * @brief 专门用于布尔类型检查的便捷函数
+ *
+ * @param any 要检查的Any对象
+ * @return true 如果是布尔类型
+ * @return false 如果不是布尔类型
+ */
+inline bool is_bool(const ::tvm::ffi::Any& any) {
+  return type(any).is<bool>();
+}
+
+} // namespace ffi
+} // namespace omniback
+
+#endif // OMNIBACK_ANY_EXT_H_

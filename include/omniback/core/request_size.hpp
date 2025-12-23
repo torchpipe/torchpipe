@@ -18,12 +18,10 @@ template <>
 inline int get_request_size<dict>(const dict& in) {
   const auto iter = in->find(TASK_REQUEST_SIZE_KEY);
   if (iter != in->end()) {
-    if (iter->second.type() == typeid(int))
-      return any_cast<int>(iter->second);
-    // else if (iter->second.type() == typeid(size_t))
-    // return any_cast<size_t>(iter->second);
+    if (auto value = iter->second.try_cast<int>())
+      return value.value();
     else {
-      return std::stoi(any_cast<string>(iter->second));
+      return std::stoi(iter->second.cast<std::string>());
     }
   } else {
     return 1;

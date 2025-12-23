@@ -119,12 +119,12 @@ class OMNI_EXPORT Identities : public Backend {
       (*item)[TASK_RESULT_KEY] = item->at(TASK_DATA_KEY);
     }
   }
-  [[nodiscard]] size_t impl_max() const override final {
+  [[nodiscard]] uint32_t impl_max() const override final {
     return max_;
   }
 
  private:
-  size_t max_{std::numeric_limits<size_t>::max()};
+  uint32_t max_{std::numeric_limits<uint32_t>::max()};
 };
 OMNI_REGISTER_BACKEND(Identities);
 
@@ -146,7 +146,7 @@ class OMNI_EXPORT TimeStamp : public Backend {
       (*item)[key_] = time;
     }
   }
-  [[nodiscard]] size_t impl_max() const override final {
+  [[nodiscard]] uint32_t impl_max() const override final {
     return max_;
   }
 
@@ -157,7 +157,7 @@ class OMNI_EXPORT TimeStamp : public Backend {
             std::chrono::system_clock::now().time_since_epoch())
             .count());
   }
-  size_t max_{std::numeric_limits<size_t>::max()};
+  uint32_t max_{std::numeric_limits<uint32_t>::max()};
   std::string key_;
 };
 OMNI_REGISTER_BACKEND(TimeStamp);
@@ -181,7 +181,7 @@ class OMNI_EXPORT LogTime : public Backend {
       (*item)[TASK_RESULT_KEY] = item->at(TASK_DATA_KEY);
     }
   }
-  [[nodiscard]] size_t impl_max() const override final {
+  [[nodiscard]] uint32_t impl_max() const override final {
     return max_;
   }
 
@@ -192,7 +192,7 @@ class OMNI_EXPORT LogTime : public Backend {
             std::chrono::system_clock::now().time_since_epoch())
             .count());
   }
-  size_t max_{std::numeric_limits<size_t>::max()};
+  uint32_t max_{std::numeric_limits<uint32_t>::max()};
   std::string key_;
 };
 OMNI_REGISTER_BACKEND(LogTime);

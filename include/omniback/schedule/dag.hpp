@@ -35,7 +35,9 @@ class DagDispatcher : public HasEventForwardGuard {
  protected:
   struct Stack {
     dict input_data;
-    std::shared_ptr<Event> input_event;
+    // std::optional<Event> input_event;
+    Event input_event;
+    
     std::size_t task_queue_index = 0;
     std::exception_ptr exception;
     // std::string curr_node_name;
@@ -52,7 +54,7 @@ class DagDispatcher : public HasEventForwardGuard {
   void clear(Stack* pstack) {
     pstack->dag.processed.clear();
     // pstack->dag.processed_or_processing_nodes.clear();
-    pstack->input_event = nullptr;
+    // pstack->input_event->clear();
     pstack->input_data = nullptr;
   }
 

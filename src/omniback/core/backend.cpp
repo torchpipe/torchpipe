@@ -38,7 +38,7 @@ void HasEventForwardGuard::impl_forward(const std::vector<dict>& inputs) {
       });
 
   if (none_have_event) {
-    auto ev = make_event(inputs.size());
+    auto ev = Event(inputs.size());
     for (auto& item : inputs) {
       (*item)[TASK_EVENT_KEY] = ev;
     }
@@ -180,7 +180,7 @@ void evented_forward(Backend& self, const std::vector<dict>& inputs) {
       });
 
   if (none_have_event) {
-    auto ev = make_event(inputs.size());
+    auto ev = Event(inputs.size());
     for (auto& item : inputs) {
       (*item)[TASK_EVENT_KEY] = ev;
     }

@@ -108,7 +108,7 @@ void init_any(py::module_& m) {
                 "vector<unsigned char>, vector<char>, string.");
           })
       // .DEFINE_CONVERSION_AS(TypedDict, typed_dict)
-      .DEFINE_CONVERSION_AS(std::shared_ptr<Event>, event);
+      .DEFINE_CONVERSION_AS(Event, event);
 }
 
 } // namespace omniback

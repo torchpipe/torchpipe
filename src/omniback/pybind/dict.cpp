@@ -139,8 +139,8 @@ void PyDict::set(const std::string& key, const py::object& value) {
   // (*data)[key] = data;
 }
 
-std::shared_ptr<Event> PyDict::set_event() {
-  auto ev = make_event();
+Event PyDict::set_event() {
+  auto ev = Event();
   (*data_)[TASK_EVENT_KEY] = ev;
   return ev;
 }

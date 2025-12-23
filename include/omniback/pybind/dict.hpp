@@ -13,7 +13,7 @@ class PyDict {
 
   void set(const std::string& key, const py::object& value);
   void set(const std::string& key, const str::str_map& value);
-  std::shared_ptr<Event> set_event();
+  Event set_event();
 
   py::object get(const std::string& key) const;
 

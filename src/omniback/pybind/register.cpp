@@ -27,7 +27,7 @@ converterRegistryInstance<any, pybind11::object>() {
 OMNI_ADD_HASH(std::shared_ptr<TypedDict>);
 // OMNI_ADD_HASH(std::shared_ptr<Queue>);
 
-OMNI_ADD_HASH(std::shared_ptr<Event>);
+OMNI_ADD_HASH(Event);
 OMNI_ADD_HASH(
     std::pair<std::unordered_map<std::string, std::string>, std::string>)(
     [](const any& data) {

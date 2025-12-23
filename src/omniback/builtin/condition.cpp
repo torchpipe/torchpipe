@@ -138,10 +138,10 @@ class Random : public Backend {
         dependency_a_->min() == dependency_b_->min() &&
         dependency_a_->min() == 1);
   }
-  [[nodiscard]] size_t impl_max() const override {
+  [[nodiscard]] uint32_t impl_max() const override {
     return dependency_a_->max();
   }
-  [[nodiscard]] size_t impl_min() const override {
+  [[nodiscard]] uint32_t impl_min() const override {
     return dependency_a_->min();
   }
 

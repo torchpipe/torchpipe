@@ -18,11 +18,13 @@
 #include <vector>
 #include "omniback/core/backend.hpp"
 #include "omniback/core/dict.hpp"
+#include "omniback/core/event.hpp"
+
 #include "omniback/core/request_size.hpp"
 #include "omniback/core/task_keys.hpp"
 namespace omniback {
 
-class Event;
+// class Event;
 
 /**
  * @brief Helper class for managing event lifecycle and ensuring proper
@@ -47,7 +49,7 @@ class HasEventHelper {
 
  private:
   const std::vector<dict>& dicts_;
-  std::shared_ptr<Event> event_;
+  std::optional<Event> event_;
 };
 
 class DictHelper {
