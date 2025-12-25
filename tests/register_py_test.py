@@ -8,6 +8,7 @@ class TestPyComponent:
     @pytest.fixture(scope="class")
     def py_instance(self):
         """Fixture to register a PY instance with class scope"""
+
         instance = PY("test_instance")
         omniback.register('py', instance)
         return instance
@@ -28,26 +29,24 @@ class TestPyComponent:
         # Initialize backend components
         import time 
         # time.sleep(15)
-        self.backend_b = omniback._C.init(
+        self.backend_b = omniback.init(
             "InstancesRegister[BackgroundThread[BackendProxy]]",
             backend_config
         )
-        self.backend_a = omniback._C.init(
+        self.backend_a = omniback.init(
             "Register[IoCV0[SharedInstancesState,InstanceDispatcher,Batching;DI_v0[Batching, InstanceDispatcher]]]",
             {
                 "node_name": backend_config["node_name"],
                 "instance_num": backend_config["instance_num"]
             }
         )
-        self.list = omniback._C.init("List[InstancesRegister[BackgroundThread[BackendProxy]], Register[IoCV0[SharedInstancesState,InstanceDispatcher,Batching;DI_v0[Batching, InstanceDispatcher]]]]",
+        self.list = omniback.init("List[InstancesRegister[BackgroundThread[BackendProxy]], Register[IoCV0[SharedInstancesState,InstanceDispatcher,Batching;DI_v0[Batching, InstanceDispatcher]]]]",
                                  {
                                      "node_name": backend_config["node_name_2"],
                                     "instance_num": backend_config["instance_num"],
                                     "backend": backend_config["backend"]
                                 })
         yield
-        # Add cleanup logic here if required
-        # Example: self.backend_a.shutdown()
 
     @pytest.mark.parametrize("input_data,expected", [
         ({'data': 3}, 3),
@@ -65,7 +64,7 @@ class TestPyComponent:
         assert test_data['result'] == expected
 
     def test_get(self):
-        z=omniback._C.get("py")
+        z=omniback.get("py")
         # z2=omniback._C.get("node.test_node.0")
         assert z
         # assert (z2 and z)
@@ -73,8 +72,14 @@ class TestPyComponent:
         
 class PY:
     def __init__(self, *args, **kwargs) -> None:
-        pass
+        self.data = {"1,2": 3}
+        self.g = {"dsfafwed": self.data}
 
     def forward(self, inout: List[omniback.Dict]):
         """Process data by copying 'data' to 'result'"""
         inout[0]['result'] = inout[0]['data']
+
+
+ 
+if __name__ == "__main__":
+    pass

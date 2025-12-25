@@ -1,11 +1,12 @@
-# from omniback import _C
-from typing import Dict, Any
-# import tomllib
+
 from pathlib import Path
 from typing import Dict, Any, Union
 import logging
 import json
 import os
+
+from ._ffi_api import init, create, OmDict
+
 logger = logging.getLogger("omniback")
 
 
@@ -120,9 +121,9 @@ def pipe(config):
                 if not isinstance(v, (bytes, str)):
                     config[k] = str(v)  # .encode("utf8")
         print(config)
-        return _C.init("Interpreter", {}, _C.Dict({"config": (config)}))
+        return init("Interpreter", {}, OmDict({"config": (config)}), None)
 
-    return _C.init(config)
+    return init(config, {}, None, None)
 
 
 def init_from_file(file_path: Union[str, Path]):
@@ -144,6 +145,4 @@ def init_from_file(file_path: Union[str, Path]):
 
     logger.info(f"Initializing interpreter with {len(data)} components")
 
-    from omniback._C import init, Dict
-
-    return init("Interpreter", {}, Dict({"config": data}))
+    return init("Interpreter", {}, OmDict({"config": data}), None)

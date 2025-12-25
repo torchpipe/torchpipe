@@ -176,11 +176,17 @@ class OMNI_EXPORT Backend {
   }
 
   [[nodiscard]] virtual uint32_t impl_min() const {
+    return default_min();
+  }
+  [[nodiscard]] virtual uint32_t impl_max() const { return default_max(); };
+
+  static constexpr uint32_t default_max() {
+    return std::numeric_limits<uint32_t>::max();
+  }
+  static constexpr uint32_t default_min() {
     return 1;
   }
-  [[nodiscard]] virtual uint32_t impl_max() const {
-    return std::numeric_limits<uint32_t>::max();
-  };
+
   virtual void impl_inject_dependency(Backend* dependency) {}
 };
 
@@ -276,7 +282,7 @@ OMNI_EXPORT void register_backend(
     std::shared_ptr<Backend> backend);
 OMNI_EXPORT Backend* get_backend(const std::string& aspect_name_str);
 OMNI_EXPORT void unregister_backend(const std::string& aspect_name_str);
-OMNI_EXPORT void clearup_backend();
+OMNI_EXPORT void cleanup_backend();
 OMNI_EXPORT std::unique_ptr<Backend> init_backend(
     const std::string& backend,
     std::unordered_map<std::string, std::string> config,

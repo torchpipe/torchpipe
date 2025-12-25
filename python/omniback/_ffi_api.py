@@ -20,7 +20,7 @@ class FFIQueue(tvm_ffi.Object):
 
 
 @tvm_ffi.register_object("omniback.Dict")
-class Dict(tvm_ffi.Object):
+class OmDict(tvm_ffi.Object):
     def __init__(self, data=None) -> None:
         """Construct a omniback.Dict."""
         if data is None:
@@ -36,23 +36,51 @@ class Dict(tvm_ffi.Object):
         return f"{{{items_repr}}}"
 
 
+class _PyDictWrapper:
+    def __init__(self, dict_obj: dict, om_dict: OmDict):
+        self.dict_obj = dict_obj
+        self.om_dict = om_dict
+
+    def callback(self):
+        self.dict_obj.pop("result", None)
+        for k, v in self.om_dict.items():
+            self.dict_obj[k] = v
 
 
 @tvm_ffi.register_object("omniback.Backend")
 class Backend(tvm_ffi.Object):
-    def __init__(self, data=None) -> None:
+    def __init__(self, params={}, options=None) -> None:
         """Construct a omniback.Backend."""
         self.__ffi_init__()
+        self._init(params, options)
+    
+    def init(self, params={}, options=None):
+        """Initialize the backend with the given parameters and options."""
+        return self._init(params, options)
+    
+    def __call__(self, ios):
+        """Execute the backend with the given input dictionary."""
+        if isinstance(ios, list):
+            assert all(isinstance(io, OmDict)
+                       for io in ios), "Please use List[omniback.Dict] as input"
+            self.forward(ios)
+        elif isinstance(ios, dict):
+            input = OmDict(ios)
+            input.callback = _PyDictWrapper(ios, input).callback
+            self.forward([input])
+        elif isinstance(ios, OmDict):
+            self.forward([ios])
+        else:
+            raise TypeError("Input must be List[omniback.Dict] or omniback.Dict or dict")
 
-
+        # self._call(input_dict)
 
 
 @tvm_ffi.register_object("omniback.Event")
 class Event(tvm_ffi.Object):
     def __init__(self, num=1) -> None:
         """Construct a omniback.Event."""
-        self.__ffi_init__(num) 
-         
+        self.__ffi_init__(num)
 
 
 Queue = FFIQueue

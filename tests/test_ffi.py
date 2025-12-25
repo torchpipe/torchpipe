@@ -26,7 +26,7 @@ def test_queue():
     # print(dq.get())
     
 def test_dict():
-    d = omniback.ffi.Dict()
+    d = omniback.Dict()
     print(d)
     
 if __name__ == "__main__":

@@ -9,6 +9,7 @@
 #include "omniback/helper/unique_index.hpp"
 
 #include "omniback/builtin/control_plane.hpp"
+#include <tvm/ffi/error.h>
 
 namespace omniback {
 
@@ -47,12 +48,10 @@ void IoCV0::impl_init(
   for (size_t i = 0; i < base_config_.size(); ++i) {
     const auto& item = base_config_[i];
     auto main_backend = item.at("backend");
-    if (keys.count(main_backend) != 0) {
-      throw std::invalid_argument(
-          "Duplicate backend name detected during initialization "
-          "parsing: " +
-          main_backend);
-    }
+    TVM_FFI_ICHECK(keys.count(main_backend) == 0)
+        << "Duplicate backend name detected during initialization "
+           "parsing: " <<
+            main_backend;
 
     keys.insert(main_backend);
     size_t find_start = 0;

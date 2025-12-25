@@ -14,11 +14,37 @@ from . import _ffi_api as ffi
 from ._ffi_api import _C
 
 
-from ._ffi_api import Dict, Queue, default_queue, Event, Backend
+from ._ffi_api import  Queue, default_queue, Event, Backend
+from ._ffi_api import OmDict as Dict
 
 def create(name, register_name=None):
     return ffi.create(name, register_name)
 
+def init(name, params={}, options=None, register_name=None):
+    return ffi.init(name, params, options, register_name)
+
+
+def register(name, object_or_type):
+    if isinstance(object_or_type, type):
+        raise NotImplementedError(
+            "Registering from type is not implemented yet")
+    else:
+        # init_func = getattr(object_or_type, "init", None)
+        # forward_func = getattr(object_or_type, "forward", None)
+        # max_func = getattr(object_or_type, "max", None)
+        # min_func = getattr(object_or_type, "min", None)
+        ins_type = type(object_or_type)
+        init_func = getattr(ins_type, "init", None)
+        forward_func = getattr(ins_type, "forward", None)
+        max_func = getattr(ins_type, "max", None)
+        min_func = getattr(ins_type, "min", None)
+    return ffi.register(name, object_or_type, init_func, forward_func, max_func, min_func)
+
+import atexit
+assert atexit.register(ffi.cleanup)
+
+def get(name):
+    return ffi.get(name)
 
 try:
     # type: ignore[import-not-found]

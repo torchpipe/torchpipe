@@ -26,7 +26,7 @@ class BackendManager:
             node_name = config["node_name"]
             full_config = {**self.BASE_CONFIG, **config}
             # print(full_config)
-            self.backends[node_name] = omniback._C.init(self.BACKEND_TEMPLATE, full_config)
+            self.backends[node_name] = omniback.init(self.BACKEND_TEMPLATE, full_config)
 
 def create_dag_config() -> Dict[str, Any]:
     return {
@@ -42,7 +42,7 @@ def backend_manager():
 @pytest.fixture
 def dag_model():
     dag_config = create_dag_config()
-    return omniback._C.init("DagDispatcher", {}, omniback.Dict({"config": dag_config}))
+    return omniback.init("DagDispatcher", {}, omniback.Dict({"config": dag_config}))
 
 def test_dag(backend_manager, dag_model):
     input_data = {"data": 2, "node_name": "node_a"}

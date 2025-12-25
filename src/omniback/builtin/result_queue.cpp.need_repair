@@ -60,12 +60,11 @@ void QueueBackend::impl_inject_dependency(Backend* dep) {
 
 void QueueBackend::run() {
   while (bInited_.load()) {
-    auto data = queue_->try_get(SHUTDOWN_TIMEOUT_MS);
-    if (!data.first)
+    auto data = queue_->pop<omniback::dict>(SHUTDOWN_TIMEOUT);
+    if (!data.has_value())
       continue;
-    auto io_data = *(data.first);
+    auto io_data = (data.value());
     assert(io_data);
-    (*io_data)[TASK_REQUEST_SIZE_KEY] = int(data.second);
     target_backend_->forward({io_data});
   }
 }

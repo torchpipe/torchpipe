@@ -9,6 +9,7 @@
 #include "omniback/helper/base_logging.hpp"
 #include "omniback/helper/macro.h"
 #include "omniback/helper/string.hpp"
+#include <tvm/ffi/extra/stl.h>
 
 namespace omniback::parser {
 
@@ -1022,7 +1023,7 @@ class ParserTest : public BackendOne {
       std::string main_bkd = parser.parse(config, config_output);
 
       data->insert_or_assign(
-          TASK_RESULT_KEY, std::make_pair(main_bkd, config_output));
+          TASK_RESULT_KEY, std::make_tuple(main_bkd, config_output));
     }
   }
 };

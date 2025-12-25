@@ -17,7 +17,7 @@
 #include <tvm/ffi/reflection/registry.h>
 // #include "tvm/ffi/extra/stl.h"
 #include <tvm/ffi/type_traits.h>
-
+#include <tvm/ffi/function.h>
 
 namespace omniback::ffi {
 
@@ -30,6 +30,48 @@ namespace refl = tvm::ffi::reflection;
 class DictObj : public ffi::Object {
  public:
   std::shared_ptr<std::unordered_map<std::string, omniback::any>> data;
+  tvm::ffi::Function py_callback;
+
+  struct PyCallBackGuard{
+    PyCallBackGuard(DictObj* dict_obj){
+      add(dict_obj);
+    }
+    PyCallBackGuard() =default;
+
+    void add(DictObj* dict_obj) {
+      TVM_FFI_ICHECK(dict_obj);
+      dict_objects_.push_back(dict_obj);
+    }
+
+    ~PyCallBackGuard(){
+      for (const auto& dict_obj : dict_objects_)
+        dict_obj->clean_pycallback();
+      } 
+    std::vector<DictObj*> dict_objects_;
+  };
+
+  void try_invoke_and_clean_pycallback() {
+    if (py_callback.defined()) {
+      TVM_FFI_ICHECK(data->find("event") == data->end())
+          << "The 'event' key already exists in the dict; callback cannot be invoked. ";
+      py_callback();
+      py_callback = tvm::ffi::Function();
+      TVM_FFI_ICHECK(!py_callback.defined()) << "callback should be cleared";
+    }
+  }
+
+  void clean_pycallback() {
+
+    py_callback = tvm::ffi::Function();
+  }
+
+  void check_pycallback_legal() {
+    if (py_callback.defined()) {
+      TVM_FFI_ICHECK(data->find("event") == data->end())
+          << "If you are using asynchronous mode (i.e., the input dict contains an 'event' key), "
+             "please use omniback.Dict instead of dict.";
+    }
+  }
 
   static constexpr bool _type_mutable = true;
   DictObj()
@@ -74,6 +116,16 @@ class DictObj : public ffi::Object {
   // Required: declare type information
   TVM_FFI_DECLARE_OBJECT_INFO_FINAL("omniback.Dict", DictObj, ffi::Object);
 };
+
+class DictRef : public tvm::ffi::ObjectRef {
+ public:
+
+  TVM_FFI_DEFINE_OBJECT_REF_METHODS_NULLABLE(
+      DictRef,
+      tvm::ffi::ObjectRef,
+      DictObj);
+};
+
 } // namespace omniback::ffi
 
 namespace tvm::ffi {

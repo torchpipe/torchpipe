@@ -4,7 +4,7 @@
 #include "omniback/core/task_keys.hpp"
 #include "omniback/helper/base_logging.hpp"
 #include "omniback/helper/macro.h"
-
+#include <tvm/ffi/extra/stl.h>
 namespace omniback {
 void Interpreter::impl_init(
     const std::unordered_map<std::string, std::string>& config,
@@ -27,9 +27,9 @@ void Interpreter::impl_init(
     dual_config[TASK_GLOBAL_KEY] = value.value();
     }
   else {
-    OMNI_FATAL_ASSERT(
-        false,
-        "Interpreter: `config` should be a dict or a dict of dict");
+      auto value_l = iter->second.cast<str::mapmap>();
+      //  OMNI_FATAL_ASSERT(
+      //     false, "Interpreter: `config` should be a dict or a dict of dict");
   }
 
   // parser configuration

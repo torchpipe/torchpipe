@@ -19,4 +19,4 @@ def test_configs():
 
         data = omniback.parse(toml_path)
         print(data)
-        omniback._C.init("Interpreter", {}, omniback.Dict({"config": data}))
+        omniback.init("Interpreter", {}, omniback.Dict({"config": data}))

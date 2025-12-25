@@ -82,7 +82,7 @@ void unregister_backend(const std::string& aspect_name_str) {
   OMNI_INSTANCE_UNREGISTER(Backend, aspect_name_str);
 }
 
-void clearup_backend() {
+void cleanup_backend() {
   OMNI_INSTANCE_CLEANUP(Backend);
 }
 

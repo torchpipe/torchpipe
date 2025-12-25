@@ -6,7 +6,9 @@
 #include <thread>
 #include <vector>
 #include "omniback/core/backend.hpp"
+#include "omniback/core/general_queue.hpp"
 #include "omniback/core/queue.hpp"
+
 namespace omniback {
 constexpr auto TASK_ProfileState_KEY = "_ProfileState";
 struct ProfileState {

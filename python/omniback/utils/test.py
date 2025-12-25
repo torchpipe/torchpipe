@@ -772,23 +772,153 @@ def example_mutil_clients_speed_test(file_dir, port, num_clients=10, total_numbe
         forward_function=[x.forward for x in instances],
         ids=ids)
 
+def check_recall_diff(key, threshold, result_path_a, result_path_b):
+    import pickle
 
+    def load_recalled_ids(pkl_path):
+        with open(pkl_path, 'rb') as f:
+            result = pickle.load(f)
+        return {os.path.basename(id_) for id_, res in result.items() if res[key].score >= threshold}, len(result)
 
-def multiple_round_inference(file_dir, port, num_round=10, save_prefix="result", host="127.0.0.1", num_clients=10):
+    recalled_a, all_a = load_recalled_ids(result_path_a)
+    recalled_b, all_b = load_recalled_ids(result_path_b)
+    assert all_a == all_b, "Total number of items differ between the two results"
+    
+    # A 检出但 B 没检出
+    only_in_a = recalled_a - recalled_b
+    # B 检出但 A 没检出
+    only_in_b = recalled_b - recalled_a
+    # 两者都检出
+    both = recalled_a & recalled_b
+
+    total_a = len(recalled_a)
+    total_b = len(recalled_b)
+
+    print(f"Platform A ({result_path_a}): {total_a} recalled")
+    print(f"Platform B ({result_path_b}): {total_b} recalled")
+    print(f"Only in A: {len(only_in_a)}")
+    print(f"Only in B: {len(only_in_b)}")
+    print(f"Both: {len(both)}")
+    print(f"Total: {all_b}")
+
+    
+def check_recall(key, threshold, file_dir=".", prefix='result'):
+    import pickle
+    import glob
+    import numpy as np
+    import os
+
+    pkl_paths = glob.glob(os.path.join(file_dir, f'{prefix}_*.pkl'))
+    pkl_paths = [x for x in pkl_paths if os.path.basename(x).strip(f'{prefix}_').rstrip('.pkl').isdigit()]
+    recall_nums = []
+
+    for pkl_path in pkl_paths:
+        with open(pkl_path, 'rb') as f:
+            result = pickle.load(f)
+
+        # 批量提取所有 score → 转为 NumPy 数组
+        scores = np.fromiter(
+            (res[key].score for res in result.values()),
+            dtype=np.float32,  # 或 np.float64
+            count=len(result)
+        )
+
+        # 向量化比较：O(1) 时间（底层 C）
+        recalled_count = np.count_nonzero(scores >= threshold)
+        total = len(result)
+
+        print(f'{pkl_path}: recalled {recalled_count}/{total}')
+        recall_nums.append(recalled_count)
+
+    # 检查一致性
+    if recall_nums and not np.all(np.array(recall_nums) == recall_nums[0]):
+        raise AssertionError("Different rounds have different recall numbers")
+    
+def multiple_round_inference(file_dir, port, num_round=10, save_prefix="result", host="127.0.0.1", num_clients=10, thrift=None):
     import pickle
     for i in range(num_round):
-        result = example_mutil_clients_inference(
-            file_dir=file_dir,
-            port=port,
-            host=host,
-            num_clients=num_clients,
-            shuffle=(i%2!=0)
-        )
+        if thrift is not None:
+            result = mutil_clients_inference(
+                file_dir=file_dir,
+                port=port,
+                host=host,
+                num_clients=num_clients,
+                shuffle=(i%2!=0),
+                thrift=thrift
+            )
+        else:
+            result = example_mutil_clients_inference(
+                file_dir=file_dir,
+                port=port,
+                host=host,
+                num_clients=num_clients,
+                shuffle=(i%2!=0),
+            )
         pkl_name = f'{save_prefix}_{i}.pkl'
         with open(pkl_name, 'wb') as f:
             pickle.dump(result, f)
             print(f'{pkl_name} saved.')
+
+def mutil_clients_inference(file_dir, thrift, port, host="127.0.0.1", num_clients=10,shuffle=False):
+    import thriftpy2
+    pingpong_thrift = thriftpy2.load(thrift, module_name="pingpong_thrift")
+    final_result = {}
+    class Client:
+        """wrapper for thrift's python API. You may need to re-implement this class."""
+        def __init__(self, host, port, request_batch, data) -> None:
+            """
+            :param host: ip
+            :type host: str
+            :param port: port
+            :type port: int
+            :param request_batch: size of sended data in batches.
+            :type request_batch: int
+            """
+            ## example thrift service:
+
+            self.InferenceParams = pingpong_thrift.InferenceParams
+
+            self.client = thriftpy2.rpc.make_client(pingpong_thrift.InferenceService, host, port)
+
+            # Connect!
+            self.client.ping()
+            self.request_batch = request_batch
+            self.data = data
+
+        def forward(self, data: List[int]) :
+            """batch processing
+            """
+            assert len(data) == 1, "right now only support bs = 1"
             
+            file_path = self.data[data[0]]
+            with open(file_path, "rb") as f:
+                data[0] = (file_path, f.read())
+            result = self.client.infer_batch([self.InferenceParams(*x) for x in data])
+            
+            final_result[data[0][0]] = result[0]
+
+        def __del__(self):
+            self.transport.close()
+        
+    # prepare_data
+    ext = [".jpg", ".JPG", ".jpeg", ".JPEG"]
+    list_images = [
+            x for x in os.listdir(file_dir) if os.path.splitext(x)[-1] in ext
+        ]
+    list_images = [os.path.join(file_dir, x) for x in list_images]
+    
+    instances = [Client(host, port, 1, list_images) for i in range(num_clients)]
+    
+    ids = list(range(len(list_images)))
+    if shuffle:
+        random.shuffle(ids)  # 原地打乱
+        
+    test_from_ids(
+        forward_function=[x.forward for x in instances],
+        ids=ids
+    )
+    return final_result
+    
 def example_mutil_clients_inference(file_dir, port, host="127.0.0.1", num_clients=10,shuffle=False):
     final_result = {}
     class Client:
@@ -843,9 +973,9 @@ def example_mutil_clients_inference(file_dir, port, host="127.0.0.1", num_client
             self.transport.close()
         
     # prepare_data
-    ext = [".jpg", ".JPG", ".jpeg", ".JPEG"]
+    ext = [".jpg", ".jpeg", '.png']
     list_images = [
-            x for x in os.listdir(file_dir) if os.path.splitext(x)[-1] in ext
+            x for x in os.listdir(file_dir) if os.path.splitext(x)[-1].lower() in ext
         ]
     list_images = [os.path.join(file_dir, x) for x in list_images]
     
@@ -872,22 +1002,18 @@ if __name__ == "__main__":
         "test_function": test_function,
         "test_from_ids": test_from_ids,
         "multiple_round_inference": multiple_round_inference,
+        "check_recall": check_recall,
+        "check_recall_diff": check_recall_diff,
     })
     
 
     #压测脚本： 跑多次，并将结果保存在result*.pkl ：
-    # nohup python src/test.py multiple_round_inference /app/ocr202507121_11w/download_12w/ --port=8090 --num_round=100 --save_prefix=result &
+    # nohup python src/test.py multiple_round_inference /path/to/data/ --port=8090 --num_round=100 --save_prefix=result &
 
     # 速度测试：
-    # python src/test.py example_mutil_clients_speed_test /app/ocr202507121_11w/download_12w/ --port=8090
+    # python src/test.py example_mutil_clients_speed_test /path/to/data/ --port=8090
 
-
-    # img_name=harbor.yidunai.service.gy.ntes/neteaseis/ai/contraband-cnmap:master-20231008-5c22aff
-    # docker run --name=zsy_cnmap --gpus=all --ipc=host  --network=host -v `pwd`:/workspace \
-    #    --shm-size 1G  --ulimit memlock=-1 \
-    #        --ulimit stack=67108864  --privileged=true \
-    #          -v  /mnt/data2/zhangshiyang/ocr202507121_11w:/testdata \
-    #                   --ulimit core=-1:-1 \
-    #            -it $img_name /bin/bash
-    # python src/test.py example_mutil_clients_speed_test /testdata/download_12w --port=8090
-    # nohup python src/test.py multiple_round_inference /testdata/download_12w --port=8090 --num_round=100 --save_prefix=result &
+    # 检查multiple_round_inference保存的结果的recall
+    # python src/test.py check_recall  label threshold
+    # python src/test.py check_recall_diff  label threshold result_0.pkl result_1.pkl
+    

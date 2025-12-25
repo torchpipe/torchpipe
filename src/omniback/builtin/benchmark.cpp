@@ -303,7 +303,7 @@ class Profile : public Dependency {
               .count();
       auto data = make_dict();
       data->insert({TASK_DATA_KEY, status});
-      target_queue_->put_without_notify(data);
+      target_queue_->put_wo_notify(data);
       throw;
     }
 
@@ -313,7 +313,7 @@ class Profile : public Dependency {
             .count();
     auto data = make_dict();
     data->insert({TASK_DATA_KEY, status});
-    target_queue_->put_without_notify(data);
+    target_queue_->put_wo_notify(data);
   }
 
  private:

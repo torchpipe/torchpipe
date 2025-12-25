@@ -16,17 +16,18 @@
 
 namespace omniback::ffi {
 struct xx{};
-omniback::any example() {
-  // return 1;
-  std::shared_ptr<std::unordered_map <std::string,
-      omniback::any>> re = std::make_shared<std::unordered_map <std::string,
-      omniback::any>>();
+tvm::ffi::ObjectRef example(tvm::ffi::ObjectRef obj) {
+  return obj;
+             // return 1;
+            //  std::shared_ptr<std::unordered_map<std::string, omniback::any>>
+            //      re = std::make_shared<
+            //          std::unordered_map<std::string, omniback::any>>();
   // tvm::ffi::Array<
   //     std::shared_ptr<std::unordered_map<std::string, omniback::any>>>
   //     res;
   // return res;
   //  res->emplace(re);
-  return omniback::any(std::numeric_limits<uint32_t>::max());
+  // return omniback::any(std::numeric_limits<uint32_t>::max());
 }
 
 // Static initialization block for FFI registration

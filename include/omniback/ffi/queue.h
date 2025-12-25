@@ -1,12 +1,6 @@
-/*!
- * \file omniback/ffi/queue.h
- * \brief Runtime queue container type. Thread-safe.
- */
-
 #ifndef OMNIBACK_FFI_QUEUE_H_
 #define OMNIBACK_FFI_QUEUE_H_
 
-#include <tvm/ffi/object.h>
 #include <tvm/ffi/memory.h>
 #include <tvm/ffi/any.h>
 #include <tvm/ffi/optional.h>
@@ -16,148 +10,184 @@
 #include <deque>
 #include <mutex>
 #include <chrono>
+#include <vector>
 #include <utility>
+#include <optional>
+#include <omniback/core/any.hpp>
 
 namespace omniback {
 namespace ffi {
 
 /*!
- * \brief FFIQueueObj stores queue elements, supports thread-safe push/pop.
+ * \brief ThreadSafeQueueObj stores queue elements, supports thread-safe push/pop with
+ * strong type safety.
  */
-class FFIQueueObj : public tvm::ffi::Object {
+class ThreadSafeQueueObj : public tvm::ffi::Object {
  public:
-  FFIQueueObj() = default;
-  // https://github.com/apache/tvm-ffi/blob/f7e09d6a96b54554190bae0d7ba9ff7a6e9a109e/include/tvm/ffi/object.h#L175
   static constexpr bool _type_mutable = true;
 
-  void put(const tvm::ffi::Any& value) {
+  /*! \brief Put an element to the queue (copy version) */
+  template <typename T>
+  void put(const T& value) {
     std::lock_guard<std::mutex> lock(mutex_);
-    queue_.push_back(value);
-    cv_not_empty_.notify_one();
+    queue_.emplace_back(value);
+    cv_not_empty_.notify_all();
   }
 
-  void put(tvm::ffi::Any&& value) {
+  /*! \brief Put an element to the queue (move version) */
+  template <typename T>
+  void put(T&& value) {
     std::lock_guard<std::mutex> lock(mutex_);
-    queue_.push_back(std::move(value));
-    cv_not_empty_.notify_one();
+    queue_.emplace_back(std::forward<T>(value));
+    cv_not_empty_.notify_all();
   }
 
-  // tvm::ffi::Optional<tvm::ffi::Any> try_pop(
-  //     std::chrono::milliseconds timeout = std::chrono::milliseconds::max()) {
-  //   std::unique_lock<std::mutex> lock(mutex_);
-
-  //   if (timeout == std::chrono::milliseconds::max()) {
-  //     cv_not_empty_.wait(lock, [this]() { return !queue_.empty(); });
-  //   } else {
-  //     if (!cv_not_empty_.wait_for(
-  //             lock, timeout, [this]() { return !queue_.empty(); })) {
-  //       return tvm::ffi::Optional<tvm::ffi::Any>();
-  //     }
-  //   }
-
-  //   tvm::ffi::Any value = std::move(queue_.front());
-  //   queue_.pop_front();
-  //   return tvm::ffi::Optional<tvm::ffi::Any>(std::move(value));
-  // }
-
-  tvm::ffi::Any get() {
+  template <typename T>
+  void put_wo_notify(const T& value) {
     std::lock_guard<std::mutex> lock(mutex_);
-    if (queue_.empty()) {
-      TVM_FFI_THROW(IndexError) << "empty queue";
+    queue_.emplace_back(value);
+  }
+
+  /*! \brief Put multiple elements to the queue (rvalue reference) */
+  template <typename T>
+  void puts(std::vector<T>&& values) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    for (auto& value : values) {
+      queue_.emplace_back(std::move(value));
     }
-    tvm::ffi::Any value = std::move(queue_.front());
-    queue_.pop_front();
-    return value;
+    cv_not_empty_.notify_all();
   }
 
-  tvm::ffi::Any front() const {
+  /*! \brief Put multiple elements to the queue (const reference) */
+  template <typename T>
+  void puts(const std::vector<T>& values) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    for (const auto& value : values) {
+      queue_.emplace_back(value);
+    }
+    cv_not_empty_.notify_all();
+  }
+
+  /*! \brief Get an element from the queue (blocking, type-safe) */
+  template <typename T>
+  T get() {
+    std::unique_lock<std::mutex> lock(mutex_);
+    cv_not_empty_.wait(lock, [this] { return !queue_.empty(); });
+    return unsafe_pop_front<T>();
+  }
+
+  template <typename T>
+  T unsafe_pop_front(){
+    TVM_FFI_ICHECK(!queue_.empty()); 
+    omniback::any value = std::move(queue_.front());
+    queue_.pop_front();
+    return std::move(value).cast<T>();
+  }
+
+  template <typename T>
+  std::optional<T> pop(int timeout_ms) {
+    std::unique_lock<std::mutex> lock(mutex_);
+
+    const auto timeout_dur = std::chrono::milliseconds(timeout_ms);
+
+    bool has_value = cv_not_empty_.wait_for(
+        lock, timeout_dur, [this]() { return !queue_.empty(); });
+
+    if (!has_value) {
+      return std::nullopt;
+    }
+
+    return unsafe_pop_front<T>();
+  }
+
+        /*! \brief Get an element with timeout (blocking with timeout, type-safe)
+       */
+  template <typename T>
+  std::optional<T> get(double timeout_seconds) {
+    std::unique_lock<std::mutex> lock(mutex_);
+    auto timeout = std::chrono::duration<double>(timeout_seconds);
+    bool success = cv_not_empty_.wait_for(
+        lock, timeout, [this] { return !queue_.empty(); });
+
+    if (!success)
+      return std::nullopt;
+    return extract_value<T>(std::move(queue_.front()));
+  }
+
+  /*! \brief Try to get an element without blocking (type-safe) */
+  template <typename T>
+  std::optional<T> try_get() {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (queue_.empty())
+      return std::nullopt;
+    return extract_value<T>(std::move(queue_.front()));
+  }
+
+  /*! \brief Get front element without removing (type-safe, const access) */
+  template <typename T>
+  T front() const {
     std::lock_guard<std::mutex> lock(mutex_);
     if (queue_.empty()) {
-        // throw std::out_of_range("empty queue");
-        TVM_FFI_THROW(IndexError) << "empty queue";
-      }
-    return queue_.front();
+      TVM_FFI_THROW(tvm::ffi::IndexError)
+          << "Cannot access front of empty queue";
+    }
+    return queue_.front().cast<T>();
   }
 
+  /*! \brief Pop the front element without returning it */
+  void pop() {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (queue_.empty()) {
+      TVM_FFI_THROW(tvm::ffi::IndexError) << "Cannot pop from empty queue";
+    }
+    queue_.pop_front();
+  }
+
+  /*! \brief Get current size of queue */
   size_t size() const {
     std::lock_guard<std::mutex> lock(mutex_);
     return queue_.size();
   }
 
+  /*! \brief Check if queue is empty */
   bool empty() const {
     std::lock_guard<std::mutex> lock(mutex_);
     return queue_.empty();
   }
 
+  /*! \brief Clear all elements from queue */
   void clear() {
     std::lock_guard<std::mutex> lock(mutex_);
-    queue_ = std::deque<tvm::ffi::Any>();
+    queue_.clear();
   }
 
   TVM_FFI_DECLARE_OBJECT_INFO_FINAL(
-      "omniback.FFIQueue",
-      FFIQueueObj,
+      "omniback.Queue",
+      ThreadSafeQueueObj,
       tvm::ffi::Object);
 
  private:
+  template <typename T>
+  T extract_value(omniback::any&& any_val) {
+    T value = std::move(any_val).cast<T>();
+    queue_.pop_front();
+    return value;
+  }
+
   mutable std::mutex mutex_;
   std::condition_variable cv_not_empty_;
-  std::deque<tvm::ffi::Any> queue_;
+  std::deque<omniback::any> queue_;
 };
 
-/*!
- * \brief Reference class for FFIQueue.
- */
-class FFIQueue : public tvm::ffi::ObjectRef {
+class ThreadSafeQueueRef : public tvm::ffi::ObjectRef {
  public:
-
-   void put(const tvm::ffi::Any& value) {
-     GetMutableObj()->put(value);
-  }
-
-  void put(tvm::ffi::Any&& value) {
-    GetMutableObj()->put(std::move(value));
-  }
-
-
-  // tvm::ffi::Any get() {
-  //   return GetMutableObj()->get();
-  // }
-
-  void clear() {
-    GetMutableObj()->clear();
-  }
-
-  // const版本：只读操作
-  tvm::ffi::Any front() const {
-    return GetImmutableObj()->front();
-  }
-
-  size_t size() const {
-    return GetImmutableObj()->size();
-  }
-
-  bool empty() const {
-    return GetImmutableObj()->empty();
-  }
-
-  TVM_FFI_DEFINE_OBJECT_REF_METHODS_NULLABLE(
-      FFIQueue,
+  TVM_FFI_DEFINE_OBJECT_REF_METHODS_NOTNULLABLE(
+      ThreadSafeQueueRef,
       tvm::ffi::ObjectRef,
-      FFIQueueObj);
-
- private:
-  FFIQueueObj* GetMutableObj() {
-    return static_cast<FFIQueueObj*>(data_.get());
-  }
-
-  const FFIQueueObj* GetImmutableObj() const {
-    return static_cast<const FFIQueueObj*>(data_.get());
-  }
+      ThreadSafeQueueObj);
 };
 
-using QueueObj = FFIQueueObj;
-using Queue = FFIQueue;
+ThreadSafeQueueObj& default_queue(const std::string& tag = "");
 
 } // namespace ffi
 } // namespace omniback

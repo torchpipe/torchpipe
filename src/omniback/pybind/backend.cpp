@@ -442,12 +442,12 @@ void py_init_backend(py::module_& m) {
   atexit.attr("register")(py::cpp_function([]() {
     py::gil_scoped_release gil;
     // OMNI_INSTANCE_CLEANUP(Backend);
-    clearup_backend();
+    cleanup_backend();
   }));
   m.add_object("_registered_backend_cleanup", py::capsule([]() {
                  py::gil_scoped_release gil;
                  //  OMNI_INSTANCE_CLEANUP(Backend);
-                 clearup_backend();
+                 cleanup_backend();
                }));
 
   py::class_<Backend, std::shared_ptr<Backend>> omniback_backend(m, "Backend");

@@ -8,6 +8,7 @@
 #include "tvm/ffi/extra/stl.h"
 
 #include <tvm/ffi/function.h>
+#include <tvm/ffi/error.h>
 
 namespace omniback::ffi {
 
@@ -15,17 +16,15 @@ namespace ffi = tvm::ffi;
 namespace refl = tvm::ffi::reflection;
 
 
-// 在静态初始化块中注册DictObj的方法
 TVM_FFI_STATIC_INIT_BLOCK() {
 
-  // 注册DictObj的类定义
   refl::ObjectDef<DictObj>()
-      // 构造函数
       .def(refl::init<tvm::ffi::Map<tvm::ffi::String, tvm::ffi::Any>>())
       .def(
           "__len__",
           [](const DictObj* self) -> size_t { return self->GetMap().size(); })
 
+      .def_rw("callback", &DictObj::py_callback)
       .def(
           "__getitem__",
           [](const DictObj* self,

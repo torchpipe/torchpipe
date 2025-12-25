@@ -18,7 +18,7 @@ class QueueBackend : public Backend {
 
   void impl_forward(const std::vector<dict>& input) override final {
     event_guard_forward(
-        [this](const std::vector<dict>& data) {
+        [this](const std::vector<dict>& data) mutable{
           queue_->puts(data);
           // for (auto& item : data) {
           //     queue_->put(item);

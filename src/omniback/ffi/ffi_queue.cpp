@@ -11,17 +11,17 @@ namespace omniback::ffi {
 
 TVM_FFI_STATIC_INIT_BLOCK() {
   namespace refl = tvm::ffi::reflection;
-  refl::ObjectDef<QueueObj>()
+  refl::ObjectDef<ThreadSafeQueueObj>()
       .def(refl::init<>())
-      .def("size", &QueueObj::size)
-      .def("empty", &QueueObj::empty)
-      .def("clear", &QueueObj::clear)
-      .def("front", &QueueObj::front)
-      .def("get", &QueueObj::get)
+      .def("size", &ThreadSafeQueueObj::size)
+      .def("empty", &ThreadSafeQueueObj::empty)
+      .def("clear", &ThreadSafeQueueObj::clear)
+      .def("front", &ThreadSafeQueueObj::front)
+      .def("get", &ThreadSafeQueueObj::get)
       .def(
           "put",
-          static_cast<void (QueueObj::*)(const tvm::ffi::Any&)>(
-              &QueueObj::put));
+          static_cast<void (ThreadSafeQueueObj::*)(const tvm::ffi::Any&)>(
+              &ThreadSafeQueueObj::put));
   ;
 }
 
@@ -35,7 +35,13 @@ static std::mutex& GetQueueRegistryMutex() {
   return m;
 }
 
-Queue default_queue(const std::string& tag = "") {
+void cleanup_queue(){
+  std::lock_guard<std::mutex> lock(GetQueueRegistryMutex());
+  auto& registry = GetQueueRegistry();
+  registry.clear();
+}
+
+ThreadSafeQueueObj& default_queue(const std::string& tag) {
   std::lock_guard<std::mutex> lock(GetQueueRegistryMutex());
   auto& registry = GetQueueRegistry();
 
@@ -44,9 +50,9 @@ Queue default_queue(const std::string& tag = "") {
     return it->second;
   }
 
-  Queue q(tvm::ffi::make_object<QueueObj>());
+  Queue q(tvm::ffi::make_object<ThreadSafeQueueObj>());
   registry[tag] = q;
-  return q;
+  return registry[tag];
 }
 
 TVM_FFI_DLL_EXPORT_TYPED_FUNC(default_queue_one_arg, omniback::ffi::default_queue);
