@@ -1,6 +1,7 @@
 #pragma once
 
 #include <thread>
+#include <numeric>
 // #include "threadsafe_queue.hpp"
 #include "omniback/builtin/basic_backends.hpp"
 // #include  "omniback/helper/threadsafe_queue.hpp"
@@ -97,7 +98,7 @@ class Batching : public Dependency {
   std::atomic_bool bInited_{false};
   int batching_timeout_ = -1;
   std::thread thread_;
-  ThreadSafeSizedQueue<dict> input_queue_;
+  queue::ThreadSafeSizedQueue<dict> input_queue_;
   std::shared_ptr<InstancesState> instances_state_;
   std::string node_name_;
 };

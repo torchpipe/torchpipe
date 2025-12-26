@@ -21,20 +21,20 @@ void Source::impl_forward(const std::vector<dict>& input) {
   std::random_device seeder;
   std::mt19937 engine(seeder());
   std::uniform_int_distribution<int> dist(0, input.size() - 1);
-  auto src_queue = &default_src_queue();
+  auto src_queue = &default_queue("source");
 
   if (total_number_ > 0) {
     size_t num_finish = 0;
     while (num_finish < total_number_) {
-      if (src_queue->try_put(
+      if (src_queue->push_with_max_limit(
               copy_dict(input[dist(engine)]),
               20,
-              std::chrono::milliseconds(SHUTDOWN_TIMEOUT))) {
+              SHUTDOWN_TIMEOUT)) {
         num_finish++;
       }
     }
   } else {
-    src_queue->puts(input);
+    src_queue->pushes(input);
   }
 }
 

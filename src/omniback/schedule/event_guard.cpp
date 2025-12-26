@@ -114,27 +114,28 @@ class ThreadPoolExecutor : public Dependency {
 
     do {
       // SPDLOG_INFO(" pool queue input : {}", queue->size());
-      auto [data, len] = queue->try_get(std::chrono::milliseconds(500));
+      auto data_opt = queue->wait_get<dict>(500);
       // SPDLOG_INFO("queue get {}", len);
-      if (!data)
+      if (!data_opt)
         continue;
+      auto data = data_opt.value();
       // SPDLOG_INFO("queue :  {}, {} {}", queue->size(),
       // pool_->get_tasks_total(), pool_->get_tasks_queued());
       pool_->detach_task([this, &dep, data, queue]() {
         try {
-          dep.forward({*data});
+          dep.forward({data});
         } catch (...) {
           // queue->set_error();
-          (*(*data))["exception"] = std::current_exception();
+          (*data)["exception"] = std::current_exception();
         }
-        target_queue_->put(*data);
+        target_queue_->push(data);
       });
 
       while (!pool_->wait_atmost_queued_tasks_for(
           max_workers_ / 3 + 1, std::chrono::milliseconds(500)))
         ;
 
-    } while (queue->status() == Queue::Status::RUNNING && alive_.load());
+    } while (alive_.load());
 
     while (
         alive_.load() &&

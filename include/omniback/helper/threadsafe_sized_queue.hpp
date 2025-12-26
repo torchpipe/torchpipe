@@ -23,7 +23,7 @@
 #include "omniback/helper/sized_queue.hpp"
 
 // #include "base_logging.hpp"
-namespace omniback {
+namespace omniback::queue {
 
 template <typename T>
 class ThreadSafeSizedQueue {

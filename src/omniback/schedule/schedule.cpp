@@ -107,15 +107,15 @@ void Loop::run() {
           break;
         }
         input_data_size += src_queue_->front_size();
-        auto data = src_queue_->get();
+        auto data = src_queue_->get<dict>();
         input_data.push_back(data);
       }
       impl_forward_sync(input_data);
     } else if (input_data_size + queue_size == 0) {
-      auto [data, size] =
-          src_queue_->try_get(std::chrono::milliseconds(SHUTDOWN_TIMEOUT));
-      if (data) {
-        input_data.push_back(*data);
+      size_t size{0};
+      auto data_opt =  src_queue_->wait_get<dict>(SHUTDOWN_TIMEOUT, size);
+      if (data_opt) {
+        input_data.push_back(data_opt.value());
         input_data_size += size;
       }
       continue;
@@ -127,7 +127,7 @@ void Loop::run() {
           break;
         }
         input_data_size += src_queue_->front_size();
-        input_data.push_back(src_queue_->get());
+        input_data.push_back(src_queue_->get<dict>());
       }
       if (input_data_size + new_pop >= max_) {
         continue; // go to another branch
@@ -136,14 +136,14 @@ void Loop::run() {
     } else {
       if (input_data_size == 0) {
         input_data_size += src_queue_->front_size();
-        input_data.push_back(src_queue_->get());
+        input_data.push_back(src_queue_->get<dict>());
       }
       Event event =
           any_cast<Event>(input_data[0]->at(TASK_EVENT_KEY));
       auto time_es = event->time_passed();
       int time = int(timeout_ - time_es);
       if (time > 0) {
-        if (!src_queue_->wait_for(std::chrono::milliseconds(time))) {
+        if (!src_queue_->wait_for(time)) {
           timeout = true;
         } else {
           // todo
@@ -166,7 +166,7 @@ void Loop::impl_forward(const std::vector<dict>& ios) {
       ios); // add `event` (and wait for possible exception) if not exist
 
   // SPDLOG_INFO("src_queue_ puts ios.size() = {}", ios.size());
-  src_queue_->puts(ios);
+  src_queue_->pushes(ios);
   // SPDLOG_INFO("src_queue_ puts finish ");
   helper.wait();
   // SPDLOG_INFO("src_queue_ wait finish ");

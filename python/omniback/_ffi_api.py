@@ -10,7 +10,7 @@ _C = tvm_ffi.load_module(libinfo.find_libomniback())
 tvm_ffi.init_ffi_api("omniback", __name__)
 
 
-@tvm_ffi.register_object("omniback.FFIQueue")
+@tvm_ffi.register_object("omniback.Queue")
 class FFIQueue(tvm_ffi.Object):
     def __init__(self) -> None:
         """Construct the object."""

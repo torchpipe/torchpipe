@@ -19,13 +19,10 @@ void Benchmark::impl_init(
     const std::unordered_map<std::string, std::string>& config,
     const dict& kwargs) {
   auto dep = get_dependency_name(this, config, "Benchmark");
-  if (dep) {
-    target_queue_ = OMNI_INSTANCE_GET(Queue, *dep);
-  } else {
-    target_queue_ = &default_queue();
-  }
+  std::string tag = dep? dep.value(): "";
+  target_queue_ = &default_queue(tag);
+  SPDLOG_INFO("Benchmark: use default queue with tag: {}", tag);
 
-  // src_queue_ = &default_src_queue();
   OMNI_ASSERT(target_queue_);
 
   str::try_update(config, "num_clients", num_clients_);
@@ -133,7 +130,7 @@ void Benchmark::impl_forward_with_dep(
   auto profile_result = get_output(first_exception);
   dict data = make_dict();
   (*data)[TASK_DATA_KEY] = profile_result;
-  target_queue_->put(data);
+  target_queue_->push(data);
 
   if (first_exception) {
     std::rethrow_exception(first_exception);
@@ -303,7 +300,7 @@ class Profile : public Dependency {
               .count();
       auto data = make_dict();
       data->insert({TASK_DATA_KEY, status});
-      target_queue_->put_wo_notify(data);
+      target_queue_->push_wo_notify(data);
       throw;
     }
 
@@ -313,7 +310,7 @@ class Profile : public Dependency {
             .count();
     auto data = make_dict();
     data->insert({TASK_DATA_KEY, status});
-    target_queue_->put_wo_notify(data);
+    target_queue_->push_wo_notify(data);
   }
 
  private:
