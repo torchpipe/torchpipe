@@ -20,10 +20,10 @@ def test_queue():
     assert dq.size() == 1, f'dq.size() == {dq.size()},  != 1'
     re = dq.get()
     assert re[0] == 3, f'{re}'
-    with pytest.raises(IndexError):
+    print(f'{dq.size()}')
+    with pytest.raises(RuntimeError):
         dq.get()
         
-    # print(dq.get())
     
 def test_dict():
     d = omniback.Dict()
