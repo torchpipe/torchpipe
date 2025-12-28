@@ -60,7 +60,7 @@ class ModelLoadder : public omniback::Container {
       const omniback::dict& kwargs) override;
 
  private:
-  std::vector<size_t> set_init_order(size_t max_range) const override {
+  std::vector<uint32_t> set_init_order(uint32_t max_range) const override {
     return {};
   }
 };

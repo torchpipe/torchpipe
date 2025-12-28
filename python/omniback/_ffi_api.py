@@ -91,4 +91,7 @@ def default_queue(tag=""):
     return _C.default_queue_one_arg(tag)
 
 
+def default_page_table(tag=""):
+    return _C.default_page_table(tag)
+
 # _C.default_queue = default_queue

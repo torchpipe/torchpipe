@@ -14,10 +14,10 @@ class TensorrtInferTensor : public omniback::Backend {
       const std::unordered_map<std::string, std::string>& config,
       const omniback::dict& kwargs) override;
   void impl_forward(const std::vector<omniback::dict>& input) override;
-  [[nodiscard]] size_t impl_max() const {
+  [[nodiscard]] uint32_t impl_max() const {
     return (size_t)info_.first.at(0).max.d[0];
   }
-  [[nodiscard]] size_t impl_min() const {
+  [[nodiscard]] uint32_t impl_min() const {
     return (size_t)info_.first.at(0).min.d[0];
   }
 

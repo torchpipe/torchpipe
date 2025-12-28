@@ -18,7 +18,7 @@ import numpy as np
 # # Test function
 def test_DecodeTensor():
     # Initialize the DecodeTensor model
-    model = omniback._C.init("DecodeTensor")
+    model = omniback.init("DecodeTensor")
 
     img = Image.fromarray(np.zeros((1140, 1200, 3), dtype=np.uint8))
     img_byte_arr = BytesIO()
@@ -30,11 +30,13 @@ def test_DecodeTensor():
 
     # Execute model inference
     model(input)
+    
+    print(type(input["result"]), input["result"])
 
     # Assert the shape of the output tensor
     assert input["result"].shape == (1, 3, 1140, 1200)
     
 if __name__ =="__main__":
     import time
-    time.sleep(5)
+    # time.sleep(5)
     test_DecodeTensor()

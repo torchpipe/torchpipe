@@ -19,6 +19,7 @@
 #include <omniback/core/dict.hpp>
 #include <torch/torch.h>
 #include "helper/net_info.hpp"
+#include "helper/type_traits.h"
 
 namespace torchpipe {
 using dict = omniback::dict;

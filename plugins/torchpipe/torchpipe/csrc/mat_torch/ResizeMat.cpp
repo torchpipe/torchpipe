@@ -20,7 +20,7 @@ void ResizeMat::forward(const omniback::dict& input_dict) {
         std::string(input[TASK_DATA_KEY].type().name()));
     return;
   }
-  auto data = omniback::any_cast<cv::Mat>(input[TASK_DATA_KEY]);
+  auto data = input[TASK_DATA_KEY] .cast<cv::Mat>();
 
   cv::Mat im_resize;
   cv::resize(data, im_resize, cv::Size(resize_w_, resize_h_));
@@ -62,14 +62,8 @@ void LetterBoxMat::impl_init(
 
 void LetterBoxMat::forward(const omniback::dict& input_dict) {
   auto& input = *input_dict;
-  if (input[TASK_DATA_KEY].type() != typeid(cv::Mat)) {
-    SPDLOG_ERROR(
-        "LetterBoxMat: error input type: " +
-        std::string(input[TASK_DATA_KEY].type().name()));
-    return;
-  }
 
-  cv::Mat src = omniback::any_cast<cv::Mat>(input[TASK_DATA_KEY]);
+  cv::Mat src = input[TASK_DATA_KEY].cast<cv::Mat>();
   if (src.empty()) {
     SPDLOG_ERROR("LetterBoxMat: input image is empty");
     return;
@@ -132,14 +126,8 @@ void TopLeftResizeMat::impl_init(
 
 void TopLeftResizeMat::forward(const omniback::dict& input_dict) {
   auto& input = *input_dict;
-  if (input[TASK_DATA_KEY].type() != typeid(cv::Mat)) {
-    SPDLOG_ERROR(
-        "TopLeftResizeMat: error input type: " +
-        std::string(input[TASK_DATA_KEY].type().name()));
-    return;
-  }
 
-  cv::Mat src = omniback::any_cast<cv::Mat>(input[TASK_DATA_KEY]);
+  cv::Mat src = input[TASK_DATA_KEY].cast<cv::Mat>();
   if (src.empty()) {
     SPDLOG_ERROR("TopLeftResizeMat: input image is empty");
     return;

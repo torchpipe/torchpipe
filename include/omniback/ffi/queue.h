@@ -13,7 +13,8 @@
 #include <vector>
 #include <utility>
 #include <optional>
-#include <omniback/core/any.hpp>
+#include <type_traits>
+#include "omniback/ffi/dict.h"
 
 namespace omniback {
 namespace ffi {
@@ -154,7 +155,7 @@ class ThreadSafeQueueObj : public tvm::ffi::Object {
   }
 
   /*! \brief Get with timeout (type-safe) */
-  template <typename T>
+  template <typename T = omniback::any>
   std::optional<T> wait_get(size_t timeout_ms) {
     const auto timeout_dur = std::chrono::milliseconds(timeout_ms);
 
@@ -175,7 +176,7 @@ class ThreadSafeQueueObj : public tvm::ffi::Object {
             lock, timeout_dur, [this] { return !queue_.empty(); });
   }
 
-    template <typename T>
+  template <typename T = omniback::any>
   std::optional<T> wait_get(size_t timeout_ms, size_t& out_size) {
     const auto timeout_dur = std::chrono::milliseconds(timeout_ms);
 
@@ -188,25 +189,21 @@ class ThreadSafeQueueObj : public tvm::ffi::Object {
     return unsafe_pop_rm_front<T>(out_size);
   }
 
-  template <typename T>
+  template <typename T = omniback::any>
   T get() {
     std::unique_lock<std::mutex> lock(mutex_);
-    cv_pushed_.wait(
-            lock, [this] { return !queue_.empty(); });
 
     return unsafe_pop_rm_front<T>();
   }
 
-   template <typename T>
+  template <typename T = omniback::any>
   T get(size_t& out_size) {
     std::unique_lock<std::mutex> lock(mutex_);
-    cv_pushed_.wait(
-            lock, [this] { return !queue_.empty(); });
 
     return unsafe_pop_rm_front<T>(out_size);
   }
 
-  template <typename T>
+  template <typename T = omniback::any>
   T front() const {
     std::lock_guard<std::mutex> lock(mutex_);
     if (queue_.empty()) {
@@ -214,7 +211,12 @@ class ThreadSafeQueueObj : public tvm::ffi::Object {
           << "Cannot access front of empty queue";
     }
 
-    return queue_.front().cast<T>();
+    // 使用 if constexpr 避免对 omniback::any 进行 cast
+    if constexpr (std::is_same_v<T, omniback::any>) {
+      return queue_.front();
+    } else {
+      return queue_.front().cast<T>();
+    }
   }
   
   size_t front_size() const {
@@ -271,15 +273,10 @@ class ThreadSafeQueueObj : public tvm::ffi::Object {
 
     // Notify all producers if the queue was full
     cv_popped_.notify_all();
-
   }
 
   void set_max_size(size_t new_max_size) {
     std::lock_guard<std::mutex> lock(mutex_);
-    if (!queue_.empty()) {
-      TVM_FFI_THROW(tvm::ffi::ValueError)
-          << "Cannot change capacity of non-empty queue";
-    }
     max_size_ = new_max_size;
   }
 
@@ -295,7 +292,7 @@ class ThreadSafeQueueObj : public tvm::ffi::Object {
       tvm::ffi::Object);
 
  private:
-  template <typename T>
+  template <typename T = omniback::any>
   T unsafe_pop_rm_front() {
     TVM_FFI_ICHECK(!queue_.empty()) << "Cannot pop from empty queue";
     omniback::any value = std::move(queue_.front());
@@ -307,10 +304,14 @@ class ThreadSafeQueueObj : public tvm::ffi::Object {
 
     cv_popped_.notify_all();
 
-    return std::move(value).cast<T>();
+    if constexpr (std::is_same_v<T, omniback::any>) {
+      return std::move(value);
+    } else {
+      return std::move(value).cast<T>();
+    }
   }
 
-    template <typename T>
+  template <typename T = omniback::any>
   T unsafe_pop_rm_front(size_t & out_size) {
     TVM_FFI_ICHECK(!queue_.empty()) << "Cannot pop from empty queue";
     omniback::any value = std::move(queue_.front());
@@ -325,7 +326,12 @@ class ThreadSafeQueueObj : public tvm::ffi::Object {
 
     cv_popped_.notify_all();
 
-    return std::move(value).cast<T>();
+    // 使用 if constexpr 避免对 omniback::any 进行 cast
+    if constexpr (std::is_same_v<T, omniback::any>) {
+      return std::move(value);
+    } else {
+      return std::move(value).cast<T>();
+    }
   }
 
   mutable std::mutex mutex_;

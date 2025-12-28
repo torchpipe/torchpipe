@@ -24,14 +24,15 @@
 #include <variant>
 #include <vector>
 
-#include "omniback/core/any.hpp"
+#include "omniback/ffi/any_wrapper.h"
 #include "omniback/core/string.hpp"
 #include "omniback/helper/symbol.hpp"
+#include "omniback/ffi/dict.h"
 
 namespace omniback {
 
  
-using dict = std::shared_ptr<std::unordered_map<string, omniback::any>>;
+using ffi::dict;
 inline dict make_dict() {
   return std::make_shared<std::unordered_map<string, omniback::any>>();
 }

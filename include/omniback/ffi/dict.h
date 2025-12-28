@@ -13,13 +13,14 @@
 // #include <tvm/ffi/function.h>
 // #include "omniback/ffi/dict.h"
 // #include <tvm/ffi/function.h>
-#include "omniback/core/any.hpp"
+#include "omniback/ffi/any_wrapper.h"
 #include <tvm/ffi/reflection/registry.h>
 // #include "tvm/ffi/extra/stl.h"
 #include <tvm/ffi/type_traits.h>
 #include <tvm/ffi/function.h>
 
 namespace omniback::ffi {
+using dict = std::shared_ptr<std::unordered_map<std::string, omniback::ffi::Any>>;
 
 namespace ffi = tvm::ffi;
 namespace refl = tvm::ffi::reflection;
@@ -119,6 +120,12 @@ class DictObj : public ffi::Object {
 
 class DictRef : public tvm::ffi::ObjectRef {
  public:
+  // DictRef(const std::shared_ptr<std::unordered_map<std::string, omniback::any>>&data){
+  //   data_ = tvm::ffi::make_object<DictObj>(data);
+  // }
+  // operator std::shared_ptr<std::unordered_map<std::string, omniback::any>>(){
+  //   return data_->get();
+  // }
 
   TVM_FFI_DEFINE_OBJECT_REF_METHODS_NULLABLE(
       DictRef,
@@ -129,16 +136,18 @@ class DictRef : public tvm::ffi::ObjectRef {
 } // namespace omniback::ffi
 
 namespace tvm::ffi {
-template <>
-inline constexpr bool use_default_type_traits_v<
-    std::shared_ptr<std::unordered_map<std::string, omniback::any>>> = false;
+// template <>
+// inline constexpr bool use_default_type_traits_v<
+//     std::shared_ptr<std::unordered_map<std::string, omniback::any>>> = false;
 
+    // ObjectRefTypeTraitsBase
+    // TypeTraitsBase
 template <>
 struct TypeTraits<
     std::shared_ptr<std::unordered_map<std::string, omniback::any>>>
-    : public TypeTraitsBase {
+    : public TypeTraits<omniback::ffi::DictObj*> {
  public:
-  static constexpr bool storage_enabled = false;
+  // static constexpr bool storage_enabled = false;
   using Self = std::shared_ptr<std::unordered_map<std::string, omniback::any>>;
   using DictObj = omniback::ffi::DictObj;
 
@@ -150,6 +159,17 @@ struct TypeTraits<
       tvm::ffi::TypeTraits<DictObj*>::MoveToAny(data.get(), result);
     }
   }
+
+  TVM_FFI_INLINE static std::optional<Self> TryCastFromAnyView(const TVMFFIAny* src) {
+    std::optional<omniback::ffi::DictObj*> re = tvm::ffi::TypeTraits<DictObj*>::TryCastFromAnyView(src);
+    if (re.has_value()){
+      return re.value()->get();
+    }
+    else{
+        return std::nullopt;
+      }
+    }
+
 
   TVM_FFI_INLINE static std::string TypeStr() {
     return "omniback::Dict";

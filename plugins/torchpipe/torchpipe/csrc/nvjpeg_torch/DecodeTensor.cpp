@@ -178,15 +178,7 @@ void DecodeTensor::impl_init(
 void DecodeTensor::forward(const omniback::dict& input_dict) {
   auto& input = *input_dict;
 
-  if (typeid(std::string) != input[TASK_DATA_KEY].type()) {
-    SPDLOG_ERROR(
-        std::string("DecodeTensor:  unsupported the input type: ") +
-        c10::demangle(input[TASK_DATA_KEY].type().name()));
-    throw std::runtime_error(
-        std::string("DecodeTensor: unsupported the input type: ") +
-        c10::demangle(input[TASK_DATA_KEY].type().name()));
-  }
-  std::string data = omniback::any_cast<std::string>(input[TASK_DATA_KEY]);
+  std::string data = input[TASK_DATA_KEY].cast<std::string>();
 
   torch::Tensor tensor;
 

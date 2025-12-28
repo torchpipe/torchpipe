@@ -7,20 +7,19 @@
 #include <tvm/ffi/reflection/registry.h>
 // #include <tvm/ffi/reflection/overload.h>
 #include <tvm/ffi/base_details.h>
+#include <tvm/ffi/extra/stl.h>
 
+#include "omniback/ffi/dict.h"
 
 namespace omniback::ffi {
 
 TVM_FFI_STATIC_INIT_BLOCK() {
   namespace refl = tvm::ffi::reflection;
-  using namespace tvm::ffi;
+  using omniback::ffi::Any;
 
   refl::ObjectDef<ThreadSafeQueueObj>()
       // Constructors
       .def(refl::init<>())
-      // .def(refl::init<size_t>())
-
-      // Core state queries
       .def("size", [](const ThreadSafeQueueObj* obj) {
         return static_cast<int64_t>(obj->size());
       })
@@ -36,25 +35,21 @@ TVM_FFI_STATIC_INIT_BLOCK() {
       .def("wait_for", [](ThreadSafeQueueObj* obj, size_t timeout_ms) {
         return obj->wait_for(timeout_ms);
       })
-
       // Element access (non-blocking front access)
-      .def("front", [](const ThreadSafeQueueObj* obj) -> Optional<Any> {
-        if (obj->empty()) return Optional<Any>();
-        // Convert omniback::any to TVM Any type
-        return Any::FromObject(obj->front<Any>());
+      .def("front", [](const ThreadSafeQueueObj* obj){
+        return obj->front<Any>();
       })
-
       // Push operations
-      .def("push", [](ThreadSafeQueueObj* obj, const Any& value) {
-        obj->push<Any>(value);
+      .def("put", [](ThreadSafeQueueObj* obj, const tvm::ffi::Any& value) {
+        obj->push(value);
       })
-      .def("push_with_size", [](ThreadSafeQueueObj* obj, 
-                               const Any& value, 
+      .def("put_with_size", [](ThreadSafeQueueObj* obj, 
+                               const tvm::ffi::Any& value, 
                                size_t real_size) {
         obj->push_with_size<Any>(value, real_size);
       })
-      .def("push_with_max_limit", [](ThreadSafeQueueObj* obj,
-                                    const Any& value,
+      .def("put_with_max_limit", [](ThreadSafeQueueObj* obj,
+                                    const tvm::ffi::Any& value,
                                     size_t max_size,
                                     size_t timeout_ms) {
         return obj->push_with_max_limit<Any>(value, max_size, timeout_ms);
@@ -64,26 +59,10 @@ TVM_FFI_STATIC_INIT_BLOCK() {
       .def("get", [](ThreadSafeQueueObj* obj) -> Any {
         return obj->get<Any>();
       })
-      .def("get_with_size", [](ThreadSafeQueueObj* obj) {
-        size_t out_size = 0;
-        Any value = obj->get<Any>(out_size);
-        return Tuple::make({value, Integer(static_cast<int64_t>(out_size))});
+      .def("wait_get", [](ThreadSafeQueueObj* obj, size_t timeout_ms) {
+        return obj->wait_get<Any>(timeout_ms);
       })
-      .def("wait_get", [](ThreadSafeQueueObj* obj, size_t timeout_ms) -> Optional<Any> {
-        auto result = obj->wait_get<Any>(timeout_ms);
-        return result.has_value() ? Optional<Any>(result.value()) : Optional<Any>();
-      })
-      .def("wait_get_with_size", [](ThreadSafeQueueObj* obj, size_t timeout_ms) {
-        size_t out_size = 0;
-        auto result = obj->wait_get<Any>(timeout_ms, out_size);
-        if (!result.has_value()) {
-          return Optional<Tuple>();
-        }
-        return Optional<Tuple>(Tuple::make({
-            result.value(), 
-            Integer(static_cast<int64_t>(out_size))
-        }));
-      });
+      ;
 }
 
 static std::unordered_map<std::string, ThreadSafeQueueRef>& GetQueueRegistry() {

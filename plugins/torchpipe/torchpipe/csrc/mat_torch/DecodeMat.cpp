@@ -35,16 +35,9 @@ void DecodeMat::impl_init(
 void DecodeMat::forward(const omniback::dict& input_dict) {
   auto& input = *input_dict;
 
-  if (typeid(std::string) != input.at(TASK_DATA_KEY).type()) {
-    throw std::runtime_error(
-        std::string("DecodeMat: not support the input type: ") +
-        std::string(input[TASK_DATA_KEY].type().name()));
-  }
-  const std::string* data =
-      omniback::any_cast<std::string>(&input[TASK_DATA_KEY]);
-  OMNI_ASSERT(data && !data->empty());
-  // SPDLOG_INFO("mat input {}", data->size());
-  auto tensor = cpu_decode(*data); // tensor type is Mat
+  std::string data = input.at(TASK_DATA_KEY).cast<std::string>();
+ 
+  auto tensor = cpu_decode(data); // tensor type is Mat
   if (tensor.channels() != 3) {
     SPDLOG_ERROR(
         "only support tensor.channels() == 3. get {}; hxw= {}x{}",

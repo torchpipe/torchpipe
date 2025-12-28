@@ -85,7 +85,7 @@ def prepare_omniback():
     # bash - c 'tmpdir=$(mktemp -d) && pip download omniback --platform manylinux2014_x86_64 --only-binary=:all: --dest $tmpdir --no-deps && pip install $tmpdir/omniback_core-*.whl && rm -rf $tmpdir'
     try:
         import omniback
-        need_reinstall = omniback.ffi.use_cxx11_abi() != torch._C._GLIBCXX_USE_CXX11_ABI
+        need_reinstall = omniback._C.use_cxx11_abi() != torch._C._GLIBCXX_USE_CXX11_ABI
     except:
         need_reinstall = True
     # torch >= 1.10.2
@@ -225,7 +225,7 @@ def build_core_extension():
         *config.csrc_dir.glob("*.cpp"),
         *config.csrc_dir.glob("torchplugins/*.cpp"),
         *config.csrc_dir.glob("helper/*.cpp"),
-        *config.csrc_dir.glob("pybind/*.cpp"),
+        # *config.csrc_dir.glob("pybind/*.cpp"),
     ]
     sources = [str(x) for x in sources]
     sources += config.csrc_dir.glob("cuda/*.cu")

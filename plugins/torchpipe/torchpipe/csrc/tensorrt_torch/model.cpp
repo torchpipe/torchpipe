@@ -142,11 +142,9 @@ void LoadTensorrtEngine::impl_init(
   omniback::str::try_update(config, TASK_INDEX_KEY, independent_index);
   OMNI_ASSERT(kwargs);
   if (kwargs->find(TASK_ENGINE_KEY) != kwargs->end()) {
-    OMNI_ASSERT(
-        kwargs->at(TASK_ENGINE_KEY).type() == typeid(nvinfer1::ICudaEngine*));
 
-    nvinfer1::ICudaEngine* engine =
-        omniback::any_cast<nvinfer1::ICudaEngine*>(kwargs->at(TASK_ENGINE_KEY));
+    nvinfer1::ICudaEngine* engine = kwargs->at(
+        TASK_ENGINE_KEY).cast<nvinfer1::ICudaEngine*>();
     OMNI_ASSERT(engine && independent_index != 0);
     size_t num_profiles = engine->getNbOptimizationProfiles();
     if (independent_index % num_profiles != 0) {
@@ -188,8 +186,6 @@ void Onnx2Tensorrt::impl_init(
     const omniback::dict& kwargs) {
   OMNI_ASSERT(kwargs);
   if (kwargs->find(TASK_ENGINE_KEY) != kwargs->end()) {
-    OMNI_ASSERT(
-        kwargs->at(TASK_ENGINE_KEY).type() == typeid(nvinfer1::ICudaEngine*));
     SPDLOG_INFO(
         "Onnx2Tensorrt: aready loaded engine in kwargs, skip "
         "loading.");

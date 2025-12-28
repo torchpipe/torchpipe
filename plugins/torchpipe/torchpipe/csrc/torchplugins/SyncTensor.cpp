@@ -39,7 +39,7 @@ void SyncTensor::impl_init(
       "This backend can only be used in default current stream. may be use `With[StreamPool,*]` instead.");
 
   if (dep && !owned_backend_) {
-    owned_backend_ = init_backend(*dep, config, kwargs);
+    owned_backend_ = omniback::init_backend(*dep, config, kwargs);
   }
 
   c10::cuda::getCurrentCUDAStream().synchronize();
@@ -107,8 +107,8 @@ class TorchStreamPool : public omniback::Backend {
     }
   }
 
-  [[nodiscard]] size_t impl_max() const override {
-    return std::numeric_limits<size_t>::max();
+  [[nodiscard]] uint32_t impl_max() const override {
+    return std::numeric_limits<uint32_t>::max();
   }
 
  private:

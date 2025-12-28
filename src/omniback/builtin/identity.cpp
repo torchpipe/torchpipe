@@ -22,7 +22,20 @@ class Identity : public BackendOne {
   }
 };
 
+class AsU64Identity : public BackendOne {
+ public:
+  void forward(const dict& io) override {
+    auto iter = io->find(TASK_DATA_KEY);
+
+    OMNI_ASSERT(
+        iter != io->end(), "[`" + std::string(TASK_DATA_KEY) + "`] not found.");
+    auto data = iter->second.cast<uint64_t>();
+    io->insert_or_assign(TASK_RESULT_KEY, data);
+  }
+};
+
 OMNI_REGISTER(Backend, Identity);
+OMNI_REGISTER(Backend, AsU64Identity);
 
 class Pow : public BackendOne {
  public:

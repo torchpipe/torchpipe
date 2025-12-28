@@ -4,6 +4,7 @@
 #include "helper/task_keys.hpp"
 #include "helper/torch.hpp"
 #include "torchplugins/GpuTensor.hpp"
+#include <tvm/ffi/error.h>
 
 using namespace omniback;
 
@@ -43,9 +44,8 @@ class CpuTensor : public BackendOne {
   virtual void forward(const dict& io) override {
     auto& input = *io;
 
-    if (input[TASK_DATA_KEY].type() == typeid(torch::Tensor)) {
-      torch::Tensor input_tensor =
-          any_cast<torch::Tensor>(input[TASK_DATA_KEY]);
+    if (auto opt = input[TASK_DATA_KEY].try_cast<torch::Tensor>()) {
+      torch::Tensor input_tensor = opt.value();
       if (!input_tensor.is_cuda()) {
         SPDLOG_ERROR("input_tensor should be gpu tensor");
         throw std::runtime_error("input_tensor should be gpu tensor");
@@ -53,9 +53,8 @@ class CpuTensor : public BackendOne {
 
       input[TASK_RESULT_KEY] = input_tensor.cpu();
     } else if (
-        input[TASK_DATA_KEY].type() == typeid(std::vector<torch::Tensor>)) {
-      std::vector<torch::Tensor> input_tensor =
-          any_cast<std::vector<torch::Tensor>>(input[TASK_DATA_KEY]);
+        auto opt = input[TASK_DATA_KEY].try_cast<std::vector<torch::Tensor>>()) {
+      std::vector<torch::Tensor> input_tensor = opt.value();
       for (auto& item : input_tensor) {
         if (item.is_cuda()) {
           item = item.cpu();
@@ -65,15 +64,11 @@ class CpuTensor : public BackendOne {
         }
       }
       input[TASK_RESULT_KEY] = input_tensor;
-    } else {
-      SPDLOG_ERROR(
+      }
+    else {
+      TVM_FFI_THROW(TypeError)<<(
           "CpuTensor: torch::Tensor/std::vector<torch::Tensor> needed; "
-          "error input type: " +
-          std::string(input[TASK_DATA_KEY].type().name()));
-      throw std::runtime_error(
-          "CpuTensor: torch::Tensor/std::vector<torch::Tensor> needed; "
-          "error input type: " +
-          std::string(input[TASK_DATA_KEY].type().name()));
+          "error input type: " );
     }
   }
 };
@@ -280,7 +275,7 @@ class OMNI_EXPORT LogGPUTime : public omniback::Backend {
       (*item)[TASK_RESULT_KEY] = item->at(TASK_DATA_KEY);
     }
   }
-  [[nodiscard]] size_t impl_max() const override final {
+  [[nodiscard]] uint32_t impl_max() const override final {
     return max_;
   }
 
@@ -291,7 +286,7 @@ class OMNI_EXPORT LogGPUTime : public omniback::Backend {
             std::chrono::system_clock::now().time_since_epoch())
             .count());
   }
-  size_t max_{std::numeric_limits<size_t>::max()};
+  size_t max_{std::numeric_limits<uint32_t>::max()};
   std::string key_;
 };
 OMNI_REGISTER_BACKEND(LogGPUTime);

@@ -12,6 +12,8 @@
 #include <unordered_set>
 #include <vector>
 #include "omniback/core/task_keys.hpp"
+#include <tvm/ffi/object.h>
+#include <tvm/ffi/memory.h>
 
 namespace omniback {
 using omniback::id_type;
@@ -85,14 +87,30 @@ class ThreadSafeSlots {
   mutable std::mutex mutex_;
 };
 
-class PageTable {
+class PageTable : public tvm::ffi::Object {
  public:
-  struct PageInfo {
+  static constexpr bool _type_mutable = true;
+  TVM_FFI_DECLARE_OBJECT_INFO_FINAL(
+      "omniback.PageTable",
+      PageTable,
+      tvm::ffi::Object);
+    
+  struct PageInfo : public tvm::ffi::Object {
+    static constexpr bool _type_mutable = true;
+    TVM_FFI_DECLARE_OBJECT_INFO_FINAL(
+        "omniback.PageInfo",
+        PageInfo,
+        tvm::ffi::Object);
+    
     int init_size{0};
     std::vector<int> kv_page_indices; // 页位置
     int kv_last_page_len = 0; // 最后一个页的长度
     float time{0}; // 最初时间
   };
+
+  static auto empty_info(){
+     return  tvm::ffi::make_object<PageInfo>();
+  }
   PageTable() = default;
   PageTable(size_t max_num_req, size_t max_num_page, size_t page_size)
       : max_num_req_(max_num_req),
@@ -122,14 +140,14 @@ class PageTable {
     if (iter == page_infos_.end()) {
       return false;
     }
-    slots_.free(iter->second.kv_page_indices);
+    slots_.free(iter->second->kv_page_indices);
     page_infos_.erase(iter);
     return true;
   }
 
   int get_num_tok(const id_type& id) const {
     std::lock_guard<std::mutex> lock(page_infos_lock_);
-    const auto& item = page_infos_.at(id);
+    const auto& item = *(page_infos_.at(id));
     if (item.kv_page_indices.empty())
       return 0;
     return item.kv_last_page_len +
@@ -168,7 +186,7 @@ class PageTable {
 
   const PageInfo& page_info(const id_type& id) const {
     std::lock_guard<std::mutex> lock(page_infos_lock_);
-    return page_infos_.at(id);
+    return *page_infos_.at(id);
   }
 
   std::tuple<std::vector<int>, std::vector<int>, std::vector<int>> page_table(
@@ -191,7 +209,7 @@ class PageTable {
   ThreadSafeSlots slots_;
 
   mutable std::mutex page_infos_lock_;
-  std::unordered_map<id_type, PageInfo> page_infos_;
+  std::unordered_map<id_type, tvm::ffi::ObjectPtr<PageInfo>> page_infos_;
   std::queue<std::vector<id_type>> ids_;
 };
 PageTable& default_page_table(const std::string& tag = "");

@@ -69,7 +69,7 @@ def extra_ldflags():
     return [f"-L{get_library_dir()}", '-lomniback'],
 
 __all__ = ["Any", "Dict", 'Backend', 'Event', 'create', 'create', 'register', 'parse',
-           'init', 'get', 'default_page_table', "timestamp", "pipe", 'init', 'load_kwargs', "_C"]
+           'init', 'get',  "timestamp", "pipe", 'init', 'load_kwargs', "_C"]
 
 __all__.extend(['Queue', 'default_queue'])
 

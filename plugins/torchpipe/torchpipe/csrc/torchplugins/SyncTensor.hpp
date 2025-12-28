@@ -55,15 +55,15 @@ class SyncTensor : public omniback::Backend {
    */
   virtual void impl_forward(const std::vector<dict>& ios) override;
 
-  [[nodiscard]] size_t impl_max() const override {
+  [[nodiscard]] uint32_t impl_max() const override {
     if (owned_backend_) {
       return owned_backend_->max();
     } else {
-      return std::numeric_limits<size_t>::max(); // default
+      return std::numeric_limits<uint32_t>::max(); // default
     }
   }
 
-  [[nodiscard]] size_t impl_min() const override {
+  [[nodiscard]] uint32_t impl_min() const override {
     if (owned_backend_) {
       return owned_backend_->min();
     } else {

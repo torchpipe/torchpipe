@@ -11,6 +11,7 @@
 #include "omniback/core/helper.hpp"
 #include "omniback/core/task_keys.hpp"
 #include "omniback/helper/macro.h"
+#include <tvm/ffi/extra/stl.h>
 
 #include "omniback/builtin/generate_backend.hpp"
 namespace omniback {
@@ -21,7 +22,6 @@ void Benchmark::impl_init(
   auto dep = get_dependency_name(this, config, "Benchmark");
   std::string tag = dep? dep.value(): "";
   target_queue_ = &default_queue(tag);
-  SPDLOG_INFO("Benchmark: use default queue with tag: {}", tag);
 
   OMNI_ASSERT(target_queue_);
 
