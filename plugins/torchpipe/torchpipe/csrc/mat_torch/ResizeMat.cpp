@@ -14,13 +14,8 @@ void ResizeMat::impl_init(
 
 void ResizeMat::forward(const omniback::dict& input_dict) {
   auto& input = *input_dict;
-  if (input[TASK_DATA_KEY].type() != typeid(cv::Mat)) {
-    SPDLOG_ERROR(
-        "ResizeMat: error input type: " +
-        std::string(input[TASK_DATA_KEY].type().name()));
-    return;
-  }
-  auto data = input[TASK_DATA_KEY] .cast<cv::Mat>();
+
+  auto data = input[TASK_DATA_KEY].cast<cv::Mat>();
 
   cv::Mat im_resize;
   cv::resize(data, im_resize, cv::Size(resize_w_, resize_h_));

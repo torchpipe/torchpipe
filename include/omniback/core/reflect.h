@@ -59,6 +59,17 @@ class OMNI_EXPORT ClassRegistryBase {
     return result;
   }
 
+  void DoCleanAll() {
+    std::lock_guard<std::mutex> guard(getter_map_mutex_);
+    getter_map_.clear();
+
+    std::lock_guard<std::mutex> guard2(class_name_map_mutex_);
+    class_name_map_.clear();
+    reverse_class_name_map_.clear();
+    reverse_class_name_map_owner_.clear();
+    reverse_class_name_map_owner_order_.clear();
+  }
+
  private:
   typedef std::map<std::string, ObjectGetter> ClassMap;
   ClassMap getter_map_;
@@ -283,6 +294,8 @@ class OMNI_EXPORT ClassRegister {
   omniback::ClassRegistryInstance<base_class_type>().DoUnRegisterObject(register_name)
 
 #define OMNI_INSTANCE_CLEANUP(base_class_type) omniback::ClassRegistryInstance<base_class_type>().DoCleanUp()
+#define OMNI_CLEANUP_ALL(base_class_type) \
+  omniback::ClassRegistryInstance<base_class_type>().DoCleanAll()
 
 // #define OMNI_CREATE(base_class_type, register_name)
 //   omniback::ClassRegistryInstance<base_class_type>().DoGetObject(register_name)

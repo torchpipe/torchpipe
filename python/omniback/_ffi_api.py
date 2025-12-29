@@ -65,9 +65,11 @@ class Backend(tvm_ffi.Object):
                        for io in ios), "Please use List[omniback.Dict] as input"
             self.forward(ios)
         elif isinstance(ios, dict):
+            assert "event" not in ios
             input = OmDict(ios)
             input.callback = _PyDictWrapper(ios, input).callback
             self.forward([input])
+            del input
         elif isinstance(ios, OmDict):
             self.forward([ios])
         else:

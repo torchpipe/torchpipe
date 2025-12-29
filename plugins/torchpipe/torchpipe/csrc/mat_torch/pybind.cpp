@@ -1,3 +1,3 @@
-#include <torch/extension.h>
+// #include <torch/extension.h>
 
-PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {}
+// PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {}

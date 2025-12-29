@@ -1,5 +1,5 @@
 import pytest
-import omniback._C as _C
+import omniback as om
 
 
 # from torchpipe import _C as tc
@@ -38,7 +38,7 @@ import torch
 
 def test_backend():
     import torchpipe
-    backend = _C.init("With[StreamPool,ResizeTensor]", {"resize_h": "112","resize_w": "113"})
+    backend = om.init("With[StreamPool,ResizeTensor]", {"resize_h": "112","resize_w": "113"})
     with pytest.raises(RuntimeError):
         backend.init({})
     

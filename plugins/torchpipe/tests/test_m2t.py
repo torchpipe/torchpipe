@@ -1,6 +1,9 @@
+import omniback
+import torchpipe
+import torch
+
 def test_mat2tensor():
-    import omniback
-    import torchpipe, torch
+    
     omniback.init("DebugLogger")
     x = omniback.init("S[Tensor2Mat,Mat2Tensor]")
     x_i = {'data':torch.zeros((224,224,3))}

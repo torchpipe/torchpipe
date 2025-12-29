@@ -4,7 +4,6 @@
 #include <cassert>
 #include <condition_variable>
 #include <functional>
-#include <iostream>
 #include <memory>
 #include <mutex>
 #include <shared_mutex>

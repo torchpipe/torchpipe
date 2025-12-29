@@ -58,7 +58,8 @@ class Any {
   void construct(T&& value) {
     using TDecay = std::decay_t<T>;
 
-    static_assert(!(std::is_integral_v<TDecay> && sizeof(TDecay) > sizeof(int64_t)));
+    static_assert(
+        !(std::is_integral_v<TDecay> && sizeof(TDecay) > sizeof(int64_t)));
     if constexpr (
         std::is_unsigned_v<TDecay> && sizeof(TDecay) == sizeof(uint64_t)) {
       if (value > static_cast<int64_t>(INT64_MAX)) {
@@ -90,50 +91,46 @@ class Any {
   Any& operator=(const Any& other) = default;
   Any& operator=(Any&& other) = default;
 
+
   template <typename T>
   std::optional<T> try_cast() const {
     using TDecay = std::decay_t<T>;
 
-    if constexpr (
-        std::is_unsigned_v<TDecay> && sizeof(TDecay) == sizeof(uint64_t)) {
-      if (const auto* v = std::get_if<uint64_t>(&storage_)) {
-        return static_cast<TDecay>(*v);
-      }
-    }
-    if constexpr (is_tvm_type_v<TDecay>) {
-      if (const auto* v = std::get_if<tvm::ffi::Any>(&storage_)) {
+    std::cout << "Current index: " << storage_.index() << std::endl;
+    if constexpr (is_tvm_type_v<TDecay>)
+    {
+    if (const auto* v = std::get_if<tvm::ffi::Any>(&storage_)) {
         return v->try_cast<TDecay>();
+      } else if (const auto* v = std::get_if<StdAny>(&storage_)) {
+        return (*v)->try_cast<TDecay>();
+      } else {
+        if constexpr (std::is_integral_v<TDecay>)
+          return static_cast<TDecay>(std::get<uint64_t>(storage_));
+        else {
+          return std::nullopt;
+        }
       }
     }
-    if (const auto* v = std::get_if<StdAny>(&storage_)) {
-      return (*v)->try_cast<TDecay>();
-    }
-
-    return std::nullopt;
   }
 
   template <typename T>
   T cast() const {
     using TDecay = std::decay_t<T>;
 
-    if constexpr (
-        std::is_unsigned_v<TDecay> && sizeof(TDecay) == sizeof(uint64_t)) {
-      if (const auto* v = std::get_if<uint64_t>(&storage_)) {
-        return static_cast<TDecay>(*v);
-      }
-    }
-    if constexpr (is_tvm_type_v<TDecay>) {
-      if (const auto* v = std::get_if<tvm::ffi::Any>(&storage_)) {
-        return v->cast<TDecay>();
-      }
-    }
-    if (const auto* v = std::get_if<StdAny>(&storage_)) {
-        return (*v)->cast<TDecay>();
-    }
-    
-    TVM_FFI_THROW("Unknown type. index = ")<< storage_.index();
-  }
+    std::cout << "Current index: " << storage_.index() << std::endl;
 
+    if (const auto* v = std::get_if<tvm::ffi::Any>(&storage_)) {
+      return v->cast<TDecay>();
+    } else if (const auto* v = std::get_if<StdAny>(&storage_)) {
+      return (*v)->cast<TDecay>();
+    } else {
+      if constexpr (std::is_integral_v<TDecay>)
+        return static_cast<TDecay>(std::get<uint64_t>(storage_));
+      else{
+        TVM_FFI_THROW("Cannot cast uint64_t storage to non-integral type");
+      }
+    }
+  }
 
   // operator tvm::ffi::Any() const {
   //   if (auto* v = std::get_if<tvm::ffi::Any>(&storage_)) {
@@ -171,12 +168,12 @@ class Any {
   tvm::ffi::Any make_tvm_any_from_storage() {
     if (std::holds_alternative<StdAny>(storage_)) {
       const auto& std_any = std::get<StdAny>(storage_);
-      if (std_any->to_tvm_ffi_any_func) {
+      if (std_any->to_tvm_ffi_any_func){
         return std_any->to_tvm_ffi_any_func();
       } else
-        return tvm::ffi::Any(std_any);
+        return tvm::ffi::Any(std_any); 
     } else if (std::holds_alternative<uint64_t>(storage_)) {
-      return tvm::ffi::Any(int64_t(std::get<uint64_t>(storage_))); // todo
+      return tvm::ffi::Any(int64_t(std::get<uint64_t>(storage_))); //todo
     } else {
       throw std::runtime_error(
           "Unsupported non-TVM type in make_tvm_any_from_storage");

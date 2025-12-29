@@ -4,7 +4,7 @@ import ctypes, os
 
 import omniback
 # ctypes.CDLL(omniback._C.__file__, mode=ctypes.RTLD_GLOBAL)
-
+import tvm_ffi
 
 import torch
 
@@ -13,11 +13,24 @@ from importlib.metadata import version
 __version__ = version("torchpipe")
 
 ctypes.CDLL(os.path.join(os.path.dirname(__file__), "native.so"), mode=ctypes.RTLD_GLOBAL)
+# native = tvm_ffi.load_module(os.path.join(os.path.dirname(__file__), "native.so"))
+# native = tvm_ffi.load_lib_module("torchpipe", "native")
 
-from . import native, image, trt
+# from . import native 
 
 try:
-    from . import mat
+    from . import image
+except ImportError:
+    print(f'nvjpeg related backends not loaded')
+try:
+    from . import trt
+except ImportError:
+    print(f'trt related backends not loaded')
+try:
+    # from . import mat
+    mat = tvm_ffi.load_module(os.path.join(
+        os.path.dirname(__file__), "mat.so"))
+
 except ImportError:
     print(f'opencv related backends not loaded')
 
@@ -31,6 +44,8 @@ if (omniback._C.use_cxx11_abi() != torch._C._GLIBCXX_USE_CXX11_ABI):
         to install the pre-cxx11 abi version. Or use `USE_CXX11_ABI={int(not omniback._C.use_cxx11_abi())} pip install -e .` to rebuild omniback.
     """
     raise RuntimeError(info)
+
+
 
 torch.cuda.init()
 

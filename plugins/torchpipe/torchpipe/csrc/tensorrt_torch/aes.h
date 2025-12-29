@@ -28,7 +28,7 @@
 #include <stdio.h>
 
 #include <cstring>
-#include <iostream>
+
 #include <vector>
 
 enum class AESKeyLength { AES_128, AES_192, AES_256 };

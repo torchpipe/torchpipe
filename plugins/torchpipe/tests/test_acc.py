@@ -30,7 +30,7 @@ class Torch2Trt:
         for k, v in config.items():
             if 'model' in v.keys():
                 v['model'] = onnx_path
-            v['model::cache'] = onnx_path.replace(".onnx", '.trt')+".enc"
+            v['model::cache'] = onnx_path.replace(".onnx", '.trt')+".encrypt"
 
         kwargs = omniback.Dict()
         kwargs['config'] = config
@@ -41,7 +41,10 @@ class Torch2Trt:
     def __call__(self, x):
         data = {'data': x}
         self.model(data)
-        return data['result']
+        re = data['result']
+        if not isinstance(re, torch.Tensor):
+            re = torch.from_dlpack(re)
+        return re
 
 
 def get_model(toml_path):

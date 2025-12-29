@@ -84,6 +84,7 @@ void unregister_backend(const std::string& aspect_name_str) {
 
 void cleanup_backend() {
   OMNI_INSTANCE_CLEANUP(Backend);
+  OMNI_CLEANUP_ALL(Backend);
 }
 
 OMNI_REGISTER(Backend, Backend, "Backend, Pass");

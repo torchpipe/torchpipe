@@ -222,7 +222,7 @@ class BuildHelper:
 
 def build_core_extension():
     sources = [
-        *config.csrc_dir.glob("*.cpp"),
+        *config.csrc_dir.glob("ffi/*.cpp"),
         *config.csrc_dir.glob("torchplugins/*.cpp"),
         *config.csrc_dir.glob("helper/*.cpp"),
         # *config.csrc_dir.glob("pybind/*.cpp"),
@@ -283,13 +283,19 @@ if __name__ == "__main__":
     
     extensions = [
         build_core_extension(),
-        build_nvjpeg_extension(),
-        build_trt_extension(),
     ]
+    
+    if '--trt' in sys.argv:
+        extensions.append(build_trt_extension())
+        sys.argv.remove('--trt')
+    if '--nvjpeg' in sys.argv:
+        extensions.append(build_nvjpeg_extension())
+        sys.argv.remove('--nvjpeg')
+        
     if '--cv2' in sys.argv:
         extensions.append(build_opencv_extension())
         sys.argv.remove('--cv2')
-
+        
     setup(
         name="torchpipe",
         version="0.9.0",

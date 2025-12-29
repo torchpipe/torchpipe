@@ -1,7 +1,8 @@
+#include "helper/torch.hpp"
+
 #include "nvjpeg_torch/DecodeTensor.hpp"
 #include <c10/cuda/CUDAStream.h>
 #include <torch/torch.h>
-#include "helper/torch.hpp"
 namespace str = omniback::str;
 namespace {
 [[maybe_unused]] void check_nvjpeg_result(nvjpegStatus_t _e) {
@@ -180,7 +181,7 @@ void DecodeTensor::forward(const omniback::dict& input_dict) {
 
   std::string data = input[TASK_DATA_KEY].cast<std::string>();
 
-  torch::Tensor tensor;
+  at::Tensor tensor;
 
   if (decode(data, handle_, state_, tensor, color_, data_format_)) {
     input[TASK_RESULT_KEY] = tensor;

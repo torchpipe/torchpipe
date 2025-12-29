@@ -86,7 +86,7 @@ void Mat2Tensor::forward(const omniback::dict& input_dict) {
       input[TASK_RESULT_KEY] = cvMat2TorchCUDA(data);
     }
 
-  } else if (auto opt = iter->second.cast<std::vector<cv::Mat>>()) {
+  } else if (auto opt = iter->second.try_cast<std::vector<cv::Mat>>()) {
     std::vector<cv::Mat> data = opt.value();
     std::vector<torch::Tensor> result;
     for (auto d : data) {
@@ -102,7 +102,7 @@ void Mat2Tensor::forward(const omniback::dict& input_dict) {
 
     input[TASK_RESULT_KEY] = result;
   } else {
-   TVM_FFI_THROW(TypeError);
+    TVM_FFI_THROW(TypeError);
   }
 }
 
@@ -113,12 +113,12 @@ void Tensor2Mat::forward(const omniback::dict& input_dict) {
 
   auto iter = input_dict->find(TASK_DATA_KEY);
   OMNI_ASSERT(iter != input_dict->end());
- auto data = iter->second.cast<torch::Tensor>() ;
- {
+  auto data = iter->second.cast<torch::Tensor>();
+  {
     auto result = torchTensortoCVMatV2(data, true); // true is for 'deepcopy'
     input[TASK_RESULT_KEY] = result;
   }
-
+}
 OMNI_REGISTER(omniback::Backend, Tensor2Mat);
 
 } // namespace torchpipe

@@ -27,7 +27,8 @@ class StdAnyObj : public tvm::ffi::Object {
           !::tvm::ffi::TypeTraits<std::decay_t<T>>::convert_enabled &&
               !std::is_same_v<std::decay_t<T>, ::tvm::ffi::Any>,
           int> = 0>
-  explicit StdAnyObj(T&& data) : data(std::forward<T>(data)) {}
+  explicit StdAnyObj(T&& data) : data(std::forward<T>(data)) {
+  }
 
   template <
       typename T,
@@ -38,7 +39,8 @@ class StdAnyObj : public tvm::ffi::Object {
   explicit StdAnyObj(T&& input_data)
       : to_tvm_ffi_any_func(
             [input_data]() { return tvm::ffi::Any(input_data); }),
-        data(input_data) {}
+        data(input_data) {
+        }
 
   const std::type_info& type() const noexcept{
     return data.type();

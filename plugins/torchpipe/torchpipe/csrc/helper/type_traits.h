@@ -5,10 +5,14 @@
 #include <ATen/DLConvertor.h>
 #include <ATen/Functions.h>
 #include <torch/extension.h>
+#include "omniback/ffi/type_traits.h"
 
-namespace torchpipe{
+namespace omniback::ffi {
 
-}
+template <>
+struct OmTypeTraits<at::Tensor>
+    : public OmTypeTraitsBase {};
+} // namespace omniback::ffi
 
 namespace tvm::ffi {
 // template <>
