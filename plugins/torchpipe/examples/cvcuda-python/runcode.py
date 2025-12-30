@@ -1,8 +1,8 @@
 import torchpipe
 import torch
 import numpy as np
-import cvcuda
-
+import cvcuda, cv2
+import tvm_ffi
 
 def apply_affine_transform_cvcuda(image_tensor: torch.Tensor,
                                   affine_matrix: np.ndarray,
@@ -21,6 +21,9 @@ def apply_affine_transform_cvcuda(image_tensor: torch.Tensor,
     Returns:
         Output tensor with transformed image data.
     """
+    assert tvm_ffi.get_raw_stream(tvm_ffi.device("cuda:0")) != 0
+    assert (torch.cuda.current_stream().cuda_stream == tvm_ffi.get_raw_stream(tvm_ffi.device("cuda:0")))
+    image_tensor = torch.from_dlpack(image_tensor)
     assert image_tensor.dim() == 3, "Input tensor must be in HWC format (H, W, C)"
 
     # Ensure contiguous memory layout
@@ -62,7 +65,7 @@ class CVCUDAWarpAffineTensor:
         data = io['data']
         target_h = io['target_h']
         target_w = io['target_w']
-        affine_matrix = io['affine_matrix'].numpy()
+        affine_matrix = np.from_dlpack(io['affine_matrix'])
 
         result = apply_affine_transform_cvcuda(
             data, affine_matrix, target_w, target_h
@@ -74,13 +77,39 @@ class CVCUDAWarpAffineTensor:
         """Return maximum batchsize allowed(1 per instance)."""
         return 1
 
-
-# Register the operator and instantiate a multi-instance pipeline
-
 torchpipe.register("CVCUDAWarpAffineTensor", CVCUDAWarpAffineTensor)
 
-# Configure pipeline with 4 concurrent instances for parallel processing
+
+# Build a simple test affine matrix: rotate + scale
+src_pts = np.float32([[0, 0], [112, 0], [0, 112]])
+dst_pts = np.float32([[10, 10], [100, 20], [20, 100]])
+affine_matrix = cv2.getAffineTransform(src_pts, dst_pts)  # shape (2, 3)
+
+# Create input image (HWC, uint8, on CPU first)
+input_img = np.random.randint(0, 256, (112, 112, 3), dtype=np.uint8)
+input_tensor = torch.from_numpy(input_img).cuda()  # Move to GPU
+
+
+# Prepare I/O dict
+io = {
+    'data': input_tensor,
+    'target_h': 128,
+    'target_w': 128,
+    # Keep as tensor for torchpipe
+    'affine_matrix': torch.from_numpy(affine_matrix)
+}
+
+# Create pipeline
 model = torchpipe.pipe({
     "backend": "SyncTensor[CVCUDAWarpAffineTensor]",
-    "instance_num": 4
+    "instance_num": 4  # Can be 1~4
 })
+
+# Run inference
+model(io)  # torchpipe expects a list for batch
+
+# Output
+print("Input shape:", io['data'].shape)
+print("Output shape:", io['result'].shape)
+print("Output device:", io['result'].device)
+print("All done!")
