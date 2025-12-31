@@ -32,8 +32,8 @@ def test_throughput(omniback_backend):
     dataset = helper.TestImageDataset()
     _, image_bytes = next(iter(dataset))
     
-    bench.forward([{'data': image_bytes}]*100, omniback_backend)
-    result = omniback.default_queue().get(block=True)
+    bench.forward_with_dep([omniback.Dict({'data': image_bytes})]*100, omniback_backend)
+    result = omniback.default_queue().get(True)
     print(type(result))
     print("Benchmark result:", result)
 

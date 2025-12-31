@@ -34,7 +34,7 @@ namespace omniback {
  
 using ffi::dict;
 inline dict make_dict() {
-  return std::make_shared<std::unordered_map<string, omniback::any>>();
+  return std::make_shared<std::unordered_map<std::string, omniback::any>>();
 }
 
 

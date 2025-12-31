@@ -3,7 +3,7 @@
 
 namespace omniback::py {
 using omniback::CallbackBackend ;
-std::shared_ptr<omniback::Backend> object2backend(
+std::unique_ptr<omniback::Backend> object2backend(
     SelfType py_obj,
     tvm::ffi::Optional<tvm::ffi::TypedFunction<void(
         SelfType,
@@ -83,6 +83,6 @@ std::shared_ptr<omniback::Backend> object2backend(
       }
     }
 
-  return std::make_shared<CallbackBackend>(init_cb, forward_cb, max_cb, min_cb);
+  return std::make_unique<CallbackBackend>(init_cb, forward_cb, max_cb, min_cb);
 };
 }

@@ -29,11 +29,17 @@ class OmDict(tvm_ffi.Object):
             assert isinstance(data, dict)
             self.__ffi_init__(data)
 
-    def __repr__(self) -> str:
-        if self.__chandle__() == 0:
-            return f"{type(self).__name__}(chandle=None)"
-        items_repr = ", ".join(f"{k!r}: {v!r}" for k, v in self.items())
-        return f"{{{items_repr}}}"
+    # def __repr__(self) -> str:
+    #     if self.__chandle__() == 0:
+    #         return f"{type(self).__name__}(chandle=None)"
+    #     items_repr = []
+    #     for k, v in self.items():
+    #         if isinstance(v, bytes):
+    #             v_repr = f"<bytes: len={len(v)}>"
+    #         else:
+    #             v_repr = repr(v)
+    #         items_repr.append(f"{k!r}: {v_repr}")
+    #     return "{" + ", ".join(items_repr) + "}"
 
 
 class _PyDictWrapper:

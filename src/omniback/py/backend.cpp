@@ -40,7 +40,7 @@ class BackendObj : public tvm::ffi::Object {
     return data->min();
   }
 
-  void inject_dependency(Backend* dep){
+  void inject_dependency(Backend* dep) {
     data->inject_dependency(dep);
   }
 
@@ -55,8 +55,8 @@ using omniback::ffi::DictObj;
 namespace tf = tvm::ffi;
 namespace refl = tvm::ffi::reflection;
 
-namespace{
- std::shared_ptr<Backend> pycreate(
+namespace {
+std::shared_ptr<Backend> pycreate(
     const std::string& class_name,
     tvm::ffi::Optional<tvm::ffi::String> aspect_name) {
   auto backend =
@@ -98,9 +98,22 @@ void pyregister(
     tvm::ffi::Optional<tvm::ffi::Variant<
         tvm::ffi::TypedFunction<uint32_t(SelfType)>,
         uint32_t>> min_func) {
-  auto back =
-      object2backend(py_obj, init_func, forward_func, max_func, min_func);
-  register_backend(name, back);
+  if (const auto& v =
+          py_obj
+              .try_cast<tvm::ffi::TypedFunction<std::decay_t<SelfType>()>>()) {
+    auto creator = v.value();
+    std::function<Backend*()> f =
+        [creator, init_func, forward_func, max_func, min_func]() {
+          return object2backend(
+                     creator(), init_func, forward_func, max_func, min_func)
+              .release();
+        };
+    ClassRegistryInstance<Backend>().DoAddClass(name, f);
+  } else {
+    auto back =
+        object2backend(py_obj, init_func, forward_func, max_func, min_func);
+    register_backend(name, std::move(back));
+  }
 }
 
 Backend* py_get_backend(const std::string& aspect_name_str) {
@@ -108,26 +121,26 @@ Backend* py_get_backend(const std::string& aspect_name_str) {
 }
 
 std::shared_ptr<Backend> pyinit(
-        const tvm::ffi::String& class_config,
-        const tvm::ffi::Map<tvm::ffi::String, tvm::ffi::String>& params,
-        const tvm::ffi::Optional<tvm::ffi::Variant<
-            DictObj*,
-            tvm::ffi::Map<tvm::ffi::String, tvm::ffi::Any>>>& options,
-        tvm::ffi::Optional<tvm::ffi::String> aspect_name) {
-  auto backend =  init_backend(class_config, {params.begin(), params.end()},
+    const tvm::ffi::String& class_config,
+    const tvm::ffi::Map<tvm::ffi::String, tvm::ffi::String>& params,
+    const tvm::ffi::Optional<tvm::ffi::Variant<
+        DictObj*,
+        tvm::ffi::Map<tvm::ffi::String, tvm::ffi::Any>>>& options,
+    tvm::ffi::Optional<tvm::ffi::String> aspect_name) {
+  auto backend = init_backend(
+      class_config,
+      {params.begin(), params.end()},
       [&]() -> std::shared_ptr<std::unordered_map<std::string, omniback::any>> {
-        if (!options.has_value()){
+        if (!options.has_value()) {
           return nullptr;
         }
-        const auto& options_value =
-            options.value();
+        const auto& options_value = options.value();
         if (auto data = options_value.as<DictObj*>()) {
           TVM_FFI_ICHECK(data.value()) << "null DictObj* is not allowed";
           return data.value()->get();
         } else {
           auto map_data =
-              options_value
-                  .as<tvm::ffi::Map<tvm::ffi::String, tvm::ffi::Any>>()
+              options_value.as<tvm::ffi::Map<tvm::ffi::String, tvm::ffi::Any>>()
                   .value();
           return std::make_shared<
               std::unordered_map<std::string, omniback::any>>(
@@ -139,59 +152,58 @@ std::shared_ptr<Backend> pyinit(
   return std::move(backend);
 };
 
-void backend_forward_with_dep_function(BackendObj* self,
-       const tvm::ffi::Variant<
-           DictObj*,
-           tvm::ffi::Array<DictObj*>,
-           tvm::ffi::Map<tvm::ffi::String, tvm::ffi::Any>,
-           tvm::ffi::Array<tvm::ffi::Map<tvm::ffi::String, tvm::ffi::Any>>>&
-           ios,
-       tvm::ffi::Optional<BackendObj*> dep) {
-      if (auto data = ios.as<DictObj*>()) {
-        const auto& item = data.value();
+void backend_forward_with_dep_function(
+    BackendObj* self,
+    const tvm::ffi::Variant<
+        DictObj*,
+        tvm::ffi::Array<DictObj*>,
+        tvm::ffi::Map<tvm::ffi::String, tvm::ffi::Any>,
+        tvm::ffi::Array<tvm::ffi::Map<tvm::ffi::String, tvm::ffi::Any>>>& ios,
+    tvm::ffi::Optional<BackendObj*> dep) {
+  if (auto data = ios.as<DictObj*>()) {
+    const auto& item = data.value();
 
-        TVM_FFI_ICHECK(item) << "null DictObj* is not allowed";
-        DictObj::PyCallBackGuard guard(item);
+    TVM_FFI_ICHECK(item) << "null DictObj* is not allowed";
+    DictObj::PyCallBackGuard guard(item);
 
-        item->check_pycallback_legal();
-        if (!dep.has_value())
-          self->data->forward({item->get()});
-        else {
-          self->data->forward_with_dep({item->get()}, *(dep.value()->data));
-        }
-        item->try_invoke_and_clean_pycallback();
-      } else if (auto data = ios.as<tvm::ffi::Array<DictObj*>>()) {
-        TVM_FFI_ICHECK(data.value().size() > 0) << "empty input is not allowed";
-        std::vector<omniback::dict> vec;
-        DictObj::PyCallBackGuard guard;
-        for (const auto& item : data.value()) {
-          TVM_FFI_ICHECK(item) << "null DictObj* is not allowed";
-          guard.add(item);
-          item->check_pycallback_legal();
-          vec.push_back(item->get());
-        }
-        if (!dep.has_value())
-          self->data->forward(vec);
-        else
-          self->data->forward_with_dep(vec, *(dep.value()->data));
-          
-        for (const auto& item : data.value()) {
-          item->try_invoke_and_clean_pycallback();
-        }
-      } else
-        TVM_FFI_THROW(TypeError)
-            << "invalid input type for Backend.__call__. Use om.Dict or List[om.Dict].";
+    item->check_pycallback_legal();
+    if (!dep.has_value())
+      self->data->forward({item->get()});
+    else {
+      self->data->forward_with_dep({item->get()}, *(dep.value()->data));
+    }
+    item->try_invoke_and_clean_pycallback();
+  } else if (auto data = ios.as<tvm::ffi::Array<DictObj*>>()) {
+    TVM_FFI_ICHECK(data.value().size() > 0) << "empty input is not allowed";
+    std::vector<omniback::dict> vec;
+    DictObj::PyCallBackGuard guard;
+    for (const auto& item : data.value()) {
+      TVM_FFI_ICHECK(item) << "null DictObj* is not allowed";
+      guard.add(item);
+      item->check_pycallback_legal();
+      vec.push_back(item->get());
+    }
+    if (!dep.has_value())
+      self->data->forward(vec);
+    else
+      self->data->forward_with_dep(vec, *(dep.value()->data));
 
-    };
+    for (const auto& item : data.value()) {
+      item->try_invoke_and_clean_pycallback();
+    }
+  } else
+    TVM_FFI_THROW(TypeError)
+        << "invalid input type for Backend.__call__. Use om.Dict or List[om.Dict].";
+};
 
 void backend_forward(
     BackendObj* self,
     const tvm::ffi::Variant<
-        DictObj * ,
+        DictObj*,
         tvm::ffi::Array<DictObj*>,
         tvm::ffi::Map<tvm::ffi::String, tvm::ffi::Any>,
         tvm::ffi::Array<tvm::ffi::Map<tvm::ffi::String, tvm::ffi::Any>>>& ios) {
-   backend_forward_with_dep_function(self, ios, std::nullopt);
+  backend_forward_with_dep_function(self, ios, std::nullopt);
 }
 
 } // namespace
@@ -201,8 +213,7 @@ TVM_FFI_STATIC_INIT_BLOCK() {
   refl::GlobalDef().def("omniback.init", pyinit);
   refl::GlobalDef().def("omniback.register", pyregister);
   refl::GlobalDef().def("omniback.get", py_get_backend);
-  refl::GlobalDef().def("omniback.cleanup", []() { cleanup_backend ();});
-  
+  refl::GlobalDef().def("omniback.cleanup", []() { cleanup_backend(); });
 
   refl::ObjectDef<BackendObj>()
       .def(refl::init<>())
@@ -248,14 +259,14 @@ TVM_FFI_STATIC_INIT_BLOCK() {
 
 namespace tvm::ffi {
 template <>
-    inline constexpr bool use_default_type_traits_v<std::shared_ptr<omniback::Backend>> = false;
+inline constexpr bool
+    use_default_type_traits_v<std::shared_ptr<omniback::Backend>> = false;
 template <>
-inline constexpr bool use_default_type_traits_v<std::unique_ptr<omniback::Backend>> = false;
-
+inline constexpr bool
+    use_default_type_traits_v<std::unique_ptr<omniback::Backend>> = false;
 
 template <>
-    struct TypeTraits<std::shared_ptr<omniback::Backend>>
-    : public TypeTraitsBase {
+struct TypeTraits<std::shared_ptr<omniback::Backend>> : public TypeTraitsBase {
  public:
   static constexpr bool storage_enabled = false;
   using Self = std::shared_ptr<omniback::Backend>;
@@ -313,4 +324,4 @@ struct TypeTraits<omniback::Backend*>
     }
   }
 };
-};
+}; // namespace tvm::ffi

@@ -23,7 +23,6 @@ namespace refl = tvm::ffi::reflection;
 
 
 TVM_FFI_STATIC_INIT_BLOCK() {
-
   refl::ObjectDef<DictObj>()
       .def(refl::init<tvm::ffi::Map<tvm::ffi::String, tvm::ffi::Any>>())
       .def(
@@ -70,10 +69,10 @@ TVM_FFI_STATIC_INIT_BLOCK() {
           "get",
           [](const DictObj* self, const tvm::ffi::String& key
              //  ,const tvm::ffi::Optional<omniback::any>& default_val
-          ) {
+             ) -> std::optional<omniback::any> {
             const auto& map = self->GetMap();
             auto it = map.find(key);
-            return it != map.end() ? it->second : omniback::any(std::nullopt);
+            return it != map.end() ? it->second : std::nullopt;
           })
       .def(
           "keys",
@@ -101,6 +100,18 @@ TVM_FFI_STATIC_INIT_BLOCK() {
           })
 
       // items()
+      .def(
+          "items_old",
+          [](const DictObj* self)
+              -> std::vector<std::tuple<tvm::ffi::String, omniback::any>> {
+            const auto& map = self->GetMap();
+            std::vector<std::tuple<tvm::ffi::String, omniback::any>> items;
+            items.reserve(map.size());
+            for (const auto& pair : map) {
+              items.emplace_back(pair.first, pair.second);
+            }
+            return items;
+          })
       .def(
           "items",
           [](const DictObj* self)

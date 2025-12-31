@@ -20,9 +20,11 @@ TVM_FFI_STATIC_INIT_BLOCK() {
   refl::ObjectDef<ThreadSafeQueueObj>()
       // Constructors
       .def(refl::init<>())
-      .def("size", [](const ThreadSafeQueueObj* obj) {
-        return static_cast<int64_t>(obj->size());
-      })
+      .def(
+          "size",
+          [](const ThreadSafeQueueObj* obj) {
+            return static_cast<int64_t>(obj->size());
+          })
       .def("empty", &ThreadSafeQueueObj::empty)
       .def("clear", &ThreadSafeQueueObj::clear)
       .def("front_size", &ThreadSafeQueueObj::front_size)
@@ -32,37 +34,53 @@ TVM_FFI_STATIC_INIT_BLOCK() {
       .def("set_max_size", &ThreadSafeQueueObj::set_max_size)
 
       // Waiting operations
-      .def("wait_for", [](ThreadSafeQueueObj* obj, size_t timeout_ms) {
-        return obj->wait_for(timeout_ms);
-      })
+      .def(
+          "wait_for",
+          [](ThreadSafeQueueObj* obj, size_t timeout_ms) {
+            return obj->wait_for(timeout_ms);
+          })
       // Element access (non-blocking front access)
-      .def("front", [](const ThreadSafeQueueObj* obj){
-        return obj->front<Any>();
-      })
+      .def(
+          "front",
+          [](const ThreadSafeQueueObj* obj) { return obj->front<Any>(); })
       // Push operations
-      .def("put", [](ThreadSafeQueueObj* obj, const tvm::ffi::Any& value) {
-        obj->push(value);
-      })
-      .def("put_with_size", [](ThreadSafeQueueObj* obj, 
-                               const tvm::ffi::Any& value, 
-                               size_t real_size) {
-        obj->push_with_size<Any>(value, real_size);
-      })
-      .def("put_with_max_limit", [](ThreadSafeQueueObj* obj,
-                                    const tvm::ffi::Any& value,
-                                    size_t max_size,
-                                    size_t timeout_ms) {
-        return obj->push_with_max_limit<Any>(value, max_size, timeout_ms);
-      })
+      .def(
+          "put",
+          [](ThreadSafeQueueObj* obj, const tvm::ffi::Any& value) {
+            obj->push(value);
+          })
+      .def(
+          "put_with_size",
+          [](ThreadSafeQueueObj* obj,
+             const tvm::ffi::Any& value,
+             size_t real_size) { obj->push_with_size<Any>(value, real_size); })
+      .def(
+          "wait_until_at_least",
+          [](ThreadSafeQueueObj* obj, size_t queue_size, size_t timeout_ms) {
+            obj->wait_until_at_least(queue_size, timeout_ms);
+          })
+      .def(
+          "put_with_max_limit",
+          [](ThreadSafeQueueObj* obj,
+             const tvm::ffi::Any& value,
+             size_t max_size,
+             size_t timeout_ms) {
+            return obj->push_with_max_limit<Any>(value, max_size, timeout_ms);
+          })
 
       // Get operations
-      .def("get", [](ThreadSafeQueueObj* obj) -> Any {
-        return obj->get<Any>();
-      })
-      .def("wait_get", [](ThreadSafeQueueObj* obj, size_t timeout_ms) {
-        return obj->wait_get<Any>(timeout_ms);
-      })
-      ;
+      .def(
+          "get",
+          [](ThreadSafeQueueObj* obj, bool block = true) -> Any {
+            if (!block)
+              return obj->get<Any>();
+            else{
+              return obj->wait_get<Any>();
+            }
+          })
+      .def("try_get", [](ThreadSafeQueueObj* obj, size_t timeout_ms) {
+        return obj->try_get<Any>(timeout_ms);
+      });
 }
 
 static std::unordered_map<std::string, ThreadSafeQueueRef>& GetQueueRegistry() {

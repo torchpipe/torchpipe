@@ -79,8 +79,9 @@ if __name__ == "__main__":
         
         data_pipeline({'data': request_id, 'request_id': request_id,'node_name':'jpg_decoder'})
         label[request_id] = category.item()
+        
 
-    q.join()
+    # q.join()
     
     
     
@@ -89,7 +90,8 @@ if __name__ == "__main__":
     # print(thread.size(),  omniback.default_queue().size())
     
     default_q = omniback.default_queue()
-    while not default_q.wait_until_at_least(total_number, 0.5):
+    while not default_q.wait_until_at_least(total_number, 500):
+        print(f'waiting for finishing. qsize={default_q.size()}')
         pass
     print(default_q.size())
     

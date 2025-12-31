@@ -114,7 +114,7 @@ class ThreadPoolExecutor : public Dependency {
 
     do {
       // SPDLOG_INFO(" pool queue input : {}", queue->size());
-      auto data_opt = queue->wait_get<dict>(500);
+      auto data_opt = queue->try_get<dict>(500);
       // SPDLOG_INFO("queue get {}", len);
       if (!data_opt)
         continue;

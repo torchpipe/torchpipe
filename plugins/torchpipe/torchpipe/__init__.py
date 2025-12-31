@@ -1,10 +1,7 @@
-from typing import Any, Dict, List, Optional, Union
-
 import ctypes, os
 
-import omniback
+import tvm_ffi,omniback
 # ctypes.CDLL(omniback._C.__file__, mode=ctypes.RTLD_GLOBAL)
-import tvm_ffi
 
 import torch
 
@@ -33,6 +30,8 @@ try:
 
 except ImportError:
     print(f'opencv related backends not loaded')
+
+
 
 from . import utils
 if (omniback._C.use_cxx11_abi() != torch._C._GLIBCXX_USE_CXX11_ABI):
@@ -131,3 +130,18 @@ register = omniback.register
 
 #     def __del__(self):
 #         self.Interpreter = None
+
+
+if hasattr(torch.Tensor, "__dlpack_c_exchange_api__"):
+    # type: ignore[attr-defined]
+    api_attr = torch.Tensor.__dlpack_c_exchange_api__
+    # PyCapsule - extract the pointer as integer
+    pythonapi = ctypes.pythonapi
+    # Set restype to c_size_t to get integer directly (avoids c_void_p quirks)
+    pythonapi.PyCapsule_GetPointer.restype = ctypes.c_size_t
+    pythonapi.PyCapsule_GetPointer.argtypes = [
+        ctypes.py_object, ctypes.c_char_p]
+    capsule_name = b"dlpack_exchange_api"
+    api_ptr = pythonapi.PyCapsule_GetPointer(api_attr, capsule_name)
+    assert api_ptr != 0, "API pointer from PyCapsule should not be NULL"
+    omniback.ffi.set_dlpack_exchange_api(api_ptr)

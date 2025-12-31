@@ -350,11 +350,11 @@ class ReadFile : public BackendOne {
     OMNI_ASSERT(size > 2);
     file.seekg(0, std::ios::beg);
 
-    std::string content(size, '\0');
+    std::vector<std::byte> content(size);
     // SPDLOG_INFO("file size = {} content.size() = {}", size,
     // content.size());
     OMNI_ASSERT(
-        file.read(content.data(), size),
+        file.read(reinterpret_cast<char*>(content.data()), size),
         "ReadFile: failed to read file content");
 
     file.close();

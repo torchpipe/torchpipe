@@ -227,5 +227,11 @@ bool match(NetIOInfo::Dims64& dst, const torch::Tensor& src);
 c10::ScalarType netinfo2torch_type(NetIOInfo::DataType dtype);
 
 float cuda_time();
+// int StreamOrderedManagedTensorAllocator(
+//     void* stream,
+//     DLTensor* prototype,
+//     DLManagedTensorVersioned** out,
+//     void* error_ctx,
+//     void (*SetError)(void* error_ctx, const char* kind, const char* message));
 // device_count();
 } // namespace torchpipe

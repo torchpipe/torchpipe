@@ -60,7 +60,7 @@ void QueueBackend::impl_inject_dependency(Backend* dep) {
 
 void QueueBackend::run() {
   while (bInited_.load()) {
-    auto data = queue_->pop<omniback::dict>(SHUTDOWN_TIMEOUT);
+    auto data = queue_->try_get<omniback::dict>(SHUTDOWN_TIMEOUT);
     if (!data.has_value())
       continue;
     auto io_data = (data.value());
@@ -105,8 +105,7 @@ void Send::impl_init(
 }
 
 void Send::impl_forward(const std::vector<dict>& input) {
-  while (!queue_->try_puts(
-      input, queue_max_, std::chrono::milliseconds(SHUTDOWN_TIMEOUT))) {
+  while (!queue_->try_pushes(input, queue_max_, SHUTDOWN_TIMEOUT)) {
   };
   // for (auto& item : input) {
   //     queue_->put(item);
@@ -116,7 +115,7 @@ void Send::impl_forward(const std::vector<dict>& input) {
 class Send2Queue : public BackendOne {
  public:
   ~Send2Queue() {
-    queue_->cancel();
+    // queue_->cancel();
   }
 
  private:
@@ -143,8 +142,7 @@ class Send2Queue : public BackendOne {
 
   void forward(const dict& input) override {
     auto data = copy_dict(input);
-    while (!queue_->try_put(
-        data, queue_max_, std::chrono::milliseconds(SHUTDOWN_TIMEOUT))) {
+    while (!queue_->try_push(data, queue_max_, SHUTDOWN_TIMEOUT)) {
     };
     // SPDLOG_INFO("Send2Queue {} ", queue_->size());
     if (keep_result_) {
@@ -209,8 +207,7 @@ class CreateQueue : public Backend {
   }
 
   void impl_forward(const std::vector<dict>& input) override {
-    while (!queue_->try_puts(
-        input, queue_max_, std::chrono::milliseconds(SHUTDOWN_TIMEOUT))) {
+    while (!queue_->try_pushes(input, queue_max_, SHUTDOWN_TIMEOUT)) {
     };
   }
 
@@ -227,7 +224,7 @@ void Observer::impl_forward(const std::vector<dict>& input) {
   for (auto& item : input) {
     (*item)[TASK_RESULT_KEY] = item->at(TASK_DATA_KEY);
     auto new_dict = copy_dict(item);
-    queue_->put(new_dict);
+    queue_->push(new_dict);
   }
 }
 

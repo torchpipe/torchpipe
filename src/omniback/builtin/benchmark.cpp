@@ -287,22 +287,22 @@ class Profile : public Dependency {
         std::chrono::duration_cast<std::chrono::duration<double>>(
             std::chrono::steady_clock::now() - first_time)
             .count();
+    dep.forward(io);
+    // try {
+    //   dep.forward(io);
+    // } catch (const std::exception& e) {
+    //   SPDLOG_WARN("Exception during forward: {}", e.what());
+    //   status.data["exception"] = std::string(e.what());
 
-    try {
-      dep.forward(io);
-    } catch (const std::exception& e) {
-      SPDLOG_WARN("Exception during forward: {}", e.what());
-      status.data["exception"] = std::string(e.what());
-
-      status.data["end_time"] =
-          std::chrono::duration_cast<std::chrono::duration<double>>(
-              std::chrono::steady_clock::now() - first_time)
-              .count();
-      auto data = make_dict();
-      data->insert({TASK_DATA_KEY, status});
-      target_queue_->push_wo_notify(data);
-      throw;
-    }
+    //   status.data["end_time"] =
+    //       std::chrono::duration_cast<std::chrono::duration<double>>(
+    //           std::chrono::steady_clock::now() - first_time)
+    //           .count();
+    //   auto data = make_dict();
+    //   data->insert({TASK_DATA_KEY, status});
+    //   target_queue_->push_wo_notify(data);
+    //   throw;
+    // }
 
     status.data["end_time"] =
         std::chrono::duration_cast<std::chrono::duration<double>>(

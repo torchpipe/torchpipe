@@ -113,7 +113,7 @@ void Loop::run() {
       impl_forward_sync(input_data);
     } else if (input_data_size + queue_size == 0) {
       size_t size{0};
-      auto data_opt =  src_queue_->wait_get<dict>(SHUTDOWN_TIMEOUT, size);
+      auto data_opt =  src_queue_->try_get<dict>(SHUTDOWN_TIMEOUT, size);
       if (data_opt) {
         input_data.push_back(data_opt.value());
         input_data_size += size;

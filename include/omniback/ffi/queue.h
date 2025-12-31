@@ -154,9 +154,55 @@ class ThreadSafeQueueObj : public tvm::ffi::Object {
     cv_pushed_.notify_all();
   }
 
+  template <typename Container>
+  bool try_pushes(Container&& values, size_t max_size, size_t timeout_ms) {
+    TVM_FFI_ICHECK(!values.empty());
+
+    const size_t num_values = values.size();
+    {
+      const auto timeout_dur = std::chrono::milliseconds(timeout_ms);
+      std::unique_lock<std::mutex> lock(mutex_);
+
+      if (max_size > 0) {
+        if(!cv_popped_.wait_for(lock, timeout_dur, [this, num_values, max_size] {
+          return queue_.size() + num_values <= max_size;
+        })) return false;
+      }
+
+      for (auto&& value : values) {
+        queue_.emplace_back(std::forward<decltype(value)>(value));
+      }
+    }
+
+    cv_pushed_.notify_all();
+    return true;
+  }
+
+  template <typename T>
+  bool try_push(T&& value, size_t max_size, size_t timeout_ms) {
+
+    {
+      const auto timeout_dur = std::chrono::milliseconds(timeout_ms);
+      std::unique_lock<std::mutex> lock(mutex_);
+
+      if (max_size > 0) {
+        if (!cv_popped_.wait_for(
+                lock, timeout_dur, [this, max_size] {
+                  return queue_.size() < max_size;
+                }))
+          return false;
+      }
+
+      queue_.emplace_back(std::forward<T>(value));
+    }
+
+    cv_pushed_.notify_all();
+    return true;
+  }
+
   /*! \brief Get with timeout (type-safe) */
   template <typename T = omniback::any>
-  std::optional<T> wait_get(size_t timeout_ms) {
+  std::optional<T> try_get(size_t timeout_ms) {
     const auto timeout_dur = std::chrono::milliseconds(timeout_ms);
 
     std::unique_lock<std::mutex> lock(mutex_);
@@ -168,7 +214,7 @@ class ThreadSafeQueueObj : public tvm::ffi::Object {
     return unsafe_pop_rm_front<T>();
   }
 
-  bool wait_for(size_t timeout_ms){
+  bool wait_for(size_t timeout_ms) {
     const auto timeout_dur = std::chrono::milliseconds(timeout_ms);
 
     std::unique_lock<std::mutex> lock(mutex_);
@@ -176,8 +222,20 @@ class ThreadSafeQueueObj : public tvm::ffi::Object {
             lock, timeout_dur, [this] { return !queue_.empty(); });
   }
 
+  bool wait_until_at_least(size_t queue_size, size_t timeout_ms) {
+    const auto timeout_dur = std::chrono::milliseconds(timeout_ms);
+
+    std::unique_lock<std::mutex> lock(mutex_);
+    // unsafe_lazy_update_size();
+    if (!cv_pushed_.wait_for(lock, timeout_dur, [this, queue_size] {
+          return queue_.size() >= queue_size;
+        }))
+      return false;
+    return true;
+  }
+
   template <typename T = omniback::any>
-  std::optional<T> wait_get(size_t timeout_ms, size_t& out_size) {
+  std::optional<T> try_get(size_t timeout_ms, size_t& out_size) {
     const auto timeout_dur = std::chrono::milliseconds(timeout_ms);
 
     std::unique_lock<std::mutex> lock(mutex_);
@@ -190,7 +248,16 @@ class ThreadSafeQueueObj : public tvm::ffi::Object {
   }
 
   template <typename T = omniback::any>
-  T get() {
+  T wait_get() {
+    std::unique_lock<std::mutex> lock(mutex_);
+    cv_pushed_.wait(
+            lock, [this] { return !queue_.empty(); });
+
+    return unsafe_pop_rm_front<T>();
+  }
+
+  template <typename T = omniback::any>
+      T get() {
     std::unique_lock<std::mutex> lock(mutex_);
 
     return unsafe_pop_rm_front<T>();

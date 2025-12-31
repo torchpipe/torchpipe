@@ -102,11 +102,11 @@ io = {
 # Create pipeline
 model = torchpipe.pipe({
     "backend": "SyncTensor[CVCUDAWarpAffineTensor]",
-    "instance_num": 4  # Can be 1~4
+    "instance_num": 4 
 })
 
 # Run inference
-model(io)  # torchpipe expects a list for batch
+model(io)
 
 # Output
 print("Input shape:", io['data'].shape)

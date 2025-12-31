@@ -12,7 +12,7 @@ namespace omniback::py {
 using SelfType = tvm::ffi::Any; // tvm::ffi::ObjectPtr<tvm::ffi::Object>;
 using PyDictRef = omniback::ffi::DictRef;
 
-std::shared_ptr<omniback::Backend> object2backend(
+std::unique_ptr<omniback::Backend> object2backend(
     SelfType py_obj,
     tvm::ffi::Optional<tvm::ffi::TypedFunction<void(
         SelfType,

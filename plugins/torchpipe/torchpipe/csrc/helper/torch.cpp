@@ -33,6 +33,9 @@
 #include "helper/torch.hpp"
 // #include "NvInferRuntime.h"
 #include "omniback/helper/timer.hpp"
+#include "helper/dlpack_helper.hpp"
+#include <c10/cuda/CUDAStream.h>
+
 namespace torchpipe {
 
 void save(std::string save_name, torch::Tensor input) {
@@ -830,5 +833,20 @@ bool match(NetIOInfo::Dims64& dst, const torch::Tensor& src) {
   }
   return shape_is_match;
 }
+
+// int StreamOrderedManagedTensorAllocator(
+//     void* stream,
+//     DLTensor* prototype,
+//     DLManagedTensorVersioned** out,
+//     void* error_ctx,
+//     void (*SetError)(void* error_ctx, const char* kind, const char* message)) {
+
+//   at::cuda::CUDAStream cuda_stream = at::cuda::getStreamFromExternal(
+//       static_cast<cudaStream_t>(stream), c10::cuda::current_device());
+
+//   static DLPackManagedTensorAllocator& alloc = torch_allocator();
+//   return alloc(prototype, out, error_ctx, SetError);
+// }
+
 
 } // namespace torchpipe

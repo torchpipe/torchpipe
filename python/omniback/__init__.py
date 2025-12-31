@@ -1,5 +1,8 @@
 
 
+import atexit
+from . import utils
+from .parser import parse, init_from_file, pipe
 import sys
 import os
 from pathlib import Path
@@ -14,37 +17,53 @@ from . import _ffi_api as ffi
 from ._ffi_api import _C
 
 
-from ._ffi_api import  Queue, default_queue, Event, Backend
+from ._ffi_api import Queue, default_queue, Event, Backend
 from ._ffi_api import OmDict as Dict
+
 
 def create(name, register_name=None):
     return ffi.create(name, register_name)
+
 
 def init(name, params={}, options=None, register_name=None):
     return ffi.init(name, params, options, register_name)
 
 
 def register(name, object_or_type):
-    if isinstance(object_or_type, type):
-        raise NotImplementedError(
-            "Registering from type is not implemented yet")
-    else:
-        # init_func = getattr(object_or_type, "init", None)
-        # forward_func = getattr(object_or_type, "forward", None)
-        # max_func = getattr(object_or_type, "max", None)
-        # min_func = getattr(object_or_type, "min", None)
-        ins_type = type(object_or_type)
-        init_func = getattr(ins_type, "init", None)
-        forward_func = getattr(ins_type, "forward", None)
-        max_func = getattr(ins_type, "max", None)
-        min_func = getattr(ins_type, "min", None)
-    return ffi.register(name, object_or_type, init_func, forward_func, max_func, min_func)
+    import inspect
 
-import atexit
+    if isinstance(object_or_type, type):
+        ins_type = object_or_type
+
+        init_signature = inspect.signature(ins_type.__init__)
+        params = list(init_signature.parameters.values())
+
+        for param in params[1:]:
+            if param.kind in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD):
+                continue
+            if param.default is inspect.Parameter.empty:
+                raise TypeError(
+                    f"Class '{ins_type.__name__}' cannot be default-constructed: "
+                    f"parameter '{param.name}' has no default value"
+                )
+
+        def creator_or_instance(): return ins_type()
+    else:
+        ins_type = type(object_or_type)
+        creator_or_instance = object_or_type
+    init_func = getattr(ins_type, "init", None)
+    forward_func = getattr(ins_type, "forward", None)
+    max_func = getattr(ins_type, "max", None)
+    min_func = getattr(ins_type, "min", None)
+    return ffi.register(name, creator_or_instance, init_func, forward_func, max_func, min_func)
+
+
 assert atexit.register(ffi.cleanup)
+
 
 def get(name):
     return ffi.get(name)
+
 
 try:
     # type: ignore[import-not-found]
@@ -54,19 +73,24 @@ except ImportError:
     __version_tuple__ = (0, 0, 0, "dev0", "unknown")
 
 
-from .parser import parse, init_from_file, pipe
-
-from . import utils
 # isort: on
+
 
 def get_library_dir():
     return os.path.dirname(libinfo.find_libomniback())
+
+
 def get_include_dirs():
     return libinfo.include_paths()
+
+
 def extra_include_paths():
     return libinfo.include_paths(),
+
+
 def extra_ldflags():
     return [f"-L{get_library_dir()}", '-lomniback'],
+
 
 __all__ = ["Any", "Dict", 'Backend', 'Event', 'create', 'create', 'register', 'parse',
            'init', 'get',  "timestamp", "pipe", 'init', 'load_kwargs', "_C"]

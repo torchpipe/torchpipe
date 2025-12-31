@@ -9,7 +9,6 @@ from torch.utils import cpp_extension
 
 import torch
 
-import omniback._C
 import omniback
 import cv2
 
@@ -19,8 +18,7 @@ cpp = torch.utils.cpp_extension.load(
     sources=["yolo.cpp"],
     extra_cflags=["-O3", "-Wall", "-std=c++17"],
     extra_include_paths=[]+omniback.libinfo.include_paths(),
-    extra_ldflags=[f"-L{omniback.get_library_dir()}", '-lomniback',
-                   f'{omniback._C.__file__}'],
+    extra_ldflags=[f"-L{omniback.get_library_dir()}", '-lomniback'],
     verbose=True,
     is_python_module=True,
 )

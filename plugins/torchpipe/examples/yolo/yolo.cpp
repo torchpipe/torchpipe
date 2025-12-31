@@ -1,15 +1,39 @@
 #include "omniback/core/any.hpp"
 #include "omniback/core/backend.hpp"
 #include "omniback/core/reflect.h"
-#include "omniback/pybind/box.hpp"
-#include "omniback/pybind/python.hpp"
-
-#include "omniback/pybind/dict.hpp"
 
 #include <torch/extension.h>
 #include <torch/torch.h>
+
+#include <tvm/ffi/function.h>
+#include "torchpipe/csrc/helper/torch.hpp"
+
 using omniback::Box;
 using omniback::Boxes;
+
+using omniback::dict;
+
+namespace {
+dict box2dict(Box box) {
+  dict data = std::make_shared<std::unordered_map<std::string, omniback::any>>();
+  data->insert_or_assign("id", box.id);
+  data->insert_or_assign("score", box.score);
+  data->insert_or_assign("x1", box.x1);
+  data->insert_or_assign("y1", box.y1);
+  data->insert_or_assign("x2", box.x2);
+  data->insert_or_assign("y2", box.y2);
+  return data;
+}
+
+std::vector<dict> boxes2dicts(std::vector<Box> boxes) {
+  std::vector<dict> result;
+  result.reserve(boxes.size()); // 预分配内存提升性能
+  for (const auto& box : boxes) {
+    result.push_back(box2dict(box));
+  }
+  return result;
+}
+}
 
 float iou(const Box& a, const Box& b) {
   const float inter_x1 = std::max(a.x1, b.x1);
@@ -81,7 +105,7 @@ omniback::Boxes nms(
 
   return result;
 }
-omniback::Boxes yolo11_post_cpp(
+dict yolo11_post_cpp(
     torch::Tensor& prediction,
     float conf_thres,
     float iou_thres,
@@ -119,18 +143,17 @@ omniback::Boxes yolo11_post_cpp(
   if (re_boxes.boxes.size() > max_det)
     re_boxes.boxes.resize(max_det); // sorted
 
-  return re_boxes;
+  return boxes2dicts(re_boxes.boxes);
 }
 
-py::object yolo11_post(
+dict yolo11_post(
     torch::Tensor& prediction,
     float conf_thres,
     float iou_thres,
     int max_det) {
   // 检查输入张量维度
-  auto re_boxes = yolo11_post_cpp(prediction, conf_thres, iou_thres, max_det);
-  return omniback::cast(re_boxes);
-}
+  return yolo11_post_cpp(prediction, conf_thres, iou_thres, max_det);
+  }
 
 namespace omniback {
 class Yolo11Post : public omniback::BackendOne {
@@ -156,13 +179,15 @@ class Yolo11Post : public omniback::BackendOne {
 };
 OMNI_REGISTER(omniback::Backend, Yolo11Post);
 } // namespace omniback
-PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
-  m.def(
-      "yolo11_post",
-      &yolo11_post,
-      "Non-Maximum Suppression (NMS)",
-      pybind11::arg("prediction"),
-      pybind11::arg("conf_thres") = 0.25f, // 默认值 0.25
-      pybind11::arg("iou_thres") = 0.45f, // 默认值 0.45
-      pybind11::arg("max_det") = 300); // 默认值 300
-}
+// PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
+//   m.def(
+//       "yolo11_post",
+//       &yolo11_post,
+//       "Non-Maximum Suppression (NMS)",
+//       pybind11::arg("prediction"),
+//       pybind11::arg("conf_thres") = 0.25f, // 默认值 0.25
+//       pybind11::arg("iou_thres") = 0.45f, // 默认值 0.45
+//       pybind11::arg("max_det") = 300); // 默认值 300
+// }
+
+TVM_FFI_DLL_EXPORT_TYPED_FUNC(yolo11_post, yolo11_post)

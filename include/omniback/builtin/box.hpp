@@ -3,13 +3,14 @@
 #include <cstddef>
 #include <cstdint>
 #include <vector>
-
+#include <tvm/ffi/object.h>
 namespace omniback {
 
 /**
  * @brief Bounding box structure in XYXY format
  */
 struct Box {
+
   int id; // Class ID
   float score; // Confidence score
   float x1, y1, x2, y2; // Coordinates in XYXY format
@@ -30,6 +31,17 @@ struct Box {
   float area() const {
     return width() * height();
   }
+};
+
+struct BoxObj : public tvm::ffi::Object {
+  Box box_;
+  BoxObj() = default;
+  BoxObj(Box box) : box_(box) {}
+
+  TVM_FFI_DECLARE_OBJECT_INFO_FINAL(
+      /*type_key=*/"omniback.Box",
+      /*class=*/BoxObj,
+      /*parent_class=*/tvm::ffi::Object);
 };
 
 /**
