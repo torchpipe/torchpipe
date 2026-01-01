@@ -5,6 +5,7 @@
 #include <ATen/DLConvertor.h>
 #include <ATen/Functions.h>
 #include <torch/extension.h>
+
 #include "omniback/ffi/type_traits.h"
 
 namespace omniback::ffi {
@@ -15,12 +16,6 @@ struct OmTypeTraits<at::Tensor>
 } // namespace omniback::ffi
 
 namespace tvm::ffi {
-// template <>
-// inline constexpr bool use_default_type_traits_v<
-//     std::shared_ptr<std::unordered_map<std::string, omniback::any>>> = false;
-
-// ObjectRefTypeTraitsBase
-// TypeTraitsBase
 template <>
 struct TypeTraits<at::Tensor> : public TypeTraitsBase {
  public:

@@ -34,7 +34,7 @@ requires-python = ">=3.8"
 dependencies = ["apache-tvm-ffi"]
 
 [build-system]
-requires = ["scikit-build-core>=0.10.0", "apache-tvm-ffi>=0.1.5","pybind11[global]","setuptools-scm"]
+requires = ["scikit-build-core>=0.10.0", "apache-tvm-ffi>=0.1.5","setuptools-scm"]
 build-backend = "scikit_build_core.build"
 
 [tool.scikit-build]
