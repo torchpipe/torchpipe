@@ -71,7 +71,7 @@ TVM_FFI_STATIC_INIT_BLOCK() {
       // Get operations
       .def(
           "get",
-          [](ThreadSafeQueueObj* obj, bool block = true) -> Any {
+          [](ThreadSafeQueueObj* obj, bool block) -> Any {
             if (!block)
               return obj->get<Any>();
             else{

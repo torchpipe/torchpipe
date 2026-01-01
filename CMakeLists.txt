@@ -64,7 +64,10 @@ list(FILTER ALL_SOURCES EXCLUDE REGEX "src/omniback/pybind/")
 set(CORE_SOURCES ${ALL_SOURCES})
 
 add_library(omniback_core SHARED ${CORE_SOURCES})
-tvm_ffi_configure_target(omniback_core)
+tvm_ffi_configure_target(omniback_core
+    LINK_SHARED OFF
+    LINK_HEADER ON
+)
 
 
 add_library(omniback_header INTERFACE)
@@ -123,17 +126,10 @@ if(BUILD_PY)
     # )
     target_link_libraries(omniback_py PRIVATE
         omniback_core
-        tvm_ffi_header
-        tvm_ffi_shared
         omniback_header
         Python::Module
     )
 
-    # # Set Python module output name to match expected import name
-    # set_target_properties(omniback_py PROPERTIES 
-    #     PREFIX ""
-    #     SUFFIX ".${PYTHON_EXTENSION_SUFFIX}"
-    # )
 endif()
 
 # Handle debug symbols for core library

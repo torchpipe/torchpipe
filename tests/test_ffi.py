@@ -9,7 +9,7 @@ def test_queue():
     q.put({3: "1"})
     q.put({11: {1: 4}})
 
-    re = [q.get() for _ in range(q.size())]
+    re = [q.get(False) for _ in range(q.size())]
     assert q.size() == 0
     print(re)
 
@@ -18,11 +18,11 @@ def test_queue():
 
     dq.put([3])
     assert dq.size() == 1, f'dq.size() == {dq.size()},  != 1'
-    re = dq.get()
+    re = dq.get(False)
     assert re[0] == 3, f'{re}'
     print(f'{dq.size()}')
     with pytest.raises(RuntimeError):
-        dq.get()
+        dq.get(False)
         
     
 def test_dict():
