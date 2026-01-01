@@ -77,13 +77,13 @@ def test_tensorrt_inference():
     
     # Prepare input data
     input_tensor = torch.ones((1, 3, 224, 224)).half()*10
-    data = {"data": input_tensor.cuda()}
+    data = omniback.Dict({"data": input_tensor.cuda()})
     
     # Run inference
     # model(data)
     
     bench = omniback.init("Benchmark", {"num_clients": "4", "total_number": "10000"})
-    bench.forward([data]*100, model)
+    bench.forward_with_dep([data]*100, model)
     
     q = omniback.default_queue()
     print(q.size())

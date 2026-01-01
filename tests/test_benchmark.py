@@ -38,16 +38,16 @@ def test_tensorrt_inference():
 
     # Prepare input data
     input_tensor = 1
-    data = {"data": input_tensor}
+    data = omniback.Dict({"data": input_tensor})
 
     # Run inference
     # model(data)
 
     bench = omniback.init(
         "Benchmark", {"num_clients": "4", "total_number": "10000"})
-    bench.forward([data]*100, model)
+    bench.forward_with_dep([data]*100, model)
 
-    q = omniback._C.default_queue()
+    q = omniback.ffi.default_queue()
     print(q.size())
     print(q)
     assert not q.empty()

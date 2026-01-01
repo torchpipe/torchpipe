@@ -1,10 +1,7 @@
-from typing import Any, Dict, List, Optional, Union
-
 import ctypes, os
 
-import omniback
-ctypes.CDLL(omniback._C.__file__, mode=ctypes.RTLD_GLOBAL)
-
+import tvm_ffi,omniback
+# ctypes.CDLL(omniback._C.__file__, mode=ctypes.RTLD_GLOBAL)
 
 import torch
 
@@ -13,13 +10,28 @@ from importlib.metadata import version
 __version__ = version("torchpipe")
 
 ctypes.CDLL(os.path.join(os.path.dirname(__file__), "native.so"), mode=ctypes.RTLD_GLOBAL)
+# native = tvm_ffi.load_module(os.path.join(os.path.dirname(__file__), "native.so"))
+# native = tvm_ffi.load_lib_module("torchpipe", "native")
 
-from . import native, image, trt
+# from . import native 
 
 try:
-    from . import mat
+    from . import image
+except ImportError:
+    print(f'nvjpeg related backends not loaded')
+try:
+    from . import trt
+except ImportError:
+    print(f'trt related backends not loaded')
+try:
+    # from . import mat
+    mat = tvm_ffi.load_module(os.path.join(
+        os.path.dirname(__file__), "mat.so"))
+
 except ImportError:
     print(f'opencv related backends not loaded')
+
+
 
 from . import utils
 if (omniback._C.use_cxx11_abi() != torch._C._GLIBCXX_USE_CXX11_ABI):
@@ -31,6 +43,8 @@ if (omniback._C.use_cxx11_abi() != torch._C._GLIBCXX_USE_CXX11_ABI):
         to install the pre-cxx11 abi version. Or use `USE_CXX11_ABI={int(not omniback._C.use_cxx11_abi())} pip install -e .` to rebuild omniback.
     """
     raise RuntimeError(info)
+
+
 
 torch.cuda.init()
 
@@ -116,3 +130,18 @@ register = omniback.register
 
 #     def __del__(self):
 #         self.Interpreter = None
+
+
+if hasattr(torch.Tensor, "__dlpack_c_exchange_api__"):
+    # type: ignore[attr-defined]
+    api_attr = torch.Tensor.__dlpack_c_exchange_api__
+    # PyCapsule - extract the pointer as integer
+    pythonapi = ctypes.pythonapi
+    # Set restype to c_size_t to get integer directly (avoids c_void_p quirks)
+    pythonapi.PyCapsule_GetPointer.restype = ctypes.c_size_t
+    pythonapi.PyCapsule_GetPointer.argtypes = [
+        ctypes.py_object, ctypes.c_char_p]
+    capsule_name = b"dlpack_exchange_api"
+    api_ptr = pythonapi.PyCapsule_GetPointer(api_attr, capsule_name)
+    assert api_ptr != 0, "API pointer from PyCapsule should not be NULL"
+    omniback.ffi.set_dlpack_exchange_api(api_ptr)

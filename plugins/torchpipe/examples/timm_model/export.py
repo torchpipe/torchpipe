@@ -117,6 +117,7 @@ def export_and_optimize_model(
         model,
         dummy_input,
         output_file,
+        dynamo=False,
         opset_version=opset,
         do_constant_folding=True,
         input_names=['input'],

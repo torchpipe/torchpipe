@@ -76,8 +76,8 @@ class ThriftClients:
                 del self.transport
                 break
             except Exception as e:
-                print(f"Waiting for thrift server to start. port={port}. e={e}")
-                time.sleep(5)
+                print(f"Client: Waiting for thrift server to start. port={port}. Sleep and wait.")
+                time.sleep(8)
                 continue
         for i in range(num_clients):
             soc = TSocket.TSocket('localhost', port)

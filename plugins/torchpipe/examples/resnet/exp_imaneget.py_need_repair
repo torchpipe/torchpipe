@@ -1,0 +1,165 @@
+import sys
+import os
+import fire
+import omniback
+import torchpipe
+from pathlib import Path
+import tempfile
+import torchpipe.utils.model_helper as helper
+
+
+def onnx2trt(onnx_path, toml_path, register_name):
+    """Convert ONNX model to TensorRT using OMNI configurations."""
+    config = omniback.parser.parse(toml_path)
+    
+    trt_path = Path(onnx_path).with_suffix('.trt')
+    for _, settings in config.items():
+        if 'model' in settings:
+            settings['model'] = onnx_path
+            settings['model::cache'] = str(trt_path)
+            break
+    
+    kwargs = omniback.Dict()
+    kwargs['config'] = config
+    return omniback.create('Interpreter', register_name).init({}, kwargs)
+
+import torchpipe.utils.model_helper as helper
+        
+if __name__ == "__main__":
+    import time
+    # time.sleep(10)
+
+    
+    data_pipeline = omniback.init("S[ReadFile, Send2Queue(src_queue, max=10)]")
+    
+    model='resnet50'
+    onnx_path = Path(tempfile.gettempdir()) / f"{model}.onnx"
+    if not onnx_path.exists():
+        torch_model, _ = helper.get_timm_and_export_onnx(model, str(onnx_path))
+    resnet50 = onnx2trt(str(onnx_path), f'{model}.toml', 'trt_model')
+    pool = omniback.init("IoC[Profile,ThreadPoolExecutor(out=thread,max_workers=10),Identity; DI[ThreadPoolExecutor,Profile,trt_model]]", register_name='pool')  # target_queu(default)
+    # pool = omniback.init("IoC[Profile,ThreadPoolExecutor(out=thread,max_workers=10), Identity; DI[ThreadPoolExecutor,Identity]]", register_name='pool')  # target_queu(default)
+
+    # import pdb;pdb.set_trace()
+    
+    q = omniback.default_queue(tag = 'src_queue')
+    # pool({'data': "q"})
+    # raise RuntimeError("d")
+    print(type(q))
+    pool({'data':q}) # async
+    
+    total_number = 10000
+    
+    if 0:
+        from importlib.resources import files
+        # 获取 retina.jpg 的路径
+        retina_path = str(files("skimage.data").joinpath("retina.jpg"))
+        import cv2
+        img = cv2.imread(retina_path)
+        img = cv2.resize(img, (224,224))
+        retina_path=retina_path.replace(".jpg", '1.jpg')
+        cv2.imwrite(retina_path, img)
+        # 打印路径
+        print(retina_path)
+        retina_path= str(retina_path)
+
+    
+    # while (q.status() == omniback.Queue.RUNNING and index< total_number):
+    
+    ms_val_dataset = helper.get_mini_imagenet().to_torch_dataset()
+    # import pdb; pdb.set_trace()
+    helper.import_or_install_package('tqdm')
+    from tqdm import tqdm
+
+    label = {}
+    for item in tqdm(ms_val_dataset, desc="Processing", position=0, leave=True):
+        # import pdb; pdb.set_trace()
+        request_id = item['image:FILE']
+        category = item['category']
+        
+        data_pipeline({'data': request_id, 'request_id': request_id,'node_name':'jpg_decoder'})
+        label[request_id] = category.item()
+        
+
+    # q.join()
+    
+    
+    
+    # print(thread.size())
+    # result = thread.get()['result']
+    # print(thread.size(),  omniback.default_queue().size())
+    
+    default_q = omniback.default_queue()
+    while not default_q.wait_until_at_least(total_number, 500):
+        print(f'waiting for finishing. qsize={default_q.size()}')
+        pass
+    print(default_q.size())
+    
+    thread = omniback.default_queue('thread')
+    print('io: ', q.size(), thread.size())
+    
+    import torch
+    cls_result = {}
+    cls_result_simple = {}
+    
+    
+    
+    while not thread.empty():
+        item = thread.get()
+        req_id = item['request_id']
+        # print(list(item.keys()))
+        if 'exception' in item.keys():
+            print(req_id, item['exception'])
+            item['exception'].rethrow()
+            continue
+        
+        # print(len(item['result']), type(item['result']))
+        # print(item['result'].shape)
+        
+        result = torch.nn.functional.softmax((item['result']), dim=-1)
+        
+        
+        # print(result.shape)
+        # import pdb; pdb.set_trace()
+        cls_result[req_id] = (label[req_id], result)
+        cls_result_simple[req_id] = (label[req_id], torch.argmax(result).item())
+    if 0:
+        label_map = helper.build_label_mapping(cls_result_simple)
+        for req_id, v in cls_result.items():
+            cls_result[req_id] = (label_map[v[0]], v[1])
+        helper.report_classification(cls_result)
+    else:
+        tp = [(t,p) for t,p in cls_result_simple.values()]
+        tp = list(zip(*tp))
+        assert len(tp) == 2
+        true_labels, pred_labels = tp[0], tp[1]
+        map_label = helper.align_labels(true_labels, pred_labels, 100)
+
+        helper.evaluate_classification(true_labels, [map_label[x] for x in pred_labels])
+        # torch: 
+        # - Accuracy:  0.8713
+        # - Precision: 0.9386
+        # - Recall:    0.8627
+        # - F1 Score:  0.8975
+        
+        # trt:
+        # - Accuracy:  0.8665
+        # - Precision: 0.9374
+        # - Recall:    0.8579
+        # - F1 Score:  0.8944
+
+    # import pdb; pdb.set_trace()
+    # compare_classification
+
+    profile_results = []
+    while default_q.size() > 0:
+        profile_results.append(default_q.get()['data'].data)
+    # print(len(profile_results), type(profile_results[0]))
+    print(list(profile_results[0].keys()))
+    result = helper.analyze_profile(profile_results)
+    
+    
+    # fire.Fire(dataset)
+    
+    
+    

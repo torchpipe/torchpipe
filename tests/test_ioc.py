@@ -1,9 +1,13 @@
 import pytest
-import omniback._C as _C
+# from omniback import _C
+
+
 import omniback
+import omniback as om
+
 def test_ioc_initialization():
     # Test IoCV0 container initialization
-    ioc = _C.create("IoCV0")
+    ioc = om.create("IoCV0")
     assert ioc is not None
 
     # Test initialization with valid configuration
@@ -20,7 +24,7 @@ def test_ioc_initialization():
 
 def test_ioc_forward():
     # Test IoCV0 container forward method
-    ioc = _C.create("IoCV0")
+    ioc = om.create("IoCV0")
     config = {
         "IoCV0::dependency": "Identity;Forward[Identity]",
         "Identity::param1": "value1"
@@ -38,14 +42,14 @@ def test_ioc_forward():
     ]
 
     for test_input in test_cases:
-        input_dict = _C.Dict(test_input)
+        input_dict = om.Dict(test_input)
         ioc(input_dict)
         assert pytest.approx(input_dict["result"]) == test_input["data"]
 
 
 def test_ioc_phase_initialization():
     # Test IoCV0 container phase initialization
-    ioc = _C.create("IoCV0")
+    ioc = om.create("IoCV0")
     config = {
         "IoCV0::dependency": "Identity,Identity;Forward[Identity]",
         "BackendA::param1": "value1",
@@ -54,7 +58,7 @@ def test_ioc_phase_initialization():
     }
     kwargs = {}
     # ioc.init(config, omniback.Dict())
-    with pytest.raises(ValueError):
+    with pytest.raises(RuntimeError):
         ioc.init(config, omniback.Dict())
     # ioc.init(config, omniback.Dict())
 

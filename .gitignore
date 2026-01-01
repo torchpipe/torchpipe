@@ -37,3 +37,4 @@ tmp.py
 *.onnx.data
 omniback/_version.py
 site/
+_version.py

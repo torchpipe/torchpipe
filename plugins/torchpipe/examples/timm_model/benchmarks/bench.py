@@ -24,6 +24,7 @@ def main(
         target += ['torch2trt']
     
     if 'torch2trt' in target:
+        assert torch.__version__ < "2.9", "pls exporting onnx with torch<2.9 (or set dynamo=False)"
         from run_torch2trt import get_client
         client = get_client(image_path)
         results['torch2trt'] = test_from_ids([client]*num_clients, ids)
@@ -41,7 +42,7 @@ def main(
             forward_funcs, ids)
         del clients
         gc.collect()
-    
+        
     # export onnx
     if 'torchpipe' in target:
         from run_torchpipe import get_client
@@ -49,7 +50,10 @@ def main(
         results['torchpipe'] = test_from_ids([client]*num_clients, ids)
         del client
         gc.collect()
-        
+
+
+    
+
 
     
     if 'triton' in target:

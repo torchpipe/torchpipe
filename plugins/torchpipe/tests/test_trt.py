@@ -77,6 +77,10 @@ def test_tensorrt_inference(model_config):
     
     # Verify results
     result = data['result']
+    print(result)
+    if not isinstance(result, torch.Tensor):
+        result = torch.from_dlpack(result)
+        
     expected = input_tensor * 2
     expected = expected.cuda()
     

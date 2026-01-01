@@ -91,6 +91,7 @@ def prepare_omniback():
     # torch >= 1.10.2
     
     if need_reinstall:
+        assert False, "omniback not installed or incompatible C++ ABI with Pytorch."
         import tempfile
         platform = 'manylinux_2_27_x86_64' if torch._C._GLIBCXX_USE_CXX11_ABI else 'manylinux2014_x86_64'
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -118,9 +119,9 @@ class Config:
         self.debug = os.getenv("DEBUG", "0") == "1"
 
         # Omniback configuration
-        self.omniback_includes = omniback.get_includes()
-        self.omniback_lib_dir = omniback.get_library_dir()
-        self.omniback_c_so = omniback.get_C_path()
+        self.omniback_includes = omniback.libinfo.include_paths()
+        self.omniback_lib_dir = os.path.dirname(omniback.libinfo.find_libomniback()) 
+        # self.omniback_c_so = omniback._C.__file__
 
 
         # Print config
@@ -221,10 +222,10 @@ class BuildHelper:
 
 def build_core_extension():
     sources = [
-        *config.csrc_dir.glob("*.cpp"),
+        *config.csrc_dir.glob("ffi/*.cpp"),
         *config.csrc_dir.glob("torchplugins/*.cpp"),
         *config.csrc_dir.glob("helper/*.cpp"),
-        *config.csrc_dir.glob("pybind/*.cpp"),
+        # *config.csrc_dir.glob("pybind/*.cpp"),
     ]
     sources = [str(x) for x in sources]
     sources += config.csrc_dir.glob("cuda/*.cu")
@@ -282,16 +283,22 @@ if __name__ == "__main__":
     
     extensions = [
         build_core_extension(),
-        build_nvjpeg_extension(),
-        build_trt_extension(),
     ]
+    
+    if '--trt' in sys.argv:
+        extensions.append(build_trt_extension())
+        sys.argv.remove('--trt')
+    if '--nvjpeg' in sys.argv:
+        extensions.append(build_nvjpeg_extension())
+        sys.argv.remove('--nvjpeg')
+        
     if '--cv2' in sys.argv:
         extensions.append(build_opencv_extension())
         sys.argv.remove('--cv2')
-
+        
     setup(
         name="torchpipe",
-        version="0.8.3",
+        version="0.9.0",
         author="torchpipe Team",
         description="High-performance inference pipeline for PyTorch",
         packages=find_packages(exclude=("test",)),

@@ -24,6 +24,9 @@
 /// https://github.com/SergeyBel/AES
 #include "aes.h"
 
+#include <stdexcept>
+#include <string>
+
 AES::AES(const AESKeyLength keyLength) {
   switch (keyLength) {
     case AESKeyLength::AES_128:

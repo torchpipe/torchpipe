@@ -53,23 +53,6 @@ def get_model(toml_path) :
     interp = omniback.init("Interpreter", {"backend": "StreamGuard[DecodeTensor]"})
     return interp
 
-# def test_model():
-#     import torchpipe.utils.model_helper as model_helper
-    
-#     model, preprocessor = model_helper.get_classification_model("resnet50", 224, 224)
-#     onnx_path = model_helper.export_n3hw(model, 224, 224)
-    
-#     onnx_model = OnnxModel(onnx_path)
-#     all_result = {}
-#     data_id, data = get_data()
-#     for item in data:
-#         preprocessed = preprocessor(item)
-#         result = torch.nn.softmax(model(preprocessed))
-    
-#         onnx_resust = onnx_model(item)
-
-#         all_result[data_id] = result, onnx_resust
-#     report(all_result)
        
 import torchpipe
 
@@ -122,7 +105,8 @@ def test_v2():
     # import pdb; pdb.set_trace()
     map_label = helper.align_labels(true_labels, pred_labels, 100)
 
-    helper.evaluate_classification(true_labels, [map_label[x] for x in pred_labels])
+    metric = helper.evaluate_classification(true_labels, [map_label[x] for x in pred_labels])
+    assert metric.get('f1', 0) >= 0.89
     # omniback_model  = Torch2Trt(onnx_path, 'config.toml')
 
     # - Accuracy:  0.8713

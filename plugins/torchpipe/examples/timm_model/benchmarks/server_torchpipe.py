@@ -47,7 +47,7 @@ def start_thrift_server(model_path='eva02_base_patch14_448.mim_in22k_ft_in22k_in
 
     handler = Handler(model_path)
     processor = ImageProcessingService.Processor(handler)
-    transport = TSocket.TServerSocket(host='localhost', port=port)
+    transport = TSocket.TServerSocket(host='127.0.0.1', port=port)
     tfactory = TTransport.TBufferedTransportFactory()
     pfactory = TBinaryProtocol.TBinaryProtocolFactory()
 

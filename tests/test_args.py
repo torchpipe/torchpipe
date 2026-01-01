@@ -16,8 +16,10 @@ def test_parsers():
     for config, result in TESTS.items():
         data = {'data':config}
         model(data)
-        print(data)
-        assert data['result'] == result
+        print( (data['result']))
+        # for i in range(len(result)):
+        assert data['result'][0] == result[0], f"{data['result'][0]} != {result[0]}"
+        assert dict(data['result'][1]) == result[1], f"{data['result'][1]} != {result[1]}"
 
 def test_container():
     TESTS = { "(ax,ay=2)X(x1,x2=3)[B(z)],Y(yx=1)[BB(zz=2)]" : ['ax,ay=2', 'X(x1,x2=3)[B(z)]', '', 'Y(yx=1)[BB(zz=2)]'],
@@ -25,12 +27,13 @@ def test_container():
     for config, result in TESTS.items():
         data = {'data':config}
         model(data)
-        print(data)
-        assert data['result'] == result
+        # print(data)
+        # print(config, result, type(data['result']))
+        assert list(data['result']) == result, f"{data['result'][0]} != {result[0]}"
 if __name__ == "__main__":
     import time 
     # time.sleep(5)
 
-    test_container()
+    test_parsers()
 
 

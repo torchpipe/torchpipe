@@ -30,7 +30,6 @@ class ResizeTensor : public BackendOne {
    */
   virtual void forward(const dict& input_dict) override {
     auto input_tensor = dict_get<torch::Tensor>(input_dict, TASK_DATA_KEY);
-
     bool is_hwc_tensor = is_hwc(input_tensor);
 
     input_tensor = img_1chw_guard(input_tensor);
@@ -41,7 +40,7 @@ class ResizeTensor : public BackendOne {
     if (!input_tensor.is_contiguous())
       input_tensor = input_tensor.contiguous();
 
-    torch::Tensor im_resize;
+    at::Tensor im_resize;
 
     if (input_tensor.size(2) == resize_h_ &&
         input_tensor.size(3) == resize_w_) {

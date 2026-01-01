@@ -33,6 +33,9 @@
 #include "helper/torch.hpp"
 // #include "NvInferRuntime.h"
 #include "omniback/helper/timer.hpp"
+#include "helper/dlpack_helper.hpp"
+#include <c10/cuda/CUDAStream.h>
+
 namespace torchpipe {
 
 void save(std::string save_name, torch::Tensor input) {
@@ -135,16 +138,15 @@ bool is_cpu_tensor(torch::Tensor input) {
 }
 // Check if the given data variable is of CPU type.
 bool is_any_cpu(omniback::any data) {
-  if (data.type() == typeid(torch::Tensor)) {
-    torch::Tensor tensor = omniback::any_cast<torch::Tensor>(data);
+  if (auto tensor_opt = data.try_cast<torch::Tensor>()) {
+    torch::Tensor tensor = tensor_opt.value();
     return is_cpu_tensor(tensor);
   }
 
-  if (data.type() == typeid(std::vector<torch::Tensor>)) {
-    std::vector<torch::Tensor> tensors =
-        omniback::any_cast<std::vector<torch::Tensor>>(data);
+  if (auto opt = data.try_cast < std::vector<torch::Tensor>>()) {
+    std::vector<torch::Tensor> tensors = opt.value();
     return tensors.at(0).is_cpu();
-  }
+    }
 
   return true;
 }
@@ -514,16 +516,15 @@ std::vector<torch::Tensor> get_tensors(
   OMNI_ASSERT(iter != input_dict->end(), "key not found: " + key);
   std::vector<torch::Tensor> image_embeds;
   omniback::any& data = iter->second;
-  if (data.type() == typeid(torch::Tensor)) {
-    torch::Tensor input_tensor = omniback::any_cast<torch::Tensor>(data);
+  if (auto opt = data.try_cast<torch::Tensor>()) {
+    torch::Tensor input_tensor = opt.value();
 
     image_embeds.push_back(input_tensor);
-  } else if (data.type() == typeid(std::vector<torch::Tensor>)) {
-    image_embeds = omniback::any_cast<std::vector<torch::Tensor>>(data);
-
-  } else {
-    throw std::runtime_error(
-        "get_tensors: input is not a tensor or a list of tensors.");
+  } else if (auto opt = data.try_cast<std::vector<torch::Tensor>>()) {
+    image_embeds = opt.value();
+    }
+  else {
+    TVM_FFI_THROW(TypeError)<< "get_tensors: input is not a tensor or a list of tensors.";
   }
   return image_embeds;
 }
@@ -832,5 +833,20 @@ bool match(NetIOInfo::Dims64& dst, const torch::Tensor& src) {
   }
   return shape_is_match;
 }
+
+// int StreamOrderedManagedTensorAllocator(
+//     void* stream,
+//     DLTensor* prototype,
+//     DLManagedTensorVersioned** out,
+//     void* error_ctx,
+//     void (*SetError)(void* error_ctx, const char* kind, const char* message)) {
+
+//   at::cuda::CUDAStream cuda_stream = at::cuda::getStreamFromExternal(
+//       static_cast<cudaStream_t>(stream), c10::cuda::current_device());
+
+//   static DLPackManagedTensorAllocator& alloc = torch_allocator();
+//   return alloc(prototype, out, error_ctx, SetError);
+// }
+
 
 } // namespace torchpipe

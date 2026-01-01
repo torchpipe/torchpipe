@@ -112,7 +112,8 @@ def get_yolo_onnx(
             imgsz=imgsz,
             batch=batch_size if batch_size != -1 else 1,  # 动态batch时使用1作为占位符
             dynamic=True if dynamic_params else False,
-            opset=opset
+            opset=opset,
+            # dynamo=False,
         )
 
         # 删除下载的.pt文件（如果是本次下载的）

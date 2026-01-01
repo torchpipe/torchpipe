@@ -49,11 +49,9 @@ void TensorrtInferTensor::impl_init(
   }
 
   auto iter = kwargs->find(TASK_ENGINE_KEY);
-  OMNI_ASSERT(
-      iter != kwargs->end() &&
-      iter->second.type() == typeid(nvinfer1::ICudaEngine*));
+  OMNI_ASSERT(iter != kwargs->end());
 
-  engine_ = omniback::any_cast<nvinfer1::ICudaEngine*>(iter->second);
+  engine_ = iter->second.cast<nvinfer1::ICudaEngine*>();
   context_ = create_context(engine_, instance_index_);
   info_ = get_context_shape(context_.get(), instance_index_);
   OMNI_ASSERT(is_all_positive(info_), "input shape is not positive");

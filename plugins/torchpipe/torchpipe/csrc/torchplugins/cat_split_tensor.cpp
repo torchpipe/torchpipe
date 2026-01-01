@@ -2,6 +2,7 @@
 #include "helper/task_keys.hpp"
 #include "helper/torch.hpp"
 #include "omniback/helper/timer.hpp"
+
 using namespace omniback;
 
 namespace torchpipe {
