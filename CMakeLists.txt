@@ -41,11 +41,7 @@ else()
 endif()
 
 
-find_package(
-  Python
-  COMPONENTS Interpreter
-  REQUIRED
-)
+
 find_package(tvm_ffi CONFIG REQUIRED)
 
 # Core library: compile all cpp files in cpp/omniback/
