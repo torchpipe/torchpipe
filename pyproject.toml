@@ -94,5 +94,9 @@ tag_regex = "^t(.*)"
 local_scheme = "no-local-version"
 git_describe_command = ["git", "describe", "--tags", "--long", "--match", "t*"]
 
+
+[tool.cibuildwheel]
+skip = "*musllinux*"
+
 [tool.cibuildwheel.linux]
 archs = ["x86_64", "aarch64"]
