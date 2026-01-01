@@ -128,21 +128,13 @@ if(BUILD_PY)
 
 endif()
 
-# Handle debug symbols for core library
-if(TVM_FFI_EXT_SHIP_DEBUG_SYMBOLS)
-    tvm_ffi_add_prefix_map(omniback_core ${CMAKE_CURRENT_SOURCE_DIR})
-    tvm_ffi_add_apple_dsymutil(omniback_core)
-    install(
-        DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/
-        DESTINATION .
-        FILES_MATCHING
-        PATTERN "*.dSYM"
-    )
-endif()
+
 
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/omniback/ DESTINATION include/omniback/)
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/spdlog/include/ DESTINATION include/)
 install(TARGETS omniback_core DESTINATION lib)
+# tvm_ffi_install(omniback_core DESTINATION .)
+
 if(BUILD_PY)
     install(TARGETS omniback_py DESTINATION .)
 endif()
