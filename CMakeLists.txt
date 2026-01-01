@@ -87,6 +87,15 @@ target_link_libraries(omniback_core
     PRIVATE tvm_ffi_shared  
 )
 
+get_target_property(TVM_FFI_HEADER_INCLUDES tvm_ffi_header INTERFACE_INCLUDE_DIRECTORIES)
+message(STATUS "tvm_ffic_header INTERFACE_INCLUDE_DIRECTORIES = ${TVM_FFI_HEADER_INCLUDES}")
+
+get_target_property(OMNIBACK_CORE_INCLUDES omniback_core INCLUDE_DIRECTORIES)
+message(STATUS "omniback_core INCLUDE_DIRECTORIES = ${OMNIBACK_CORE_INCLUDES}")
+
+get_target_property(OMNIBACK_CORE_INTERFACE_INCLUDES omniback_core INTERFACE_INCLUDE_DIRECTORIES)
+message(STATUS "omniback_core INTERFACE_INCLUDE_DIRECTORIES = ${OMNIBACK_CORE_INTERFACE_INCLUDES}")
+
 
 # Set output name to libomniback.so (without lib prefix on Unix)
 set_target_properties(omniback_core PROPERTIES 
