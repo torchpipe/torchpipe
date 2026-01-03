@@ -2,7 +2,8 @@
 
 #include "helper/mat.hpp"
 #include "helper/torch.hpp"
-
+#include <tvm/ffi/container/tensor.h>
+#include "omniback/addons/torch/type_traits.h"
 #include <torch/torch.h>
 #include "opencv2/imgcodecs.hpp"
 #include "opencv2/imgproc.hpp"

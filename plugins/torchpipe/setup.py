@@ -81,35 +81,10 @@ def cv_lib_dir():
         "OpenCV library directory not found. Set OPENCV_LIB environment variable to specify its location.")
 
 
-def prepare_omniback():
-    # bash - c 'tmpdir=$(mktemp -d) && pip download omniback --platform manylinux2014_x86_64 --only-binary=:all: --dest $tmpdir --no-deps && pip install $tmpdir/omniback_core-*.whl && rm -rf $tmpdir'
-    try:
-        import omniback
-        need_reinstall = omniback._C.use_cxx11_abi() != torch._C._GLIBCXX_USE_CXX11_ABI
-    except:
-        need_reinstall = True
-    # torch >= 1.10.2
-    
-    if need_reinstall:
-        assert False, "omniback not installed or incompatible C++ ABI with Pytorch."
-        import tempfile
-        platform = 'manylinux_2_27_x86_64' if torch._C._GLIBCXX_USE_CXX11_ABI else 'manylinux2014_x86_64'
-        with tempfile.TemporaryDirectory() as tmpdir:
-            subprocess.run([
-                'pip', 'download', 'omniback==1.60.0',
-                '--platform', platform,
-                '--only-binary=:all:',
-                '--dest', tmpdir,
-                '--no-deps'
-            ], check=True)
 
-            wheel_file = next(Path(tmpdir).glob('omniback-*.whl'))
-            subprocess.run(['pip', 'install', str(wheel_file)], check=True)
-            
             
 class Config:
     def __init__(self):
-        prepare_omniback()
         import omniback
         
         self.root_dir = Path(__file__).absolute().parent
@@ -285,12 +260,14 @@ if __name__ == "__main__":
         build_core_extension(),
     ]
     
-    if '--trt' in sys.argv:
+    if not '--no-trt' in sys.argv:
         extensions.append(build_trt_extension())
-        sys.argv.remove('--trt')
-    if '--nvjpeg' in sys.argv:
+    else:
+        sys.argv.remove('--no-trt')
+    if not '--no-nvjpeg' in sys.argv:
         extensions.append(build_nvjpeg_extension())
-        sys.argv.remove('--nvjpeg')
+    else:
+        sys.argv.remove('--no-nvjpeg')
         
     if '--cv2' in sys.argv:
         extensions.append(build_opencv_extension())

@@ -38,3 +38,9 @@ tmp.py
 omniback/_version.py
 site/
 _version.py
+
+
+build_cxx11/
+build_cxx03/
+omniback/lib/
+libs/

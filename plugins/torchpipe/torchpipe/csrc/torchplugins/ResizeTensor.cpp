@@ -1,6 +1,7 @@
 #include "torchplugins/ResizeTensor.hpp"
 #include "helper/task_keys.hpp"
 #include "helper/torch.hpp"
+#include <omniback/addons/torch/type_traits.h>
 
 using namespace omniback;
 

@@ -4,6 +4,11 @@ import tvm_ffi
 
 from . import libinfo
 
+# try:
+#     import torch
+# except:
+#     pass
+
 _C = tvm_ffi.load_module(libinfo.find_libomniback())
 
 # this is a short cut to register all the global functions
@@ -29,17 +34,22 @@ class OmDict(tvm_ffi.Object):
             assert isinstance(data, dict)
             self.__ffi_init__(data)
 
-    # def __repr__(self) -> str:
-    #     if self.__chandle__() == 0:
-    #         return f"{type(self).__name__}(chandle=None)"
-    #     items_repr = []
-    #     for k, v in self.items():
-    #         if isinstance(v, bytes):
-    #             v_repr = f"<bytes: len={len(v)}>"
-    #         else:
-    #             v_repr = repr(v)
-    #         items_repr.append(f"{k!r}: {v_repr}")
-    #     return "{" + ", ".join(items_repr) + "}"
+
+# @tvm_ffi.register_object("omniback.StdAny")
+# class StdAny(tvm_ffi.Object):
+#     def __init__(self) -> None:
+#         """Construct a omniback.StdAny."""
+#         self.__ffi_init__()  # todo; repair
+    
+#     def as_torch(self):
+#         return omniback.ffi.from_dlpack(self.to_tensor())
+    
+#     def __dlpack__(self, stream):
+#         self.data = self.to_tensor()
+#         return self.data.__dlpack__(stream)
+
+#     def __dlpack_device__(self):
+#         return self.data.__dlpack_device__()
 
 
 class _PyDictWrapper:

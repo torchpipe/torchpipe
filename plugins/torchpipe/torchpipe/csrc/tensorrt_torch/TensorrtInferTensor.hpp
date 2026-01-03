@@ -5,6 +5,7 @@
 #include <cuda_runtime.h>
 #include <torch/torch.h>
 #include "helper/net_info.hpp"
+#include <omniback/addons/torch/type_traits.h>
 
 namespace torchpipe {
 

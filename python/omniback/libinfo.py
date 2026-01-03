@@ -30,6 +30,30 @@ from pathlib import Path
 from typing import Callable
 import tvm_ffi
 
+
+def should_use_cxx11() -> bool:
+    """Determine whether to use C++11 ABI based on PyTorch or environment."""
+    # 1. Check environment variable first (highest priority)
+    env_var = os.environ.get("USE_CXX11_ABI")
+    if env_var is not None:
+        return env_var.lower() in ("1", "on", "true", "yes")
+
+    # 2. Fall back to PyTorch's ABI setting
+    try:
+        import torch
+        # torch._C._GLIBCXX_USE_CXX11_ABI is a bool in recent versions
+        return bool(torch._C._GLIBCXX_USE_CXX11_ABI)
+    except (ImportError, AttributeError):
+        # If torch is not available or ABI info missing, default to C++11
+        print(
+            "Warning: PyTorch not found or ABI info unavailable. "
+            "Defaulting to C++11 ABI (libomniback.so). "
+            "Set USE_CXX11_ABI=0 to use the C++03 ABI version.",
+            flush=True
+        )
+        return True
+
+        
 def find_libomniback() -> str:
     """Find libomniback.
 
@@ -41,7 +65,12 @@ def find_libomniback() -> str:
     """
     candidate = _find_library_by_basename("omniback", "omniback")
     if ret := _resolve_and_validate([candidate], cond=lambda _: True):
-        return ret
+        cxx03 = ret.replace("libomniback.", "libomniback_cxx03.so")
+        assert cxx03 != ret
+        if should_use_cxx11():
+            return ret
+        else:
+            cxx03
     raise RuntimeError("Cannot find libomniback")
 
 

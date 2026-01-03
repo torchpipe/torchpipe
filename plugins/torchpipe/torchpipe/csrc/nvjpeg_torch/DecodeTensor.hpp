@@ -1,5 +1,6 @@
 #pragma once
 #include <omniback/extension.hpp>
+#include <omniback/addons/torch/type_traits.h>
 #include "nvjpeg.h"
 
 namespace torchpipe {

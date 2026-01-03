@@ -274,10 +274,13 @@ OMNI_EXPORT std::unique_ptr<Backend> create_backend(
     const std::string& class_name,
     const std::string& registered_name = "");
 
-OMNI_EXPORT void register_backend(
-    const std::string& aspect_name_str,
-    std::unique_ptr<Backend>&& backend);
-OMNI_EXPORT void register_backend(
+// inline void register_backend(
+//     const std::string& aspect_name_str,
+//     std::unique_ptr<Backend>&& backend){
+//   register_backend(aspect_name_str, std::move());
+// }
+OMNI_EXPORT
+void register_backend(
     const std::string& aspect_name_str,
     std::shared_ptr<Backend> backend);
 OMNI_EXPORT Backend* get_backend(const std::string& aspect_name_str);

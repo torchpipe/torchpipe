@@ -72,9 +72,7 @@ cd torchpipe/plugins/torchpipe
 python3 -m pip install uv
 uv venv # --python 3.11
 source .venv/bin/activate # deactivate by 'deactivate' command if needed
-uv pip install "torch>=2.7.1" omniback -i https://mirrors.aliyun.com/pypi/simple 
-# For torch>=2.7.1, it is known torch._C._GLIBCXX_USE_CXX11_ABI==True by default. For pre-11 abi, install omniback by: 
-# bash -c 'tmpdir=$(mktemp -d) && pip download omniback --platform manylinux2014_x86_64 --only-binary=:all: --dest $tmpdir --no-deps && uv pip install $tmpdir/omniback_core-*.whl && rm -rf $tmpdir'
+uv pip install "torch" omniback
 
 python setup.py install --cv2
 cd tests && pytest

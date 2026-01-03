@@ -10,19 +10,17 @@ from importlib.metadata import version
 __version__ = version("torchpipe")
 
 ctypes.CDLL(os.path.join(os.path.dirname(__file__), "native.so"), mode=ctypes.RTLD_GLOBAL)
-# native = tvm_ffi.load_module(os.path.join(os.path.dirname(__file__), "native.so"))
-# native = tvm_ffi.load_lib_module("torchpipe", "native")
-
-# from . import native 
 
 try:
-    from . import image
+    image = tvm_ffi.load_module(os.path.join(
+        os.path.dirname(__file__), "image.so"))
 except ImportError:
     print(f'nvjpeg related backends not loaded')
 try:
-    from . import trt
+    trt = tvm_ffi.load_module(os.path.join(
+        os.path.dirname(__file__), "trt.so"))
 except ImportError:
-    print(f'trt related backends not loaded')
+    print(f'trt related backends not loaded: ', os.path.dirname(__file__), "trt.so")
 try:
     # from . import mat
     mat = tvm_ffi.load_module(os.path.join(

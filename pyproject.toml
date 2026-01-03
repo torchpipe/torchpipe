@@ -29,21 +29,24 @@ classifiers = [
   "Intended Audience :: Science/Research",
 ]
 keywords = ["machine learning", "inference"]
-requires-python = ">=3.9"
+requires-python = ">=3.8"
 
-dependencies = ["apache-tvm-ffi"]
+dependencies = ["apache-tvm-ffi>=0.1.7"]
 
 [build-system]
-requires = ["scikit-build-core>=0.10.0", "apache-tvm-ffi==0.1.7","setuptools-scm"]
+requires = ["scikit-build-core>=0.11.0", "apache-tvm-ffi==0.1.7","setuptools-scm"]
 build-backend = "scikit_build_core.build"
 
 [tool.scikit-build]
 # the wheel is abi agnostic
 metadata.version.provider = "scikit_build_core.metadata.setuptools_scm"
 wheel.py-api = "py3"
+
 wheel.packages = ["python/omniback"]
 # The install dir matches the import name
 wheel.install-dir = "omniback"
+wheel.exclude = []
+
 
 minimum-version = "build-system.requires"
 ninja.version = ">=1.11"
@@ -60,7 +63,11 @@ build.verbose = true
 cmake.version = "CMakeLists.txt"
 cmake.build-type = "RelWithDebugInfo"
 cmake.define.USE_CXX11_ABI = { env = "USE_CXX11_ABI" }  # 读取环境变量
-# cmake.define.CMAKE_BUILD_PARALLEL_LEVEL = { env = "CMAKE_BUILD_PARALLEL_LEVEL" }
+cmake.define.BUILD_BOTH_ABIS = { env = "BUILD_BOTH_ABIS" }  # 读取环境变量
+
+cmake.define.SKIP_CMAKE = { env = "SKIP_CMAKE" }  # 读取环境变量
+
+cmake.define.CMAKE_BUILD_PARALLEL_LEVEL = { env = "CMAKE_BUILD_PARALLEL_LEVEL" }
 
 # Logging
 logging.level = "INFO"
@@ -77,6 +84,7 @@ sdist.include = [
   "/3rdparty/bs_thread_pool/*.hpp",
   "/3rdparty/spdlog/include/**/*",
   "/3rdparty/tinytoml/*.h",
+  "/plugins/**/*",  
 ]
 
 sdist.exclude = [
@@ -86,6 +94,7 @@ sdist.exclude = [
   "**/*.pyc",
   "build",
   "dist",
+  "plugins/**/examples/**", 
 ]
 
 [tool.setuptools_scm]
@@ -99,6 +108,7 @@ git_describe_command = ["git", "describe", "--tags", "--long", "--match", "t*"]
 
 [tool.cibuildwheel]
 skip = "*musllinux*"
+build = "py3-none-*"
 
 [tool.cibuildwheel.linux]
 archs = ["x86_64", "aarch64"]

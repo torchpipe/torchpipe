@@ -1,7 +1,6 @@
 
 #pragma once
 #include <omniback/extension.hpp>
-
 namespace torchpipe {
 
 class Mat2Tensor : public omniback::BackendOne {
