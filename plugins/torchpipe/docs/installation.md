@@ -83,21 +83,15 @@ cd tests && pytest
 
 
 ### Rebuild the core library Omniback
-Omniback is usually not needed to be rebuilt if you only use the precompiled torchpipe wheel by:
+Omniback is usually not needed to be rebuilt.
 
-```bash
-# python -c "import torch; print(torch._C._GLIBCXX_USE_CXX11_ABI)" => False
-bash -c 'tmpdir=$(mktemp -d) && pip download omniback --platform manylinux2014_x86_64 --only-binary=:all: --dest $tmpdir --no-deps && pip install $tmpdir/omniback_core-*.whl && rm -rf $tmpdir'
-# python -c "import torch; print(torch._C._GLIBCXX_USE_CXX11_ABI)" => True
-pip install omniback 
-```
  However, if you want to modify the core library or encounter any compatibility issues, you can rebuild Omniback first.
 
 ```bash
 git clone https://github.com/torchpipe/torchpipe.git --recurse-submodules
 cd torchpipe/
 
-USE_CXX11_ABI=$(python -c "import torch; print(int(torch._C._GLIBCXX_USE_CXX11_ABI))") python setup.py install
+rm -rf dist/ && python -m build && pip install dist/*.whl
 
 cd tests && pytest
 ```
