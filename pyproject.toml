@@ -108,7 +108,6 @@ git_describe_command = ["git", "describe", "--tags", "--long", "--match", "t*"]
 
 [tool.cibuildwheel]
 skip = "*musllinux*"
-build = "py3-none-*"
 
 [tool.cibuildwheel.linux]
 archs = ["x86_64", "aarch64"]
