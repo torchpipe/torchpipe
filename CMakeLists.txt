@@ -28,7 +28,12 @@ if(SKIP_CMAKE)
 endif()
 
 # option(USE_CXX11_ABI "Use C++11 ABI (ignored if BUILD_BOTH_ABIS is ON)" ON)
-option(BUILD_BOTH_ABIS "Build both C++11 and C++03 ABI versions of the library" OFF)
+if(DEFINED ENV{BUILD_BOTH_ABIS})
+    option(BUILD_BOTH_ABIS "Build both C++11 and C++03 ABI versions of the library" ON)
+else()
+    option(BUILD_BOTH_ABIS "Build both C++11 and C++03 ABI versions of the library" OFF)
+endif()
+
 option(SKIP_CMAKE "Skip cmake" OFF)
 
 set(USE_CXX11_ABI_DEFAULT "1")  # fallback
