@@ -21,3 +21,7 @@ git tag $TAG
 
 # # Push the tag to the remote repository
 git push origin $TAG
+
+
+
+# git ls-remote --tags origin | awk '{print $2}' | sed 's|refs/tags/||' | xargs -I {} git push origin :refs/tags/{}
