@@ -89,7 +89,7 @@ def test_tensorrt_inference():
     print(q.size())
     print(q)
     assert not q.empty()
-    a=q.get()
+    a=q.get(False)
     print(a)
     # import pdb;
     # pdb.set_trace()

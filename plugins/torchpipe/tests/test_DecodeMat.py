@@ -38,6 +38,7 @@ def test_decodeMat():
     # Execute model inference
     model(input)
     result = input["result"]
+    print(type(result.shape))
     if not isinstance(result, torch.Tensor):
         result = torch.from_dlpack(result)
     # Assert the shape of the output tensor
