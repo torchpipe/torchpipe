@@ -32,7 +32,10 @@ jobs:
       matrix:
         include:
           - {os: ubuntu-latest, arch: x86_64, linux_image: manylinux_2_28, build_sdist: "true"}
-          # - {os: ubuntu-24.04-arm, arch: aarch64, linux_image: manylinux_2_28, build_sdist: "false"}
+          - {os: ubuntu-latest, arch: x86_64, linux_image: manylinux2014, build_sdist: "false"}
+          - {os: ubuntu-24.04-arm, arch: aarch64, linux_image: manylinux_2_28, build_sdist: "false"}
+          - {os: ubuntu-24.04-arm, arch: aarch64, linux_image: manylinux2014, build_sdist: "false"}
+          # - {os: macos-14, arch: arm64, linux_image: "", build_sdist: "false"}
 
     steps:
       - name: Checkout repository (for local composite action)
