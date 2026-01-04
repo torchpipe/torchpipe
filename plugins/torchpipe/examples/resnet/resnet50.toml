@@ -1,0 +1,31 @@
+
+batching_timeout = 4 #默认的凑batch的超时时间
+instance_num = 2 
+[jpg_decoder]
+# backend = "S[DecodeMat,ResizeMat,CvtColorMat,Mat2Tensor,StreamGuard]" # 
+# backend = "SequentialV0[DecodeTensor,ResizeTensor,CvtColorTensor,StreamGuard]" #
+# backend = "S[DecodeTensor,(or)S[DecodeMat,Mat2Tensor],ResizeTensor,CvtColorTensor,StreamGuard]" #
+backend = "S[S[DecodeTensor,ResizeTensor,CvtColorTensor],(or)S[DecodeMat,ResizeMat,CvtColorMat,Mat2Tensor],StreamGuard]"
+
+resize_h = 224
+resize_w = 224
+
+color = "rgb"
+instance_num = 8
+
+# Schedule'parameter
+next = "resnet50"
+
+[resnet50]
+backend = "StreamGuard[TensorrtTensor]" # Identities, TensorrtTensor
+instance_num = 2 
+max = 4 
+mean = "123.675, 116.28, 103.53" # 255*"0.485, 0.456, 0.406"
+model = "./ResNet.onnx" 
+std = "58.395, 57.120, 57.375" # 255*"0.229, 0.224, 0.225"
+# 
+"model::cache" = "./ResNet.trt"
+precision = "fp16"
+
+# [dummy]
+# backend = "Identity"

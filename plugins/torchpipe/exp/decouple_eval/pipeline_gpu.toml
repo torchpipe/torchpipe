@@ -1,0 +1,99 @@
+batching_timeout = 5
+instance_num = 8
+[jpg_decoder]
+backend = "Sequential[DecodeTensor,(result2other)CvtColorTensor,PPLResizePadTensor,SyncTensor]"
+color = "bgr"
+data_format = "hwc"
+instance_num = 4
+max_h = 416
+max_w = 416
+next = "detect"
+
+[detect]
+backend = "S[TensorrtTensor,SyncTensor]"
+batching_timeout = 10
+instance_num = 2
+max = 4
+
+model = "../../../examples/yolox/yolox_tiny.onnx"
+"model::cache" = "./yolox_tiny_4.trt"
+next = "post_det"
+post_processor = "CpuTensor"
+[post_det]
+backend = "PostProcYolox" 
+instance_num = 8 
+net_h = 416 
+net_w = 416 # for PostProcYolox
+next = "sub_graph" 
+
+[sub_graph]
+map = "jpg_decoder[other:data,color:color],post_det[TASK_BOX_KEY:TASK_BOX_KEY]"
+
+backend = "MapReduce"
+jump = "cls_preprocess"
+
+merge = "score_r,score_vit,result,r18_result"
+split = "TASK_BOX_KEY"
+
+instance_num = 8
+next = "final"
+
+[final]
+
+#### sub graph ####
+[cls_preprocess]
+backend = "Sequential[PPLCropTensor,PPLResizeTensor,CvtColorTensor,NCHWTensor,SyncTensor]"
+color = "rgb"
+instance_num = 4
+resize_h = 224
+resize_w = 224
+
+next = "r18,vit"
+
+#### branch 1 ####
+[r18]
+backend = "S[TensorrtTensor,SyncTensor,ToScore]" 
+batching_timeout = 10 
+instance_num = 2 
+max = 8 
+mean = "123.675, 116.28, 103.53" # 255*"0.485, 0.456, 0.406"
+model = "./resnet18.onnx" 
+"model::cache" = "./resnet18_8.trt" 
+post_processor = "CpuTensor" 
+std = "58.395, 57.120, 57.375" # 255*"0.229, 0.224, 0.225"
+
+next = "r50"
+
+[r50]
+filter = "filter_score"
+
+backend = "S[TensorrtTensor,SyncTensor,ToScore]"
+max = 4
+mean = "123.675, 116.28, 103.53"
+model = "././resnet50.onnx"
+"model::cache" = "./resnet50_4.trt"
+post_processor = "CpuTensor"
+std = "58.395, 57.120, 57.375"
+
+next = "subgraph_final"
+
+#### branch 2 ####
+[vit]
+
+backend = "S[TensorrtTensor,SyncTensor,ToScore]"
+# backend = "Identity"
+
+batching_timeout = 15
+instance_num = 3
+max = "16;16;16"
+mean = "123.675, 116.28, 103.53"
+min = "16;16;1"
+model = "././fastervit_0_224_224.onnx"
+"model::cache" = "./fastervit_0_224_224_16.trt"
+next = "subgraph_final"
+post_processor = "CpuTensor"
+"precision::fp32" = "Softmax"
+std = "58.395, 57.120, 57.375"
+
+[subgraph_final]
+map = "r50[score:score_r,result:r18_result],vit[score:score_vit,result:data]"

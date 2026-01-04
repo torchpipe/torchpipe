@@ -1,0 +1,17 @@
+#!/bin/bash
+
+set -ex
+
+[ -n "$NINJA_VERSION" ]
+ARCH=$(uname -m)
+if [[ "$(uname -m)" == "aarch64" ]]; then
+  url="https://gh-proxy.com/github.com/ninja-build/ninja/releases/download/v${NINJA_VERSION}/ninja-linux-aarch64.zip"
+else
+  url="https://gh-proxy.com/github.com/ninja-build/ninja/releases/download/v${NINJA_VERSION}/ninja-linux.zip"
+fi
+
+pushd /tmp
+wget --no-verbose --output-document=ninja-linux.zip "$url"
+unzip ninja-linux.zip -d /usr/local/bin
+rm -f ninja-linux.zip
+popd

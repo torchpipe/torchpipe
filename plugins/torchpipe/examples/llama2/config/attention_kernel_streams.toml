@@ -1,0 +1,45 @@
+
+
+[prefill]
+backend = "TensorrtTensor"
+instance_num = 1
+max = '1x4096x4096,1x4096x4096,1x4096x4096,1x4096x128,1x4096x128,1x1x4096x4096'
+min = '1x1x4096,1x1x4096,1x1x4096,1x1x128,1x1x128,1x1x1x1'
+node_entrypoint = "InstancesRegister[Reflect[backend]]"
+# max = '1x2048x4096,1x2048x4096,1x2048x4096,1x2048x128,1x2048x128,1x1x2048x2048'
+# # q k v cos sin mask
+# min = '1x1x4096,1x1x4096,1x1x4096,1x1x128,1x1x128,1x1x1x1'
+model = "exported_params/batchless_prefill.onnx"
+"model::cache" = "exported_params/batchless_prefill.trt"
+
+[decode0]
+backend = "TensorrtTensor"
+instance_num = 1
+max = '1x1x4096,1x1x4096,1x1x4096,1x1x128,1x1x128,1x1x1x4096,1x32x4095x128,1x32x4095x128'
+min = '1x1x4096,1x1x4096,1x1x4096,1x1x128,1x1x128,1x1x1x1,1x32x1x128,1x32x1x128'
+node_entrypoint = "InstancesRegister[Reflect[backend]]"
+# node_entrypoint = "InstancesRegister[Reflect[backend]]"
+
+# max = '1x2048x4096,1x2048x4096,1x2048x4096,1x2048x128,1x2048x128,1x1x2048x2048'
+# # q k v cos sin mask past_key, past_value
+# min = '1x1x4096,1x1x4096,1x1x4096,1x1x128,1x1x128,1x1x1x1'
+model = "exported_params/batchless_decode.onnx"
+"model::cache" = "exported_params/batchless_decode_streams.trt"
+
+[decode1]
+backend = "TensorrtTensor"
+instance_num = 1
+max = '1x1x4096,1x1x4096,1x1x4096,1x1x128,1x1x128,1x1x1x4096,1x32x4095x128,1x32x4095x128'
+min = '1x1x4096,1x1x4096,1x1x4096,1x1x128,1x1x128,1x1x1x1,1x32x1x128,1x32x1x128'
+node_entrypoint = "InstancesRegister[Reflect[backend]]"
+# node_entrypoint = "InstancesRegister[Reflect[backend]]"
+
+# max = '1x2048x4096,1x2048x4096,1x2048x4096,1x2048x128,1x2048x128,1x1x2048x2048'
+# # q k v cos sin mask past_key, past_value
+# min = '1x1x4096,1x1x4096,1x1x4096,1x1x128,1x1x128,1x1x1x1'
+model = "exported_params/batchless_decode.onnx"
+"model::cache" = "exported_params/batchless_decode_streams.trt"
+# TorchStreamPool(target=(a,b,c,d,c);) cpu 异步
+
+# [in]
+# node_entrypoint = "With[TorchStreamPool(max_stream=5),Forward[python_backend]]"

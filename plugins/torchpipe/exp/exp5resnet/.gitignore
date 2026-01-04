@@ -1,0 +1,5 @@
+*.onnx
+*.trt
+exp_w_cpu_gpu_results.json
+*.tex
+*cpu_gpu_results.json

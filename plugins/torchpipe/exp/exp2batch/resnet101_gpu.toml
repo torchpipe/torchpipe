@@ -1,0 +1,24 @@
+
+batching_timeout = 5 #默认的凑batch的超时时间
+instance_num = 2 
+[jpg_decoder]
+backend = "Sequential[DecodeTensor,ResizeTensor,cvtColorTensor,SyncTensor]" # 需要处理背景线程cuda流同步问题可用SyncTensor， 否则可用Sequential；SyncTensor确保初始化和前向在同一个线程时，能准确处理多个backend的同步时机
+
+resize_h = 224
+resize_w = 224
+
+color = "rgb"
+instance_num = 11
+
+# Schedule'parameter
+next = "resnet101"
+
+[resnet101]
+backend = "S[TensorrtTensor, SyncTensor]" 
+instance_num = 5 
+max = "8" 
+mean = "123.675, 116.28, 103.53" # 255*"0.485, 0.456, 0.406"
+model = "./resnet101.onnx" 
+std = "58.395, 57.120, 57.375" # 255*"0.229, 0.224, 0.225"
+# TensorrtTensor
+"model::cache" = "./resnet101.trt" # or ./resnet101.trt.encrypted

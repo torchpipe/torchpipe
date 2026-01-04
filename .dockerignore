@@ -1,0 +1,31 @@
+# Visual Studio Code
+/.vscode*
+
+# vcpkg
+/.vcpkg*
+
+# cache
+/.*cache
+
+# github workflows
+/.github*
+
+# CMake build outputs
+/build*
+
+# tests
+/docs*
+
+# gateway
+/gateway*
+
+# dist
+/dist/*
+
+# python
+/*.egg-info/
+/omniback/*.pyd
+/omniback/*.so
+**/__pycache__/*
+build/*
+.setuptools-cmake-build/*

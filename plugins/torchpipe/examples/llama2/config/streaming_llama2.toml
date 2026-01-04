@@ -1,0 +1,38 @@
+
+entrypoint = "Restart[DagDispatcher]"
+# "Ring RingDispatcher"
+[embed_token]
+backend = "S[EmbeddingTensor(exported_params/embed_tokens.pt),StreamGuard,SetTensorRequestSize]"
+# Add(jump:batchless_prefill)
+# ,Send2Queue(batchless_prefill,keep_result=1) SetTensorMsg UpdateTensorMsg
+next = "continuous_batching"
+
+[continuous_batching]
+
+node_entrypoint = "Register[IoC[ContinuousBatching(target=node.batchable);Loop(batch_queue,target=ContinuousBatching)]]"
+# node_entrypoint = "Register[ContinuousBatching(target=node.batchable)]"
+
+# req CBStatus Loop(batch_queue,target="") TASK_MSG_KEY xieyi / pool
+# 
+# node_entrypoint
+max = 4096
+
+[batchable]
+append_index_selector = -1 
+backend = 'S[FakeInstance[TensorrtTensor],Forward[custom_backend_engine],StreamGuard,NotHasKey(finish_reason)[Add(restart:embed_token)]]' # Pdb,
+batching_timeout = 0 
+fake_instance_num = 5 
+max = "64;128;256;1024;4096" 
+min = "1,1;65,1;129,1;257,1;1025,1" 
+# max = 10
+model = 'exported_params/batchable.onnx'
+'model::cache' = 'exported_params/batchable.trt'
+post_processor = "SoftmaxArgMaxTensor"
+# [pre_decode_stage]
+# # node_entrypoint = "Register[Forward[node.continuous_batching]]"
+# backend=""
+# the tensorrt plugin 
+#
+force_layer_norm_pattern_fp32 = 1
+# [decoding]
+# backend = "IoC[StreamGuard[PyDecodeTensor];SyncLoop(net_out,target=StreamGuard)]"

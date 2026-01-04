@@ -1,0 +1,6 @@
+tqdm
+fire
+datasets<=3.0.0
+oss2
+numpy<2.0
+opencv-python-headless

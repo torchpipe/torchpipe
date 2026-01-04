@@ -1,0 +1,4 @@
+*.trt
+*.onnx
+.cache/
+model.plan

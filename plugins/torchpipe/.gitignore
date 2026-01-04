@@ -1,0 +1,7 @@
+_C.so
+*.egg-info/*
+*.egg-info
+*.so
+torchpipe/*.so
+.venv/
+model.plan
