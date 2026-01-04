@@ -6,6 +6,22 @@ from .parser import parse, init_from_file, pipe
 import sys
 import os
 from pathlib import Path
+
+try:
+    import torch
+    if not hasattr(torch, "uint16"):
+        torch.uint16 = None
+    if not hasattr(torch, "uint32"):
+        torch.uint32 = None
+    if not hasattr(torch, "uint64"):
+        torch.uint64 = None
+    if not hasattr(torch, "float8_e5m2fnuz"):
+        torch.float8_e5m2fnuz = None
+    if not hasattr(torch, "float8_e4m3fnuz"):
+        torch.float8_e4m3fnuz = None
+        
+except:
+    pass
 import tvm_ffi
 
 # isort: off

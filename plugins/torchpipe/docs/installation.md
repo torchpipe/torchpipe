@@ -5,7 +5,7 @@
 
 ### Inside NGC Docker Containers
 
-#### test on 25.05, 24.05, 23.05, and ~~22.12~~
+#### test on 25.05, 24.05, 23.05, and 22.12
 ```bash
 git clone https://github.com/torchpipe/torchpipe.git
 cd torchpipe/

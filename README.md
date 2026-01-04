@@ -11,10 +11,10 @@ torchpipe is an alternative choice for Triton Inference Server, mainly featuring
 
 <a href="https://torchpipe.github.io/torchpipe/"><img src="https://img.shields.io/badge/-Documentation-brightgreen"/></a> <a href="https://torchpipe.github.io/torchpipe/"><img src="https://img.shields.io/badge/-Benchmark-brightgreen"/></a>
 
-If you find an issue, please [let us know](../..//issues)!
+
 
 ## update
-- We switched to [tvm_ffi](https://github.com/apache/tvm-ffi) to provide clearer C++-Python interaction.
+- [20260104] We switched to [tvm_ffi](https://github.com/apache/tvm-ffi) to provide clearer C++-Python interaction.
 
 
 
@@ -88,7 +88,7 @@ To install the torchpipe Python library, call the following
 
 
 #### Inside NGC Docker Containers
-#### test on 25.05, 24.05, 23.05, and ~~22.12~~
+#### test on 25.05, 24.05, 23.05, and 22.12
 ```bash
 git clone https://github.com/torchpipe/torchpipe.git
 cd torchpipe/
@@ -112,13 +112,14 @@ cd /workspace/plugins/torchpipe && python setup.py install --cv2
 
 
 ## How does it work?
-[docs](https://torchpipe.github.io/torchpipe/usage/basic_usage.html)
+See [Basic Usage](https://torchpipe.github.io/torchpipe/usage/basic_usage.html).
 
 ## How to add (or override) a backend
 
+WIP
+
 ## Version Migration Notes 
 
-The core functionality of [TorchPipe (v0)](https://github.com/torchpipe/torchpipe/tree/v0) has been extracted into the standalone Omniback library.  
 
 
 TorchPipe (v1, this version)  is a collection of deep learning computation backends built on  Omniback library. Not all computation backends from TorchPipe (v0) have been ported to TorchPipe (v1) yet.

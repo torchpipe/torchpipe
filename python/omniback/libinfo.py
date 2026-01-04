@@ -70,7 +70,7 @@ def find_libomniback() -> str:
         if should_use_cxx11():
             return ret
         else:
-            cxx03
+            return cxx03
     raise RuntimeError("Cannot find libomniback")
 
 
@@ -245,10 +245,10 @@ def _find_library_by_basename(package: str, target_name: str) -> Path:  # noqa: 
     dll_paths: list[Path] = []
 
     # Case 1. It is under $PROJECT_ROOT/build/lib/ or $PROJECT_ROOT/lib/
-    dll_paths.append(_rel_top_directory() / "build" / "lib")
-    dll_paths.append(_rel_top_directory() / "lib")
-    dll_paths.append(_dev_top_directory() / "build" / "lib")
-    dll_paths.append(_dev_top_directory() / "lib")
+    dll_paths.append(_rel_top_directory() / "build" / "libs")
+    dll_paths.append(_rel_top_directory() / "libs")
+    dll_paths.append(_dev_top_directory() / "build" / "libs")
+    dll_paths.append(_dev_top_directory() / "libs")
 
     # Case 2. It is specified in PATH-related environment variables
     if sys.platform.startswith("win32"):
