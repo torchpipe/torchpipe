@@ -1,34 +1,26 @@
 
 
 import atexit
-from . import utils
-from .parser import parse, init_from_file, pipe
-import sys
 import os
-from pathlib import Path
 
 try:
     import torch
-    if not hasattr(torch, "uint16"):
-        torch.uint16 = None
-    if not hasattr(torch, "uint32"):
-        torch.uint32 = None
-    if not hasattr(torch, "uint64"):
-        torch.uint64 = None
-    if not hasattr(torch, "float8_e5m2fnuz"):
-        torch.float8_e5m2fnuz = None
-    if not hasattr(torch, "float8_e4m3fnuz"):
-        torch.float8_e4m3fnuz = None
-        
+    missing_dtypes = [
+        "uint16", "uint32", "uint64",
+        "float8_e5m2fnuz", "float8_e4m3fnuz",
+        "float8_e4m3fn", "float8_e5m2"
+    ]
+    for dtype in missing_dtypes:
+        if not hasattr(torch, dtype):
+            setattr(torch, dtype, None)
 except:
     pass
-import tvm_ffi
 
 # isort: off
+import tvm_ffi
+from . import utils
+from .parser import parse, init_from_file, pipe
 from . import libinfo
-
-# from . import _ffi_api
-
 from . import _ffi_api as ffi
 from ._ffi_api import _C
 
