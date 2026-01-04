@@ -14,7 +14,8 @@ torchpipe is an alternative choice for Triton Inference Server, mainly featuring
 If you find an issue, please [let us know](../..//issues)!
 
 ## update
-- We are going to use [tvm_ffi](https://github.com/apache/tvm-ffi) to provide a C API, enabling simpler C++/Python interoperability and gradually reducing our dependency on pybind11.
+- We switched to [tvm_ffi](https://github.com/apache/tvm-ffi) to provide clearer C++-Python interaction.
+
 
 
 ## Usage
@@ -87,7 +88,7 @@ To install the torchpipe Python library, call the following
 
 
 #### Inside NGC Docker Containers
-#### test on 25.05, 24.05, 23.05, and 22.12
+#### test on 25.05, 24.05, 23.05, and ~~22.12~~
 ```bash
 git clone https://github.com/torchpipe/torchpipe.git
 cd torchpipe/
@@ -111,6 +112,7 @@ cd /workspace/plugins/torchpipe && python setup.py install --cv2
 
 
 ## How does it work?
+[docs](https://torchpipe.github.io/torchpipe/usage/basic_usage.html)
 
 ## How to add (or override) a backend
 

@@ -31,7 +31,7 @@ classifiers = [
 keywords = ["machine learning", "inference"]
 requires-python = ">=3.8"
 
-dependencies = ["apache-tvm-ffi>=0.1.7"]
+dependencies = ["apache-tvm-ffi>=0.1.7", "fire"]
 
 [build-system]
 requires = ["scikit-build-core>=0.11.0", "apache-tvm-ffi==0.1.7","setuptools-scm"]

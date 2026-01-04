@@ -3,7 +3,7 @@ import sys
 import subprocess
 from pathlib import Path
 from typing import Tuple, List, Dict, Optional
-
+    
 import torch
 from setuptools import setup, find_packages, Extension
 from setuptools.command.build_ext import build_ext
@@ -15,6 +15,9 @@ from torch.utils.cpp_extension import (
     BuildExtension,
     CUDA_HOME,
 )
+
+from setuptools import dist
+dist.Distribution().fetch_build_eggs(["omniback"])
 
 def trt_inc_dir():
     incs = ["/usr/include/aarch64-linux-gnu", '/usr/include/x86_64-linux-gnu/',
@@ -256,6 +259,7 @@ def build_trt_extension():
 
 if __name__ == "__main__":
     
+    
     extensions = [
         build_core_extension(),
     ]
@@ -277,6 +281,8 @@ if __name__ == "__main__":
         name="torchpipe",
         version="0.9.0",
         author="torchpipe Team",
+        setup_requires=['omniback', 'torch'],
+        install_requires=['omniback'],
         description="High-performance inference pipeline for PyTorch",
         packages=find_packages(exclude=("test",)),
         package_data={

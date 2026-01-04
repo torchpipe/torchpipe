@@ -106,5 +106,4 @@ Torchpipe limits the basic elements of the backend to:
 
 - Initialization: parameter configuration
 - Forward: input/output interface
-- Forward: batch range of data
-- max/min: range
+- max/min: batch range of data
