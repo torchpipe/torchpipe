@@ -10,13 +10,17 @@
 
 namespace torchpipe {
 
-inline DLPackManagedTensorAllocator& torch_allocator() {
+inline DLPackManagedTensorAllocator torch_allocator() {
   DLPackExchangeAPI* api =
       reinterpret_cast<DLPackExchangeAPI*>(omniback::ffi::dlpack_exchange_api());
-  TVM_FFI_ICHECK(api);
-  static DLPackManagedTensorAllocator& alloc = api->managed_tensor_allocator;
-  TVM_FFI_ICHECK(alloc);
-  return alloc;
+  if (api)
+   { 
+    static DLPackManagedTensorAllocator& alloc = api->managed_tensor_allocator;
+    TVM_FFI_ICHECK(alloc);
+    return alloc;
+  }else{
+    return nullptr;
+  }
 }
 
 }

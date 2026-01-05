@@ -16,6 +16,16 @@ try:
 except:
     pass
 
+try:
+    import torch
+    from packaging import version
+
+    if version.parse(torch.__version__) < version.parse("2.4.0"):
+        # skip compilation step of tvm_ffi: https://github.com/apache/tvm-ffi/issues/381
+        os.environ["TVM_FFI_DISABLE_TORCH_C_DLPACK"] = "1"
+except:
+    pass
+
 # isort: off
 import tvm_ffi
 from . import utils
