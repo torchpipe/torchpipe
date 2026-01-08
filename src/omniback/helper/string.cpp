@@ -6,7 +6,7 @@
 #include "omniback/helper/base_logging.hpp"
 #include "omniback/helper/macro.h"
 
-namespace omniback::str {
+namespace om::str {
 
 std::vector<std::string> str_split(std::string strtem, char a) {
   remove_space_and_ctrl(strtem);
@@ -476,4 +476,4 @@ std::unordered_map<std::string, std::string> map_split(
 }
 
 // }  // namespace config_parser
-} // namespace omniback::str
+} // namespace om::str

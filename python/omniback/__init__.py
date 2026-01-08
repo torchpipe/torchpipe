@@ -32,16 +32,28 @@ from . import utils
 from .parser import parse, init_from_file, pipe
 from . import libinfo
 from . import _ffi_api as ffi
-from ._ffi_api import _C
+from . import _ffi_api as _C
+
+from ._ffi_api import libomniback
 
 
-from ._ffi_api import Queue, default_queue, Event, Backend
+from ._ffi_api import Queue, Event, Backend
 from ._ffi_api import OmDict as Dict
 
+
+def compiled_with_cxx11_abi():
+    return ffi.use_cxx11_abi()
 
 def create(name, register_name=None):
     return ffi.create(name, register_name)
 
+
+def default_queue(tag=""):
+    return ffi.default_queue_one_arg(tag)
+
+
+def default_page_table(tag=""):
+    return ffi.default_page_table(tag)
 
 def init(name, params={}, options=None, register_name=None):
     return ffi.init(name, params, options, register_name)
@@ -98,8 +110,8 @@ def get_library_dir():
     return os.path.dirname(libinfo.find_libomniback())
 
 
-def get_include_dirs():
-    return libinfo.include_paths()
+def get_include_dirs(with_tvm_ffi=False):
+    return libinfo.include_paths(with_tvm_ffi=with_tvm_ffi)
 
 
 def extra_include_paths():

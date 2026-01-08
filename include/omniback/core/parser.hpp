@@ -10,7 +10,7 @@
 #include <vector>
 #include "omniback/core/dict.hpp"
 #include "omniback/core/string.hpp"
-namespace omniback::parser {
+namespace om::parser {
 void broadcast_global(str::mapmap& config);
 std::unordered_set<std::string> set_node_name(str::mapmap& config);
 
@@ -81,9 +81,9 @@ void update(
 std::
     pair<std::vector<std::string>, std::unordered_map<std::string, std::string>>
     parse_args_kwargs(std::string config);
-} // namespace omniback::parser
+} // namespace om::parser
 
-namespace omniback::parser_v2 {
+namespace om::parser_v2 {
 
 struct BracketPair {
   char left;
@@ -210,7 +210,7 @@ class Parser {
       std::vector<std::string>,
       std::unordered_map<std::string, std::string>>
   parse_args_kwargs(std::string config) {
-    return omniback::parser::parse_args_kwargs(config);
+    return om::parser::parse_args_kwargs(config);
   }
 
  private:
@@ -240,5 +240,5 @@ class Parser {
   }
 };
 
-} // namespace omniback::parser_v2
+} // namespace om::parser_v2
 #endif

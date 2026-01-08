@@ -9,7 +9,7 @@
 
 #include "omniback/helper/thread_pool.hpp"
 
-namespace omniback::thread_pool {
+namespace om::thread_pool {
 
 BS::thread_pool<>& default_thread_pool(const std::string& tag, size_t size) {
   static std::mutex mtx;
@@ -32,4 +32,4 @@ BS::thread_pool<>& default_thread_pool(const std::string& tag, size_t size) {
   return *iter->second;
 }
 
-} // namespace omniback::thread_pool
+} // namespace om::thread_pool

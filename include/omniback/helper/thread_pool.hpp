@@ -10,9 +10,9 @@
 
 #include "BS_thread_pool.hpp"
 
-namespace omniback::thread_pool {
+namespace om::thread_pool {
 
 BS::thread_pool<>& default_thread_pool(
     const std::string& tag = "",
     size_t size = 0);
-} // namespace omniback::thread_pool
+} // namespace om::thread_pool

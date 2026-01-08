@@ -5,7 +5,7 @@
 #include "omniback/core/event.hpp"
 #include "omniback/helper/base_logging.hpp"
 
-namespace omniback {
+namespace om {
 
 DictHelper& DictHelper::keep(const std::string& key) {
   std::vector<std::optional<any>> keeped;
@@ -248,4 +248,4 @@ std::string get_cls_name(
 
 namespace helper {} // namespace helper
 
-} // namespace omniback
+} // namespace om

@@ -7,12 +7,12 @@ namespace torchpipe {
 
 void ResizeMat::impl_init(
     const std::unordered_map<std::string, std::string>& config,
-    const omniback::dict& kwargs) {
-  resize_h_ = omniback::str::str2int<size_t>(config, "resize_h");
-  resize_w_ = omniback::str::str2int<size_t>(config, "resize_w");
+    const om::dict& kwargs) {
+  resize_h_ = om::str::str2int<size_t>(config, "resize_h");
+  resize_w_ = om::str::str2int<size_t>(config, "resize_w");
 }
 
-void ResizeMat::forward(const omniback::dict& input_dict) {
+void ResizeMat::forward(const om::dict& input_dict) {
   auto& input = *input_dict;
 
   auto data = input[TASK_DATA_KEY].cast<cv::Mat>();
@@ -32,19 +32,19 @@ void ResizeMat::forward(const omniback::dict& input_dict) {
   input[TASK_RESULT_KEY] = im_resize;
 }
 
-OMNI_REGISTER(omniback::Backend, ResizeMat);
+OMNI_REGISTER(om::Backend, ResizeMat);
 
 void LetterBoxMat::impl_init(
     const std::unordered_map<std::string, std::string>& config,
-    const omniback::dict& kwargs) {
-  target_h_ = omniback::str::str2int<size_t>(config, "resize_h");
-  target_w_ = omniback::str::str2int<size_t>(config, "resize_w");
+    const om::dict& kwargs) {
+  target_h_ = om::str::str2int<size_t>(config, "resize_h");
+  target_w_ = om::str::str2int<size_t>(config, "resize_w");
 
   std::string pad_val_str =
       config.count("pad_val") ? config.at("pad_val") : "0,0,0";
 
   if (pad_val_str.find(',') != std::string::npos) {
-    std::vector<std::string> vals = omniback::str::str_split(pad_val_str, ',');
+    std::vector<std::string> vals = om::str::str_split(pad_val_str, ',');
     if (vals.size() >= 3) {
       pad_val_ = cv::Scalar(
           std::stoi(vals[0]), std::stoi(vals[1]), std::stoi(vals[2]));
@@ -55,7 +55,7 @@ void LetterBoxMat::impl_init(
   }
 }
 
-void LetterBoxMat::forward(const omniback::dict& input_dict) {
+void LetterBoxMat::forward(const om::dict& input_dict) {
   auto& input = *input_dict;
 
   cv::Mat src = input[TASK_DATA_KEY].cast<cv::Mat>();
@@ -96,19 +96,19 @@ void LetterBoxMat::forward(const omniback::dict& input_dict) {
   input["offset"] = std::make_pair(offset_x, offset_y);
 }
 
-OMNI_REGISTER(omniback::Backend, LetterBoxMat);
+OMNI_REGISTER(om::Backend, LetterBoxMat);
 
 void TopLeftResizeMat::impl_init(
     const std::unordered_map<std::string, std::string>& config,
-    const omniback::dict& kwargs) {
-  target_h_ = omniback::str::str2int<size_t>(config, "resize_h");
-  target_w_ = omniback::str::str2int<size_t>(config, "resize_w");
+    const om::dict& kwargs) {
+  target_h_ = om::str::str2int<size_t>(config, "resize_h");
+  target_w_ = om::str::str2int<size_t>(config, "resize_w");
 
   std::string pad_val_str =
       config.count("pad_val") ? config.at("pad_val") : "0,0,0";
 
   if (pad_val_str.find(',') != std::string::npos) {
-    std::vector<std::string> vals = omniback::str::str_split(pad_val_str, ',');
+    std::vector<std::string> vals = om::str::str_split(pad_val_str, ',');
     if (vals.size() >= 3) {
       pad_val_ = cv::Scalar(
           std::stoi(vals[0]), std::stoi(vals[1]), std::stoi(vals[2]));
@@ -119,7 +119,7 @@ void TopLeftResizeMat::impl_init(
   }
 }
 
-void TopLeftResizeMat::forward(const omniback::dict& input_dict) {
+void TopLeftResizeMat::forward(const om::dict& input_dict) {
   auto& input = *input_dict;
 
   cv::Mat src = input[TASK_DATA_KEY].cast<cv::Mat>();
@@ -160,7 +160,7 @@ void TopLeftResizeMat::forward(const omniback::dict& input_dict) {
   input["offset"] = std::make_pair(offset_x, offset_y);
 }
 
-OMNI_REGISTER(omniback::Backend, TopLeftResizeMat);
+OMNI_REGISTER(om::Backend, TopLeftResizeMat);
 
 // def postprocess(results, meta):
 //     scale = meta['scale']

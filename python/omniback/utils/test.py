@@ -14,6 +14,15 @@
 
 # throughput and lantecy test
 from __future__ import annotations
+from collections import namedtuple
+from typing import List, Tuple
+import math
+from typing import List, Union, Callable, Tuple, Any
+import threading
+import os
+import random
+import sys
+from timeit import default_timer as timer
 
 version = "20251217"
 
@@ -43,26 +52,15 @@ version = "20251217"
 # update 2024-10-30  fix test_thrift_from_raw_file 读图过多耗时过长的问题
 # update 2024-10-30   移除batch_size参数 
 # update 2025-04-29   移除 num_preload 参数 
+# update 2026-01-18   移除 顶层 numpy 依赖
 
 """
 
 
 # from curses import flash
 
-from timeit import default_timer as timer
 
 # import cv2
-import sys
-import random
-import os
-import threading
-import numpy as np
-
-from typing import List, Union, Callable, Tuple, Any
-import math
-
-from typing import List, Tuple
-import random, os
 
 
 class Sampler:
@@ -107,7 +105,7 @@ class SequentialSampler(Sampler):
         assert len(data) >= batch_size
 
     def __call__(self, start_index: int) -> None:
-        data = self.data[start_index : start_index + self.batch_size]
+        data = self.data[start_index: start_index + self.batch_size]
         self.forward(data)
 
     def batchsize(self):
@@ -129,7 +127,7 @@ class LoopSampler(Sampler):
 
     def __call__(self, start_index: int) -> None:
         start_index = start_index % (self.length)
-        data = self.data[start_index : start_index + self.batch_size]
+        data = self.data[start_index: start_index + self.batch_size]
         self.forward(data)
 
     def batchsize(self):
@@ -154,13 +152,17 @@ class FileSampler(LoopSampler):
     def handle_data(self, raw_bytes):
         raise RuntimeError("Requires users to implement this function")
 
+
 class Identity:
     def __init__(self, request_batch):
         self.request_batch = request_batch
+
     def __call__(self, data):
         return data
+
     def batchsize(self):
         return self.request_batch
+
 
 def preload(
     file_dir, recursive=True, ext=[".jpg", ".JPG", ".jpeg", ".JPEG"]
@@ -182,16 +184,13 @@ def preload(
         list_images = [os.path.join(file_dir, x) for x in list_images]
 
     for file_path in list_images:
-  
+
         result.append(file_path)
 
     if len(result) == 0:
         raise RuntimeError("find no vaild files. ext = " + ext)
 
     return result
-
-
-from collections import namedtuple
 
 
 class TestParams:
@@ -222,7 +221,7 @@ class InferThreadData(threading.Thread):
 
         self.start_index = 0
         self.should_stop = False
-        self.update_local_data() # keep this
+        self.update_local_data()  # keep this
         self.local_result = LocalResult()
 
     def update_local_data(self):
@@ -230,7 +229,7 @@ class InferThreadData(threading.Thread):
             if self.params.total_number <= 0:
                 self.should_stop = True
                 return
-            elif self.params.total_number%2000 == 1999:
+            elif self.params.total_number % 2000 == 1999:
                 print(f"{self.params.total_number}... left", flush=True)
 
             if self.params.total_number >= self.batch_size:
@@ -302,7 +301,7 @@ class GpuInfo(object):
     def __init__(self, pid):
         # 初始化
         # nvml_lib = CDLL("/usr/lib/x86_64-linux-gnu/libnvidia-ml.so.1")
-        import pynvml  #  pip install  py3nvml # nvidia-ml-py3 pynvml
+        import pynvml  # pip install  py3nvml # nvidia-ml-py3 pynvml
 
         self.pynvml = pynvml
         pynvml.nvmlInit()
@@ -312,12 +311,13 @@ class GpuInfo(object):
         gpuDeviceCount = pynvml.nvmlDeviceGetCount()  # 获取Nvidia GPU块数
         i = -1
 
-        CUDA_VISIBLE_DEVICES = os.environ.get("CUDA_VISIBLE_DEVICES", "0").split(",")
+        CUDA_VISIBLE_DEVICES = os.environ.get(
+            "CUDA_VISIBLE_DEVICES", "0").split(",")
         if len(CUDA_VISIBLE_DEVICES) == 1:
             self.need_record_index = int(CUDA_VISIBLE_DEVICES[0])
         else:
             raise RuntimeError("CUDA_VISIBLE_DEVICES: only support single gpu")
-       
+
         self.handle = pynvml.nvmlDeviceGetHandleByIndex(self.need_record_index)
         util = pynvml.nvmlDeviceGetUtilizationRates(self.handle).gpu
 
@@ -336,7 +336,7 @@ class GpuInfo(object):
 
     def get_free_rate(self, gpu_id):
         raise NotImplementedError
-        return 
+        return
         handle = pynvml.nvmlDeviceGetHandleByIndex(gpu_id)
         info = pynvml.nvmlDeviceGetMemoryInfo(handle)
         free_rate = int((info.free / info.total) * 100)
@@ -344,7 +344,7 @@ class GpuInfo(object):
 
     def get_gpu_info(self, gpu_id):
         raise NotImplementedError
-        return 
+        return
         handle = pynvml.nvmlDeviceGetHandleByIndex(gpu_id)
         info = pynvml.nvmlDeviceGetMemoryInfo(handle)
         M = 1024 * 1024
@@ -363,8 +363,6 @@ class GpuInfo(object):
         # self.pynvml.nvmlShutdown()
 
 
-
-
 # note 如果待测试函数有返回值，比如cuda上的tensor，有一定概率会copy到cpu并打印出来（初始概率下约打印10次，后续如果打印对象太大，则相应递减概率，但通常对性能影响小于千分之三
 class ResourceThread(threading.Thread):
     def __init__(self, pid, result_list, my_event):
@@ -381,7 +379,8 @@ class ResourceThread(threading.Thread):
         except:
             print(f"pid {pid} not found")
             exit(0)
-        print(f"Resource Monitor started: found {self.p.num_threads()} threads")
+        print(
+            f"Resource Monitor started: found {self.p.num_threads()} threads")
         # print(psutil.pids())
         # 'username',, 'status'
         for proc in psutil.process_iter(["pid", "exe", "cmdline"]):
@@ -426,6 +425,7 @@ class ResourceThread(threading.Thread):
 
 
 def test(sample: Union[Sampler, List[Sampler]], total_number=10000):
+    import numpy as np
     if isinstance(sample, list):
         num_clients = len(sample)
         assert num_clients > 0
@@ -494,7 +494,8 @@ def test(sample: Union[Sampler, List[Sampler]], total_number=10000):
     cpu_resource_result = list(zip(*resource_result))
 
     try:
-        resource_result = np.array(cpu_resource_result)[:2, :].astype(np.float32)
+        resource_result = np.array(cpu_resource_result)[
+            :2, :].astype(np.float32)
         cpu_ = int(10 * np.median(resource_result[0, :])) / 10
         if cpu_ < 0.8 * 100:
             cpu_ = 0
@@ -536,7 +537,7 @@ def test(sample: Union[Sampler, List[Sampler]], total_number=10000):
 
     qps = round(total_number / total_time, 2)
     avg = round(1000 * num_clients / qps, 2)
-    
+
     print("------------------------------Summary------------------------------")
     print(f"tool's version:: {version}")
     print(f"num_clients:: {num_clients}")
@@ -572,7 +573,8 @@ def test(sample: Union[Sampler, List[Sampler]], total_number=10000):
         data.append(["latency::TP90", f"{tp90}"])
         data.append(["latency::TP99", f"{tp99}"])
         data.append(["latency::avg", mean])
-        data.append(["-50,-40,-20,-10,-1", f"{tp_5},{tp_4},{tp_3},{tp_2},{tp_1}"])
+        data.append(
+            ["-50,-40,-20,-10,-1", f"{tp_5},{tp_4},{tp_3},{tp_2},{tp_1}"])
         try:
             from prettytable import PrettyTable
             import prettytable
@@ -605,19 +607,20 @@ def test(sample: Union[Sampler, List[Sampler]], total_number=10000):
     result["gpu_usage"] = gpu_
     return result
 
+
 def test_from_ids(forward_function: Union[
         Callable[[List[int]]], List[Callable[[List[int]]]]
     ],
     ids: List[int],
-    request_batch=1):
-    
+        request_batch=1):
+
     assert isinstance(forward_function, list)
-    assert len(ids) > 0 
+    assert len(ids) > 0
     assert isinstance(ids[0], int)
     total_number = len(ids)
     num_clients = len(forward_function)
     print(f'total_number={total_number}, num_clients={num_clients}')
-    
+
     forwards = [LoopSampler(ids, request_batch) for i in range(num_clients)]
     for i in range(num_clients):
         forwards[i].forward = forward_function[i]
@@ -627,7 +630,8 @@ def test_from_ids(forward_function: Union[
 
 def test_from_raw_file(
     forward_function: Union[
-        Callable[[List[tuple[str, bytes]]]], List[Callable[[List[tuple[str, bytes]]]]]
+        Callable[[List[tuple[str, bytes]]]
+                 ], List[Callable[[List[tuple[str, bytes]]]]]
     ],
     file_dir: str,
     num_clients=10,
@@ -644,7 +648,8 @@ def test_from_raw_file(
         file_dir=file_dir, recursive=recursive, ext=ext
     )
 
-    print(f"file_dir = {file_dir}, num_clients = {num_clients}, request_batch = {request_batch}, total_number = {total_number}")
+    print(
+        f"file_dir = {file_dir}, num_clients = {num_clients}, request_batch = {request_batch}, total_number = {total_number}")
     assert len(data) > 0
     if total_number == 0:
         total_number = len(data)
@@ -699,9 +704,10 @@ def test_function(
     return test(forwards, total_number)
 
 
-def example_mutil_clients_speed_test(file_dir, port, num_clients=10, total_number=5000, host="127.0.0.1" ):
+def example_mutil_clients_speed_test(file_dir, port, num_clients=10, total_number=5000, host="127.0.0.1"):
     class Client:
         """wrapper for thrift's python API. You may need to re-implement this class."""
+
         def __init__(self, host, port, request_batch, id2data) -> None:
             """
             :param host: ip
@@ -711,7 +717,7 @@ def example_mutil_clients_speed_test(file_dir, port, num_clients=10, total_numbe
             :param request_batch: size of sended data in batches.
             :type request_batch: int
             """
-            ## example thrift service:
+            # example thrift service:
             import sys
             sys.path.append("src")
             from serve import InferenceService
@@ -719,7 +725,7 @@ def example_mutil_clients_speed_test(file_dir, port, num_clients=10, total_numbe
             from serve.ttypes import InferenceParams
 
             self.InferenceParams = InferenceParams
-            
+
             from thrift.transport import TSocket
             from thrift.transport import TTransport
             from thrift.protocol import TBinaryProtocol
@@ -734,29 +740,30 @@ def example_mutil_clients_speed_test(file_dir, port, num_clients=10, total_numbe
             self.transport.open()
             self.client.ping()
             self.request_batch = request_batch
-            self.id2data=id2data
+            self.id2data = id2data
 
-        def forward(self, ids: List[int]) :
+        def forward(self, ids: List[int]):
             """batch processing
             """
             assert len(ids) == 1, "right now only support bs = 1"
-            
+
             ids[0] = self.id2data[ids[0]]
-            
-            result = self.client.infer_batch([self.InferenceParams(*x) for x in ids])
-            
+
+            result = self.client.infer_batch(
+                [self.InferenceParams(*x) for x in ids])
 
         def __del__(self):
             self.transport.close()
-        
+
     # prepare_data
     ext = [".jpg", ".JPG", ".jpeg", ".JPEG"]
     list_images = [
-            x for x in os.listdir(file_dir) if os.path.splitext(x)[-1] in ext
-        ]
+        x for x in os.listdir(file_dir) if os.path.splitext(x)[-1] in ext
+    ]
     list_images = [os.path.join(file_dir, x) for x in list_images]
     if len(list_images) > 1000:
-        list_images = list_images[:1000] # not enough memory. todo cal mem online
+        # not enough memory. todo cal mem online
+        list_images = list_images[:1000]
     id2data = {}
     for i in range(len(list_images)):
         with open(list_images[i], 'rb') as f:
@@ -765,12 +772,13 @@ def example_mutil_clients_speed_test(file_dir, port, num_clients=10, total_numbe
     ids = list(range(len(list_images)))
     repeats = math.ceil(total_number / len(ids))
     ids = (ids * repeats)[:total_number]
-    
+
     instances = [Client(host, port, 1, id2data) for i in range(num_clients)]
-    
+
     test_from_ids(
         forward_function=[x.forward for x in instances],
         ids=ids)
+
 
 def check_recall_diff(key, threshold, result_path_a, result_path_b):
     import pickle
@@ -783,7 +791,7 @@ def check_recall_diff(key, threshold, result_path_a, result_path_b):
     recalled_a, all_a = load_recalled_ids(result_path_a)
     recalled_b, all_b = load_recalled_ids(result_path_b)
     assert all_a == all_b, "Total number of items differ between the two results"
-    
+
     # A 检出但 B 没检出
     only_in_a = recalled_a - recalled_b
     # B 检出但 A 没检出
@@ -801,7 +809,7 @@ def check_recall_diff(key, threshold, result_path_a, result_path_b):
     print(f"Both: {len(both)}")
     print(f"Total: {all_b}")
 
-    
+
 def check_recall(key, threshold, file_dir=".", prefix='result'):
     import pickle
     import glob
@@ -809,7 +817,8 @@ def check_recall(key, threshold, file_dir=".", prefix='result'):
     import os
 
     pkl_paths = glob.glob(os.path.join(file_dir, f'{prefix}_*.pkl'))
-    pkl_paths = [x for x in pkl_paths if os.path.basename(x).strip(f'{prefix}_').rstrip('.pkl').isdigit()]
+    pkl_paths = [x for x in pkl_paths if os.path.basename(
+        x).strip(f'{prefix}_').rstrip('.pkl').isdigit()]
     recall_nums = []
 
     for pkl_path in pkl_paths:
@@ -833,7 +842,8 @@ def check_recall(key, threshold, file_dir=".", prefix='result'):
     # 检查一致性
     if recall_nums and not np.all(np.array(recall_nums) == recall_nums[0]):
         raise AssertionError("Different rounds have different recall numbers")
-    
+
+
 def multiple_round_inference(file_dir, port, num_round=10, save_prefix="result", host="127.0.0.1", num_clients=10, thrift=None):
     import pickle
     for i in range(num_round):
@@ -843,7 +853,7 @@ def multiple_round_inference(file_dir, port, num_round=10, save_prefix="result",
                 port=port,
                 host=host,
                 num_clients=num_clients,
-                shuffle=(i%2!=0),
+                shuffle=(i % 2 != 0),
                 thrift=thrift
             )
         else:
@@ -852,19 +862,22 @@ def multiple_round_inference(file_dir, port, num_round=10, save_prefix="result",
                 port=port,
                 host=host,
                 num_clients=num_clients,
-                shuffle=(i%2!=0),
+                shuffle=(i % 2 != 0),
             )
         pkl_name = f'{save_prefix}_{i}.pkl'
         with open(pkl_name, 'wb') as f:
             pickle.dump(result, f)
             print(f'{pkl_name} saved.')
 
-def mutil_clients_inference(file_dir, thrift, port, host="127.0.0.1", num_clients=10,shuffle=False):
+
+def mutil_clients_inference(file_dir, thrift, port, host="127.0.0.1", num_clients=10, shuffle=False):
     import thriftpy2
     pingpong_thrift = thriftpy2.load(thrift, module_name="pingpong_thrift")
     final_result = {}
+
     class Client:
         """wrapper for thrift's python API. You may need to re-implement this class."""
+
         def __init__(self, host, port, request_batch, data) -> None:
             """
             :param host: ip
@@ -874,55 +887,61 @@ def mutil_clients_inference(file_dir, thrift, port, host="127.0.0.1", num_client
             :param request_batch: size of sended data in batches.
             :type request_batch: int
             """
-            ## example thrift service:
+            # example thrift service:
 
             self.InferenceParams = pingpong_thrift.InferenceParams
 
-            self.client = thriftpy2.rpc.make_client(pingpong_thrift.InferenceService, host, port)
+            self.client = thriftpy2.rpc.make_client(
+                pingpong_thrift.InferenceService, host, port)
 
             # Connect!
             self.client.ping()
             self.request_batch = request_batch
             self.data = data
 
-        def forward(self, data: List[int]) :
+        def forward(self, data: List[int]):
             """batch processing
             """
             assert len(data) == 1, "right now only support bs = 1"
-            
+
             file_path = self.data[data[0]]
             with open(file_path, "rb") as f:
                 data[0] = (file_path, f.read())
-            result = self.client.infer_batch([self.InferenceParams(*x) for x in data])
-            
+            result = self.client.infer_batch(
+                [self.InferenceParams(*x) for x in data])
+
             final_result[data[0][0]] = result[0]
 
         def __del__(self):
             self.transport.close()
-        
+
     # prepare_data
     ext = [".jpg", ".JPG", ".jpeg", ".JPEG"]
     list_images = [
-            x for x in os.listdir(file_dir) if os.path.splitext(x)[-1] in ext
-        ]
+        x for x in os.listdir(file_dir) if os.path.splitext(x)[-1] in ext
+    ]
     list_images = [os.path.join(file_dir, x) for x in list_images]
-    
-    instances = [Client(host, port, 1, list_images) for i in range(num_clients)]
-    
+
+    instances = [Client(host, port, 1, list_images)
+                 for i in range(num_clients)]
+
     ids = list(range(len(list_images)))
     if shuffle:
         random.shuffle(ids)  # 原地打乱
-        
+
     test_from_ids(
         forward_function=[x.forward for x in instances],
         ids=ids
     )
     return final_result
-    
-def example_mutil_clients_inference(file_dir, port, host="127.0.0.1", num_clients=10,shuffle=False):
+
+
+def example_mutil_clients_inference(file_dir, port, host="127.0.0.1", num_clients=10, shuffle=False):
     final_result = {}
+
     class Client:
         """wrapper for thrift's python API. You may need to re-implement this class."""
+
         def __init__(self, host, port, request_batch, data) -> None:
             """
             :param host: ip
@@ -932,7 +951,7 @@ def example_mutil_clients_inference(file_dir, port, host="127.0.0.1", num_client
             :param request_batch: size of sended data in batches.
             :type request_batch: int
             """
-            ## example thrift service:
+            # example thrift service:
             import sys
             sys.path.append("src")
             from serve import InferenceService
@@ -940,7 +959,7 @@ def example_mutil_clients_inference(file_dir, port, host="127.0.0.1", num_client
             from serve.ttypes import InferenceParams
 
             self.InferenceParams = InferenceParams
-            
+
             from thrift.transport import TSocket
             from thrift.transport import TTransport
             from thrift.protocol import TBinaryProtocol
@@ -957,40 +976,42 @@ def example_mutil_clients_inference(file_dir, port, host="127.0.0.1", num_client
             self.request_batch = request_batch
             self.data = data
 
-        def forward(self, data: List[int]) :
+        def forward(self, data: List[int]):
             """batch processing
             """
             assert len(data) == 1, "right now only support bs = 1"
-            
+
             file_path = self.data[data[0]]
             with open(file_path, "rb") as f:
                 data[0] = (file_path, f.read())
-            result = self.client.infer_batch([self.InferenceParams(*x) for x in data])
-            
+            result = self.client.infer_batch(
+                [self.InferenceParams(*x) for x in data])
+
             final_result[data[0][0]] = result[0]
 
         def __del__(self):
             self.transport.close()
-        
+
     # prepare_data
     ext = [".jpg", ".jpeg", '.png']
     list_images = [
-            x for x in os.listdir(file_dir) if os.path.splitext(x)[-1].lower() in ext
-        ]
+        x for x in os.listdir(file_dir) if os.path.splitext(x)[-1].lower() in ext
+    ]
     list_images = [os.path.join(file_dir, x) for x in list_images]
-    
-    instances = [Client(host, port, 1, list_images) for i in range(num_clients)]
-    
+
+    instances = [Client(host, port, 1, list_images)
+                 for i in range(num_clients)]
+
     ids = list(range(len(list_images)))
     if shuffle:
         random.shuffle(ids)  # 原地打乱
-        
+
     test_from_ids(
         forward_function=[x.forward for x in instances],
         ids=ids
     )
     return final_result
-  
+
 
 if __name__ == "__main__":
     import fire
@@ -1005,9 +1026,8 @@ if __name__ == "__main__":
         "check_recall": check_recall,
         "check_recall_diff": check_recall_diff,
     })
-    
 
-    #压测脚本： 跑多次，并将结果保存在result*.pkl ：
+    # 压测脚本： 跑多次，并将结果保存在result*.pkl ：
     # nohup python src/test.py multiple_round_inference /path/to/data/ --port=8090 --num_round=100 --save_prefix=result &
 
     # 速度测试：
@@ -1016,4 +1036,3 @@ if __name__ == "__main__":
     # 检查multiple_round_inference保存的结果的recall
     # python src/test.py check_recall  label threshold
     # python src/test.py check_recall_diff  label threshold result_0.pkl result_1.pkl
-    

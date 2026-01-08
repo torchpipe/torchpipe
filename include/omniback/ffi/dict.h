@@ -19,8 +19,8 @@
 #include <tvm/ffi/type_traits.h>
 #include <tvm/ffi/function.h>
 
-namespace omniback::ffi {
-using dict = std::shared_ptr<std::unordered_map<std::string, omniback::ffi::Any>>;
+namespace om::ffi {
+using dict = std::shared_ptr<std::unordered_map<std::string, om::ffi::Any>>;
 
 namespace ffi = tvm::ffi;
 namespace refl = tvm::ffi::reflection;
@@ -30,7 +30,7 @@ namespace refl = tvm::ffi::reflection;
  */
 class DictObj : public ffi::Object {
  public:
-  std::shared_ptr<std::unordered_map<std::string, omniback::any>> data;
+  std::shared_ptr<std::unordered_map<std::string, om::any>> data;
   tvm::ffi::Function py_callback;
 
   struct PyCallBackGuard{
@@ -77,15 +77,15 @@ class DictObj : public ffi::Object {
   static constexpr bool _type_mutable = true;
   DictObj()
       : data(std::make_shared<
-             std::unordered_map<std::string, omniback::any>>()) {}
+             std::unordered_map<std::string, om::any>>()) {}
   explicit DictObj(
-      std::shared_ptr<std::unordered_map<std::string, omniback::any>> in_data)
+      std::shared_ptr<std::unordered_map<std::string, om::any>> in_data)
       : data(std::move(in_data)) {
     TVM_FFI_ICHECK(data) << "null DictObj is not allowed";
   }
 
   explicit DictObj(tvm::ffi::Map<tvm::ffi::String, tvm::ffi::Any> params) {
-    data = std::make_shared<std::unordered_map<std::string, omniback::any>>(
+    data = std::make_shared<std::unordered_map<std::string, om::any>>(
         params.begin(), params.end());
   }
 
@@ -93,9 +93,9 @@ class DictObj : public ffi::Object {
    * \brief 获取可变map引用（懒初始化）
    * \return map的可变引用
    */
-  std::unordered_map<std::string, omniback::any>& GetMutableMap() {
+  std::unordered_map<std::string, om::any>& GetMutableMap() {
     if (!data) {
-      data = std::make_shared<std::unordered_map<std::string, omniback::any>>();
+      data = std::make_shared<std::unordered_map<std::string, om::any>>();
     }
     return *data;
   }
@@ -104,13 +104,13 @@ class DictObj : public ffi::Object {
    * \brief 获取只读map引用
    * \return map的只读引用
    */
-  const std::unordered_map<std::string, omniback::any>& GetMap() const {
+  const std::unordered_map<std::string, om::any>& GetMap() const {
     return *data;
   }
-  std::shared_ptr<std::unordered_map<std::string, omniback::any>> get() const{
+  std::shared_ptr<std::unordered_map<std::string, om::any>> get() const{
     return data;
   }
-  operator std::shared_ptr<std::unordered_map<std::string, omniback::any>>() {
+  operator std::shared_ptr<std::unordered_map<std::string, om::any>>() {
     return data;
   }
 
@@ -120,10 +120,10 @@ class DictObj : public ffi::Object {
 
 class DictRef : public tvm::ffi::ObjectRef {
  public:
-  // DictRef(const std::shared_ptr<std::unordered_map<std::string, omniback::any>>&data){
+  // DictRef(const std::shared_ptr<std::unordered_map<std::string, om::any>>&data){
   //   data_ = tvm::ffi::make_object<DictObj>(data);
   // }
-  // operator std::shared_ptr<std::unordered_map<std::string, omniback::any>>(){
+  // operator std::shared_ptr<std::unordered_map<std::string, om::any>>(){
   //   return data_->get();
   // }
 
@@ -133,23 +133,23 @@ class DictRef : public tvm::ffi::ObjectRef {
       DictObj);
 };
 
-} // namespace omniback::ffi
+} // namespace om::ffi
 
 namespace tvm::ffi {
 // template <>
 // inline constexpr bool use_default_type_traits_v<
-//     std::shared_ptr<std::unordered_map<std::string, omniback::any>>> = false;
+//     std::shared_ptr<std::unordered_map<std::string, om::any>>> = false;
 
     // ObjectRefTypeTraitsBase
     // TypeTraitsBase
 template <>
 struct TypeTraits<
-    std::shared_ptr<std::unordered_map<std::string, omniback::any>>>
-    : public TypeTraits<omniback::ffi::DictObj*> {
+    std::shared_ptr<std::unordered_map<std::string, om::any>>>
+    : public TypeTraits<om::ffi::DictObj*> {
  public:
   // static constexpr bool storage_enabled = false;
-  using Self = std::shared_ptr<std::unordered_map<std::string, omniback::any>>;
-  using DictObj = omniback::ffi::DictObj;
+  using Self = std::shared_ptr<std::unordered_map<std::string, om::any>>;
+  using DictObj = om::ffi::DictObj;
 
   TVM_FFI_INLINE static void MoveToAny(Self&& src, TVMFFIAny* result) {
     if (!src) {
@@ -161,7 +161,7 @@ struct TypeTraits<
   }
 
   TVM_FFI_INLINE static std::optional<Self> TryCastFromAnyView(const TVMFFIAny* src) {
-    std::optional<omniback::ffi::DictObj*> re = tvm::ffi::TypeTraits<DictObj*>::TryCastFromAnyView(src);
+    std::optional<om::ffi::DictObj*> re = tvm::ffi::TypeTraits<DictObj*>::TryCastFromAnyView(src);
     if (re.has_value()){
       return re.value()->get();
     }
@@ -172,10 +172,10 @@ struct TypeTraits<
 
 
   TVM_FFI_INLINE static std::string TypeStr() {
-    return "omniback::Dict";
+    return "om::Dict";
   }
   TVM_FFI_INLINE static std::string TypeSchema() {
-    return R"({"type":"omniback::Dict"})";
+    return R"({"type":"om::Dict"})";
   }
 };
 

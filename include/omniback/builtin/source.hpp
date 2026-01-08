@@ -7,7 +7,7 @@
 #include "omniback/core/backend.hpp"
 #include "omniback/core/queue.hpp"
 
-namespace omniback {
+namespace om {
 class Source : public Backend {
   void impl_init(
       const std::unordered_map<std::string, std::string>& config,
@@ -23,4 +23,4 @@ class Source : public Backend {
 };
 
 dict uniform_sample(const std::vector<dict>& input);
-} // namespace omniback
+} // namespace om

@@ -5,7 +5,7 @@
 
 #include "omniback/builtin/basic_backends.hpp"
 
-namespace omniback {
+namespace om {
 
 /**
  * @brief Or[A,B], if A has no result, then execute B
@@ -20,4 +20,4 @@ class Or final : public Container {
   virtual void impl_forward(const std::vector<dict>&) override;
 };
 
-} // namespace omniback
+} // namespace om

@@ -24,7 +24,7 @@ cv::Mat cpu_decode(std::string data) {
 } // namespace
 void DecodeMat::impl_init(
     const std::unordered_map<std::string, std::string>& config,
-    const omniback::dict& kwargs) {
+    const om::dict& kwargs) {
   //   str::try_update(config, "color", color_);
   //   str::try_update(config, "data_format", data_format_);
 
@@ -32,7 +32,7 @@ void DecodeMat::impl_init(
   //   OMNI_ASSERT(data_format_ == "nchw" || data_format_ == "hwc");
 }
 
-void DecodeMat::forward(const omniback::dict& input_dict) {
+void DecodeMat::forward(const om::dict& input_dict) {
   auto& input = *input_dict;
 
   std::string data = input.at(TASK_DATA_KEY).cast<std::string>();
@@ -57,5 +57,5 @@ void DecodeMat::forward(const omniback::dict& input_dict) {
   input["color"] = bgr;
 }
 
-OMNI_REGISTER(omniback::Backend, DecodeMat);
+OMNI_REGISTER(om::Backend, DecodeMat);
 } // namespace torchpipe

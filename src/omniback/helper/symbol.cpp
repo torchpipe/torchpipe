@@ -14,31 +14,22 @@
 
 #include <memory>
 #include <sstream>
+#include <exception>
+#include <string>
 
 #include "omniback/helper/base_logging.hpp"
 
 #include "omniback/helper/symbol.hpp"
 
-namespace omniback {
+namespace om {
 
-#ifdef __GNUG__
-#include <cxxabi.h>
-#include <cstdlib>
-#include <memory>
-std::string local_demangle(const char* name) {
-  int status = -1;
-  std::unique_ptr<char, void (*)(void*)> res{
-      abi::__cxa_demangle(name, NULL, NULL, &status), std::free};
 
-  return (status == 0) ? res.get() : name;
-}
-#else
 
 // does nothing if not g++
 std::string local_demangle(const char* name) {
   return name;
 }
-#endif
+
 
 void throw_wrong_type(const char* need_type, const char* input_type) {
   std::stringstream ss;
@@ -55,4 +46,4 @@ void throw_not_exist(std::string key) {
   throw std::invalid_argument(ss.str());
 }
 
-} // namespace omniback
+} // namespace om

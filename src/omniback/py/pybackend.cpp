@@ -1,9 +1,9 @@
 #include "omniback/builtin/callback_backend.hpp"
 #include "omniback/py/pybackend.hpp"
 
-namespace omniback::py {
-using omniback::CallbackBackend ;
-std::unique_ptr<omniback::Backend> object2backend(
+namespace om::py {
+using om::CallbackBackend ;
+std::unique_ptr<om::Backend> object2backend(
     SelfType py_obj,
     tvm::ffi::Optional<tvm::ffi::TypedFunction<void(
         SelfType,
@@ -27,14 +27,14 @@ std::unique_ptr<omniback::Backend> object2backend(
     init_cb = 
         [py_obj, init_func](
             const std::unordered_map<std::string, std::string>& params,
-            const omniback::dict& options) {
+            const om::dict& options) {
 
           tvm::ffi::Map<tvm::ffi::String, tvm::ffi::String> params_map{params.begin(), params.end()};
 
           tvm::ffi::Optional<PyDictRef> options_dict;
           if (options) {
             auto options_dict =
-                tvm::ffi::make_object<omniback::ffi::DictObj>(options);
+                tvm::ffi::make_object<om::ffi::DictObj>(options);
           }
 
           (init_func.value())(py_obj, params_map, options_dict);
@@ -42,12 +42,12 @@ std::unique_ptr<omniback::Backend> object2backend(
     };
 
     if (forward_func.has_value()) {
-        forward_cb = [py_obj, forward_func](const std::vector<omniback::dict>& ios) {
+        forward_cb = [py_obj, forward_func](const std::vector<om::dict>& ios) {
 
           tvm::ffi::Array<PyDictRef> arr;
           for (const auto& io_dict : ios) {
             auto dict_obj =
-                tvm::ffi::make_object<omniback::ffi::DictObj>(io_dict);
+                tvm::ffi::make_object<om::ffi::DictObj>(io_dict);
             arr.push_back(PyDictRef(dict_obj));
           }
 

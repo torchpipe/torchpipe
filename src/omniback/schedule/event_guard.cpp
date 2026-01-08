@@ -11,7 +11,7 @@
 #include "omniback/helper/base_logging.hpp"
 #include "omniback/helper/macro.h"
 #include "omniback/schedule/schedule_states.hpp"
-namespace omniback {
+namespace om {
 
 void EventGuard::custom_forward_with_dep(
     const std::vector<dict>& input_output,
@@ -167,4 +167,4 @@ class ThreadPoolExecutor : public Dependency {
 
 OMNI_REGISTER_BACKEND(ThreadPoolExecutor);
 
-} // namespace omniback
+} // namespace om

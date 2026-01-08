@@ -13,7 +13,7 @@
 #include "omniback/helper/threadsafe_sized_queue.hpp"
 #include "omniback/schedule/schedule_states.hpp"
 
-namespace omniback {
+namespace om {
 
 class Loop : public Backend {
  private:
@@ -171,7 +171,7 @@ class FakeInstance : public Backend {
       const std::unordered_map<std::string, std::string>& config,
       const dict& dict_config) override;
 
-  void impl_forward(const std::vector<dict>& ios);
+  void impl_forward(const std::vector<dict>& ios) override;
 
   [[nodiscard]] uint32_t impl_max() const override {
     return max_;
@@ -222,4 +222,4 @@ class FakeInstance : public Backend {
 
   // std::unordered_map<std::string, std::string> config_;
 };
-} // namespace omniback
+} // namespace om

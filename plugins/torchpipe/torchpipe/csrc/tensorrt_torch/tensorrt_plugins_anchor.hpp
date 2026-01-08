@@ -14,7 +14,7 @@
 constexpr char const* const kANCHOR_PLUGIN_NAME{"AnchorPlugin"};
 constexpr char const* const kANCHOR_PLUGIN_VERSION{"1"};
 constexpr char const* const kANCHOR_PLUGIN_NAMESPACE{""};
-namespace omniback {
+namespace om {
 class Backend;
 }
 namespace nvinfer1 {
@@ -144,7 +144,7 @@ AnchorPlugin(std::string const& params, bool is_build_phase = false);
   std::vector<nvinfer1::PluginField> mDataToSerialize;
   nvinfer1::PluginFieldCollection mFCToSerialize;
 
-  omniback::Backend* dependency_{nullptr};
+  om::Backend* dependency_{nullptr};
 
   bool is_build_phase_{false};
 };

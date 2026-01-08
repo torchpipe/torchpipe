@@ -4,7 +4,7 @@
 #include <vector>
 #include "omniback/builtin/basic_backends.hpp"
 
-namespace omniback {
+namespace om {
 
 class Aspect : public Container {
  public:
@@ -28,4 +28,4 @@ class Aspect : public Container {
  private:
 };
 
-} // namespace omniback
+} // namespace om

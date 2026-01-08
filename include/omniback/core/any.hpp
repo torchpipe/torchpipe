@@ -2,6 +2,6 @@
 
 #include "omniback/ffi/any_wrapper.h"
 
-namespace omniback{
+namespace om{
 using any = ffi::Any;
 }

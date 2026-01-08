@@ -13,7 +13,7 @@ namespace torchpipe {
 #error Only support TensorRT >= 8.5
 #endif
 
-class LoadTensorrtEngine : public omniback::Backend {
+class LoadTensorrtEngine : public om::Backend {
  public:
   ~LoadTensorrtEngine() {
     engine_.release();
@@ -24,8 +24,8 @@ class LoadTensorrtEngine : public omniback::Backend {
  private:
   void impl_init(
       const std::unordered_map<std::string, std::string>& config,
-      const omniback::dict& kwargs) override;
-  // void impl_forward(const std::vector<omniback::dict>& input) override;
+      const om::dict& kwargs) override;
+  // void impl_forward(const std::vector<om::dict>& input) override;
 
  private:
   std::unique_ptr<nvinfer1::IRuntime> runtime_;
@@ -33,7 +33,7 @@ class LoadTensorrtEngine : public omniback::Backend {
   std::unique_ptr<nvinfer1::IGpuAllocator> allocator_;
 };
 
-class Onnx2Tensorrt : public omniback::Backend {
+class Onnx2Tensorrt : public om::Backend {
  public:
   ~Onnx2Tensorrt() {
     engine_.release();
@@ -44,8 +44,8 @@ class Onnx2Tensorrt : public omniback::Backend {
  private:
   void impl_init(
       const std::unordered_map<std::string, std::string>& config,
-      const omniback::dict& kwargs) override;
-  // void impl_forward(const std::vector<omniback::dict>& input) override;
+      const om::dict& kwargs) override;
+  // void impl_forward(const std::vector<om::dict>& input) override;
 
  private:
   std::unique_ptr<nvinfer1::IRuntime> runtime_;
@@ -53,11 +53,11 @@ class Onnx2Tensorrt : public omniback::Backend {
   std::unique_ptr<nvinfer1::IGpuAllocator> allocator_;
 };
 
-class ModelLoadder : public omniback::Container {
+class ModelLoadder : public om::Container {
  public:
   void post_init(
       const std::unordered_map<std::string, std::string>& config,
-      const omniback::dict& kwargs) override;
+      const om::dict& kwargs) override;
 
  private:
   std::vector<uint32_t> set_init_order(uint32_t max_range) const override {

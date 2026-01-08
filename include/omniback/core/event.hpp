@@ -17,8 +17,8 @@
 #include "omniback/ffi/event.h"
 
 
-namespace omniback {
-  using Event = omniback::ffi::Event;
+namespace om {
+  using Event = om::ffi::Event;
   constexpr auto TASK_EVENT_KEY = "event";
 
-} // namespace omniback
+} // namespace om

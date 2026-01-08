@@ -7,7 +7,7 @@
 #define SHUTDOWN_TIMEOUT 500
 #define SHUTDOWN_TIMEOUT_MS std::chrono::milliseconds(SHUTDOWN_TIMEOUT)
 
-namespace omniback::helper {
+namespace om::helper {
 
 class ScopedTimer {
  public:
@@ -44,4 +44,4 @@ inline float time_passed(decltype(now()) time_old) {
   std::chrono::duration<float, std::milli> fp_ms = now() - time_old;
   return fp_ms.count();
 }
-} // namespace omniback::helper
+} // namespace om::helper

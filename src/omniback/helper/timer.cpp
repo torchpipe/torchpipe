@@ -4,7 +4,7 @@
 #include <random>
 #include "omniback/helper/base_logging.hpp"
 
-namespace omniback::helper {
+namespace om::helper {
 bool should_log(float probability) {
   if (probability >= 1.0)
     return true;
@@ -30,4 +30,4 @@ ScopedTimer::~ScopedTimer() {
   const double ms = std::chrono::duration<double, std::milli>(duration).count();
   SPDLOG_INFO("[{}] took {} ms\n", name_, ms);
 }
-} // namespace omniback::helper
+} // namespace om::helper

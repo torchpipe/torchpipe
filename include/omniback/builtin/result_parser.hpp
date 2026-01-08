@@ -4,7 +4,7 @@
 #include "omniback/builtin/basic_backends.hpp"
 #include "omniback/helper/macro.h"
 #include "omniback/helper/params.hpp"
-namespace omniback {
+namespace om {
 
 class ResultParser : public DependencyV0 {
  private:
@@ -29,4 +29,4 @@ class ResultParser : public DependencyV0 {
   virtual std::function<void(const dict&)> parser_impl() const = 0;
 };
 
-} // namespace omniback
+} // namespace om

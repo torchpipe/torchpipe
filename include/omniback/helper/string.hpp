@@ -12,7 +12,7 @@
 #include <unordered_set>
 #include <vector>
 
-namespace omniback::str {
+namespace om::str {
 const auto ITEM_DELIMITERS = std::unordered_set<char>{
     ',',
     ';',
@@ -444,8 +444,8 @@ void try_update(
   }
 }
 
-} // namespace omniback::str
-namespace omniback {
+} // namespace om::str
+namespace om {
 
 namespace str {
 template <typename... Args>
@@ -550,4 +550,4 @@ std::unordered_map<std::string, std::string> map_split(
 // }  // namespace config_parser
 } // namespace str
 
-} // namespace omniback
+} // namespace om

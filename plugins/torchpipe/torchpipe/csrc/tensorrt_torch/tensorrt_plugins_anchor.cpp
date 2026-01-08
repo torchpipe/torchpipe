@@ -33,21 +33,21 @@ namespace plugin {
 #if NV_TENSORRT_MAJOR >= 10
 AnchorPlugin::AnchorPlugin(const std::string& params, bool is_build_phase)
     : serialization_(params), is_build_phase_(is_build_phase) {
-  params_ = omniback::str::map_split(params, '=', ';');
+  params_ = om::str::map_split(params, '=', ';');
 
-  omniback::str::try_update(params_, "num_output", anchor_params_.num_output);
-  omniback::str::try_update(params_, "num_input", anchor_params_.num_input);
-  omniback::str::try_update(params_, "layer_idx", anchor_params_.layer_idx);
-  // omniback::str::try_update(params_, "workspace",
+  om::str::try_update(params_, "num_output", anchor_params_.num_output);
+  om::str::try_update(params_, "num_input", anchor_params_.num_input);
+  om::str::try_update(params_, "layer_idx", anchor_params_.layer_idx);
+  // om::str::try_update(params_, "workspace",
   // anchor_params_.workspace_size);
   OMNI_ASSERT(
       anchor_params_.workspace_size <= std::numeric_limits<long int>::max());
 
-  omniback::str::try_update<std::string>(params_, "name", anchor_params_.name);
+  om::str::try_update<std::string>(params_, "name", anchor_params_.name);
 
   std::string dtype = "fp16";
-  omniback::str::try_update(params_, "dtype", dtype);
-  std::vector<std::string> types = omniback::str::str_split(dtype, ',');
+  om::str::try_update(params_, "dtype", dtype);
+  std::vector<std::string> types = om::str::str_split(dtype, ',');
   for (const auto& item : types)
     anchor_params_.type.push_back(torchpipe::convert2trt(item));
   OMNI_ASSERT(!anchor_params_.type.empty());
@@ -66,9 +66,9 @@ AnchorPlugin::AnchorPlugin(const std::string& params, bool is_build_phase)
   }();
 
   if (!is_build_phase) {
-    // dependency_ = OMNI_INSTANCE_GET(omniback::Backend, anchor_params_.name);
+    // dependency_ = OMNI_INSTANCE_GET(om::Backend, anchor_params_.name);
     dependency_ =
-        omniback::init_backend(kANCHOR_PLUGIN_NAME, params_).release();
+        om::init_backend(kANCHOR_PLUGIN_NAME, params_).release();
     OMNI_ASSERT(dependency_);
   }
 }
@@ -378,8 +378,8 @@ int32_t AnchorPlugin::enqueue(
   bool in_err = false;
   try {
     if (dependency_) {
-      auto io = omniback::make_dict();
-      (*io)[omniback::TASK_DATA_KEY] = reinterpret_cast<long long>(stream);
+      auto io = om::make_dict();
+      (*io)[om::TASK_DATA_KEY] = reinterpret_cast<long long>(stream);
       dependency_->forward({io});
     }
   } catch (const pybind11::error_already_set& e) {
@@ -488,7 +488,7 @@ IPluginV3* AnchorPluginCreator::createPlugin(
       }
       SPDLOG_INFO("Plugin Attributes: params -> {}", params);
       // check
-      // [[maybe_unused]] auto map_params = omniback::str::str_split(params,
+      // [[maybe_unused]] auto map_params = om::str::str_split(params,
       // ',');
 
       AnchorPlugin* const plugin{new AnchorPlugin{params, true}};

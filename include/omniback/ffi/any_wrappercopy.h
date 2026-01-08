@@ -36,7 +36,7 @@
 
 // #include "omniback/types/basic.h"
 
-namespace omniback::ffi {
+namespace om::ffi {
 
 using AnyStorage =
     std::variant<tvm::ffi::Any, StdAny, uint64_t>;
@@ -52,7 +52,7 @@ class Any {
 
   template <typename T>
   static constexpr bool is_om_type_v =
-      omniback::ffi::OmTypeTraits<std::decay_t<T>>::convert_enabled;
+      om::ffi::OmTypeTraits<std::decay_t<T>>::convert_enabled;
 
   template <typename T>
   void construct(T&& value) {
@@ -199,22 +199,22 @@ Any make_any(T&& value) {
 //     return ::tvm::ffi::details::AnyUnsafe::CheckAnyStrict<T>(operand);
 //   }
 //   else {
-//     auto wrapper = operand.cast<omniback::ffi::StdAny>();
+//     auto wrapper = operand.cast<om::ffi::StdAny>();
 //     return typeid(T) == wrapper->type();
 //   }
 // }
 
-} // namespace omniback::ffi
+} // namespace om::ffi
 
 namespace tvm::ffi 
 {
 template <>
-inline constexpr bool use_default_type_traits_v<omniback::ffi::Any> = false;
+inline constexpr bool use_default_type_traits_v<om::ffi::Any> = false;
 
 template <>
-struct TypeTraits<omniback::ffi::Any> : public TypeTraitsBase {
+struct TypeTraits<om::ffi::Any> : public TypeTraitsBase {
    public:
-    using Self = omniback::ffi::Any;
+    using Self = om::ffi::Any;
 
     // TVM_FFI_INLINE static void CopyToAnyView(
     //     const Self& src,
@@ -229,20 +229,20 @@ struct TypeTraits<omniback::ffi::Any> : public TypeTraitsBase {
       }
 
       TVM_FFI_INLINE static std::string TypeStr() {
-        return "omniback::ffi::Any";
+        return "om::ffi::Any";
       }
       TVM_FFI_INLINE static std::string TypeSchema() {
-        return R"({"type":"omniback::ffi::Any"})";
+        return R"({"type":"om::ffi::Any"})";
       }
   };
 
 }; // namespace tvm::ffi
 
-namespace omniback {
+namespace om {
 // using ffi::detail::is_type;
 using ffi::make_any;
 using any = ffi::Any;
 using ffi::any_cast;
-} // namespace omniback
+} // namespace om
 #endif // OMNIBACK_ANY_H_
  

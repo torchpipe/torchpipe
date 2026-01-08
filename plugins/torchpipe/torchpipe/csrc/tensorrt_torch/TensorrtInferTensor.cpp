@@ -14,11 +14,11 @@ namespace torchpipe {
 
 std::string get_dependency(
     const std::unordered_map<std::string, std::string>& config,
-    omniback::Backend* this_ptr,
+    om::Backend* this_ptr,
     const std::string& default_cls_name,
     const std::string& default_dep_name) {
   std::string cls = default_cls_name;
-  auto name = OMNI_OBJECT_NAME(omniback::Backend, this_ptr);
+  auto name = OMNI_OBJECT_NAME(om::Backend, this_ptr);
   if (name)
     cls = *name;
   auto iter = config.find(cls + "::dependency");
@@ -32,11 +32,11 @@ std::string get_dependency(
 
 void TensorrtInferTensor::impl_init(
     const std::unordered_map<std::string, std::string>& inconfig,
-    const omniback::dict& kwargs) {
+    const om::dict& kwargs) {
   auto config = inconfig;
   // handle instance index
-  omniback::str::try_update(config, TASK_INDEX_KEY, instance_index_);
-  omniback::str::try_update(config, "instance_num", instance_num_);
+  om::str::try_update(config, TASK_INDEX_KEY, instance_index_);
+  om::str::try_update(config, "instance_num", instance_num_);
 
   OMNI_ASSERT(instance_num_ >= 1 && instance_index_ >= 0);
 
@@ -85,18 +85,18 @@ void TensorrtInferTensor::impl_init(
 }
 
 void TensorrtInferTensor::impl_forward(
-    const std::vector<omniback::dict>& input_output) {
+    const std::vector<om::dict>& input_output) {
   OMNI_ASSERT(
       input_output.size() == 1,
       "only support one (batched) input with explicit batch");
 
   // input
   auto inputs =
-      omniback::dict_gets<torch::Tensor>(input_output[0], TASK_DATA_KEY);
+      om::dict_gets<torch::Tensor>(input_output[0], TASK_DATA_KEY);
 
   check_batched_inputs(inputs, info_.first);
 
-  // omniback::helper::ScopedTimer timer("tensorrt infer. size = " +
+  // om::helper::ScopedTimer timer("tensorrt infer. size = " +
   // std::to_string(inputs[0].sizes()[0]), 0.01);
 
   for (unsigned j = 0; j < info_.first.size(); j++) {
@@ -118,10 +118,10 @@ void TensorrtInferTensor::impl_forward(
 
   // outputs from user
   std::vector<torch::Tensor> outputs;
-  if (input_output[0]->find(omniback::TASK_OUTPUT_KEY) !=
+  if (input_output[0]->find(om::TASK_OUTPUT_KEY) !=
       input_output[0]->end())
-    outputs = omniback::dict_gets<torch::Tensor>(
-        input_output[0], omniback::TASK_OUTPUT_KEY);
+    outputs = om::dict_gets<torch::Tensor>(
+        input_output[0], om::TASK_OUTPUT_KEY);
 
   size_t predefined_size = outputs.size();
   // if (predefined_size != 0 && predefined_size != info_.second.size()) {
@@ -230,5 +230,5 @@ TensorrtInferTensor::~TensorrtInferTensor() {
   cudaEventDestroy(input_finish_event_);
 }
 
-OMNI_REGISTER(omniback::Backend, TensorrtInferTensor);
+OMNI_REGISTER(om::Backend, TensorrtInferTensor);
 } // namespace torchpipe

@@ -12,7 +12,7 @@
 #include "omniback/helper/macro.h"
 #include "omniback/helper/string.hpp"
 
-namespace omniback {
+namespace om {
 
 void SequentialV0::impl_forward(const std::vector<dict>& io) {
   DictHelper dicts_guard(io);
@@ -162,4 +162,4 @@ void Sequential::impl_forward(const std::vector<dict>& io) {
 }
 OMNI_REGISTER(Backend, Sequential, "Sequential, S");
 
-} // namespace omniback
+} // namespace om

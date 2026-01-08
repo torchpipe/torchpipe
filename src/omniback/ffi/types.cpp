@@ -17,20 +17,20 @@
 
 // #include <tvm/ffi/container/tensor.h>
 
-namespace omniback::ffi {
+namespace om::ffi {
 struct xx{};
 tvm::ffi::ObjectRef example(tvm::ffi::ObjectRef obj) {
   return obj;
              // return 1;
-            //  std::shared_ptr<std::unordered_map<std::string, omniback::any>>
+            //  std::shared_ptr<std::unordered_map<std::string, om::any>>
             //      re = std::make_shared<
-            //          std::unordered_map<std::string, omniback::any>>();
+            //          std::unordered_map<std::string, om::any>>();
   // tvm::ffi::Array<
-  //     std::shared_ptr<std::unordered_map<std::string, omniback::any>>>
+  //     std::shared_ptr<std::unordered_map<std::string, om::any>>>
   //     res;
   // return res;
   //  res->emplace(re);
-  // return omniback::any(std::numeric_limits<uint32_t>::max());
+  // return om::any(std::numeric_limits<uint32_t>::max());
 }
 
 int64_t& dlpack_exchange_api(){
@@ -73,4 +73,4 @@ TVM_FFI_STATIC_INIT_BLOCK() {
 }
 // TVM_FFI_DLL_EXPORT_TYPED_FUNC(example, example)
 
-} // namespace omniback::ffi
+} // namespace om::ffi

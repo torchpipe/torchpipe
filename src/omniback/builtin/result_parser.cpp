@@ -4,7 +4,7 @@
 #include "omniback/helper/base_logging.hpp"
 #include "omniback/helper/string.hpp"
 
-namespace omniback {
+namespace om {
 
 void ResultParser::pre_init(
     const std::unordered_map<std::string, std::string>& config,
@@ -35,4 +35,4 @@ class RuntimeError : public BackendOne {
 
 OMNI_REGISTER(Backend, RuntimeError);
 
-} // namespace omniback
+} // namespace om

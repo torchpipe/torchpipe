@@ -1,0 +1,27 @@
+[group.torchpipe.core]
+
+backend = [
+  "GpuTensor",
+  "CropTensor",
+  "IndexSelectTensor",
+  "ResizeTensor",
+  "CvtColorTensor",
+  "SyncTensor",
+  "SetTensorRequestSize",
+  "EmbeddingTensor",
+  "PrintTensor",
+  "CopyMakeBorderTensor"
+]
+
+[group.torchpipe.opencv]
+backend = ["Mat2Tensor", "Tensor2Mat", "ResizeMat", "DecodeMat", "CvtColorMat", "LetterBoxMat"]
+dependencies = ["torchpipe.core"]
+
+[group.torchpipe.nvjpeg]
+backend = ["DecodeTensor"]
+
+dependencies = ["torchpipe.core"]
+
+[group.torchpipe.tensorrt]
+backend = ["TensorrtTensor", "TensorrtInferTensor"]
+dependencies = ["torchpipe.core"]

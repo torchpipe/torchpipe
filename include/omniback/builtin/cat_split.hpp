@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 #include "omniback/builtin/basic_backends.hpp"
-namespace omniback {
+namespace om {
 class CatSplit final : public Container {
  public:
   virtual void post_init(
@@ -22,4 +22,4 @@ class CatSplit final : public Container {
       const std::vector<Backend*>& depends) override;
 };
 
-} // namespace omniback
+} // namespace om

@@ -170,9 +170,9 @@ bool precision_fpx_count(
     const std::set<std::string>& target,
     std::string layer_name,
     std::set<std::string>& layers_founded) {
-  layer_name = omniback::str::tolower(layer_name);
+  layer_name = om::str::tolower(layer_name);
   for (const auto& item : target) {
-    const std::string lower_item = omniback::str::tolower(item);
+    const std::string lower_item = om::str::tolower(item);
     if (layer_name.find(lower_item) != std::string::npos) {
       layers_founded.insert(item);
       return true;
@@ -191,7 +191,7 @@ void modify_layers_precision(
       precision_fpx_input.begin(),
       precision_fpx_input.end(),
       std::inserter(precision_fpx, precision_fpx.begin()),
-      [](const std::string& item) { return omniback::str::tolower(item); });
+      [](const std::string& item) { return om::str::tolower(item); });
 
   std::set<std::string> layers_founded;
 
@@ -257,13 +257,13 @@ void print_colored_net(
   std::stringstream ss;
 
   // Header
-  ss << omniback::colored("\n====== Network Inputs =====") << "\n";
+  ss << om::colored("\n====== Network Inputs =====") << "\n";
 
   // Print each input's name and dimensions
   for (std::size_t i = 0; i < net_inputs_ordered_dims.size(); ++i) {
     const auto& item = net_inputs_ordered_dims[i];
-    ss << omniback::colored("Input " + std::to_string(input_reorder[i]) + ": ")
-       << omniback::colored(item.first) << " [";
+    ss << om::colored("Input " + std::to_string(input_reorder[i]) + ": ")
+       << om::colored(item.first) << " [";
     for (int j = 0; j < item.second.nbDims; ++j) {
       const int inputS = item.second.d[j];
       ss << inputS;
@@ -274,11 +274,11 @@ void print_colored_net(
   }
 
   // Footer with instructions
-  ss << omniback::colored(
+  ss << om::colored(
             "========================================================")
      << "\n";
-  ss << omniback::colored("Instructions:") << "\n";
-  ss << omniback::colored(
+  ss << om::colored("Instructions:") << "\n";
+  ss << om::colored(
             "1. Use the above information to set ranges (through parameters: "
             "max/min) for "
             "profiles.")
@@ -340,7 +340,7 @@ void print_net(
 
   // // Print the final output (assuming SPDLOG_INFO and colored functions are
   // // defined)
-  // SPDLOG_INFO(omniback::colored(ss.str()));
+  // SPDLOG_INFO(om::colored(ss.str()));
 }
 c10::ScalarType trt2torch_type(nvinfer1::DataType dtype) {
   switch (dtype) {
@@ -869,11 +869,11 @@ std::unique_ptr<nvinfer1::IHostMemory> onnx2trt(OnnxParams& params) {
       profile_num,
       params.precision);
 
-  auto time_now = omniback::helper::now();
+  auto time_now = om::helper::now();
   std::unique_ptr<nvinfer1::IHostMemory> engine_plan(
       builder->buildSerializedNetwork(*network, *config));
   OMNI_ASSERT(engine_plan->size() > 0);
-  auto time_pass = omniback::helper::time_passed(time_now);
+  auto time_pass = om::helper::time_passed(time_now);
   SPDLOG_INFO(
       "Engine building completed in {:.2f} seconds", time_pass / 1000.0);
   if (params.model_cache.size() > 0) {
@@ -890,11 +890,11 @@ OnnxParams config2onnxparams(
   OnnxParams params;
 
   params.instance_num = 1;
-  omniback::str::try_update(config, "instance_num", params.instance_num);
-  omniback::str::try_update(config, "model", params.model);
-  omniback::str::try_update(config, "model::cache", params.model_cache);
+  om::str::try_update(config, "instance_num", params.instance_num);
+  om::str::try_update(config, "model", params.model);
+  om::str::try_update(config, "model::cache", params.model_cache);
 
-  omniback::str::try_update(
+  om::str::try_update(
       config, "max_workspace_size", params.max_workspace_size);
   OMNI_ASSERT(
       params.max_workspace_size >= 1 &&
@@ -902,18 +902,18 @@ OnnxParams config2onnxparams(
       "max_workspace_size must be in MB and between 1 and 1,000,000,000");
   params.max_workspace_size = 1024 * 1024 * params.max_workspace_size;
 
-  omniback::str::try_update(config, "model::timingcache", params.timingcache);
-  omniback::str::try_update(
+  om::str::try_update(config, "model::timingcache", params.timingcache);
+  om::str::try_update(
       config, "hardward_compatibility", params.hardward_compatibility);
   OMNI_ASSERT(
       params.hardward_compatibility == "NONE" ||
           params.hardward_compatibility == "AMPERE_PLUS",
       "hardward_compatibility must be one of [NONE|AMPERE_PLUS]");
 
-  omniback::str::try_update(config, "log_level", params.log_level);
+  om::str::try_update(config, "log_level", params.log_level);
 
   // 处理精度相关参数
-  omniback::str::try_update(config, "precision", params.precision);
+  om::str::try_update(config, "precision", params.precision);
   if (params.precision.empty()) {
     // params.precision = "fp16";
     // auto sm = get_sm();
@@ -930,7 +930,7 @@ OnnxParams config2onnxparams(
   // 处理精度层设置
   if (config.find("precision::fp32") != config.end()) {
     auto precision_fp32 =
-        omniback::str::str_split(config.at("precision::fp32"), ',');
+        om::str::str_split(config.at("precision::fp32"), ',');
     params.precision_fp32 =
         std::set<std::string>(precision_fp32.begin(), precision_fp32.end());
     SPDLOG_INFO("these layers keep fp32: {}", config.at("precision::fp32"));
@@ -938,37 +938,37 @@ OnnxParams config2onnxparams(
 
   if (config.find("precision::fp16") != config.end()) {
     auto precision_fp16 =
-        omniback::str::str_split(config.at("precision::fp16"), ',');
+        om::str::str_split(config.at("precision::fp16"), ',');
     params.precision_fp16 =
         std::set<std::string>(precision_fp16.begin(), precision_fp16.end());
     SPDLOG_INFO("these layers keep fp16: {}", config.at("precision::fp16"));
   }
 
   // 处理其他参数
-  omniback::str::try_update(
+  om::str::try_update(
       config,
       "force_layer_norm_pattern_fp32",
       params.force_layer_norm_pattern_fp32);
 
   // 处理 mean 和 std
   if (config.find("mean") != config.end()) {
-    params.mean = omniback::str::str_split<float>(config.at("mean"));
+    params.mean = om::str::str_split<float>(config.at("mean"));
   }
   if (config.find("std") != config.end()) {
-    params.std = omniback::str::str_split<float>(config.at("std"));
+    params.std = om::str::str_split<float>(config.at("std"));
   }
 
   // 处理 min 和 max shapes
   if (config.find("min") != config.end() && !config.at("min").empty()) {
-    auto min_shapes = omniback::str::str_split(config.at("min"), ';');
+    auto min_shapes = om::str::str_split(config.at("min"), ';');
     params.mins =
-        omniback::str::str_split<int>(config.at("min"), 'x', ',', ';');
+        om::str::str_split<int>(config.at("min"), 'x', ',', ';');
     SPDLOG_INFO("min_shapes = {}", config.at("min"));
   }
 
   if (config.find("max") != config.end() && !config.at("max").empty()) {
     params.maxs =
-        omniback::str::str_split<int>(config.at("max"), 'x', ',', ';');
+        om::str::str_split<int>(config.at("max"), 'x', ',', ';');
   }
 
   return params;

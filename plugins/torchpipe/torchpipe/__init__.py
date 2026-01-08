@@ -34,14 +34,9 @@ except ImportError:
 
 
 from . import utils
-if (omniback._C.use_cxx11_abi() != torch._C._GLIBCXX_USE_CXX11_ABI):
-    info = f"Incompatible C++ ABI detected. Please re-install PyTorch/Torchpipe or omniback with the same C++ ABI. "
-    info += "omniback CXX11_ABI = {}, torch CXX11_ABI = {}. ".format(
-        omniback._C.use_cxx11_abi(), torch._C._GLIBCXX_USE_CXX11_ABI)
-    info += f"""\nFor omniback, you can use 
-        pip3 install omniback --platform manylinux2014_x86_64 --only-binary=:all:   --target `python3 -c "import site; print(site.getsitepackages()[0])"` 
-        to install the pre-cxx11 abi version. Or use `USE_CXX11_ABI={int(not omniback._C.use_cxx11_abi())} pip install -e .` to rebuild omniback.
-    """
+if (omniback._C.use_cxx11_abi() != torch.compiled_with_cxx11_abi()):
+    info = f"Incompatible C++ ABI detected."
+  
     raise RuntimeError(info)
 
 

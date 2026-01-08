@@ -7,10 +7,10 @@
 #include <ATen/cuda/CUDAEvent.h>
 #include "c10/cuda/CUDAGuard.h"
 
-using omniback::dict;
+using om::dict;
 
 namespace torchpipe {
-class SyncTensor : public omniback::Backend {
+class SyncTensor : public om::Backend {
  public:
   /**
    * @brief
@@ -89,7 +89,7 @@ class SyncTensor : public omniback::Backend {
   at::cuda::CUDAEvent event_;
 };
 
-// class StreamGuard : public omniback::DependencyV0 {
+// class StreamGuard : public om::DependencyV0 {
 //  public:
 //   /**
 //    * @brief

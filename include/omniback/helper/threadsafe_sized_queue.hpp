@@ -23,7 +23,7 @@
 #include "omniback/helper/sized_queue.hpp"
 
 // #include "base_logging.hpp"
-namespace omniback::queue {
+namespace om::queue {
 
 template <typename T>
 class ThreadSafeSizedQueue {
@@ -263,4 +263,4 @@ class ThreadSafeSizedQueue {
   std::condition_variable waiting_cond_;
 };
 
-} // namespace omniback
+} // namespace om

@@ -5,7 +5,7 @@
 
 #include "omniback/core/backend.hpp"
 
-namespace omniback {
+namespace om {
 class ControlPlane : public Backend {
  private:
   void impl_init(
@@ -44,4 +44,4 @@ class ControlPlane : public Backend {
   uint32_t max_{std::numeric_limits<uint32_t>::max()};
 };
 
-} // namespace omniback
+} // namespace om

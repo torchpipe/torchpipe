@@ -4,17 +4,17 @@
 #include <string>
 #include <unordered_set>
 
-using omniback::dict;
+using om::dict;
 
 namespace torchpipe {
-class CropTensor : public omniback::BackendOne {
+class CropTensor : public om::BackendOne {
  public:
   virtual void forward(const dict&) override;
 
  private:
 };
 
-class CopyMakeBorderTensor : public omniback::BackendOne {
+class CopyMakeBorderTensor : public om::BackendOne {
  public:
   virtual void forward(const dict&) override;
 
@@ -25,7 +25,7 @@ class CopyMakeBorderTensor : public omniback::BackendOne {
   int right_{0};
 };
 
-// class WarpAffineTensor : public omniback::BackendOne {
+// class WarpAffineTensor : public om::BackendOne {
 //  public:
 //   virtual void impl_init(
 //       const std::unordered_map<std::string, std::string>& config,

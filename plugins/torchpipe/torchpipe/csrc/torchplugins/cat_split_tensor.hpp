@@ -5,11 +5,11 @@
 #include <unordered_set>
 #include "helper/net_info.hpp"
 
-using omniback::dict;
+using om::dict;
 
 namespace torchpipe {
 
-class CatTensor : public omniback::BackendMax {
+class CatTensor : public om::BackendMax {
  private:
   void impl_init(
       const std::unordered_map<std::string, std::string>& config_param,
@@ -20,7 +20,7 @@ class CatTensor : public omniback::BackendMax {
   std::optional<int> index_selector_;
 };
 
-class FixTensor : public omniback::BackendMax {
+class FixTensor : public om::BackendMax {
  private:
   void impl_init(
       const std::unordered_map<std::string, std::string>& config_param,
@@ -31,7 +31,7 @@ class FixTensor : public omniback::BackendMax {
   std::shared_ptr<NetIOInfos> net_shapes_;
 };
 
-class SplitTensor : public omniback::Backend {
+class SplitTensor : public om::Backend {
  private:
   void impl_init(
       const std::unordered_map<std::string, std::string>& config_param,
@@ -42,7 +42,7 @@ class SplitTensor : public omniback::Backend {
   std::shared_ptr<std::vector<NetIOInfo>> net_shapes_;
 };
 
-class ArgMaxTensor : public omniback::Backend {
+class ArgMaxTensor : public om::Backend {
  private:
   void impl_init(
       const std::unordered_map<std::string, std::string>& config_param,
@@ -50,7 +50,7 @@ class ArgMaxTensor : public omniback::Backend {
   void impl_forward(const std::vector<dict>& io) override;
 };
 
-class SoftmaxArgMaxTensor : public omniback::Backend {
+class SoftmaxArgMaxTensor : public om::Backend {
  private:
   void impl_init(
       const std::unordered_map<std::string, std::string>& config_param,

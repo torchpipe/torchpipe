@@ -21,7 +21,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace omniback {
+namespace om {
 
 /**
  * @brief Manages parameters for each Backend. It maintains two types of
@@ -75,4 +75,4 @@ class Params {
   std::set<std::string> init_required_params_;
 };
 
-} // namespace omniback
+} // namespace om

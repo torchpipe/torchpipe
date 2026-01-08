@@ -5,7 +5,7 @@
 #include "omniback/builtin/basic_backends.hpp"
 #include "omniback/helper/macro.h"
 #include "omniback/helper/params.hpp"
-namespace omniback {
+namespace om {
 
 class Condition : public DependencyV0 {
  private:
@@ -62,4 +62,4 @@ class HasKey : public BackendOne {
   std::unique_ptr<Backend> dependency_a_{nullptr};
   std::unique_ptr<Backend> dependency_b_{nullptr};
 };
-} // namespace omniback
+} // namespace om

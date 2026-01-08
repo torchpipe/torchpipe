@@ -6,7 +6,7 @@
 #include "torchplugins/GpuTensor.hpp"
 #include <tvm/ffi/error.h>
 
-using namespace omniback;
+using namespace om;
 
 namespace torchpipe {
 
@@ -14,7 +14,7 @@ namespace torchpipe {
  * @brief cpu->gpu
  */
 
-class GpuTensor : public omniback::BackendOne {
+class GpuTensor : public om::BackendOne {
  public:
   void forward(const dict& io) override {
     auto data = dict_gets<torch::Tensor>(io, TASK_DATA_KEY);
@@ -73,7 +73,7 @@ class CpuTensor : public BackendOne {
   }
 };
 
-OMNI_REGISTER(omniback::Backend, CpuTensor, "CpuTensor");
+OMNI_REGISTER(om::Backend, CpuTensor, "CpuTensor");
 
 void IndexSelectTensor::impl_init(
     const std::unordered_map<std::string, std::string>& params,
@@ -107,7 +107,7 @@ void IndexSelectTensor::impl_init(
 
 void IndexSelectTensor::impl_forward(const std::vector<dict>& ios) {
   for (const auto& io : ios) {
-    auto input = omniback::dict_get<torch::Tensor>(io, TASK_DATA_KEY);
+    auto input = om::dict_get<torch::Tensor>(io, TASK_DATA_KEY);
     if (device_ != input.device()) {
       input = input.to(device_);
     }
@@ -123,7 +123,7 @@ OMNI_REGISTER_BACKEND(IndexSelectTensor);
 
 void EmbeddingTensor::impl_forward(const std::vector<dict>& ios) {
   for (const auto& io : ios) {
-    auto input = omniback::dict_get<torch::Tensor>(io, TASK_DATA_KEY);
+    auto input = om::dict_get<torch::Tensor>(io, TASK_DATA_KEY);
     if (device_ != input.device()) {
       input = input.to(device_);
     }
@@ -137,7 +137,7 @@ void EmbeddingTensor::impl_forward(const std::vector<dict>& ios) {
 }
 OMNI_REGISTER_BACKEND(EmbeddingTensor);
 
-class SetTensorRequestSize : public omniback::Backend {
+class SetTensorRequestSize : public om::Backend {
   void impl_forward(const std::vector<dict>& ios) override {
     for (const auto& io : ios) {
       auto data = dict_gets<torch::Tensor>(io, TASK_DATA_KEY);
@@ -156,10 +156,10 @@ class SetTensorRequestSize : public omniback::Backend {
 };
 
 #if 0
-class AppendIndexSelectTensor : public omniback::Backend {
+class AppendIndexSelectTensor : public om::Backend {
   void impl_init(
       const std::unordered_map<std::string, std::string>& params,
-      const omniback::dict& options) override {
+      const om::dict& options) override {
     throw std::runtime_error("not impl");
     parser_v2::ArgsKwargs args_kwargs =
         parser_v2::get_args_kwargs(this, "AppendIndexSelectTensor", params);
@@ -218,10 +218,10 @@ class AppendIndexSelectTensor : public omniback::Backend {
   std::unique_ptr<torch::Tensor> tensor_cache_0_;
 };
 #endif
-class PrintTensor : public omniback::BackendOne {
+class PrintTensor : public om::BackendOne {
   void impl_init(
       const std::unordered_map<std::string, std::string>& params,
-      const omniback::dict& options) override {}
+      const om::dict& options) override {}
   void forward(const dict& io) override {
     auto data = dict_gets<torch::Tensor>(io, TASK_DATA_KEY);
     std::string id;
@@ -253,23 +253,23 @@ OMNI_REGISTER_BACKEND(SetTensorRequestSize);
 // OMNI_REGISTER_BACKEND(AppendIndexSelectTensor);
 OMNI_REGISTER_BACKEND(PrintTensor);
 
-class OMNI_EXPORT LogGPUTime : public omniback::Backend {
+class OMNI_EXPORT LogGPUTime : public om::Backend {
  private:
   void impl_init(
       const std::unordered_map<std::string, std::string>& params,
       const dict& options) override final {
     auto args_kwargs =
-        omniback::parser_v2::get_args_kwargs(this, "LogGPUTime", params);
+        om::parser_v2::get_args_kwargs(this, "LogGPUTime", params);
     OMNI_ASSERT(
         args_kwargs.first.size() == 1,
         "Requires exactly ==1 argument. Usage: LogGPUTime(key)/LogGPUTime::args=key_to_time");
     key_ = args_kwargs.first[0];
   }
   void impl_forward(
-      const std::vector<omniback::dict>& input_output) override final {
+      const std::vector<om::dict>& input_output) override final {
     // float time = get_time();
     c10::cuda::getCurrentCUDAStream().synchronize();
-    float time = omniback::helper::timestamp();
+    float time = om::helper::timestamp();
     SPDLOG_INFO("timer: {} = {}", key_, time);
     for (const auto& item : input_output) {
       (*item)[TASK_RESULT_KEY] = item->at(TASK_DATA_KEY);
