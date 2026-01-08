@@ -3,7 +3,7 @@
 #include "helper/torch.hpp"
 #include "omniback/helper/timer.hpp"
 
-using namespace omniback;
+using namespace om;
 
 namespace torchpipe {
 void CatTensor::impl_init(
@@ -114,7 +114,7 @@ void FixTensor::impl_forward(const std::vector<dict>& input_dict) {
 
 OMNI_REGISTER(Backend, FixTensor);
 
-class ContiguousTensor : public omniback::BackendOne {
+class ContiguousTensor : public om::BackendOne {
  public:
   void forward(const dict& input_output) override {
     auto data = dict_gets<torch::Tensor>(input_output, TASK_DATA_KEY);

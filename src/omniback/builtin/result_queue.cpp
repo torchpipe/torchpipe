@@ -9,7 +9,7 @@
 #include "omniback/helper/string.hpp"
 #include "omniback/helper/timer.hpp"
 
-namespace omniback {
+namespace om {
 
 // init = List[QueueBackend[register_name, optional[target_name]]]
 void QueueBackend::pre_init(
@@ -60,7 +60,7 @@ void QueueBackend::impl_inject_dependency(Backend* dep) {
 
 void QueueBackend::run() {
   while (bInited_.load()) {
-    auto data = queue_->try_get<omniback::dict>(SHUTDOWN_TIMEOUT);
+    auto data = queue_->try_get<om::dict>(SHUTDOWN_TIMEOUT);
     if (!data.has_value())
       continue;
     auto io_data = (data.value());
@@ -254,4 +254,4 @@ void Recv::pre_init(
   OMNI_ASSERT(target_backend_);
 }
 
-} // namespace omniback
+} // namespace om

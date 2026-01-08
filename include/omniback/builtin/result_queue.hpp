@@ -4,7 +4,7 @@
 #include "omniback/core/backend.hpp"
 #include "omniback/core/helper.hpp"
 #include "omniback/core/queue.hpp"
-namespace omniback {
+namespace om {
 // class Queue;
 
 // init = List[QueueBackend[register_name, optional[target_name]]]
@@ -75,4 +75,4 @@ class Recv : public QueueBackend {
       const dict&) override final;
 };
 
-} // namespace omniback
+} // namespace om

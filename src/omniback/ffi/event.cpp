@@ -23,12 +23,12 @@
 #include "omniback/ffi/event.h"
 #include "omniback/helper/timer.hpp"
 
-namespace omniback::ffi {
+namespace om::ffi {
 
 EventObj::EventObj(uint32_t num)
-    : num_task(num), starttime_(omniback::helper::now()) {}
+    : num_task(num), starttime_(om::helper::now()) {}
 float EventObj::time_passed() {
-  return omniback::helper::time_passed(starttime_);
+  return om::helper::time_passed(starttime_);
 }
 
 namespace tf = tvm::ffi;
@@ -44,21 +44,21 @@ TVM_FFI_STATIC_INIT_BLOCK() {
       });
 }
 
-} // namespace omniback::ffi
+} // namespace om::ffi
 
 namespace tvm::ffi {
 // template <>
 // inline constexpr bool use_default_type_traits_v<
-//     std::shared_ptr<std::unordered_map<std::string, omniback::any>>> = false;
+//     std::shared_ptr<std::unordered_map<std::string, om::any>>> = false;
 
 // template <>
 // struct TypeTraits<
-//     std::shared_ptr<std::unordered_map<std::string, omniback::any>>>
+//     std::shared_ptr<std::unordered_map<std::string, om::any>>>
 //     : public TypeTraitsBase {
 //  public:
 //   static constexpr bool storage_enabled = false;
-//   using Self = std::shared_ptr<std::unordered_map<std::string, omniback::any>>;
-//   using DictObj = omniback::ffi::DictObj;
+//   using Self = std::shared_ptr<std::unordered_map<std::string, om::any>>;
+//   using DictObj = om::ffi::DictObj;
 
 //   TVM_FFI_INLINE static void
 //           MoveToAny(Self&& src, TVMFFIAny* result) {
@@ -67,17 +67,17 @@ namespace tvm::ffi {
 //   }
 
 //   TVM_FFI_INLINE static std::string TypeStr() {
-//     return "omniback::Dict";
+//     return "om::Dict";
 //   }
 //   TVM_FFI_INLINE static std::string TypeSchema() {
-//     return R"({"type":"omniback::Dict"})";
+//     return R"({"type":"om::Dict"})";
 //   }
 // };
 
 }; // namespace tvm::ffi
 
 // namespace tvm::ffi {
-// using Dict = omniback::ffi::Dict; 
+// using Dict = om::ffi::Dict; 
 // template <>
 // inline constexpr bool use_default_type_traits_v<Dict> = false;
 

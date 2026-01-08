@@ -6,7 +6,7 @@
 #include "omniback/builtin/basic_backends.hpp"
 #include "omniback/core/backend.hpp"
 
-namespace omniback {
+namespace om {
 
 class Select : public Container {
  public:
@@ -28,4 +28,4 @@ class Select : public Container {
  private:
   std::function<size_t(const dict&)> select_;
 };
-} // namespace omniback
+} // namespace om

@@ -5,13 +5,13 @@
 
 namespace torchpipe {
 
-class DecodeTensor : public omniback::BackendOne {
+class DecodeTensor : public om::BackendOne {
  public:
   virtual void impl_init(
       const std::unordered_map<std::string, std::string>&,
-      const omniback::dict&) override;
+      const om::dict&) override;
 
-  virtual void forward(const omniback::dict&) override;
+  virtual void forward(const om::dict&) override;
   ~DecodeTensor();
 
  private:

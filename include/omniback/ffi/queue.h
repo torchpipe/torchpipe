@@ -16,7 +16,7 @@
 #include <type_traits>
 #include "omniback/ffi/dict.h"
 
-namespace omniback {
+namespace om {
 namespace ffi {
 
 /*!
@@ -201,7 +201,7 @@ class ThreadSafeQueueObj : public tvm::ffi::Object {
   }
 
   /*! \brief Get with timeout (type-safe) */
-  template <typename T = omniback::any>
+  template <typename T = om::any>
   std::optional<T> try_get(size_t timeout_ms) {
     const auto timeout_dur = std::chrono::milliseconds(timeout_ms);
 
@@ -234,7 +234,7 @@ class ThreadSafeQueueObj : public tvm::ffi::Object {
     return true;
   }
 
-  template <typename T = omniback::any>
+  template <typename T = om::any>
   std::optional<T> try_get(size_t timeout_ms, size_t& out_size) {
     const auto timeout_dur = std::chrono::milliseconds(timeout_ms);
 
@@ -247,7 +247,7 @@ class ThreadSafeQueueObj : public tvm::ffi::Object {
     return unsafe_pop_rm_front<T>(out_size);
   }
 
-  template <typename T = omniback::any>
+  template <typename T = om::any>
   T wait_get() {
     std::unique_lock<std::mutex> lock(mutex_);
     cv_pushed_.wait(
@@ -256,21 +256,21 @@ class ThreadSafeQueueObj : public tvm::ffi::Object {
     return unsafe_pop_rm_front<T>();
   }
 
-  template <typename T = omniback::any>
+  template <typename T = om::any>
       T get() {
     std::unique_lock<std::mutex> lock(mutex_);
 
     return unsafe_pop_rm_front<T>();
   }
 
-  template <typename T = omniback::any>
+  template <typename T = om::any>
   T get(size_t& out_size) {
     std::unique_lock<std::mutex> lock(mutex_);
 
     return unsafe_pop_rm_front<T>(out_size);
   }
 
-  template <typename T = omniback::any>
+  template <typename T = om::any>
   T front() const {
     std::lock_guard<std::mutex> lock(mutex_);
     if (queue_.empty()) {
@@ -278,8 +278,8 @@ class ThreadSafeQueueObj : public tvm::ffi::Object {
           << "Cannot access front of empty queue";
     }
 
-    // 使用 if constexpr 避免对 omniback::any 进行 cast
-    if constexpr (std::is_same_v<T, omniback::any>) {
+    // 使用 if constexpr 避免对 om::any 进行 cast
+    if constexpr (std::is_same_v<T, om::any>) {
       return queue_.front();
     } else {
       return queue_.front().cast<T>();
@@ -359,10 +359,10 @@ class ThreadSafeQueueObj : public tvm::ffi::Object {
       tvm::ffi::Object);
 
  private:
-  template <typename T = omniback::any>
+  template <typename T = om::any>
   T unsafe_pop_rm_front() {
     TVM_FFI_ICHECK(!queue_.empty()) << "Cannot pop from empty queue";
-    omniback::any value = std::move(queue_.front());
+    om::any value = std::move(queue_.front());
     queue_.pop_front();
     if (queue_sizes_.size() > queue_.size()){
       real_size_ -= queue_sizes_.front();
@@ -371,17 +371,17 @@ class ThreadSafeQueueObj : public tvm::ffi::Object {
 
     cv_popped_.notify_all();
 
-    if constexpr (std::is_same_v<T, omniback::any>) {
+    if constexpr (std::is_same_v<T, om::any>) {
       return std::move(value);
     } else {
       return std::move(value).cast<T>();
     }
   }
 
-  template <typename T = omniback::any>
+  template <typename T = om::any>
   T unsafe_pop_rm_front(size_t & out_size) {
     TVM_FFI_ICHECK(!queue_.empty()) << "Cannot pop from empty queue";
-    omniback::any value = std::move(queue_.front());
+    om::any value = std::move(queue_.front());
     queue_.pop_front();
     if (queue_sizes_.size() > queue_.size()){
       out_size = queue_sizes_.front();
@@ -393,8 +393,8 @@ class ThreadSafeQueueObj : public tvm::ffi::Object {
 
     cv_popped_.notify_all();
 
-    // 使用 if constexpr 避免对 omniback::any 进行 cast
-    if constexpr (std::is_same_v<T, omniback::any>) {
+    // 使用 if constexpr 避免对 om::any 进行 cast
+    if constexpr (std::is_same_v<T, om::any>) {
       return std::move(value);
     } else {
       return std::move(value).cast<T>();
@@ -404,7 +404,7 @@ class ThreadSafeQueueObj : public tvm::ffi::Object {
   mutable std::mutex mutex_;
   std::condition_variable cv_pushed_;
   std::condition_variable cv_popped_; // For bounded queue support
-  std::deque<omniback::any> queue_;
+  std::deque<om::any> queue_;
   std::deque<size_t> queue_sizes_;
   size_t max_size_{0}; // 0 = unbounded
   size_t real_size_{0}; // 0 = unbounded
@@ -423,6 +423,6 @@ class ThreadSafeQueueRef : public tvm::ffi::ObjectRef {
 ThreadSafeQueueObj& default_queue(const std::string& tag = "");
 
 } // namespace ffi
-} // namespace omniback
+} // namespace om
 
 #endif // OMNIBACK_FFI_QUEUE_H_

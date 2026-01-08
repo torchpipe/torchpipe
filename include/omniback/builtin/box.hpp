@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <vector>
 #include <tvm/ffi/object.h>
-namespace omniback {
+namespace om {
 
 /**
  * @brief Bounding box structure in XYXY format
@@ -80,4 +80,4 @@ class Boxes {
   Boxes nms(float iou_threshold, bool class_agnostic = false) const;
 };
 
-} // namespace omniback
+} // namespace om

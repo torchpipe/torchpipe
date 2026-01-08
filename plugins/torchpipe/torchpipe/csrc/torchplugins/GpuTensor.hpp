@@ -5,11 +5,11 @@
 #include <string>
 #include <unordered_set>
 
-using omniback::dict;
+using om::dict;
 
 namespace torchpipe {
 
-class IndexSelectTensor : public omniback::Backend {
+class IndexSelectTensor : public om::Backend {
  private:
   void impl_init(
       const std::unordered_map<std::string, std::string>& config_param,

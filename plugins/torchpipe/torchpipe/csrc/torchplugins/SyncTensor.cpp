@@ -14,9 +14,9 @@ namespace torchpipe {
 void SyncTensor::impl_init(
     const std::unordered_map<std::string, std::string>& config,
     const dict& kwargs) {
-  auto dep = omniback::parser_v2::get_opt_dependency_name(this, config);
+  auto dep = om::parser_v2::get_opt_dependency_name(this, config);
 
-  const auto cls_name = omniback::get_cls_name(this, "SyncTensor");
+  const auto cls_name = om::get_cls_name(this, "SyncTensor");
 
   auto iter = config.find(TASK_INDEX_KEY);
   OMNI_ASSERT(
@@ -62,7 +62,7 @@ void SyncTensor::impl_init(
   // TVM_FFI_ICHECK(nullptr == opt_out_original_allocator);
 
   if (dep && !owned_backend_) {
-    owned_backend_ = omniback::init_backend(*dep, config, kwargs);
+    owned_backend_ = om::init_backend(*dep, config, kwargs);
   }
   // ManagedTensorAllocator
 
@@ -89,17 +89,17 @@ void SyncTensor::impl_forward(const std::vector<dict>& ios) {
   c10::cuda::getCurrentCUDAStream().synchronize();
 }
 
-OMNI_REGISTER(omniback::Backend, SyncTensor, "SyncTensor,StreamGuard");
+OMNI_REGISTER(om::Backend, SyncTensor, "SyncTensor,StreamGuard");
 
-class TorchStreamPool : public omniback::Backend {
+class TorchStreamPool : public om::Backend {
   void impl_init(
       const std::unordered_map<std::string, std::string>& params,
       const dict& options) override {
     auto [args, kwargs] =
-        omniback::parser_v2::get_args_kwargs(this, "TorchStreamPool", params);
-    omniback::str::try_update<size_t>(kwargs, "max_stream", max_stream_count_);
+        om::parser_v2::get_args_kwargs(this, "TorchStreamPool", params);
+    om::str::try_update<size_t>(kwargs, "max_stream", max_stream_count_);
     OMNI_ASSERT(max_stream_count_ > 0 && max_stream_count_ < 32);
-    stream_pool_ = std::make_unique<omniback::pool::ResourcePool<size_t>>(
+    stream_pool_ = std::make_unique<om::pool::ResourcePool<size_t>>(
         max_stream_count_);
     for (size_t i = 0; i < max_stream_count_; ++i) {
       auto stream = c10::cuda::getStreamFromPool(true, -1);
@@ -109,10 +109,10 @@ class TorchStreamPool : public omniback::Backend {
   }
 
   void impl_forward_with_dep(
-      const std::vector<omniback::dict>& ios,
-      omniback::Backend& dep) override {
+      const std::vector<om::dict>& ios,
+      om::Backend& dep) override {
     auto index = stream_pool_->acquire();
-    omniback::pool::ResourcePool<size_t>::lease_guard guard(
+    om::pool::ResourcePool<size_t>::lease_guard guard(
         stream_pool_.get(), index);
     auto& se = stream_event_.at(index);
     auto original_stream = c10::cuda::getCurrentCUDAStream(-1);
@@ -143,11 +143,11 @@ class TorchStreamPool : public omniback::Backend {
   };
   size_t max_stream_count_{1};
   std::vector<StreamWithEvent> stream_event_;
-  std::unique_ptr<omniback::pool::ResourcePool<size_t>> stream_pool_;
+  std::unique_ptr<om::pool::ResourcePool<size_t>> stream_pool_;
 };
 
 OMNI_REGISTER(
-    omniback::Backend,
+    om::Backend,
     TorchStreamPool,
     "TorchStreamPool, StreamPool");
 } // namespace torchpipe

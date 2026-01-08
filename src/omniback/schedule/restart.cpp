@@ -6,7 +6,7 @@
 #include "omniback/core/task_keys.hpp"
 #include "omniback/schedule/restart.hpp"
 
-namespace omniback {
+namespace om {
 
 void RestartEvent::pre_init(
     const std::unordered_map<string, string>& config,
@@ -156,4 +156,4 @@ OMNI_REGISTER(Backend, RestartEvent);
 
 OMNI_PROXY_WITH_DEPENDENCY(Restart, "Aspect[EventGuard,RestartEvent]");
 
-} // namespace omniback
+} // namespace om

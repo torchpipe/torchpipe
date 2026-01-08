@@ -1,7 +1,7 @@
 #include "omniback/helper/params.hpp"
 #include "omniback/helper/base_logging.hpp"
 #include "omniback/helper/macro.h"
-namespace omniback {
+namespace om {
 
 void Params::impl_init(
     const std::unordered_map<std::string, std::string>& config) {
@@ -37,4 +37,4 @@ std::string& Params::at(const std::string& key) {
   return iter->second;
 }
 
-} // namespace omniback
+} // namespace om

@@ -14,7 +14,7 @@
 #include <tvm/ffi/extra/stl.h>
 
 #include "omniback/builtin/generate_backend.hpp"
-namespace omniback {
+namespace om {
 
 void Benchmark::impl_init(
     const std::unordered_map<std::string, std::string>& config,
@@ -321,4 +321,4 @@ class Profile : public Dependency {
 };
 OMNI_REGISTER_BACKEND(Profile);
 
-} // namespace omniback
+} // namespace om

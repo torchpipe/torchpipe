@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 
-namespace omniback {
+namespace om {
 class Tree final : public Container {
  public:
   void post_init(
@@ -12,4 +12,4 @@ class Tree final : public Container {
   void impl_forward(const std::vector<dict>&) override;
 };
 
-} // namespace omniback
+} // namespace om

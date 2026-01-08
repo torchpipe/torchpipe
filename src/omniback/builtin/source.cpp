@@ -3,7 +3,7 @@
 #include "omniback/builtin/source.hpp"
 #include "omniback/helper/timer.hpp"
 
-namespace omniback {
+namespace om {
 void Source::impl_init(
     const std::unordered_map<std::string, std::string>& config,
     const dict& kwargs) {
@@ -39,4 +39,4 @@ void Source::impl_forward(const std::vector<dict>& input) {
 }
 
 OMNI_REGISTER_BACKEND(Source, "uniformSample,Source");
-} // namespace omniback
+} // namespace om

@@ -3,7 +3,7 @@
 #include "omniback/helper/macro.h"
 #include "omniback/helper/string.hpp"
 
-namespace omniback {
+namespace om {
 
 void LaunchBase::impl_init(
     const std::unordered_map<std::string, std::string>& config,
@@ -43,4 +43,4 @@ OMNI_REGISTER(Backend, Launch);
 OMNI_REGISTER(Backend, Init);
 OMNI_REGISTER(Backend, Forward);
 
-} // namespace omniback
+} // namespace om

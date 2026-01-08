@@ -1,6 +1,6 @@
 #include "omniback/core/task_keys.hpp"
 
-namespace omniback {
+namespace om {
 
 bool try_replace_inner_key(std::string& key) {
   static const string prefix = "TASK_";
@@ -19,4 +19,4 @@ bool try_replace_inner_key(std::string& key) {
   }
   return false;
 }
-} // namespace omniback
+} // namespace om

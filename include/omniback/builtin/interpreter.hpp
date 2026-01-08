@@ -3,7 +3,7 @@
 
 #include "omniback/builtin/proxy.hpp"
 #include "omniback/core/backend.hpp"
-namespace omniback {
+namespace om {
 
 // constexpr auto DEFAULT_INIT_CONFIG =
 //     "List[InstancesRegister[BackgroundThread[BackendProxy]], "
@@ -27,4 +27,4 @@ class Interpreter : public Proxy {
  private:
   std::vector<std::unique_ptr<Backend>> inited_dependencies_;
 };
-} // namespace omniback
+} // namespace om

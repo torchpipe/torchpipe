@@ -8,10 +8,10 @@ namespace fs = std::filesystem;
 
 #include <string>
 
-namespace omniback::filesystem {
+namespace om::filesystem {
 
 bool exists(const std::string& path) {
   return fs::exists(path);
 }
 
-} // namespace omniback::filesystem
+} // namespace om::filesystem

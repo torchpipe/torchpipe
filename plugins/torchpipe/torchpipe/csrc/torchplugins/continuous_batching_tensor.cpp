@@ -3,13 +3,13 @@
 
 namespace torchpipe {
 
-void TensorPage::forward(const omniback::dict& io) {
+void TensorPage::forward(const om::dict& io) {
   auto table = page_table_->pop_activated();
   std::vector<int> all_indices;
   std::vector<int> all_lengths;
 
   for (const auto& item : table.first) {
-    const omniback::PageTable::PageInfo& info = page_table_->page_info(item);
+    const om::PageTable::PageInfo& info = page_table_->page_info(item);
 
     // Append the page indices
     all_indices.insert(

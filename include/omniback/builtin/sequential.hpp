@@ -6,7 +6,7 @@
 #include "omniback/builtin/basic_backends.hpp"
 #include "omniback/builtin/control_plane.hpp"
 #include "omniback/core/backend.hpp"
-namespace omniback {
+namespace om {
 
 class SequentialV0 final : public Container {
  public:
@@ -74,4 +74,4 @@ class Sequential final : public ControlPlane {
   // uint32_t max_{std::numeric_limits<uint32_t>::max()};
 };
 
-} // namespace omniback
+} // namespace om

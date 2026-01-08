@@ -3,7 +3,7 @@
 #include "basic_backends.hpp"
 #include "omniback/core/backend.hpp"
 
-namespace omniback {
+namespace om {
 class Register : public Dependency {
  public:
   void impl_init(
@@ -16,4 +16,4 @@ class Register : public Dependency {
  private:
   std::unique_ptr<Backend> owned_backend_;
 };
-} // namespace omniback
+} // namespace om

@@ -35,7 +35,7 @@
 
 #include "omniback/helper/macro.h"
 
-namespace omniback {
+namespace om {
 OMNI_EXPORT bool omniback_load();
 OMNI_EXPORT void printlog_and_throw(std::string name);
 OMNI_EXPORT void printlog(std::string name);
@@ -271,48 +271,48 @@ class OMNI_EXPORT ClassRegister {
       printlog_and_throw("ClassRegister: too many parameters.");
       // ClassRegistryInstance<BaseClassName>().DoAddClass(names[2], getterraw);
     }
-  } // namespace omniback
+  } // namespace om
 
   ~ClassRegister() {}
-}; // namespace omniback
+}; // namespace om
 
-} // namespace omniback
+} // namespace om
 
 // class_name should not contain '>' '<' and ':'.
 #define OMNI_REGISTER(base_class_type, class_name, ...)                    \
-  static omniback::ClassRegister<base_class_type> class_name##RegistryTag( \
-      omniback::ClassRegistry_NewObject<base_class_type, class_name>, #class_name, {#class_name, ##__VA_ARGS__});
+  static om::ClassRegister<base_class_type> class_name##RegistryTag( \
+      om::ClassRegistry_NewObject<base_class_type, class_name>, #class_name, {#class_name, ##__VA_ARGS__});
 
 #define OMNI_REGISTER_BACKEND(class_name, ...)                               \
-  static omniback::ClassRegister<omniback::Backend> class_name##RegistryTag( \
-      omniback::ClassRegistry_NewObject<omniback::Backend, class_name>, #class_name, {#class_name, ##__VA_ARGS__});
+  static om::ClassRegister<om::Backend> class_name##RegistryTag( \
+      om::ClassRegistry_NewObject<om::Backend, class_name>, #class_name, {#class_name, ##__VA_ARGS__});
 
 #define OMNI_INSTANCE_REGISTER(base_class_type, register_name, backend_instance) \
-  omniback::ClassRegistryInstance<base_class_type>().DoRegisterObject(register_name, backend_instance)
+  om::ClassRegistryInstance<base_class_type>().DoRegisterObject(register_name, backend_instance)
 
 #define OMNI_INSTANCE_UNREGISTER(base_class_type, register_name) \
-  omniback::ClassRegistryInstance<base_class_type>().DoUnRegisterObject(register_name)
+  om::ClassRegistryInstance<base_class_type>().DoUnRegisterObject(register_name)
 
-#define OMNI_INSTANCE_CLEANUP(base_class_type) omniback::ClassRegistryInstance<base_class_type>().DoCleanUp()
+#define OMNI_INSTANCE_CLEANUP(base_class_type) om::ClassRegistryInstance<base_class_type>().DoCleanUp()
 #define OMNI_CLEANUP_ALL(base_class_type) \
-  omniback::ClassRegistryInstance<base_class_type>().DoCleanAll()
+  om::ClassRegistryInstance<base_class_type>().DoCleanAll()
 
 // #define OMNI_CREATE(base_class_type, register_name)
-//   omniback::ClassRegistryInstance<base_class_type>().DoGetObject(register_name)
+//   om::ClassRegistryInstance<base_class_type>().DoGetObject(register_name)
 
 #define OMNI_CREATE(base_class_type, register_name, ...) \
-  omniback::ClassRegistryInstance<base_class_type>().DoCreateObject(register_name, ##__VA_ARGS__)
+  om::ClassRegistryInstance<base_class_type>().DoCreateObject(register_name, ##__VA_ARGS__)
 
 #define OMNI_INSTANCE_GET(base_class_type, aspect_name) \
-  omniback::ClassRegistryInstance<base_class_type>().DoGetObject(aspect_name)
+  om::ClassRegistryInstance<base_class_type>().DoGetObject(aspect_name)
 
 // #define OMNI_GET_REGISTER_NAME(base_class_type, obj_ptr)
-//   omniback::ClassRegistryInstance<base_class_type>().GetObjectName(obj_ptr)
+//   om::ClassRegistryInstance<base_class_type>().GetObjectName(obj_ptr)
 
 #define OMNI_OBJECT_NAME(base_class_type, obj_ptr) \
-  omniback::ClassRegistryInstance<base_class_type>().GetObjectName(obj_ptr)
+  om::ClassRegistryInstance<base_class_type>().GetObjectName(obj_ptr)
 
-#define OMNI_ALL_NAMES(base_class_type) omniback::ClassRegistryInstance<base_class_type>().OmnibackGetAll()
+#define OMNI_ALL_NAMES(base_class_type) om::ClassRegistryInstance<base_class_type>().OmnibackGetAll()
 
 /// ************************************************************************************************
 

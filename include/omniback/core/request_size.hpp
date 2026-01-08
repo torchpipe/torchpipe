@@ -4,7 +4,7 @@
 // constexpr auto TASK_REQUEST_KEY = "request";
 constexpr auto TASK_REQUEST_SIZE_KEY = "request_size";
 
-namespace omniback {
+namespace om {
 template <typename Container = std::vector<dict>>
 static inline int get_request_size(const Container& in) {
   int total_len = 0;
@@ -27,4 +27,4 @@ inline int get_request_size<dict>(const dict& in) {
     return 1;
   }
 }
-} // namespace omniback
+} // namespace om

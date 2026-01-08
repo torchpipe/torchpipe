@@ -19,7 +19,7 @@ from pkg_resources import DistributionNotFound, get_distribution, parse_version
 import logging
 def default_cxx11_abi():
     import torch
-    return torch._C._GLIBCXX_USE_CXX11_ABI
+    return torch.compiled_with_cxx11_abi()
 
 
 def exist_return(install_dir):

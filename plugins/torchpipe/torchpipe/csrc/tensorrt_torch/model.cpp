@@ -137,9 +137,9 @@ namespace torchpipe {
 
 void LoadTensorrtEngine::impl_init(
     const std::unordered_map<std::string, std::string>& config,
-    const omniback::dict& kwargs) {
+    const om::dict& kwargs) {
   size_t independent_index = 0;
-  omniback::str::try_update(config, TASK_INDEX_KEY, independent_index);
+  om::str::try_update(config, TASK_INDEX_KEY, independent_index);
   OMNI_ASSERT(kwargs);
   if (kwargs->find(TASK_ENGINE_KEY) != kwargs->end()) {
 
@@ -156,7 +156,7 @@ void LoadTensorrtEngine::impl_init(
   }
   // handle instance index
   int instance_num{1};
-  omniback::str::try_update(config, "instance_num", instance_num);
+  om::str::try_update(config, "instance_num", instance_num);
 
   OMNI_ASSERT(instance_num >= 1);
 
@@ -164,7 +164,7 @@ void LoadTensorrtEngine::impl_init(
   OMNI_ASSERT(
       config.find("model") != config.end(), "`model` is not found in config");
 
-  OMNI_ASSERT(omniback::filesystem::exists(config.at("model")));
+  OMNI_ASSERT(om::filesystem::exists(config.at("model")));
   LocalFileStreamReader reader(config.at("model"));
   runtime_ = std::unique_ptr<nvinfer1::IRuntime>(
       nvinfer1::createInferRuntime(*get_trt_logger()));
@@ -183,7 +183,7 @@ void LoadTensorrtEngine::impl_init(
 
 void Onnx2Tensorrt::impl_init(
     const std::unordered_map<std::string, std::string>& config,
-    const omniback::dict& kwargs) {
+    const om::dict& kwargs) {
   OMNI_ASSERT(kwargs);
   if (kwargs->find(TASK_ENGINE_KEY) != kwargs->end()) {
     SPDLOG_INFO(
@@ -193,7 +193,7 @@ void Onnx2Tensorrt::impl_init(
   }
   // handle instance index
   // int instance_num{1};
-  // omniback::str::try_update(config, "instance_num", instance_num);
+  // om::str::try_update(config, "instance_num", instance_num);
   // // OMNI_ASSERT(instance_num >= 1 && instance_index_ == 0);
   // OMNI_ASSERT(instance_num >= 1);
 
@@ -213,17 +213,17 @@ void Onnx2Tensorrt::impl_init(
 
   OnnxParams params = config2onnxparams(config);
 
-  bool model_cache_exist = omniback::filesystem::exists(params.model_cache);
+  bool model_cache_exist = om::filesystem::exists(params.model_cache);
   // auto mem = !model_cache_exist ? onnx2trt(params) : nullptr;
 
   if (!model_cache_exist) {
     OMNI_ASSERT(
-        omniback::filesystem::exists(params.model),
+        om::filesystem::exists(params.model),
         "file of `model(and model::cache)` not found: " + params.model);
     auto mem = onnx2trt(params);
     OMNI_ASSERT(mem);
     if (!params.model_cache.empty()) {
-      if (omniback::str::endswith(params.model_cache, ".enc")) {
+      if (om::str::endswith(params.model_cache, ".enc")) {
         torchpipe::encrypt2file(
             (char*)mem->data(), mem->size(), params.model_cache);
       } else {
@@ -249,7 +249,7 @@ void Onnx2Tensorrt::impl_init(
         params.model_cache);
     
     nvinfer1::ICudaEngine* engine_ptr {nullptr};
-    if (omniback::str::endswith(params.model_cache, ".enc")) {
+    if (om::str::endswith(params.model_cache, ".enc")) {
       auto data = torchpipe::decrypt_file(params.model_cache);
       engine_ptr = runtime_->deserializeCudaEngine(data.data(), data.size());
     } else {
@@ -272,7 +272,7 @@ void Onnx2Tensorrt::impl_init(
 
 void ModelLoadder::post_init(
     const std::unordered_map<std::string, std::string>& config,
-    const omniback::dict& kwargs) {
+    const om::dict& kwargs) {
   OMNI_ASSERT(kwargs);
   auto iter = kwargs->find(TASK_ENGINE_KEY);
   if (iter != kwargs->end())
@@ -290,7 +290,7 @@ void ModelLoadder::post_init(
 
     if ((model_type == filter) || ("." + model_type == filter) ||
         (config.find("model") != config.end() &&
-         omniback::str::endswith(config.at("model"), filter))) {
+         om::str::endswith(config.at("model"), filter))) {
       backend = base_dependencies_[i].get();
       lazy_init_func_[i]();
       break;
@@ -309,7 +309,7 @@ void ModelLoadder::post_init(
   OMNI_ASSERT(iter != kwargs->end());
 }
 
-OMNI_REGISTER(omniback::Backend, ModelLoadder);
-OMNI_REGISTER(omniback::Backend, Onnx2Tensorrt);
-OMNI_REGISTER(omniback::Backend, LoadTensorrtEngine);
+OMNI_REGISTER(om::Backend, ModelLoadder);
+OMNI_REGISTER(om::Backend, Onnx2Tensorrt);
+OMNI_REGISTER(om::Backend, LoadTensorrtEngine);
 } // namespace torchpipe

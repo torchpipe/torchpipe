@@ -2,7 +2,7 @@
 #include "helper/task_keys.hpp"
 #include "helper/torch.hpp"
 
-using namespace omniback;
+using namespace om;
 
 namespace torchpipe {
 
@@ -122,8 +122,8 @@ OMNI_REGISTER(Backend, CopyMakeBorderTensor, "CopyMakeBorderTensor");
 // void WarpAffineTensor::impl_init(
 //     const std::unordered_map<std::string, std::string>& config,
 //     const dict& kwargs) {
-//   target_h_ = omniback::str::str2int<int>(config, "target_h");
-//   target_h_ = omniback::str::str2int<int>(config, "target_w");
+//   target_h_ = om::str::str2int<int>(config, "target_h");
+//   target_h_ = om::str::str2int<int>(config, "target_w");
 
 //   // 参数检查
 //   if (target_h_ > 1024 * 1024 || target_w_ > 1024 * 1024 || target_h_ <= 0 ||

@@ -15,7 +15,7 @@
 constexpr char const* const kTORCH_PLUGIN_NAME{"TorchPlugin"};
 constexpr char const* const kTORCH_PLUGIN_VERSION{"1"};
 constexpr char const* const kTORCH_PLUGIN_NAMESPACE{""};
-// namespace omniback {
+// namespace om {
 // class Backend;
 // }
 namespace nvinfer1 {
@@ -133,7 +133,7 @@ class TorchPlugin : public IPluginV3,
   std::vector<nvinfer1::PluginField> mDataToSerialize;
   nvinfer1::PluginFieldCollection mFCToSerialize;
 
-  std::unique_ptr<omniback::Backend> dependency_{nullptr};
+  std::unique_ptr<om::Backend> dependency_{nullptr};
 
   bool is_build_phase_{false};
 

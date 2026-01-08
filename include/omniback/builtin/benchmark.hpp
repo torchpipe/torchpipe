@@ -9,7 +9,7 @@
 #include "omniback/core/general_queue.hpp"
 #include "omniback/core/queue.hpp"
 
-namespace omniback {
+namespace om {
 constexpr auto TASK_ProfileState_KEY = "_ProfileState";
 struct ProfileState {
   size_t client_index;
@@ -78,4 +78,4 @@ class Benchmark : public Backend {
   std::atomic_bool bInited_{false};
 };
 
-} // namespace omniback
+} // namespace om

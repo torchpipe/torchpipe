@@ -13,7 +13,7 @@
 #include <tvm/ffi/object.h>
 #include <tvm/ffi/reflection/registry.h>
 
-namespace omniback::ffi {
+namespace om::ffi {
 
 namespace tf = tvm::ffi;
 namespace refl = tf::reflection;
@@ -362,4 +362,4 @@ class Event : public tf::ObjectRef {
 
 
 
-} // namespace omniback
+} // namespace om

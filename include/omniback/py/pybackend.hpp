@@ -7,12 +7,12 @@
 #include <tvm/ffi/container/variant.h>
 #include "omniback/ffi/dict.h"
 
-namespace omniback::py {
+namespace om::py {
 
 using SelfType = tvm::ffi::Any; // tvm::ffi::ObjectPtr<tvm::ffi::Object>;
-using PyDictRef = omniback::ffi::DictRef;
+using PyDictRef = om::ffi::DictRef;
 
-std::unique_ptr<omniback::Backend> object2backend(
+std::unique_ptr<om::Backend> object2backend(
     SelfType py_obj,
     tvm::ffi::Optional<tvm::ffi::TypedFunction<void(
         SelfType,

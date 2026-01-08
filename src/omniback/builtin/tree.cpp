@@ -7,10 +7,10 @@
 // #include  "omniback/core/helper.hpp"
 // #include  "omniback/builtin/tree.hpp"
 
-// namespace omniback {
+// namespace om {
 // void Tree::post_init(const std::unordered_map<std::string, std::string>&
 // config,
 //                      const dict& kwargs) {}
 // void Tree::impl_forward(const std::vector<dict>&) {}
 
-// }  // namespace omniback
+// }  // namespace om

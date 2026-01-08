@@ -19,7 +19,7 @@
 #include "omniback/helper/macro.h"
 #include "omniback/helper/string.hpp"
 
-namespace omniback {
+namespace om {
 class Proxy : public Backend {
  private:
   void impl_init(
@@ -196,4 +196,4 @@ class Reflect : public Proxy {
   };                                                                           \
   OMNI_REGISTER(Backend, derived_aspect_cls);
 
-} // namespace omniback
+} // namespace om

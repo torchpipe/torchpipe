@@ -4,7 +4,7 @@
 
 #include "omniback/builtin/box.hpp"
 
-namespace omniback {
+namespace om {
 
 
 
@@ -112,4 +112,4 @@ namespace omniback {
       add_cxcywh(cx, cy, w, h, scores[i], static_cast<int>(ids[i]));
     }
   }
-} // namespace omniback
+} // namespace om

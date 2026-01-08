@@ -2,7 +2,7 @@
 
 #include <stdexcept>
 
-namespace omniback::error {
+namespace om::error {
 
 class ExceptionHolder {
  public:
@@ -38,4 +38,4 @@ class NoResultError : public KeyNotFoundError {
   using KeyNotFoundError::KeyNotFoundError;
 };
 
-} // namespace omniback::error
+} // namespace om::error

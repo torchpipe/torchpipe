@@ -29,27 +29,27 @@ import sys
 from pathlib import Path
 from typing import Callable
 import tvm_ffi
+import logging
+logger = logging.getLogger(__name__)  # type: ignore
 
 
 def should_use_cxx11() -> bool:
-    """Determine whether to use C++11 ABI based on PyTorch or environment."""
+    """Determine whether to use the C++11 ABI based on environment or PyTorch."""
     # 1. Check environment variable first (highest priority)
     env_var = os.environ.get("USE_CXX11_ABI")
     if env_var is not None:
         return env_var.lower() in ("1", "on", "true", "yes")
 
-    # 2. Fall back to PyTorch's ABI setting
+    # 2. Fall back to PyTorch's compiled ABI setting
     try:
         import torch
-        # torch._C._GLIBCXX_USE_CXX11_ABI is a bool in recent versions
-        return bool(torch._C._GLIBCXX_USE_CXX11_ABI)
+        return bool(torch.compiled_with_cxx11_abi())
     except (ImportError, AttributeError):
-        # If torch is not available or ABI info missing, default to C++11
-        print(
-            "Warning: PyTorch not found or ABI info unavailable. "
+        # If PyTorch is unavailable or ABI info is missing, default to C++11
+        logger.warning(
+            "Warning: PyTorch not found or ABI information unavailable. "
             "Defaulting to C++11 ABI (libomniback.so). "
-            "Set USE_CXX11_ABI=0 to use the C++03 ABI version.",
-            flush=True
+            "Set USE_CXX11_ABI=0 to use the C++03 ABI version instead."
         )
         return True
 
@@ -61,12 +61,13 @@ def find_libomniback() -> str:
     -------
     path
         The full path to the located library.
-
     """
     candidate = _find_library_by_basename("omniback", "omniback")
     if ret := _resolve_and_validate([candidate], cond=lambda _: True):
         cxx03 = ret.replace("libomniback.", "libomniback_cxx03.")
         assert cxx03 != ret
+        if not os.path.exists(cxx03) and os.path.exists(ret):
+            return ret
         if should_use_cxx11():
             return ret
         else:
@@ -161,14 +162,16 @@ def find_python_helper_include_path() -> str:
     raise RuntimeError("Cannot find python helper include path.")
 
 
-def include_paths() -> list[str]:
+def include_paths(with_tvm_ffi=False) -> list[str]:
     """Find all include paths needed."""
-    return sorted(
-        {
-            find_include_path(),
-        } |
-        set(tvm_ffi.libinfo.include_paths())
-    )
+    if with_tvm_ffi:
+        return sorted(
+            {
+                find_include_path(),
+            } |
+            set(tvm_ffi.libinfo.include_paths())
+        )
+    return find_include_path()
 
 
 def load_lib_ctypes(package: str, target_name: str, mode: str) -> ctypes.CDLL:

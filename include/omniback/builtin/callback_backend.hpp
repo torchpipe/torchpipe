@@ -4,15 +4,15 @@
 #include <vector>
 #include "omniback/core/backend.hpp"
 
-namespace omniback {
+namespace om {
 
 class CallbackBackend : public Backend {
  public:
   using InitCallback = std::function<void(
       const std::unordered_map<std::string, std::string>&,
-      const omniback::dict&)>;
+      const om::dict&)>;
   using ForwardCallback =
-      std::function<void(const std::vector<omniback::dict>&)>;
+      std::function<void(const std::vector<om::dict>&)>;
   using MaxCallback = std::function<uint32_t()>;
   using MinCallback = std::function<uint32_t()>;
 
@@ -36,12 +36,12 @@ class CallbackBackend : public Backend {
  private:
   void impl_init(
       const std::unordered_map<std::string, std::string>& params,
-      const omniback::dict& options) override {
+      const om::dict& options) override {
     if (init_cb_)
       init_cb_(params, options);
   }
 
-  void impl_forward(const std::vector<omniback::dict>& ios) override {
+  void impl_forward(const std::vector<om::dict>& ios) override {
     if (forward_cb_)
       forward_cb_(ios);
   }
@@ -60,4 +60,4 @@ class CallbackBackend : public Backend {
   MinCallback min_cb_;
 };
 
-} // namespace omniback
+} // namespace om

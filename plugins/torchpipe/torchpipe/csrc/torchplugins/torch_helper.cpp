@@ -5,9 +5,9 @@
 //     const std::vector<torch::Tensor>& in,
 //     const std::vector<torch::Tensor>& out,
 //     const std::string& instance_name) {
-//   auto* pbackend = OMNI_INSTANCE_GET(omniback::Backend, instance_name);
+//   auto* pbackend = OMNI_INSTANCE_GET(om::Backend, instance_name);
 //   OMNI_ASSERT(pbackend);
-//   auto io = omniback::make_dict();
+//   auto io = om::make_dict();
 //   (*io)[TASK_DATA_KEY] = in;
 //   (*io)[TASK_OUTPUT_KEY] = out;
 //   pbackend->forward(io);

@@ -13,7 +13,7 @@
 
 // InstanceDispatcher, Batching (动态dependency)
 // forward instance="node_name.0"
-namespace omniback {
+namespace om {
 // IoCV0[SharedInstancesState,InstanceDispatcher,Batching;DI_v0[Batching,
 // InstanceDispatcher]]
 
@@ -96,4 +96,4 @@ void InstancesState::add_and_set_range(
   available_instances_.insert(handle);
 }
 
-} // namespace omniback
+} // namespace om

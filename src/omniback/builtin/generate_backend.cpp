@@ -2,7 +2,7 @@
 #include <optional>
 #include "omniback/core/reflect.h"
 
-namespace omniback {
+namespace om {
 
 std::string GenerateBackend::get_latest_backend(
     const std::string& setting) const {
@@ -65,4 +65,4 @@ std::unordered_map<std::string, std::string> GenerateBackend::
   return str::map_split(setting, '=', ',');
 }
 
-} // namespace omniback
+} // namespace om

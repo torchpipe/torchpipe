@@ -9,7 +9,7 @@
 #include "omniback/helper/threadsafe_queue.hpp"
 #include "omniback/helper/timer.hpp"
 
-namespace omniback {
+namespace om {
 void DagDispatcher::impl_init(
     const std::unordered_map<std::string, std::string>& config,
     const dict& kwargs) {
@@ -368,4 +368,4 @@ class DagProxy : public Backend {
 };
 OMNI_REGISTER(Backend, DagProxy);
 OMNI_REGISTER(Backend, DagDispatcher);
-} // namespace omniback
+} // namespace om

@@ -22,7 +22,7 @@
 
 #include "omniback/core/request_size.hpp"
 #include "omniback/core/task_keys.hpp"
-namespace omniback {
+namespace om {
 
 // class Event;
 
@@ -244,4 +244,4 @@ inline bool none_or_all_has_key_and_unempty(
       });
 }
 } // namespace helper
-} // namespace omniback
+} // namespace om

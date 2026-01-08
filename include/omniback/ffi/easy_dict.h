@@ -2,6 +2,6 @@
 
 #include "omniback/ffi/dict.h"
 
-namespace omniback::ffi{
+namespace om::ffi{
 using EasyDict = DictRef;
 }

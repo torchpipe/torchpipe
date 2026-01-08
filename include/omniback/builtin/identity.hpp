@@ -3,4 +3,4 @@
 #include <string>
 #include <vector>
 
-namespace omniback {}
+namespace om {}

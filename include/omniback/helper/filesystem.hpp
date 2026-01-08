@@ -1,6 +1,6 @@
 #pragma once
 
 #include <string>
-namespace omniback::filesystem {
+namespace om::filesystem {
 bool exists(const std::string& path);
 }

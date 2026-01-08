@@ -3,7 +3,7 @@
 #include <queue>
 #include <utility>
 
-namespace omniback::queue {
+namespace om::queue {
 // Template class for a queue where each element has an associated size.
 template <typename T>
 class SizedQueue {
@@ -54,4 +54,4 @@ class SizedQueue {
     return queue_.front().first;
   }
 };
-} // namespace omniback
+} // namespace om

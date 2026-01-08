@@ -7,7 +7,7 @@
 #include "omniback/helper/base_logging.hpp"
 #include "omniback/helper/string.hpp"
 
-namespace omniback {
+namespace om {
 namespace {
 float generate_random_number() {
   std::random_device rd;
@@ -162,4 +162,4 @@ class Random : public Backend {
 };
 OMNI_REGISTER(Backend, Random);
 
-} // namespace omniback
+} // namespace om

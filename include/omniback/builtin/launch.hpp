@@ -6,7 +6,7 @@
 #include "omniback/helper/macro.h"
 #include "omniback/helper/params.hpp"
 
-namespace omniback {
+namespace om {
 
 class LaunchBase : public Backend {
   void impl_inject_dependency(Backend* dependency) override;
@@ -101,4 +101,4 @@ class Launch : public LaunchBase {
   }
 };
 
-} // namespace omniback
+} // namespace om

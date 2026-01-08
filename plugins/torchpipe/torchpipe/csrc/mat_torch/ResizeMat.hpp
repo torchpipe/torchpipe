@@ -4,13 +4,13 @@
 #include <opencv2/core/types.hpp>
 namespace torchpipe {
 
-class ResizeMat : public omniback::BackendOne {
+class ResizeMat : public om::BackendOne {
  public:
   virtual void impl_init(
       const std::unordered_map<std::string, std::string>&,
-      const omniback::dict&) override;
+      const om::dict&) override;
 
-  virtual void forward(const omniback::dict&) override;
+  virtual void forward(const om::dict&) override;
 
  private:
   size_t resize_h_;
@@ -23,13 +23,13 @@ class ResizeMat : public omniback::BackendOne {
  * - Fills empty areas with specified padding color
  * - Outputs scaling factor and offset values for coordinate mapping
  */
-class LetterBoxMat : public omniback::BackendOne {
+class LetterBoxMat : public om::BackendOne {
  public:
   virtual void impl_init(
       const std::unordered_map<std::string, std::string>& config,
-      const omniback::dict& kwargs) override;
+      const om::dict& kwargs) override;
 
-  virtual void forward(const omniback::dict& input_dict) override;
+  virtual void forward(const om::dict& input_dict) override;
 
  private:
   size_t target_h_; // Target height
@@ -43,13 +43,13 @@ class LetterBoxMat : public omniback::BackendOne {
  * - Fills remaining areas with padding color
  * - Outputs scaling factor (offset always 0,0)
  */
-class TopLeftResizeMat : public omniback::BackendOne {
+class TopLeftResizeMat : public om::BackendOne {
  public:
   virtual void impl_init(
       const std::unordered_map<std::string, std::string>& config,
-      const omniback::dict& kwargs) override;
+      const om::dict& kwargs) override;
 
-  virtual void forward(const omniback::dict& input_dict) override;
+  virtual void forward(const om::dict& input_dict) override;
 
  private:
   size_t target_h_;

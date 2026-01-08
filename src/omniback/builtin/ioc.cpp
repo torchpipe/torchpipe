@@ -11,7 +11,7 @@
 #include "omniback/builtin/control_plane.hpp"
 #include <tvm/ffi/error.h>
 
-namespace omniback {
+namespace om {
 
 void IoCV0::impl_init(
     const std::unordered_map<std::string, std::string>& in_config,
@@ -190,7 +190,7 @@ class IoC : public ControlPlane {
     backends_.push_back(std::move(backend));
   }
 
-  void impl_forward(const std::vector<dict>& io) {
+  void impl_forward(const std::vector<dict>& io) override {
     return backends_.back()->forward(io);
   }
   // [[nodiscard]] virtual uint32_t impl_min() const override {
@@ -245,7 +245,7 @@ class With : public ControlPlane {
             std::to_string(backends_.back()->max()));
   }
 
-  void impl_forward(const std::vector<dict>& ios) {
+  void impl_forward(const std::vector<dict>& ios) override{
     backends_.front()->forward_with_dep(ios, *(backends_.back().get()));
   }
 
@@ -266,4 +266,4 @@ class With : public ControlPlane {
   }
 };
 OMNI_REGISTER_BACKEND(With);
-} // namespace omniback
+} // namespace om

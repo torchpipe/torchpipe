@@ -8,14 +8,14 @@
 #include <tvm/ffi/function.h>
 #include "torchpipe/csrc/helper/torch.hpp"
 
-using omniback::Box;
-using omniback::Boxes;
+using om::Box;
+using om::Boxes;
 
-using omniback::dict;
+using om::dict;
 
 namespace {
 dict box2dict(Box box) {
-  dict data = std::make_shared<std::unordered_map<std::string, omniback::any>>();
+  dict data = std::make_shared<std::unordered_map<std::string, om::any>>();
   data->insert_or_assign("id", box.id);
   data->insert_or_assign("score", box.score);
   data->insert_or_assign("x1", box.x1);
@@ -50,8 +50,8 @@ float iou(const Box& a, const Box& b) {
   return union_area > 0 ? inter_area / union_area : 0.0f;
 }
 
-omniback::Boxes nms(
-    const std::vector<omniback::Box>& boxes,
+om::Boxes nms(
+    const std::vector<om::Box>& boxes,
     float iou_threshold,
     bool class_agnostic = false) {
   Boxes result;
@@ -137,7 +137,7 @@ dict yolo11_post_cpp(
   float* pboxes = boxes.data_ptr<float>();
   float* pscores = scores.data_ptr<float>();
   int64_t* pid = id.data_ptr<int64_t>();
-  omniback::Boxes re_boxes;
+  om::Boxes re_boxes;
   re_boxes.add_batch_cxcywh(pboxes, pscores, pid, num_boxes);
   re_boxes = nms(re_boxes.boxes, iou_thres);
   if (re_boxes.boxes.size() > max_det)
@@ -155,8 +155,8 @@ dict yolo11_post(
   return yolo11_post_cpp(prediction, conf_thres, iou_thres, max_det);
   }
 
-namespace omniback {
-class Yolo11Post : public omniback::BackendOne {
+namespace om {
+class Yolo11Post : public om::BackendOne {
   void impl_init(
       const std::unordered_map<std::string, std::string>& params,
       const dict& options) override {}
@@ -177,8 +177,8 @@ class Yolo11Post : public omniback::BackendOne {
     (*io)["result"] = result;
   }
 };
-OMNI_REGISTER(omniback::Backend, Yolo11Post);
-} // namespace omniback
+OMNI_REGISTER(om::Backend, Yolo11Post);
+} // namespace om
 // PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
 //   m.def(
 //       "yolo11_post",

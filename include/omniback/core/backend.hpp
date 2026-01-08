@@ -24,7 +24,7 @@
 #include "omniback/core/reflect.h"
 #include "omniback/helper/omniback_export.h"
 
-namespace omniback {
+namespace om {
 
 /**
  * @brief Base class for all backends.
@@ -293,12 +293,12 @@ OMNI_EXPORT std::unique_ptr<Backend> init_backend(
     const std::string& registered_name = "");
 
 #define BACKEND_CLASS(ClassName)                                          \
-  class ClassName : public omniback::Backend {                            \
+  class ClassName : public om::Backend {                            \
    public:                                                                \
     void impl_init(                                                       \
         const std::unordered_map<std::string, std::string>& config,       \
-        const omniback::dict& kwargs) override;                           \
-    void impl_forward(const std::vector<omniback::dict>& input) override; \
+        const om::dict& kwargs) override;                           \
+    void impl_forward(const std::vector<om::dict>& input) override; \
   };
 
 namespace backend {
@@ -311,9 +311,9 @@ std::string get_dependency_name(
     const std::optional<std::string>& defualt_cls_name = std::nullopt);
 
 } // namespace backend
-} // namespace omniback
+} // namespace om
 
-namespace omniback::parser_v2 {
+namespace om::parser_v2 {
 
 bool get_backend_name(const Backend* obj_ptr, std::string& cls_name);
 std::string get_backend_name(const Backend* obj_ptr);
@@ -334,4 +334,4 @@ ArgsKwargs get_args_kwargs(
     const Backend* obj_ptr,
     std::string cls_name,
     const std::unordered_map<std::string, std::string>& config);
-} // namespace omniback::parser_v2
+} // namespace om::parser_v2

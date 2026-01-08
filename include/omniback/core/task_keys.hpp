@@ -21,7 +21,7 @@
 #include <stdexcept>
 #include "omniback/core/string.hpp"
 
-namespace omniback {
+namespace om {
 
 constexpr auto TASK_DATA_KEY = "data";
 constexpr auto TASK_RESULT_KEY = "result";
@@ -107,4 +107,4 @@ static inline bool is_reserved(const string& key) {
   return false;
 }
 
-} // namespace omniback
+} // namespace om

@@ -9,7 +9,7 @@
 #include <queue>
 #include <stdexcept>
 #include "omniback/core/request_size.hpp"
-namespace omniback::queue {
+namespace om::queue {
 
 class QueueException : public std::runtime_error {
  public:
@@ -643,4 +643,4 @@ class ThreadSafeSizedQueue {
   // ~ThreadSafeSizedQueue() { shutdown(); }
 };
 
-} // namespace omniback::queue
+} // namespace om::queue

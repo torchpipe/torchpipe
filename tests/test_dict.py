@@ -73,13 +73,6 @@ def test_dict_types():
             #     value), f" {d[key]} != {tvm_ffi.convert(value)}. {type(d[key])} != {type(tvm_ffi.convert(value))}"
 
 
-# def test_event():
-#     # Test event creation
-#     d = Dict()
-#     event = 1
-
-#     d["event"] = 1
-#     print(d["event"])
 def test_event():
     # Test event creation
     d = Dict()

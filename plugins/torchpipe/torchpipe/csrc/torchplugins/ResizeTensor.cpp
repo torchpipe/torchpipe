@@ -3,7 +3,7 @@
 #include "helper/torch.hpp"
 #include <omniback/addons/torch/type_traits.h>
 
-using namespace omniback;
+using namespace om;
 
 namespace torchpipe {
 
@@ -12,8 +12,8 @@ class ResizeTensor : public BackendOne {
   void impl_init(
       const std::unordered_map<std::string, std::string>& config,
       const dict& kwargs) override {
-    resize_h_ = omniback::str::str2int<size_t>(config, "resize_h");
-    resize_w_ = omniback::str::str2int<size_t>(config, "resize_w");
+    resize_h_ = om::str::str2int<size_t>(config, "resize_h");
+    resize_w_ = om::str::str2int<size_t>(config, "resize_w");
 
     if (resize_h_ > 1024 * 1024 || resize_w_ > 1024 * 1024 || resize_h_ <= 1 ||
         resize_w_ <= 1 || resize_w_ * (resize_h_ / 1024.0) > 1024.0 * 1024) {
@@ -62,7 +62,7 @@ class ResizeTensor : public BackendOne {
   size_t resize_w_{0};
 };
 
-OMNI_REGISTER(omniback::Backend, ResizeTensor, "ResizeTensor");
+OMNI_REGISTER(om::Backend, ResizeTensor, "ResizeTensor");
 
 class DynamicResizeTensor : public BackendOne {
  private:
@@ -103,5 +103,5 @@ class DynamicResizeTensor : public BackendOne {
   long resize_w_{0};
 };
 
-OMNI_REGISTER(omniback::Backend, DynamicResizeTensor, "DynamicResizeTensor");
+OMNI_REGISTER(om::Backend, DynamicResizeTensor, "DynamicResizeTensor");
 } // namespace torchpipe

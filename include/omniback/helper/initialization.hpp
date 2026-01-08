@@ -7,7 +7,7 @@
 #include <string>
 #include <unordered_map>
 
-namespace omniback {
+namespace om {
 
 class InitializationRegistry {
  public:
@@ -48,4 +48,4 @@ void register_initialization(
 // Helper function to try initialization
 void try_initialization();
 
-} // namespace omniback
+} // namespace om

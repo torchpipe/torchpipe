@@ -90,12 +90,12 @@ During the forward execution of `Sequential[DecodeMat,ResizeMat]`, the data (dic
 A major problem in business is that the preset backends (computational backend/scheduling backend/RPC backend/cross-process backend, etc.) cannot cover all requirements.   `Torchpipe` treat the backend itself is also an API oriented towards users. 
 ### Basic Types
 #### any
-Similar to `std::any` in C++17, we have defined a type-erased container, `omniback::any`, with an almost identical interface.
+Similar to `std::any` in C++17, we have defined a type-erased container, `om::any`, with an almost identical interface.
 #### dict
 As a data carrier, similar to Python's `dict`, we have also defined the following `dict` in C++:
 ```cpp
 #ifndef CUSTOM_DICT
-using dict = std::shared_ptr<std::unordered_map<std::string, omniback::any>>;
+using dict = std::shared_ptr<std::unordered_map<std::string, om::any>>;
 #else
 #endif
 ```

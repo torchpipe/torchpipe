@@ -8,12 +8,12 @@
 
 #include "omniback/ffi/type_traits.h"
 
-namespace omniback::ffi {
+namespace om::ffi {
 
 template <>
 struct OmTypeTraits<at::Tensor>
     : public OmTypeTraitsBase {};
-} // namespace omniback::ffi
+} // namespace om::ffi
 
 namespace tvm::ffi {
 template <>

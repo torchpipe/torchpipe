@@ -12,7 +12,7 @@
 #include "omniback/helper/threadsafe_unordered_map.hpp"
 #include "omniback/schedule/schedule_states.hpp"
 
-namespace omniback {
+namespace om {
 
 class PlainContinuousBatching : public Backend {
  private:
@@ -138,4 +138,4 @@ class ContinuousBatching : public Backend {
   std::unique_ptr<Backend> no_page_table_;
 };
 
-} // namespace omniback
+} // namespace om

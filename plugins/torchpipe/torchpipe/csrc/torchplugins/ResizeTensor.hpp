@@ -4,6 +4,6 @@
 #include <string>
 #include <unordered_set>
 
-using omniback::dict;
+using om::dict;
 
 namespace torchpipe {} // namespace torchpipe

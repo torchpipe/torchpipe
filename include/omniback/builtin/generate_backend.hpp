@@ -3,7 +3,7 @@
 #include "omniback/core/backend.hpp"
 #include "omniback/core/reflect.h"
 
-namespace omniback {
+namespace om {
 
 /**
  * @brief 用于代码生成的后端基类. 通过OMNI_GENERATE_BACKEND生成和注册新的类
@@ -53,11 +53,11 @@ class GenerateBackend : public Backend {
   std::unordered_map<std::string, std::string> parse_order_config(
       const std::string& setting);
 };
-} // namespace omniback
+} // namespace om
 
 // see also OMNI_PROXY
 #define OMNI_GENERATE_BACKEND(ClsName, main_backend, config)     \
-  class ClsName : public omniback::GenerateBackend {             \
+  class ClsName : public om::GenerateBackend {             \
    private:                                                      \
     std::pair<std::string, std::string> order() const override { \
       return {main_backend, config};                             \

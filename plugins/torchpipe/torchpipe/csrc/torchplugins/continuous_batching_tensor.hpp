@@ -3,16 +3,16 @@
 #include "omniback/core/backend.hpp"
 
 namespace torchpipe {
-using omniback::dict;
-class TensorPage : public omniback::BackendOne {
+using om::dict;
+class TensorPage : public om::BackendOne {
   void impl_init(
       const std::unordered_map<std::string, std::string>& config,
-      const omniback::dict& kwargs) {
-    page_table_ = &omniback::default_page_table();
+      const om::dict& kwargs) {
+    page_table_ = &om::default_page_table();
   }
-  void forward(const omniback::dict& io) override;
+  void forward(const om::dict& io) override;
 
  private:
-  omniback::PageTable* page_table_{nullptr};
+  om::PageTable* page_table_{nullptr};
 };
 } // namespace torchpipe

@@ -3,7 +3,7 @@ import tvm_ffi
 import pytest
 
 def test_queue():
-    q = omniback.ffi.Queue()
+    q = omniback.Queue()
     print(q.size())
     q.put(q)
     q.put({3: "1"})
@@ -13,7 +13,7 @@ def test_queue():
     assert q.size() == 0
     print(re)
 
-    dq = omniback.ffi.default_queue()
+    dq = omniback.default_queue()
     assert dq is not None
 
     dq.put([3])

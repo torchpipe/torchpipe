@@ -10,7 +10,7 @@
 #include "omniback/helper/string.hpp"
 #include "omniback/helper/timer.hpp"
 // #include
-namespace omniback {
+namespace om {
 class Identity : public BackendOne {
  public:
   void forward(const dict& io) override {
@@ -209,4 +209,4 @@ class OMNI_EXPORT LogTime : public Backend {
   std::string key_;
 };
 OMNI_REGISTER_BACKEND(LogTime);
-} // namespace omniback
+} // namespace om

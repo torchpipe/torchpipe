@@ -14,8 +14,8 @@ class LocationManager {
  public:
 };
 
-using namespace omniback;
-class FIAppendTensor : public omniback::BackendOne {
+using namespace om;
+class FIAppendTensor : public om::BackendOne {
  private:
   size_t max_num_req_{16};
   size_t max_num_page_{0};

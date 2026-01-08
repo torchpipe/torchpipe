@@ -12,7 +12,7 @@
 #include "omniback/ffi/type_traits.h"
 
 
-namespace omniback::ffi {
+namespace om::ffi {
 
 class StdAnyObj : public tvm::ffi::Object {
  public:
@@ -74,7 +74,7 @@ class StdAny : public tvm::ffi::ObjectRef {
     typename Decayed = std::decay_t<T>,
     std::enable_if_t<
         !std::is_same_v<Decayed, ::tvm::ffi::Any> &&
-        !std::is_same_v<Decayed, StdAny>,  // 排除自身（假设在 omniback::ffi 命名空间）
+        !std::is_same_v<Decayed, StdAny>,  // 排除自身（假设在 om::ffi 命名空间）
         int> = 0>
   explicit StdAny(T&& data) {
     data_ = ::tvm::ffi::make_object<StdAnyObj>(std::forward<T>(data));
@@ -96,17 +96,17 @@ class StdAny : public tvm::ffi::ObjectRef {
   TVM_FFI_DEFINE_OBJECT_REF_METHODS_NOTNULLABLE(StdAny, tvm::ffi::ObjectRef, StdAnyObj);
 };
 
-} // namespace omniback::ffi
+} // namespace om::ffi
 
 // namespace tvm::ffi {
 // template <>
-// inline constexpr bool use_default_type_traits_v<omniback::ffi::StdAny> = false;
+// inline constexpr bool use_default_type_traits_v<om::ffi::StdAny> = false;
 
 // template <>
-// struct TypeTraits<omniback::ffi::StdAny>
+// struct TypeTraits<om::ffi::StdAny>
 //     : public TypeTraits<tvm::ffi::ObjectRef> {
 //  public:
-//   using Self = omniback::ffi::StdAny;
+//   using Self = om::ffi::StdAny;
 
 //   // TVM_FFI_INLINE static void CopyToAnyView(
 //   //     const Self& src,
@@ -126,10 +126,10 @@ class StdAny : public tvm::ffi::ObjectRef {
 //   }
 
 //   // TVM_FFI_INLINE static std::string TypeStr() {
-//   //   return "omniback::ffi::Any";
+//   //   return "om::ffi::Any";
 //   // }
 //   // TVM_FFI_INLINE static std::string TypeSchema() {
-//   //   return R"({"type":"omniback::ffi::Any"})";
+//   //   return R"({"type":"om::ffi::Any"})";
 //   // }
 // };
 

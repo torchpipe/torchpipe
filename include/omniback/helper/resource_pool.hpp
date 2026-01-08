@@ -11,7 +11,7 @@
 #include <utility>
 #include <vector>
 
-namespace omniback::pool {
+namespace om::pool {
 
 class pool_exhausted : public std::runtime_error {
  public:
@@ -146,6 +146,6 @@ class ResourcePool final {
   std::condition_variable cv_;
 };
 
-} // namespace omniback::pool
+} // namespace om::pool
 
 #endif // RESOURCE_MANAGER_RESOURCE_POOL_HPP

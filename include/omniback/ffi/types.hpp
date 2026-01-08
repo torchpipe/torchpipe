@@ -1,6 +1,6 @@
 #pragma once
 #include <cstdint>
 
-namespace omniback::ffi{
+namespace om::ffi{
 int64_t& dlpack_exchange_api();
 }

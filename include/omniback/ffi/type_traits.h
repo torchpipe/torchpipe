@@ -5,7 +5,7 @@
 #include <utility>  
 #include <cstdint> 
 
-namespace omniback::ffi {
+namespace om::ffi {
 
 template <typename, typename = void>
 struct OmTypeTraits {
@@ -30,4 +30,4 @@ struct OmTypeTraitsBase {
   // static constexpr bool storage_enabled = true;
 };
 
-} // namespace omniback
+} // namespace om

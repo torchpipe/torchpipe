@@ -15,8 +15,8 @@
 #include <tvm/ffi/object.h>
 #include <tvm/ffi/memory.h>
 
-namespace omniback {
-using omniback::id_type;
+namespace om {
+using om::id_type;
 
 class ThreadSafeSlots {
  public:
@@ -127,12 +127,12 @@ class PageTable : public tvm::ffi::Object {
     page_infos_.reserve(max_num_req);
   }
 
-  bool alloc(const omniback::id_type& name, size_t num_tok);
-  // bool alloc_pages(const omniback::id_type& name, size_t num_page);
-  bool alloc_or_reset(const omniback::id_type& name, size_t num_tok);
+  bool alloc(const om::id_type& name, size_t num_tok);
+  // bool alloc_pages(const om::id_type& name, size_t num_page);
+  bool alloc_or_reset(const om::id_type& name, size_t num_tok);
 
-  bool reset(const omniback::id_type& name, size_t num_tok);
-  bool extend(const omniback::id_type& name);
+  bool reset(const om::id_type& name, size_t num_tok);
+  bool extend(const om::id_type& name);
 
   bool free(const id_type& req) {
     std::lock_guard<std::mutex> lock(page_infos_lock_);
@@ -214,4 +214,4 @@ class PageTable : public tvm::ffi::Object {
 };
 PageTable& default_page_table(const std::string& tag = "");
 
-} // namespace omniback
+} // namespace om

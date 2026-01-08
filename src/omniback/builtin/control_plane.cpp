@@ -4,7 +4,7 @@
 #include <vector>
 #include "omniback/core/parser.hpp"
 
-namespace omniback {
+namespace om {
 void ControlPlane::impl_init(
     const std::unordered_map<std::string, std::string>& params,
     const dict& options) {
@@ -47,4 +47,4 @@ void ControlPlane::impl_init(
   impl_custom_init(params, options);
   update_min_max();
 }
-} // namespace omniback
+} // namespace om

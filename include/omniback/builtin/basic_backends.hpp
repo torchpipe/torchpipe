@@ -2,7 +2,7 @@
 #include <functional>
 #include "omniback/core/backend.hpp"
 
-namespace omniback {
+namespace om {
 
 /**
  * @brief Backend with injectable dependency.
@@ -198,4 +198,4 @@ class OMNI_EXPORT List : public Backend {
   }
 };
 
-} // namespace omniback
+} // namespace om

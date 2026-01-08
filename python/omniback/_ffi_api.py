@@ -1,15 +1,16 @@
 
 import struct
 import tvm_ffi
-
+import ctypes
 from . import libinfo
 
-# try:
-#     import torch
-# except:
-#     pass
+import logging
+logger = logging.getLogger(__name__)  # type: ignore
 
-_C = tvm_ffi.load_module(libinfo.find_libomniback())
+
+libomniback = ctypes.CDLL(str(libinfo.find_libomniback()),
+                 getattr(ctypes, "RTLD_GLOBAL"))
+# _C = tvm_ffi.load_module(libinfo.find_libomniback())
 
 # this is a short cut to register all the global functions
 tvm_ffi.init_ffi_api("omniback", __name__)
@@ -106,11 +107,6 @@ Queue = FFIQueue
 # _C.Queue = FFIQueue
 
 
-def default_queue(tag=""):
-    return _C.default_queue_one_arg(tag)
 
-
-def default_page_table(tag=""):
-    return _C.default_page_table(tag)
 
 # _C.default_queue = default_queue

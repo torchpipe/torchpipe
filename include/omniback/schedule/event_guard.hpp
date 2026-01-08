@@ -1,7 +1,7 @@
 #pragma once
 
 #include "omniback/builtin/basic_backends.hpp"
-namespace omniback {
+namespace om {
 class EventGuard : public DependencyV0 {
   void custom_forward_with_dep(
       const std::vector<dict>& ios,
@@ -9,4 +9,4 @@ class EventGuard : public DependencyV0 {
 };
 
 // TASK_REQUEST_KEYKEY
-} // namespace omniback
+} // namespace om

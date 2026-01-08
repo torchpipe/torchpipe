@@ -1,6 +1,6 @@
 #include <iterator>
 
-namespace omniback {
+namespace om {
 template <typename T>
 class range {
  public:
@@ -49,4 +49,4 @@ class range {
   T start_;
   T end_;
 };
-} // namespace omniback
+} // namespace om

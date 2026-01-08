@@ -12,7 +12,7 @@
 
 // InstanceDispatcher, Batching (动态dependency)
 // forward instance="node_name.0"
-namespace omniback {
+namespace om {
 // IoCV0[SharedInstancesState,InstanceDispatcher,Batching;DI_v0[Batching,
 // InstanceDispatcher]]
 constexpr auto TASK_RESOURCE_STATE_KEY = "_resource_state";
@@ -116,4 +116,4 @@ class Status {
     std::condition_variable cv_;
 };
 #endif
-} // namespace omniback
+} // namespace om

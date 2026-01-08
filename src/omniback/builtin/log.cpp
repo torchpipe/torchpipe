@@ -3,7 +3,7 @@
 
 #include "spdlog/sinks/stdout_color_sinks.h"
 
-namespace omniback {
+namespace om {
 class DebugLogger : public Backend {
   void impl_init(
       const std::unordered_map<std::string, std::string>& params,
@@ -48,4 +48,4 @@ class InfoLogger : public Backend {
   }
 };
 OMNI_REGISTER_BACKEND(InfoLogger);
-} // namespace omniback
+} // namespace om

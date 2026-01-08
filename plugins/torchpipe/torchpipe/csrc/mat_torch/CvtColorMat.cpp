@@ -3,10 +3,10 @@
 #include "helper/mat.hpp"
 
 #include "helper/task_keys.hpp"
-#include "opencv2/core.hpp"
+#include <opencv2/core/mat.hpp>
 #include "opencv2/imgproc.hpp"
 
-using namespace omniback;
+using namespace om;
 
 namespace torchpipe {
 
@@ -30,7 +30,7 @@ void CvtColorMat::forward(const dict& input_dict) {
         VALID_COLOR_SPACE.count(input_color) != 0,
         input_color + " is not supported yet");
 
-    auto input_tensor = omniback::dict_get<cv::Mat>(input_dict, TASK_DATA_KEY);
+    auto input_tensor = om::dict_get<cv::Mat>(input_dict, TASK_DATA_KEY);
     cv::cvtColor(input_tensor, input_tensor, cv::COLOR_BGR2RGB);
 
     (*input_dict)[TASK_COLOR_KEY] = color_;
