@@ -31,7 +31,7 @@ size_t elementSize(NetIOInfo::DataType info) {
     switch (info) {
         case NetIOInfo::DataType::INT4:
         case NetIOInfo::DataType::FP4:
-            return 0.5;  // 4 bits = 0.5 bytes
+            return 1;  // 4 bits = 0.5 bytes
         case NetIOInfo::DataType::INT8:
         case NetIOInfo::DataType::UINT8:
         case NetIOInfo::DataType::BOOL:

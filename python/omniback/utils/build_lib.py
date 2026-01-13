@@ -194,6 +194,8 @@ def main() -> None:  # noqa: PLR0912, PLR0915
         source_dirs = [Path(d).expanduser() for d in args.source_dirs]
         ldflags = [str(d) for d in args.ldflags]
         source_path = get_cpp_source(source_dirs)
+        if isinstance(args.include_dirs, str):
+            args.include_dirs = [args.include_dirs]
         include_dirs = [Path(d).expanduser() for d in args.include_dirs]
 
         # resolve configs
@@ -215,7 +217,7 @@ def main() -> None:  # noqa: PLR0912, PLR0915
                 cflags.append("-DBUILD_WITH_ROCM")
             include_paths.extend(get_torch_include_paths(
                 args.build_with_cuda or args.build_with_rocm))
-        
+
             for lib_dir in torch.utils.cpp_extension.library_paths():
                 if IS_WINDOWS:
                     ldflags.append(f"/LIBPATH:{lib_dir}")
@@ -224,13 +226,14 @@ def main() -> None:  # noqa: PLR0912, PLR0915
             
             import glob
             from torch.utils.cpp_extension import CUDA_HOME
-            cuda_lib_dir = os.path.join(CUDA_HOME, "lib64")
-            dirs = glob.glob(os.path.join(CUDA_HOME, "**/*/lib/stubs"))
-            assert len(dirs) == 1
-            if IS_WINDOWS:
-                ldflags.append(f"/LIBPATH:{cuda_lib_dir}")
-            else:
-                ldflags.extend(["-L", str(cuda_lib_dir)])
+            if not CUDA_HOME is None:
+                cuda_lib_dir = os.path.join(CUDA_HOME, "lib64")
+                dirs = glob.glob(os.path.join(CUDA_HOME, "**/*/lib/stubs"))
+                assert len(dirs) == 1
+                if IS_WINDOWS:
+                    ldflags.append(f"/LIBPATH:{cuda_lib_dir}")
+                else:
+                    ldflags.extend(["-L", str(cuda_lib_dir)])
 
             # Add all required PyTorch libraries
             if IS_WINDOWS:
@@ -259,10 +262,13 @@ def main() -> None:  # noqa: PLR0912, PLR0915
                 
         from tvm_ffi.cpp.extension import build
         
+        
+    
         include_paths += get_include_dirs()
+
+    
         include_paths = [str(x) for x in include_paths]
         include_paths = unique_paths(include_paths)
-        print(f'include_paths={include_paths}')
         result_lib = build(name=tmp_libname, cpp_files=[str(x) for x in source_path], extra_cflags=cflags,
                 extra_ldflags=ldflags, extra_include_paths=include_paths, build_directory=build_dir)
 

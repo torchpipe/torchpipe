@@ -171,7 +171,7 @@ def include_paths(with_tvm_ffi=False) -> list[str]:
             } |
             set(tvm_ffi.libinfo.include_paths())
         )
-    return find_include_path()
+    return [find_include_path()]
 
 
 def load_lib_ctypes(package: str, target_name: str, mode: str) -> ctypes.CDLL:

@@ -1,0 +1,35 @@
+[project]
+name = "torchpipe"
+version = "0.1.4"
+requires-python = ">=3.8"
+description = "Serving inside Pytorch"
+dependencies = ["torch", "omniback"]
+
+authors = [{ name = "torchpipe team" }]
+readme = "README.md"
+license = { file = "LICENSE" }
+classifiers = [
+  "License :: OSI Approved :: Apache Software License",
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "Intended Audience :: Education",
+  "Intended Audience :: Science/Research",
+]
+
+[build-system]
+requires = ["setuptools", "torch", "cmake", "ninja","omniback", 'build','wheel']
+build-backend = "build_backend"
+backend-path = ["."]
+
+[tool.uv.extra-build-dependencies]
+torchpipe = ["setuptools"]
+
+[tool.setuptools]
+include-package-data = true
+py-modules = ["build_backend"]
+
+[tool.setuptools.packages.find]
+include = ["torchpipe*"]
+
+[tool.setuptools.package-data]
+torchpipe = ["*.so", "*.dll", "*.dylib", "csrc/"]

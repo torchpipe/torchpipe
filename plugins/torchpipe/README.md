@@ -6,6 +6,11 @@
 
 ## Pypi支持方式
 
+ uv pip install build wheel setuptools  
+  uv pip install torch cmake
+  python -c "import build_backend; print('OK')"
+   python -m build -w --no-isolation
+   
 JIT 都存入 cache 目录
 
 ### torchpipe_core
