@@ -1,4 +1,6 @@
-[group.torchpipe.core]
+version = "0.1.0"
+
+[torchpipe.core]
 
 backend = [
   "GpuTensor",
@@ -13,15 +15,15 @@ backend = [
   "CopyMakeBorderTensor"
 ]
 
-[group.torchpipe.opencv]
+[torchpipe.opencv]
 backend = ["Mat2Tensor", "Tensor2Mat", "ResizeMat", "DecodeMat", "CvtColorMat", "LetterBoxMat"]
 dependencies = ["torchpipe.core"]
 
-[group.torchpipe.nvjpeg]
+[torchpipe.nvjpeg]
 backend = ["DecodeTensor"]
 
 dependencies = ["torchpipe.core"]
 
-[group.torchpipe.tensorrt]
+[torchpipe.tensorrt]
 backend = ["TensorrtTensor", "TensorrtInferTensor"]
 dependencies = ["torchpipe.core"]

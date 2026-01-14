@@ -3,33 +3,34 @@ name = "torchpipe"
 version = "0.1.4"
 requires-python = ">=3.8"
 description = "Serving inside Pytorch"
-dependencies = ["torch", "omniback"]
+dependencies = [
+    "torch",
+    "omniback",
+    "numpy",
+    "setuptools"
+]
 
 authors = [{ name = "torchpipe team" }]
 readme = "README.md"
-license = { file = "LICENSE" }
+license = { text = "Apache-2.0" }
 classifiers = [
-  "License :: OSI Approved :: Apache Software License",
-  "Development Status :: 4 - Beta",
-  "Intended Audience :: Developers",
-  "Intended Audience :: Education",
-  "Intended Audience :: Science/Research",
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Education",
+    "Intended Audience :: Science/Research",
 ]
-
-[build-system]
-requires = ["setuptools", "torch", "cmake", "ninja","omniback", 'build','wheel']
-build-backend = "build_backend"
-backend-path = ["."]
-
-[tool.uv.extra-build-dependencies]
-torchpipe = ["setuptools"]
 
 [tool.setuptools]
 include-package-data = true
-py-modules = ["build_backend"]
 
 [tool.setuptools.packages.find]
-include = ["torchpipe*"]
+where = ["."]
+include = ["torchpipe", "torchpipe.*"]
 
 [tool.setuptools.package-data]
-torchpipe = ["*.so", "*.dll", "*.dylib", "csrc/"]
+"torchpipe" = [
+    "*.py",
+    "*.so", "*.dll", "*.dylib",
+    "csrc/**/*",
+    "csrc/**/.*"  # 包含隐藏文件（如 .gitignore，可选）
+]

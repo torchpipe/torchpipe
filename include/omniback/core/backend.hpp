@@ -274,6 +274,8 @@ OMNI_EXPORT std::unique_ptr<Backend> create_backend(
     const std::string& class_name,
     const std::string& registered_name = "");
 
+OMNI_EXPORT std::vector<std::string>  list_backends();
+
 // inline void register_backend(
 //     const std::string& aspect_name_str,
 //     std::unique_ptr<Backend>&& backend){

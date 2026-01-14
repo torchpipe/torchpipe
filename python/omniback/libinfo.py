@@ -112,6 +112,27 @@ def find_cmake_path() -> str:
     raise RuntimeError("Cannot find cmake path.")
 
 
+def find_include_paths():
+    """Find all valid include paths for C compilation."""
+    include_paths = []
+    potential_paths = [
+        _rel_top_directory() / "include",
+        _dev_top_directory() / "include",
+        _rel_top_directory() / "3rdparty" / "spdlog" / "include",
+        _dev_top_directory() / "3rdparty" / "spdlog" / "include",
+    ]
+
+    for path in potential_paths:
+        resolved_path = _resolve_and_validate(
+            paths=[path], cond=lambda p: p.is_dir())
+        if resolved_path:
+            include_paths.append(resolved_path)
+
+    if not include_paths:
+        raise RuntimeError("Cannot find any include paths.")
+
+    return include_paths
+
 def find_include_path() -> str:
     """Find header files for C compilation."""
     if ret := _resolve_and_validate(
@@ -164,14 +185,14 @@ def find_python_helper_include_path() -> str:
 
 def include_paths(with_tvm_ffi=False) -> list[str]:
     """Find all include paths needed."""
+    base_paths = find_include_paths()  # 这是您需要实现的新函数
+
     if with_tvm_ffi:
         return sorted(
-            {
-                find_include_path(),
-            } |
-            set(tvm_ffi.libinfo.include_paths())
+            set(base_paths) | set(tvm_ffi.libinfo.include_paths())
         )
-    return [find_include_path()]
+
+    return base_paths
 
 
 def load_lib_ctypes(package: str, target_name: str, mode: str) -> ctypes.CDLL:

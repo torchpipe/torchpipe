@@ -5,6 +5,7 @@
 #include "tvm/ffi/container/variant.h"
 #include <tvm/ffi/container/array.h>
 #include <tvm/ffi/error.h>
+#include <tvm/ffi/extra/stl.h>
 
 #include "omniback/py/pybackend.hpp"
 namespace om::py {
@@ -214,6 +215,7 @@ TVM_FFI_STATIC_INIT_BLOCK() {
   refl::GlobalDef().def("omniback.register", pyregister);
   refl::GlobalDef().def("omniback.get", py_get_backend);
   refl::GlobalDef().def("omniback.cleanup", []() { cleanup_backend(); });
+  refl::GlobalDef().def("omniback.list_backends", []() { return list_backends(); });
 
   refl::ObjectDef<BackendObj>()
       .def(refl::init<>())

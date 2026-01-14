@@ -99,11 +99,12 @@ def build_wheel(
         )
     return orig.build_wheel(wheel_directory, config_settings, metadata_directory)
 
+# python -m omniback.utils.build_lib
 # core
-# python build_lib.py --source-dirs ../csrc/torchplugins/ ../csrc/helper/ --include-dirs=../csrc/ --build-with-cuda --name torchpipe_core
+# python -m omniback.utils.build_lib --source-dirs csrc/torchplugins/ csrc/helper/ --include-dirs=csrc/ --build-with-cuda --name torchpipe_core
 
 # nvjpeg
-# python build_lib.py --source-dirs ../csrc/nvjpeg_torch/ --include-dirs=../csrc/ --build-with-cuda --ldflags="-lnvjpeg" --name torchpipe_nvjpeg
+# python -m omniback.utils.build_lib --source-dirs csrc/nvjpeg_torch/ --include-dirs=csrc/ --build-with-cuda --ldflags="-lnvjpeg" --name torchpipe_nvjpeg
 
 # opencv
-# python build_lib.py --no-torch --source-dirs ../csrc/mat_torch/ --include-dirs ../csrc/ /usr/local/include/opencv4/ --ldflags "-lopencv_core -lopencv_imgproc -lopencv_imgcodecs" --name torchpipe_opencv
+# python -m omniback.utils.build_lib --no-torch --source-dirs csrc/mat_torch/ --include-dirs csrc/ /usr/local/include/opencv4/ --ldflags "-lopencv_core -lopencv_imgproc -lopencv_imgcodecs" --name torchpipe_opencv

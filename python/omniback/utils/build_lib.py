@@ -64,6 +64,7 @@ def get_cpp_source(source_dir):
         source_dir = os.path.abspath(source_dir)
         for ext in ('*.cpp', '*.cc', '*.cxx'):
             source_path.extend(glob.glob(os.path.join(source_dir, '**', ext), recursive=True))
+
     return source_path
 
 def get_torch_include_paths(build_with_cuda: bool) -> Sequence[str]:
@@ -80,6 +81,15 @@ def get_cache_dir():
     return str(Path(os.environ.get("OMNIBACK_CACHE_DIR",
                             "~/.cache/omniback/")).expanduser())
 
+
+def get_cache_lib(name: str, device: str, no_torch: bool):
+    suffix = ".dll" if IS_WINDOWS else ".so"
+    return os.path.join(get_cache_dir(), get_cache_name(name, device, no_torch))+suffix
+
+
+def get_lib_name(name: str, device: str, no_torch: bool):
+    suffix = ".dll" if IS_WINDOWS else ".so"
+    return get_cache_name(name, device, no_torch)+suffix
 
 def get_cache_name(name: str, device: str, no_torch: bool):
     # resolve library name
@@ -122,7 +132,7 @@ def main() -> None:  # noqa: PLR0912, PLR0915
         '--ldflags',
         type=str,
         nargs='+',
-        default="",
+        default=[],
         help='One or more include directories to search for C++ headers'
     )
     
@@ -240,14 +250,14 @@ def main() -> None:  # noqa: PLR0912, PLR0915
                 # On Windows, use .lib format for linking
                 ldflags.extend(
                     ["c10.lib", "torch.lib", "torch_cpu.lib"])
-                # if args.build_with_cuda:
-                #     ldflags.extend(["torch_cuda.lib", "c10_cuda.lib"])
+                if args.build_with_cuda:
+                    ldflags.extend(["torch_cuda.lib", "c10_cuda.lib"])
             else:
                 # On Unix/macOS, use -l format for linking
                 ldflags.extend(
                     ["-lc10", "-ltorch"])
-                # if args.build_with_cuda:
-                #     ldflags.extend(["-ltorch_cuda", "-lc10_cuda"])
+                if args.build_with_cuda:
+                    ldflags.extend(["-ltorch_cuda", "-lc10_cuda"])
 
 
         from omniback import get_include_dirs
@@ -265,7 +275,6 @@ def main() -> None:  # noqa: PLR0912, PLR0915
         
     
         include_paths += get_include_dirs()
-
     
         include_paths = [str(x) for x in include_paths]
         include_paths = unique_paths(include_paths)
@@ -277,14 +286,15 @@ def main() -> None:  # noqa: PLR0912, PLR0915
         shutil.move(str(result_lib), final_path)
         print(f'saved to {final_path}')
 
+
 # core
-# python build_lib.py --source-dirs ../csrc/torchplugins/ ../csrc/helper/ --include-dirs=../csrc/ --build-with-cuda --name torchpipe_core
+# python -m omniback.utils.build_lib --source-dirs csrc/torchplugins/ csrc/helper/ --include-dirs=csrc/ --build-with-cuda --name torchpipe_core
 
 # nvjpeg
-# python build_lib.py --source-dirs ../csrc/nvjpeg_torch/ --include-dirs=../csrc/ --build-with-cuda --ldflags="-lnvjpeg" --name torchpipe_nvjpeg
+# python -m omniback.utils.build_lib --source-dirs csrc/nvjpeg_torch/ --include-dirs=csrc/ --build-with-cuda --ldflags="-lnvjpeg" --name torchpipe_nvjpeg
 
 # opencv
-# python build_lib.py --no-torch --source-dirs ../csrc/mat_torch/ --include-dirs ../csrc/ /usr/local/include/opencv4/ --ldflags "-lopencv_core -lopencv_imgproc -lopencv_imgcodecs" --name torchpipe_opencv
+# python -m omniback.utils.build_lib --no-torch --source-dirs csrc/mat_torch/ --include-dirs csrc/ /usr/local/include/opencv4/ --ldflags "-lopencv_core -lopencv_imgproc -lopencv_imgcodecs" --name torchpipe_opencv
 
 if __name__ == "__main__":
     main()

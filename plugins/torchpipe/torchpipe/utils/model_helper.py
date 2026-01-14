@@ -21,11 +21,12 @@ import torch
 import torch.nn as nn
 try:
     from torchvision import transforms
+    from PIL import Image
 except Exception as e:
     pass
     # print(
     #     f"Torchvision not found. Please install it to use this feature. e = {e}")
-from PIL import Image
+
 import tempfile
 import logging
 import importlib

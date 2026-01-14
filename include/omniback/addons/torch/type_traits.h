@@ -4,8 +4,8 @@
 
 #include <ATen/DLConvertor.h>
 #include <ATen/Functions.h>
-#include <torch/extension.h>
-
+// #include <torch/extension.h>
+#include <ATen/Tensor.h>
 #include "omniback/ffi/type_traits.h"
 
 namespace om::ffi {

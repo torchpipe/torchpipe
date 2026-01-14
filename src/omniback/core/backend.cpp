@@ -82,6 +82,10 @@ void unregister_backend(const std::string& aspect_name_str) {
   OMNI_INSTANCE_UNREGISTER(Backend, aspect_name_str);
 }
 
+std::vector<std::string> list_backends(){
+  return OMNI_ALL_NAMES(Backend);
+}
+
 void cleanup_backend() {
   OMNI_INSTANCE_CLEANUP(Backend);
   OMNI_CLEANUP_ALL(Backend);

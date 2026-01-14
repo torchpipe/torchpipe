@@ -28,10 +28,10 @@ classifiers = [
 keywords = ["machine learning", "inference"]
 requires-python = ">=3.8"
 
-dependencies = ["apache-tvm-ffi>=0.1.7", "fire", "tomli>=1.2.3; python_version < '3.11'"]
+dependencies = ["apache-tvm-ffi>=0.1.8", "fire", "tomli>=1.2.3; python_version < '3.11'"]
 
 [build-system]
-requires = ["scikit-build-core>=0.11.0", "apache-tvm-ffi==0.1.7","setuptools-scm"]
+requires = ["scikit-build-core>=0.11.0", "apache-tvm-ffi==0.1.8","setuptools-scm"]
 build-backend = "scikit_build_core.build"
 
 [tool.scikit-build]
