@@ -1,5 +1,6 @@
 # isort: skip_file
 
+from packaging import version
 import logging
 logger = logging.getLogger(__name__)  # type: ignore
 
@@ -78,7 +79,8 @@ def set_fast_dlpack():
             omniback.ffi.set_dlpack_exchange_api(api_ptr)
 
 
-if ORI_TVM_FFI_DISABLE_TORCH_C_DLPACK == "0":
-    os.environ["TVM_FFI_DISABLE_TORCH_C_DLPACK"] = "0"
-    
-set_fast_dlpack()
+if version.parse(torch.__version__) >= version.parse("2.4.0"):
+    if ORI_TVM_FFI_DISABLE_TORCH_C_DLPACK == "0":
+        os.environ["TVM_FFI_DISABLE_TORCH_C_DLPACK"] = "0"
+        
+    set_fast_dlpack()
