@@ -1,8 +1,9 @@
+import subprocess
+from pathlib import Path
 from omniback.utils import build_lib
 import ctypes, os, sys
 import logging
 logger = logging.getLogger(__name__)  # type: ignore
-import subprocess
 
 csrc_dir = os.path.dirname(__file__)
 def load_whl_lib(path_of_cache):
@@ -35,6 +36,141 @@ def _load_lib(name):
     else:
         return _load_lib_with_torch_cuda(name)
     return False
+
+
+def get_cache_dir():
+    cache= str(Path(os.environ.get("OMNIBACK_CACHE_DIR",
+                                   "~/.cache/omniback/")).expanduser())
+    return os.path.join(cache, "torchpipe/")
+
+def get_cv_include_lib_dir():
+    # from env
+    OPENCV_INCLUDE = os.environ.get("OPENCV_INCLUDE", None)
+    OPENCV_LIB = os.environ.get("OPENCV_LIB", None)
+    if OPENCV_INCLUDE and OPENCV_LIB:
+        if not os.path.exists(OPENCV_INCLUDE, "opencv2/core.hpp"):
+            raise RuntimeError(
+                f"can not find opencv header in dir {OPENCV_INCLUDE}")
+        if not os.path.exists(OPENCV_LIB, "libopencv_core.so"):
+            raise RuntimeError(f"can not find opencv libs in dir {OPENCV_LIB}")
+        return OPENCV_INCLUDE, OPENCV_LIB
+    # from cache
+    OPENCV_INCLUDE = OPENCV_LIB = None
+    cache_header = os.path.join(get_cache_dir(), "opencv/include/opencv4/")
+    cache_lib = os.path.join(get_cache_dir(), "opencv/lib/")
+    possible_header_dirs = [cache_header, "/usr/local/include/opencv4/"]
+    possible_lib_dirs = [cache_lib, "/usr/local/lib/"]
+    for item in possible_header_dirs:
+        if os.path.exists(os.path.join(item, "opencv2/core.hpp")):
+            OPENCV_INCLUDE = item
+            break
+    for item in possible_lib_dirs:
+        if os.path.exists(os.path.join(item, "libopencv_core.so")):
+            OPENCV_LIB = item
+            break
+    if OPENCV_INCLUDE and OPENCV_LIB:
+        return OPENCV_INCLUDE, OPENCV_LIB
+    
+    return None, None
+
+def cache_cv_dir():
+    OPENCV_VERSION = "4.5.4"
+    OPENCV_URL = f"https://codeload.github.com/opencv/opencv/zip/refs/tags/{OPENCV_VERSION}"
+    OPENCV_ZIP = f"opencv-{OPENCV_VERSION}.zip"
+    cache_dir = os.path.join(get_cache_dir(), "opencv")
+    os.makedirs(cache_dir, exist_ok=True)
+    os.chdir(cache_dir)
+            
+    OPENCV_DIR = os.path.join(cache_dir, f"opencv-{OPENCV_VERSION}")
+    if not os.path.exists(os.path.join(OPENCV_DIR, "CMakeLists.txt")):
+        if not os.path.exists(os.path.join(cache_dir, OPENCV_ZIP)):
+            import requests
+            response = requests.get(OPENCV_URL, stream=True)
+            with open(OPENCV_ZIP, "wb") as f:
+                for chunk in response.iter_content(chunk_size=8192):
+                    f.write(chunk)
+
+        # Extract OpenCV
+        print(f"Extracting {OPENCV_ZIP}...")
+        import zipfile
+        with zipfile.ZipFile(OPENCV_ZIP, "r") as zip_ref:
+            zip_ref.extractall()
+    os.chdir(OPENCV_DIR)
+    print(f"build in {OPENCV_DIR}")
+    import omniback
+    with open("CMakeLists.txt", "r+") as f:
+        content = f.read()
+        f.seek(0, 0)
+        f.write(
+            f"add_definitions(-D_GLIBCXX_USE_CXX11_ABI={int(omniback.compiled_with_cxx11_abi())})\n" + content)
+
+    os.makedirs("build", exist_ok=True)
+    os.chdir("build")
+    subprocess.run([
+        "cmake",
+        "-D", "CMAKE_BUILD_TYPE=Release",
+        "-D", "BUILD_WITH_DEBUG_INFO=OFF",
+        "-D", f"CMAKE_INSTALL_PREFIX={cache_dir}",
+        "-D", "INSTALL_C_EXAMPLES=OFF",
+        "-D", "INSTALL_PYTHON_EXAMPLES=OFF",
+        "-D", "ENABLE_NEON=OFF",
+        "-D", "BUILD_WEBP=OFF",
+        "-D", "BUILD_ITT=OFF",
+        "-D", "WITH_V4L=OFF",
+        "-D", "WITH_QT=OFF",
+        "-D", "WITH_OPENGL=OFF",
+        "-D", "BUILD_opencv_dnn=OFF",
+        "-D", "BUILD_opencv_java=OFF",
+        "-D", "BUILD_opencv_python2=OFF",
+        "-D", "BUILD_opencv_python3=ON",
+        "-D", "BUILD_NEW_PYTHON_SUPPORT=ON",
+        "-D", "BUILD_PYTHON_SUPPORT=ON",
+        "-D", "PYTHON_DEFAULT_EXECUTABLE=/usr/bin/python3",
+        "-D", "BUILD_opencv_java_bindings_generator=OFF",
+        "-D", "BUILD_opencv_python_bindings_generator=ON",
+        "-D", "BUILD_EXAMPLES=OFF",
+        "-D", "WITH_OPENEXR=OFF",
+        "-D", "WITH_JPEG=ON",
+        "-D", "BUILD_JPEG=ON",
+        "-D", "BUILD_JPEG_TURBO_DISABLE=OFF",
+        "-D", "BUILD_DOCS=OFF",
+        "-D", "BUILD_PERF_TESTS=OFF",
+        "-D", "BUILD_TESTS=OFF",
+        "-D", "BUILD_opencv_apps=OFF",
+        "-D", "BUILD_opencv_calib3d=OFF",
+        "-D", "BUILD_opencv_contrib=OFF",
+        "-D", "BUILD_opencv_features2d=OFF",
+        "-D", "BUILD_opencv_flann=OFF",
+        "-D", "BUILD_opencv_gapi=OFF",
+        "-D", "WITH_CUDA=OFF",
+        "-D", "WITH_CUDNN=OFF",
+        "-D", "OPENCV_DNN_CUDA=OFF",
+        "-D", "ENABLE_FAST_MATH=1",
+        "-D", "WITH_CUBLAS=0",
+        "-D", "BUILD_opencv_gpu=OFF",
+        "-D", "BUILD_opencv_ml=OFF",
+        "-D", "BUILD_opencv_nonfree=OFF",
+        "-D", "BUILD_opencv_objdetect=OFF",
+        "-D", "BUILD_opencv_photo=OFF",
+        "-D", "BUILD_opencv_stitching=OFF",
+        "-D", "BUILD_opencv_superres=OFF",
+        "-D", "BUILD_opencv_ts=OFF",
+        "-D", "BUILD_opencv_video=OFF",
+        "-D", "BUILD_videoio_plugins=OFF",
+        "-D", "BUILD_opencv_videostab=OFF",
+        "-D", "WITH_IPP=ON",
+        "-D", "WITH_MKL=ON",        # 启用 Intel MKL
+        "-D", "MKL_USE_TBB=ON",
+        "-D", "WITH_TBB=ON",
+        "-D", "BUILD_TBB=ON",
+        "-D", "WITH_TURBOJPEG=ON",
+        "-D", "WITH_LAPACK=ON",
+        "-D", "WITH_BLAS=ON",
+        ".."
+    ], check=True)
+    subprocess.run(["make", "-j4"], check=True)
+    subprocess.run(["make", "install"], check=True)
+    return get_cv_include_lib_dir()
 
 def _build_lib(name):
     logger.warning(
@@ -101,6 +237,13 @@ def _build_lib(name):
  
     elif name == "torchpipe_opencv":
         # python -m omniback.utils.build_lib --no-torch --source-dirs csrc/mat_torch/ --include-dirs csrc/ /usr/local/include/opencv4/ --ldflags "-lopencv_core -lopencv_imgproc -lopencv_imgcodecs" --name torchpipe_opencv
+        cv_inc, cv_lib = get_cv_include_lib_dir()
+        if cv_inc is None:
+            cv_inc, cv_lib = cache_cv_dir()
+        if cv_inc is None:
+            raise RuntimeError(
+                "can not find opencv. set it through OPENCV_INCLUDE && OPENCV_LIB")
+            
         subprocess.run(
             [
                 sys.executable,
@@ -110,10 +253,9 @@ def _build_lib(name):
                 os.path.join(csrc_dir, "csrc/mat_torch/"),
                 "--include-dirs",
                 os.path.join(csrc_dir, "csrc/"),
-                f"/usr/local/include/opencv4/",
-                "--build-with-cuda",
+                f"{cv_inc}",
                 "--no-torch",
-                "--ldflags=-lopencv_core -lopencv_imgproc -lopencv_imgcodecs",
+                f"--ldflags=-L{cv_lib} -lopencv_core -lopencv_imgproc -lopencv_imgcodecs",
                 "--name",
                 "torchpipe_opencv"
             ],

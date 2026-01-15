@@ -13,14 +13,16 @@ cd torchpipe/
 img_name=nvcr.io/nvidia/pytorch:25.05-py3 # you can also try 24.05, 23.05, 22.12
 
 docker run --rm --gpus all -it --rm --network host \
-    -v $(pwd):/workspace/ --privileged \
+    -v $(pwd):/workspace/ --ipc=host --ulimit memlock=-1 --ulimit stack=67108864\
     -w /workspace/ \
     $img_name \
     bash
 
 # pip config set global.index-url https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple
+cd /workspace && pip install . && cd /workspace/plugins/torchpipe && pip install .
 
-cd /workspace/plugins/torchpipe && python -m build -w &&  
+# JIT compile built-in backends
+python -c "import torchpipe"
 ```
 
 #### test on 25.06
