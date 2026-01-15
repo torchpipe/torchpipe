@@ -31,6 +31,15 @@ def _load_lib(name):
         if load_whl_lib(torchpipe_opencv):
             return True
         if os.path.exists(torchpipe_opencv):
+            cache_lib = os.path.join(get_cache_dir(), "opencv/lib")
+            OPENCV_LIB = os.environ.get("OPENCV_LIB", cache_lib)
+            
+            ctypes.CDLL(os.path.join(OPENCV_LIB, "libopencv_core.so"), mode=ctypes.RTLD_GLOBAL)
+            ctypes.CDLL(os.path.join(OPENCV_LIB, "libopencv_imgproc.so"),
+                        mode=ctypes.RTLD_GLOBAL)
+            ctypes.CDLL(os.path.join(OPENCV_LIB, "libopencv_core.so"),
+                        mode=ctypes.RTLD_GLOBAL)
+                
             ctypes.CDLL(torchpipe_opencv, mode=ctypes.RTLD_GLOBAL)
             return True
     else:
@@ -172,14 +181,6 @@ def cache_cv_dir():
     subprocess.run(["make", "install"], check=True)
     cache_header = os.path.join(cache_dir, "include/opencv4/")
     cache_lib = os.path.join(cache_dir, "lib/")
-    os.environ['LD_LIBRARY_PATH'] = cache_lib + \
-        ':' + os.environ.get('LD_LIBRARY_PATH', '')
-
-    # ctypes.CDLL(os.path.join(cache_lib, "libopencv_core.so"), mode=ctypes.RTLD_GLOBAL)
-    # ctypes.CDLL(os.path.join(cache_lib, "libopencv_imgproc.so"),
-    #             mode=ctypes.RTLD_GLOBAL)
-    # ctypes.CDLL(os.path.join(cache_lib, "libopencv_core.so"),
-                # mode=ctypes.RTLD_GLOBAL)
     return cache_header, cache_lib
 
 def _build_lib(name):
