@@ -19,7 +19,7 @@
 set -eux
 
 arch=$1
-python_version=$2
+python_version=3.8
 
 os=$(uname -s)
 
@@ -59,64 +59,37 @@ function get_torch_url() {
 }
 
 
-function check_availability() {
-    local torch_version="$1"
-    case "$torch_version" in
-        "2.4")
-            ! [[ "$arch" == "aarch64" || "$python_version" == "cp313" || "$python_version" == "cp314" ]]
-            ;;
-        "2.5")
-            ! [[ ("$os" == "Linux" && ("$arch" == "aarch64" || "$python_version" == "cp314")) || ("$os" == "Darwin" && ("$python_version" == "cp313" || "$python_version" == "cp314")) ]]
-            ;;
-        "2.6")
-            ! [[ "$arch" == "aarch64" || "$python_version" == "cp314" ]]
-            ;;
-        "2.7" | "2.8")
-            ! [[ "$python_version" == "cp314" ]]
-            ;;
-        "2.9")
-            ! [[ "$python_version" == "cp39" ]]
-            ;;
-        *)
-            echo "Unknown or unsupported torch version: $torch_version" >&2
-            return 1
-            ;;
-    esac
-}
-
-
 function build_local_libs() {
     local torch_version=$1
-    if check_availability "$torch_version"; then
-        uv venv "$omniback"/.venv/torch"$torch_version" --python "$python_version"
-        source "$omniback"/.venv/torch"$torch_version"/bin/activate
-        uv pip install setuptools ninja
-        if [[ "$os" == "Linux" ]]; then
-            uv pip install torch=="$torch_version" --index-url "$(get_torch_url "$torch_version")"
-        else
-            uv pip install torch=="$torch_version"
-        fi
-        uv pip install -v .
-        python -m omniback.utils.build_libs --output-dir "$omniback"/lib
-        if [[ "$os" == "Linux" ]]; then
-            python -m omniback.utils.build_libs --output-dir "$omniback"/lib --build-with-cuda
-        fi
-        ls "$omniback"/lib
-        deactivate
-        rm -rf "$omniback"/.venv/torch"$torch_version"
+
+    uv venv "$omniback"/.venv/torch"$torch_version" --python "$python_version"
+    source "$omniback"/.venv/torch"$torch_version"/bin/activate
+    uv pip install setuptools ninja
+    if [[ "$os" == "Linux" ]]; then
+        uv pip install torch=="$torch_version" --index-url "$(get_torch_url "$torch_version")"
     else
-        echo "Skipping build for torch $torch_version on $arch with python $python_version as it is not available."
+        uv pip install torch=="$torch_version"
     fi
+    uv pip install -v .
+    python -m omniback.utils.build_libs --output-dir "$omniback"/lib
+    if [[ "$os" == "Linux" ]]; then
+        python -m omniback.utils.build_libs --output-dir "$omniback"/lib --build-with-cuda
+    fi
+    ls "$omniback"/lib
+    deactivate
+    rm -rf "$omniback"/.venv/torch"$torch_version"
+
 }
 
 mkdir -p "$omniback"/.venv
 mkdir -p "$omniback"/lib
-torch_versions=("2.4" "2.5" "2.6" "2.7" "2.8" "2.9")
-for version in "${torch_versions[@]}"; do
-    build_local_libs "$version"
-done
 
-cp "$omniback"/lib/*.so "$torchpipe"/torchpipe
+# torch_versions=("2.4" "2.5" "2.6" "2.7" "2.8" "2.9")
+# for version in "${torch_versions[@]}"; do
+#     build_local_libs "$version"
+# done
+
+# cp "$omniback"/lib/*.so "$torchpipe"/torchpipe
 uv venv "$omniback"/.venv/build --python "$python_version"
 source "$omniback"/.venv/build/bin/activate
 uv pip install build wheel
@@ -124,11 +97,12 @@ cd "$torchpipe"
 python -m build -w
 ls dist
 if [[ "$os" == "Linux" ]]; then
-    python -m wheel tags dist/*.whl --python-tag="$python_version" --abi-tag="$python_version" --remove
+    # python -m wheel tags dist/*.whl --python-tag="$python_version" --abi-tag="$python_version" --remove
     uv pip install auditwheel
+    cp dist/*.whl wheelhouse/
     auditwheel repair --exclude libtorch.so --exclude libtorch_cpu.so --exclude libc10.so --exclude libtorch_python.so --exclude libtorch_cuda.so --exclude libc10_cuda.so dist/*.whl -w wheelhouse
 else
-    python -m wheel tags dist/*.whl --python-tag="$python_version" --abi-tag="$python_version" --platform-tag=macosx_11_0_arm64 --remove
+    # python -m wheel tags dist/*.whl --python-tag="$python_version" --abi-tag="$python_version" --platform-tag=macosx_11_0_arm64 --remove
     uv pip install delocate
     delocate-wheel -v --ignore-missing-dependencies --exclude libtorch.dylib,libtorch_cpu.dylib,libc10.dylib,libtorch_python.dylib dist/*.whl -w wheelhouse
 fi

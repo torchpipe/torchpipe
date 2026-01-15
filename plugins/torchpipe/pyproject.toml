@@ -1,6 +1,7 @@
 [project]
 name = "torchpipe"
-version = "0.1.4"
+dynamic = ["version"]
+
 requires-python = ">=3.8"
 description = "Serving inside Pytorch"
 dependencies = [
@@ -20,8 +21,25 @@ classifiers = [
     "Intended Audience :: Science/Research",
 ]
 
+[build-system]
+requires = [
+    "setuptools>=61.0",
+    "setuptools_scm[toml]>=6.2",
+    "wheel"
+]
+build-backend = "setuptools.build_meta"
+
 [tool.setuptools]
 include-package-data = true
+
+[tool.setuptools_scm]
+version_file = "torchpipe/_version.py"
+write_to = "torchpipe/_version.py"
+fallback_version = "0.0.1-dev"
+tag_regex = "^t(.*)"
+local_scheme = "no-local-version"
+git_describe_command = ["git", "describe", "--tags", "--long", "--match", "t*"]
+
 
 [tool.setuptools.packages.find]
 where = ["."]
