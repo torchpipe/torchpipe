@@ -122,12 +122,12 @@ def cache_cv_dir():
         "-D", "BUILD_opencv_dnn=OFF",
         "-D", "BUILD_opencv_java=OFF",
         "-D", "BUILD_opencv_python2=OFF",
-        "-D", "BUILD_opencv_python3=ON",
-        "-D", "BUILD_NEW_PYTHON_SUPPORT=ON",
-        "-D", "BUILD_PYTHON_SUPPORT=ON",
+        "-D", "BUILD_opencv_python3=OFF",
+        "-D", "BUILD_NEW_PYTHON_SUPPORT=OFF",
+        "-D", "BUILD_PYTHON_SUPPORT=OFF",
         "-D", "PYTHON_DEFAULT_EXECUTABLE=/usr/bin/python3",
         "-D", "BUILD_opencv_java_bindings_generator=OFF",
-        "-D", "BUILD_opencv_python_bindings_generator=ON",
+        "-D", "BUILD_opencv_python_bindings_generator=OFF",
         "-D", "BUILD_EXAMPLES=OFF",
         "-D", "WITH_OPENEXR=OFF",
         "-D", "WITH_JPEG=ON",
@@ -170,7 +170,17 @@ def cache_cv_dir():
     ], check=True)
     subprocess.run(["make", "-j4"], check=True)
     subprocess.run(["make", "install"], check=True)
-    return get_cv_include_lib_dir()
+    cache_header = os.path.join(cache_dir, "include/opencv4/")
+    cache_lib = os.path.join(cache_dir, "lib/")
+    os.environ['LD_LIBRARY_PATH'] = cache_lib + \
+        ':' + os.environ.get('LD_LIBRARY_PATH', '')
+
+    # ctypes.CDLL(os.path.join(cache_lib, "libopencv_core.so"), mode=ctypes.RTLD_GLOBAL)
+    # ctypes.CDLL(os.path.join(cache_lib, "libopencv_imgproc.so"),
+    #             mode=ctypes.RTLD_GLOBAL)
+    # ctypes.CDLL(os.path.join(cache_lib, "libopencv_core.so"),
+                # mode=ctypes.RTLD_GLOBAL)
+    return cache_header, cache_lib
 
 def _build_lib(name):
     logger.warning(
