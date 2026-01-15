@@ -33,16 +33,16 @@ def _load_lib(name):
         if os.path.exists(torchpipe_opencv):
             try:
                 ctypes.CDLL(torchpipe_opencv, mode=ctypes.RTLD_GLOBAL)
-            except Exception as e:
-                print(e)
+            except OSError:
                 cache_lib = os.path.join(get_cache_dir(), "opencv/lib")
                 OPENCV_LIB = os.environ.get("OPENCV_LIB", cache_lib)
+                core = Path(OPENCV_LIB)/"libopencv_core.so"
+                imgproc = Path(OPENCV_LIB)/"libopencv_imgproc.so"
+                imgcodecs = Path(OPENCV_LIB)/"libopencv_imgcodecs.so"
                 
-                ctypes.CDLL(os.path.join(OPENCV_LIB, "libopencv_core.so"), mode=ctypes.RTLD_GLOBAL)
-                ctypes.CDLL(os.path.join(OPENCV_LIB, "libopencv_imgproc.so"),
-                            mode=ctypes.RTLD_GLOBAL)
-                ctypes.CDLL(os.path.join(OPENCV_LIB, "libopencv_core.so"),
-                            mode=ctypes.RTLD_GLOBAL)
+                ctypes.CDLL(core.resolve(), mode=ctypes.RTLD_GLOBAL)
+                ctypes.CDLL(imgproc.resolve(), mode=ctypes.RTLD_GLOBAL)
+                ctypes.CDLL(imgcodecs.resolve(), mode=ctypes.RTLD_GLOBAL)
                     
                 ctypes.CDLL(torchpipe_opencv, mode=ctypes.RTLD_GLOBAL)
             return True
