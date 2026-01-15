@@ -182,7 +182,7 @@ int static inline torch_pinned_free_async(
   return 0;
 }
 
-std::string get_sm();
+// std::string get_sm();
 
 // torch::Tensor fix_and_cat_tensor(std::vector<torch::Tensor>& data,
 //                                  const NetIOInfo& info);

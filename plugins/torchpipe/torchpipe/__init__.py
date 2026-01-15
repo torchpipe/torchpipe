@@ -42,6 +42,7 @@ torch.set_num_threads(torch.get_num_threads())
 # -----------------------
 from .load_libs import _load_or_build_lib 
 
+torch.cuda.is_available()
 try:
     _load_or_build_lib("torchpipe_core")
     _load_or_build_lib("torchpipe_nvjpeg")

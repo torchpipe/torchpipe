@@ -582,10 +582,10 @@ torch::Tensor try_quick_cat(std::vector<torch::Tensor> resized_inputs) {
   return true_input;
 }
 
-std::string get_sm() {
-  cudaDeviceProp* prop = at::cuda::getCurrentDeviceProperties();
-  return std::to_string(prop->major) + "." + std::to_string(prop->minor);
-}
+// std::string get_sm() {
+//   cudaDeviceProp* prop = at::cuda::getCurrentDeviceProperties();
+//   return std::to_string(prop->major) + "." + std::to_string(prop->minor);
+// }
 
 // Function to ensure the tensor is of the desired type
 void fix_tensor_type(torch::Tensor& input, NetIOInfo::DataType in_type) {
