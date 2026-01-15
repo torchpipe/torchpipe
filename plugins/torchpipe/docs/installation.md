@@ -20,7 +20,7 @@ docker run --rm --gpus all -it --rm --network host \
 
 # pip config set global.index-url https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple
 
-cd /workspace/plugins/torchpipe && python setup.py install --cv2
+cd /workspace/plugins/torchpipe && python -m build -w &&  
 ```
 
 #### test on 25.06

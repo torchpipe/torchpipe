@@ -94,11 +94,14 @@ uv venv "$omniback"/.venv/build --python "$python_version"
 source "$omniback"/.venv/build/bin/activate
 uv pip install build wheel
 cd "$torchpipe"
+mkdir -p wheelhouse/
+rm -r dist/
 python -m build -w
 ls dist
 if [[ "$os" == "Linux" ]]; then
     # python -m wheel tags dist/*.whl --python-tag="$python_version" --abi-tag="$python_version" --remove
     uv pip install auditwheel
+    ls dist/*.whl
     cp dist/*.whl wheelhouse/
     auditwheel repair --exclude libtorch.so --exclude libtorch_cpu.so --exclude libc10.so --exclude libtorch_python.so --exclude libtorch_cuda.so --exclude libc10_cuda.so dist/*.whl -w wheelhouse
 else
