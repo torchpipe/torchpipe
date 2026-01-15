@@ -47,7 +47,7 @@ try:
     _load_or_build_lib("torchpipe_nvjpeg")
     _load_or_build_lib("torchpipe_opencv")
 except Exception as e:
-    logger.warning(f'Failed to JIT compile builtin extensions: \n{e}')
+    logger.warning(f'Failed to load or JIT compile builtin extensions: \n{e}')
 
 
 # -----------------------

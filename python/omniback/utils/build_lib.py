@@ -255,7 +255,7 @@ def main() -> None:  # noqa: PLR0912, PLR0915
             else:
                 # On Unix/macOS, use -l format for linking
                 ldflags.extend(
-                    ["-lc10", "-ltorch" "-ltorch_cpu"])
+                    ["-lc10", "-ltorch", "-ltorch_cpu"])
                 if args.build_with_cuda:
                     ldflags.extend(["-ltorch_cuda", "-lc10_cuda"])
 
