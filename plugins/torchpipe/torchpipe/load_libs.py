@@ -13,26 +13,18 @@ def load_whl_lib(path_of_cache):
         return True
     return False
 
+def _load_lib_with_torch_cuda(name):
+    local_lib = build_lib.get_cache_lib(
+        name, "cuda", False)
+    if load_whl_lib(local_lib):
+            return True
+    if os.path.exists(local_lib):
+        ctypes.CDLL(local_lib, mode=ctypes.RTLD_GLOBAL)
+        return True
+    return False
+
 def _load_lib(name):
-    if name == "torchpipe_core":
-        torchpipe_core = build_lib.get_cache_lib(
-            name, "cuda", False)
-        if load_whl_lib(torchpipe_core):
-            return True
-        if os.path.exists(torchpipe_core):
-            ctypes.CDLL(torchpipe_core, mode=ctypes.RTLD_GLOBAL)
-            return True
-        
-    elif name == "torchpipe_nvjpeg":
-        torchpipe_nvjpeg = build_lib.get_cache_lib(
-            "torchpipe_nvjpeg", "cuda", False)
-        if load_whl_lib(torchpipe_nvjpeg):
-            return True
-        if os.path.exists(torchpipe_nvjpeg):
-            ctypes.CDLL(torchpipe_nvjpeg, mode=ctypes.RTLD_GLOBAL)
-            return True
-        
-    elif name == "torchpipe_opencv":
+    if name == "torchpipe_opencv":
         torchpipe_opencv = build_lib.get_cache_lib(
             "torchpipe_opencv", "", True)
         if load_whl_lib(torchpipe_opencv):
@@ -40,7 +32,8 @@ def _load_lib(name):
         if os.path.exists(torchpipe_opencv):
             ctypes.CDLL(torchpipe_opencv, mode=ctypes.RTLD_GLOBAL)
             return True
-    
+    else:
+        return _load_lib_with_torch_cuda(name)
     return False
 
 def _build_lib(name):
@@ -85,6 +78,26 @@ def _build_lib(name):
             # TVM_FFI_DISABLE_TORCH_C_DLPACK
             env={**os.environ, "EXAMPLE_ENV": "1"},
         )
+    elif name == "torchpipe_tensorrt":
+        # python -m omniback.utils.build_lib --source-dirs csrc/tensorrt_torch/ --include-dirs=csrc/ --build-with-cuda --ldflags="-lnvinfer -lnvonnxparser  -lnvinfer_plugin" --name torchpipe_tensorrt
+        subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "omniback.utils.build_lib",
+                "--source-dirs",
+                os.path.join(csrc_dir, "csrc/tensorrt_torch/"),
+                "--include-dirs",
+                os.path.join(csrc_dir, "csrc/"),
+                "--build-with-cuda",
+                "--ldflags=-lnvinfer -lnvonnxparser -lnvinfer_plugin",
+                "--name",
+                "torchpipe_tensorrt"
+            ],
+            check=True,
+            # TVM_FFI_DISABLE_TORCH_C_DLPACK
+            env={**os.environ, "EXAMPLE_ENV": "1"},
+        )
  
     elif name == "torchpipe_opencv":
         # python -m omniback.utils.build_lib --no-torch --source-dirs csrc/mat_torch/ --include-dirs csrc/ /usr/local/include/opencv4/ --ldflags "-lopencv_core -lopencv_imgproc -lopencv_imgcodecs" --name torchpipe_opencv
@@ -110,6 +123,15 @@ def _build_lib(name):
     else:
         raise RuntimeError(f"Unsupported lib: {name}")
 
+
+def _load_or_build_lib_skip_if_error(name):
+    try:
+        return _load_or_build_lib(name)
+    except Exception as e:
+        logger.warning(
+            f'Failed to load or JIT compile `{name}` extensions: \n{e}')
+
+        
 def _load_or_build_lib(name):
     if not _load_lib(name):
         _build_lib(name)

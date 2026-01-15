@@ -24,7 +24,8 @@
 
 #include <ATen/cuda/CUDAEvent.h>
 #include <c10/cuda/CUDAStream.h> // 必须包含此头文件
-#include <torch/torch.h>
+// #include <torch/torch.h>
+#include <torch/types.h>
 #include "c10/cuda/CUDAGuard.h"
 
 namespace nvinfer1 {
@@ -267,7 +268,7 @@ int32_t TorchPlugin::enqueue(
   // 1. 解析输入张量
   //----------------------------------------------
   const int nbInputs = torch_params_.num_input;
-  std::vector<torch::Tensor> input_tensors;
+  std::vector<at::Tensor> input_tensors;
   for (int i = 0; i < nbInputs; ++i) { // 使用函数参数nbInputs
     const PluginTensorDesc& desc = inputDesc[i];
 
@@ -312,7 +313,7 @@ int32_t TorchPlugin::enqueue(
             const_cast<void*>(inputs[i]),
             sizes,
             strides,
-            torch::TensorOptions().dtype(dtype).device(
+            at::TensorOptions().dtype(dtype).device(
                 torch::kCUDA, device_id)));
   }
 
@@ -320,7 +321,7 @@ int32_t TorchPlugin::enqueue(
   // 2. 构造输出张量容器
   //----------------------------------------------
   const int nbOutputs = torch_params_.num_output;
-  std::vector<torch::Tensor> output_tensors;
+  std::vector<at::Tensor> output_tensors;
   for (int o = 0; o < nbOutputs; ++o) { // 使用函数参数nbOutputs
     const PluginTensorDesc& desc = outputDesc[o];
 
@@ -365,7 +366,7 @@ int32_t TorchPlugin::enqueue(
             outputs[o],
             sizes,
             strides,
-            torch::TensorOptions().dtype(dtype).device(
+            at::TensorOptions().dtype(dtype).device(
                 torch::kCUDA, device_id)));
   }
   bool in_err = false;
@@ -379,18 +380,12 @@ int32_t TorchPlugin::enqueue(
           workspace,
           {(long int)(torch_params_.workspace_size)},
           {1},
-          torch::TensorOptions()
-              .dtype(torch::kByte)
-              .device(torch::kCUDA, device_id));
+          at::TensorOptions()
+              .dtype(c10::kByte)
+              .device(c10::kCUDA, device_id));
     }
     if (dependency_)
-      dependency_->forward({io}); // 可能抛出Python异常
-  } catch (const pybind11::error_already_set& e) {
-    SPDLOG_ERROR("Python error: {}", e.what());
-    // e.restore(); // 保持Python错误状态
-    // PyErr_Print(); // 可选：将错误打印到标准错误流
-    // return cudaErrorUnknown;
-    in_err = true;
+      dependency_->forward({io}); // todo: 可能抛出Python异常 测试tvm_ffi
   } catch (const std::exception& e) { // 其他C++异常
     SPDLOG_ERROR("C++ runtime error: {}", e.what());
     // return cudaErrorUnknown;
