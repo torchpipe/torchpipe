@@ -128,6 +128,10 @@ def cache_cv_dir():
         "-D", "INSTALL_PYTHON_EXAMPLES=OFF",
         "-D", "ENABLE_NEON=OFF",
         "-D", "BUILD_WEBP=OFF",
+        "-D", "WITH_WEBP=OFF",
+        "-D", "OPENCV_WEBP=OFF",
+        "-D", "OPENCV_IO_ENABLE_WEBP=OFF",
+        "-D", "HAVE_WEBP=OFF",
         "-D", "BUILD_ITT=OFF",
         "-D", "WITH_V4L=OFF",
         "-D", "WITH_QT=OFF",
@@ -149,6 +153,8 @@ def cache_cv_dir():
         "-D", "BUILD_DOCS=OFF",
         "-D", "BUILD_PERF_TESTS=OFF",
         "-D", "BUILD_TESTS=OFF",
+        "-D", "WITH_PNG=OFF",      # 如果不需要 PNG
+        "-D", "WITH_TIFF=OFF",     # 如果不需要 TIFF
         "-D", "BUILD_opencv_apps=OFF",
         "-D", "BUILD_opencv_calib3d=OFF",
         "-D", "BUILD_opencv_contrib=OFF",
