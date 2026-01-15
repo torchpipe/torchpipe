@@ -111,16 +111,13 @@ def cache_cv_dir():
     os.chdir(OPENCV_DIR)
     print(f"build in {OPENCV_DIR}")
     import omniback
-    with open("CMakeLists.txt", "r+") as f:
-        content = f.read()
-        f.seek(0, 0)
-        f.write(
-            f"add_definitions(-D_GLIBCXX_USE_CXX11_ABI={int(omniback.compiled_with_cxx11_abi())})\n" + content)
-
+    abi_flag = int(omniback.compiled_with_cxx11_abi())
+    
     os.makedirs("build", exist_ok=True)
     os.chdir("build")
     subprocess.run([
         "cmake",
+        "-DCMAKE_CXX_FLAGS=-D_GLIBCXX_USE_CXX11_ABI=" + str(abi_flag),
         "-D", "CMAKE_BUILD_TYPE=Release",
         "-D", "BUILD_WITH_DEBUG_INFO=OFF",
         "-D", f"CMAKE_INSTALL_PREFIX={cache_dir}",
