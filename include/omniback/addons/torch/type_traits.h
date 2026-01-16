@@ -13,14 +13,14 @@
 #include <ATen/ATen.h>
 #include <ATen/dlpack.h>
 
-#if defined(DLPACK_MAJOR_VERSION) && \
-    (DLPACK_MAJOR_VERSION * 100 + DLPACK_MINOR_VERSION * 10 >= 130)
-#include <ATen/DLConvertor.h>
-#else
+#if TORCH_VERSION_MAJOR == 1 && TORCH_VERSION_MINOR <= 11
+// for torch<=1.11. see https://github.com/pytorch/pytorch/issues/82823
 namespace at {
  DLManagedTensor* toDLPack(const Tensor& src);
- Tensor fromDLPack(const DLManagedTensor* src);
+ Tensor fromDLPack(DLManagedTensor* src);
 }
+#else
+#include <ATen/DLConvertor.h>
 #endif
 
 namespace om::ffi {

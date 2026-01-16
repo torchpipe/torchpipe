@@ -20,7 +20,7 @@ docker run --rm --gpus all -it --rm --network host \
 
 # pip config set global.index-url https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple
 # python -m pip install --upgrade pip # for 23.05, 22.12
-cd /workspace && pip install . && cd /workspace/plugins/torchpipe && pip install . # --no-build-isolation
+cd /workspace && pip install . && cd /workspace/plugins/torchpipe && pip install . #  --no-deps --no-build-isolation 
 
 # JIT compile built-in backends
 python -c "import torchpipe"
@@ -49,6 +49,9 @@ python setup.py install --cv2
 git clone https://github.com/torchpipe/torchpipe.git      
 cd torchpipe/plugins/torchpipe
 
+
+
+
 python setup.py install --cv2
 # by default, torchpipe will check torch._C._GLIBCXX_USE_CXX11_ABI to set compilation options
 
@@ -76,7 +79,7 @@ uv venv # --python 3.11
 source .venv/bin/activate # deactivate by 'deactivate' command if needed
 uv pip install "torch" omniback
 
-python setup.py install --cv2
+pip install .
 cd tests && pytest
 ```
 
@@ -84,18 +87,26 @@ cd tests && pytest
 
 
 
-### Rebuild the core library Omniback
+### Rebuild the core library Omniback: No isolation
 Omniback is usually not needed to be rebuilt.
 
  However, if you want to modify the core library or encounter any compatibility issues, you can rebuild Omniback first.
 
 ```bash
-git clone https://github.com/torchpipe/torchpipe.git --recurse-submodules
+git clone https://github.com/torchpipe/torchpipe.git --recursive
 cd torchpipe/
 
-rm -rf dist/ && python -m build && pip install dist/*.whl
+python -m pip install --upgrade pip 
+pip install scikit_build_core fire apache-tvm-ffi setuptools-scm
 
-cd tests && pytest
+pip install . --no-deps --no-build-isolation -v
+
+cd plugins/torchpipe
+
+pip install . --no-deps --no-build-isolation -v 
+
+python -c "import torchpipe"
+
 ```
 
 ### Dependency Compatibility
@@ -104,7 +115,7 @@ cd tests && pytest
 | Library |  Required Version | Recommended Version | Notes |
 | :--- | :--- | :--- | :--- |
 | **TensorRT** | [`8.5`, `~10.9`] | `9.3`, `10.9` | Not all version tested |
-| **OpenCV** | - | `>=4.5.0` |  |
-| **PyTorch** | - | `>=2.7.0` |  |
+| **OpenCV** | `>=4` | `~=4.5.0` |  |
+| **PyTorch** | `>=1.10.2` | `~=2.7.0` |  |
 | **CUDA** |   [`11`,`12`] |  |  |
 
