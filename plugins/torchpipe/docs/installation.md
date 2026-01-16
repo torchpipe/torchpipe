@@ -1,8 +1,11 @@
 <!-- ## Installation -->
 # Installation
 
+pip install torchpipe
+python -c "import torchpipe"
 
 
+## build from source
 ### Inside NGC Docker Containers
 
 #### test on 25.05, 24.05, 23.05, and 22.12
@@ -46,9 +49,7 @@ python setup.py install --cv2
 
 ### Quick Installation
 ```bash
-git clone https://github.com/torchpipe/torchpipe.git      
-cd torchpipe/plugins/torchpipe
-
+pip install torchpipe
 
 
 
@@ -97,7 +98,8 @@ git clone https://github.com/torchpipe/torchpipe.git --recursive
 cd torchpipe/
 
 python -m pip install --upgrade pip 
-pip install scikit_build_core fire apache-tvm-ffi setuptools-scm
+#  python -c "import torch; print(torch.__version__,torch.__file__, int(torch._C._GLIBCXX_USE_CXX11_ABI))"
+pip install --upgrade scikit_build_core fire ninja setuptools-scm setuptools apache-tvm-ffi 
 
 pip install . --no-deps --no-build-isolation -v
 

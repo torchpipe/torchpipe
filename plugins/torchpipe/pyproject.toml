@@ -30,6 +30,13 @@ requires = [
 ]
 build-backend = "setuptools.build_meta"
 
+[project.optional-dependencies]
+test = [
+    "onnx-graphsurgeon>=0.5.8",  
+    "onnxslim",
+    "pytest",          
+]
+
 [tool.setuptools]
 include-package-data = true
 
