@@ -6,6 +6,8 @@
 #include <ATen/Functions.h>
 // #include <torch/extension.h>
 #include <ATen/Tensor.h>
+#include <torch/version.h>
+
 #include "omniback/ffi/type_traits.h"
 
 
