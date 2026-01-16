@@ -250,8 +250,8 @@ def main() -> None:  # noqa: PLR0912, PLR0915
             from torch.utils.cpp_extension import CUDA_HOME
             if not CUDA_HOME is None:
                 cuda_lib_dir = os.path.join(CUDA_HOME, "lib64")
-                dirs = glob.glob(os.path.join(CUDA_HOME, "**/*/lib/stubs"))
-                assert len(dirs) == 1
+                # dirs = glob.glob(os.path.join(CUDA_HOME, "**/*/lib/stubs"))
+                # assert len(dirs) == 1
                 if IS_WINDOWS:
                     ldflags.append(f"/LIBPATH:{cuda_lib_dir}")
                 else:

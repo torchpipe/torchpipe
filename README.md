@@ -74,40 +74,47 @@ thread_safe_pipe(data) # <-- this is thread-safe
 result = data['result']
 ```
 
-## Setup
+## Installation
 
-> Note: compiling torchpipe depends on the TensorRT C++ API. Please follow the [TensorRT Installation Guide](https://docs.nvidia.com/deeplearning/tensorrt/install-guide/index.html).  You may also try installing torchpipe inside one of the NGC PyTorch docker containers(e.g. nvcr.io/nvidia/pytorch:25.05-py3).
+The library can be installed simply via:
 
-### Installation
-To install the torchpipe Python library, call the following
-
-- [Inside NGC Docker Containers](./README.md#inside-ngc-docker-containers)
-- [Quick Installation](./plugins/torchpipe/docs/installation.md#quick-installation)
-- [uv environment](./plugins/torchpipe/docs/installation.md#uv-environment) 
-- [Rebuild the core library Omniback](./plugins/torchpipe/docs/installation.md#rebuild-the-core-library-omniback).
-
-
-#### Inside NGC Docker Containers
-#### test on 25.05, 24.05, 23.05, and 22.12
 ```bash
-git clone https://github.com/torchpipe/torchpipe.git
-cd torchpipe/
-
-img_name=nvcr.io/nvidia/pytorch:25.05-py3
-
-docker run --rm --gpus all -it --rm --network host \
-    -v $(pwd):/workspace/ --privileged \
-    -w /workspace/ \
-    $img_name \
-    bash
-
-# pip config set global.index-url https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple
-
-cd /workspace/plugins/torchpipe && python setup.py install --cv2
+pip install torch>=2.3 torchpipe
 ```
 
-> For [other NGC docker containers](./plugins/torchpipe/docs/installation.md#inside-ngc-docker-containers).
+However, the backends it introduces will be JIT-compiled and cached:
 
+```bash
+python -c "import torchpipe"
+```
+
+There are one core backend group(`torchpipe_core`) and three optional groups (`torchpipe_opencv`, `torchpipe_nvjpeg`, and `torchpipe_tensorrt`) with different dependencies. For details, see [here](plugins/torchpipe/group-torchpipe.toml).
+
+Dependencies such as OpenCV and TensorRT can be provided in the following ways:
+
+- **Via NGC Docker containers (recommended):**
+ > test on 25.05, 25.06, ~~24.05, 23.05, and 22.12~~
+  ```bash
+  img_name=nvcr.io/nvidia/pytorch:25.05-py3
+
+  docker run --rm --gpus all -it --network host \
+      -v $(pwd):/workspace/ --ipc=host --ulimit memlock=-1 --ulimit stack=67108864 \
+      -w /workspace/ \
+      $img_name \
+      bash
+
+  pip install torchpipe
+  python -c "import torchpipe"
+  ```
+
+- **By providing environment variables (WIP):**  
+  Users can specify paths via the following environment variables:  
+  `OPENCV_INCLUDE`, `OPENCV_LIB`, `TENSORRT_INCLUDE`, `TENSORRT_LIB`.
+
+- **Automatic download (WIP):**  
+  The build system can attempt to download required dependencies automatically, but this may be slow or fail due to network issues.
+
+[Other installation options](./plugins/torchpipe/docs/installation.md)
  
 
 

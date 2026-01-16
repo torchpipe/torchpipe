@@ -86,6 +86,12 @@ def get_cv_include_lib_dir():
     
     return None, None
 
+def cache_trt_dir():
+    cuda11_urls = {"9.3": "https://developer.nvidia.com/downloads/compute/machine-learning/tensorrt/9.3.0/tensorrt-9.3.0.1.linux.x86_64-gnu.cuda-11.8.tar.gz"}
+    cuda12_urls = {"10.5":"https://developer.nvidia.com/downloads/compute/machine-learning/tensorrt/10.5.0/tars/TensorRT-10.5.0.18.Linux.x86_64-gnu.cuda-12.6.tar.gz",
+                   "10.14": "https://developer.nvidia.com/downloads/compute/machine-learning/tensorrt/10.14.1/tars/TensorRT-10.14.1.48.Linux.x86_64-gnu.cuda-12.9.tar.gz"}
+    cuda13_urls = {"10.14": "https://developer.nvidia.com/downloads/compute/machine-learning/tensorrt/10.14.1/tars/TensorRT-10.14.1.48.Linux.x86_64-gnu.cuda-13.0.tar.gz"}
+    
 def cache_cv_dir():
     OPENCV_VERSION = "4.5.4"
     OPENCV_URL = f"https://codeload.github.com/opencv/opencv/zip/refs/tags/{OPENCV_VERSION}"
@@ -234,6 +240,14 @@ def _build_lib(name):
         )
     elif name == "torchpipe_tensorrt":
         # python -m omniback.utils.build_lib --source-dirs csrc/tensorrt_torch/ --include-dirs=csrc/ --build-with-cuda --ldflags="-lnvinfer -lnvonnxparser  -lnvinfer_plugin" --name torchpipe_tensorrt
+        # cv_inc, cv_lib = get_trt_include_lib_dir()
+        # if cv_inc is None:
+        #     cv_inc, cv_lib = cache_trt_dir()
+        # if cv_inc is None:
+        #     raise RuntimeError(
+        #         "TensorRT not found. Please specify its location using the "
+        #         "TENSORRT_INCLUDE and TENSORRT_LIB environment variables."
+        #     )
         subprocess.run(
             [
                 sys.executable,
@@ -260,7 +274,9 @@ def _build_lib(name):
             cv_inc, cv_lib = cache_cv_dir()
         if cv_inc is None:
             raise RuntimeError(
-                "can not find opencv. set it through OPENCV_INCLUDE && OPENCV_LIB")
+                "OpenCV not found. Please specify its location using the "
+                "OPENCV_INCLUDE and OPENCV_LIB environment variables."
+            )
             
         subprocess.run(
             [
