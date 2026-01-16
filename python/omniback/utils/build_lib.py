@@ -28,7 +28,19 @@ import tempfile
 from collections.abc import Sequence
 from pathlib import Path
 
-import torch
+try:
+    import torch
+    missing_dtypes = [
+        "uint16", "uint32", "uint64",
+        "float8_e5m2fnuz", "float8_e4m3fnuz",
+        "float8_e4m3fn", "float8_e5m2"
+    ]
+    for dtype in missing_dtypes:
+        if not hasattr(torch, dtype):
+            setattr(torch, dtype, None)
+except:
+    pass
+
 import torch.torch_version
 import torch.utils.cpp_extension
 
