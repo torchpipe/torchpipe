@@ -35,6 +35,9 @@ message(STATUS "Detected libstdc++: ${USING_LIBSTDCPP}")
 
 if(USING_LIBSTDCPP)
     option(BUILD_BOTH_ABIS "Build both C++11 and C++03 ABI versions" OFF)
+    # if(DEFINED ENV{BUILD_BOTH_ABIS})
+    #     set(BUILD_BOTH_ABIS $ENV{BUILD_BOTH_ABIS})
+    # endif()
 
     set(USE_CXX11_ABI_DEFAULT "1")  # fallback
 

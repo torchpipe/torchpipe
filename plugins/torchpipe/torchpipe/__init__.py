@@ -33,7 +33,6 @@ except ImportError:
  
 # -----------------------
 
-from . import utils ## sort off
 assert omniback.compiled_with_cxx11_abi() == torch.compiled_with_cxx11_abi()
 
 logger.info(f'torch.cuda.is_available() = {torch.cuda.is_available()}')
