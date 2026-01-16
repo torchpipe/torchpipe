@@ -10,7 +10,7 @@
 git clone https://github.com/torchpipe/torchpipe.git
 cd torchpipe/
 
-img_name=nvcr.io/nvidia/pytorch:25.05-py3 # you can also try 24.05, 23.05, 22.12
+img_name=nvcr.io/nvidia/pytorch:25.05-py3 # you can also try 24.05, 23.05, 22.12, but may need to upgrade pip: python -m pip install --upgrade pip
 
 docker run --rm --gpus all -it --rm --network host \
     -v $(pwd):/workspace/ --ipc=host --ulimit memlock=-1 --ulimit stack=67108864\
@@ -19,7 +19,8 @@ docker run --rm --gpus all -it --rm --network host \
     bash
 
 # pip config set global.index-url https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple
-cd /workspace && pip install . && cd /workspace/plugins/torchpipe && pip install .
+# python -m pip install --upgrade pip # for 23.05, 22.12
+cd /workspace && pip install . && cd /workspace/plugins/torchpipe && pip install . # --no-build-isolation
 
 # JIT compile built-in backends
 python -c "import torchpipe"

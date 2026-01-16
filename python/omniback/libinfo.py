@@ -62,16 +62,13 @@ def find_libomniback() -> str:
     path
         The full path to the located library.
     """
-    candidate = _find_library_by_basename("omniback", "omniback")
+    if should_use_cxx11():
+        candidate = _find_library_by_basename("omniback", "omniback")
+    else:
+        candidate = _find_library_by_basename("omniback", "omniback_cxx03")
     if ret := _resolve_and_validate([candidate], cond=lambda _: True):
-        cxx03 = ret.replace("libomniback.", "libomniback_cxx03.")
-        assert cxx03 != ret
-        if not os.path.exists(cxx03) and os.path.exists(ret):
-            return ret
-        if should_use_cxx11():
-            return ret
-        else:
-            return cxx03
+        return ret
+    
     raise RuntimeError("Cannot find libomniback")
 
 
