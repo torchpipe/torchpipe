@@ -34,7 +34,7 @@ endif()
 message(STATUS "Detected libstdc++: ${USING_LIBSTDCPP}")
 
 if(USING_LIBSTDCPP)
-    option(BUILD_BOTH_ABIS "Build both C++11 and C++03 ABI versions" ON)
+    option(BUILD_BOTH_ABIS "Build both C++11 and C++03 ABI versions" OFF)
 
     set(USE_CXX11_ABI_DEFAULT "1")  # fallback
 
@@ -71,11 +71,11 @@ endif()
 
 # --- Find dependencies ---
 find_package(Python COMPONENTS Interpreter REQUIRED)
-execute_process(
-    COMMAND "${Python_EXECUTABLE}" -m tvm_ffi.config --cmakedir
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-    OUTPUT_VARIABLE tvm_ffi_ROOT
-)
+# execute_process(
+#     COMMAND "${Python_EXECUTABLE}" -m tvm_ffi.config --cmakedir
+#     OUTPUT_STRIP_TRAILING_WHITESPACE
+#     OUTPUT_VARIABLE tvm_ffi_ROOT
+# )
 find_package(tvm_ffi CONFIG REQUIRED)
 
 # --- Collect sources (excluding pybind) ---

@@ -33,7 +33,7 @@ cd torchpipe/
 img_name=nvcr.io/nvidia/pytorch:25.06-py3
 
 docker run --rm --gpus all -it --rm --network host \
-    -v $(pwd):/workspace/ --privileged \
+    -v $(pwd):/workspace/ --ipc=host --ulimit memlock=-1 --ulimit stack=67108864 \
     -w /workspace/ \
     $img_name \
     bash
