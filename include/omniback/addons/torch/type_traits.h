@@ -2,11 +2,26 @@
 #include <tvm/ffi/type_traits.h>
 #include <tvm/ffi/container/tensor.h>
 
-#include <ATen/DLConvertor.h>
+// #include <ATen/DLConvertor.h>
 #include <ATen/Functions.h>
 // #include <torch/extension.h>
 #include <ATen/Tensor.h>
 #include "omniback/ffi/type_traits.h"
+
+
+
+#include <ATen/ATen.h>
+#include <ATen/dlpack.h>
+
+#if defined(DLPACK_MAJOR_VERSION) && \
+    (DLPACK_MAJOR_VERSION * 100 + DLPACK_MINOR_VERSION * 10 >= 130)
+#include <ATen/DLConvertor.h>
+#else
+namespace at {
+ DLManagedTensor* toDLPack(const Tensor& src);
+ Tensor fromDLPack(const DLManagedTensor* src);
+}
+#endif
 
 namespace om::ffi {
 

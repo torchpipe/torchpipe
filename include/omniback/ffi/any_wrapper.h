@@ -131,7 +131,8 @@ class Any {
         return (*v)->cast<TDecay>();
     }
     
-    TVM_FFI_THROW("Unknown type. index = ")<< storage_.index();
+    TVM_FFI_THROW(TypeError)<< storage_.index();
+    throw std::runtime_error(""); // for -Wreturn-type
   }
 
 
