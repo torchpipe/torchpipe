@@ -22,7 +22,7 @@
 #include <thread>
 #include <vector>
 
-namespace omniback {
+namespace om {
 
 template <typename T>
 class ThreadSafeQueue {
@@ -280,4 +280,4 @@ class SingleElementQueue {
   std::condition_variable cv;
 };
 
-} // namespace omniback
+} // namespace om

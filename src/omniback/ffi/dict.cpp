@@ -10,10 +10,10 @@
 #include <tvm/ffi/function.h>
 #include <tvm/ffi/error.h>
 
-namespace omniback::ffi {
+namespace om::ffi {
 
 // tvm::ffi::Any dict2obj(const dict value){
-//    return  omniback::ffi::DictRef(tvm::ffi::make_object<omniback::ffi::DictObj>(value));
+//    return  om::ffi::DictRef(tvm::ffi::make_object<om::ffi::DictObj>(value));
 // }
 
 
@@ -33,7 +33,7 @@ TVM_FFI_STATIC_INIT_BLOCK() {
       .def(
           "__getitem__",
           [](const DictObj* self,
-             const tvm::ffi::String& key) -> omniback::any {
+             const tvm::ffi::String& key) -> om::any {
             const auto& map = self->GetMap();
             auto it = map.find(key);
             if (it == map.end()) {
@@ -68,8 +68,8 @@ TVM_FFI_STATIC_INIT_BLOCK() {
       .def(
           "get",
           [](const DictObj* self, const tvm::ffi::String& key
-             //  ,const tvm::ffi::Optional<omniback::any>& default_val
-             ) -> std::optional<omniback::any> {
+             //  ,const tvm::ffi::Optional<om::any>& default_val
+             ) -> std::optional<om::any> {
             const auto& map = self->GetMap();
             auto it = map.find(key);
             return it != map.end() ? it->second : std::nullopt;
@@ -89,9 +89,9 @@ TVM_FFI_STATIC_INIT_BLOCK() {
       // values()
       .def(
           "values",
-          [](const DictObj* self) -> tvm::ffi::Array<omniback::any> {
+          [](const DictObj* self) -> tvm::ffi::Array<om::any> {
             const auto& map = self->GetMap();
-            std::vector<omniback::any> values;
+            std::vector<om::any> values;
             values.reserve(map.size());
             for (const auto& pair : map) {
               values.push_back(pair.second);
@@ -103,9 +103,9 @@ TVM_FFI_STATIC_INIT_BLOCK() {
       .def(
           "items_old",
           [](const DictObj* self)
-              -> std::vector<std::tuple<tvm::ffi::String, omniback::any>> {
+              -> std::vector<std::tuple<tvm::ffi::String, om::any>> {
             const auto& map = self->GetMap();
-            std::vector<std::tuple<tvm::ffi::String, omniback::any>> items;
+            std::vector<std::tuple<tvm::ffi::String, om::any>> items;
             items.reserve(map.size());
             for (const auto& pair : map) {
               items.emplace_back(pair.first, pair.second);
@@ -115,9 +115,9 @@ TVM_FFI_STATIC_INIT_BLOCK() {
       .def(
           "items",
           [](const DictObj* self)
-              -> std::vector<std::tuple<tvm::ffi::String, omniback::any>> {
+              -> std::vector<std::tuple<tvm::ffi::String, om::any>> {
             const auto& map = self->GetMap();
-            std::vector<std::tuple<tvm::ffi::String, omniback::any>> items;
+            std::vector<std::tuple<tvm::ffi::String, om::any>> items;
             items.reserve(map.size());
             for (const auto& pair : map) {
               items.emplace_back(pair.first, pair.second);
@@ -129,11 +129,11 @@ TVM_FFI_STATIC_INIT_BLOCK() {
       .def("clear", [](DictObj* self) { self->GetMutableMap().clear(); })
       .def(
           "pop",
-          [](DictObj* self, const std::string& key) -> omniback::any {
+          [](DictObj* self, const std::string& key) -> om::any {
             auto& map = self->GetMutableMap();
             auto it = map.find(key);
             if (it != map.end()) {
-              omniback::any val = std::move(it->second);
+              om::any val = std::move(it->second);
               map.erase(it);
               return val;
             }
@@ -162,7 +162,7 @@ TVM_FFI_STATIC_INIT_BLOCK() {
             }
           })
       .def("copy", [](const DictObj* self) {
-        return std::make_shared<std::unordered_map<std::string, omniback::any>>(
+        return std::make_shared<std::unordered_map<std::string, om::any>>(
             self->GetMap());
       });
 }

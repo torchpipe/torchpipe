@@ -10,7 +10,7 @@
 #include "omniback/helper/macro.h"
 #include "omniback/helper/string.hpp"
 
-namespace omniback {
+namespace om {
 
 class Add : public BackendOne {
  private:
@@ -95,7 +95,7 @@ class Remove : public BackendOne {
 
     has_result_ = keys_.find(TASK_RESULT_KEY) != keys_.end();
   }
-  void forward(const dict& input_dict) {
+  void forward(const dict& input_dict) override {
     for (const auto& item : keys_) {
       input_dict->erase(item);
     }
@@ -109,4 +109,4 @@ class Remove : public BackendOne {
 };
 OMNI_REGISTER(Backend, Remove);
 
-} // namespace omniback
+} // namespace om

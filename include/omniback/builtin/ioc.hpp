@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 #include "omniback/core/backend.hpp"
-namespace omniback {
+namespace om {
 
 /**
  * @brief Inversion of Control container managing backend initialization and
@@ -24,7 +24,7 @@ class IoCV0 : public Backend {
  private:
   void impl_init(
       const std::unordered_map<std::string, std::string>& config,
-      const dict& kwargs);
+      const dict& kwargs) override;
   void impl_forward(const std::vector<dict>& input_output) override {
     forward_backend_->forward(input_output);
   }
@@ -61,4 +61,4 @@ class IoCV0 : public Backend {
   std::unique_ptr<Backend> forward_backend_;
 };
 
-} // namespace omniback
+} // namespace om

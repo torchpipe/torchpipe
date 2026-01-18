@@ -5,7 +5,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace omniback {
+namespace om {
 
 template <typename Key, typename Value>
 class threadsafe_unordered_map {
@@ -138,4 +138,4 @@ class threadsafe_unordered_map {
     return map_.emplace(std::forward<Args>(args)...).second;
   }
 };
-} // namespace omniback
+} // namespace om

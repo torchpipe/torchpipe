@@ -11,7 +11,7 @@
 #include "omniback/helper/string.hpp"
 #include <tvm/ffi/extra/stl.h>
 
-namespace omniback::parser {
+namespace om::parser {
 
 void broadcast_global(str::mapmap& config) {
   auto iter = config.find(TASK_GLOBAL_KEY);
@@ -489,9 +489,9 @@ std::
 
   return result;
 }
-} // namespace omniback::parser
+} // namespace om::parser
 
-namespace omniback::parser_v2 {
+namespace om::parser_v2 {
 bool has_valid_unnested_delimiters(
     const std::string& input,
     const std::vector<BracketPair>& bracket_pairs,
@@ -994,17 +994,17 @@ std::vector<std::pair<std::string, char>> expend_outmost_brackets(
 
   return result;
 }
-} // namespace omniback::parser_v2
+} // namespace om::parser_v2
 
-namespace omniback {
+namespace om {
 class ParserTest : public BackendOne {
   void forward(const dict& data) override {
     std::string config = dict_get<std::string>(data, TASK_DATA_KEY);
     OMNI_ASSERT(!config.empty());
-    omniback::parser_v2::Parser parser;
+    om::parser_v2::Parser parser;
 
     std::unordered_map<std::string, std::string> config_output;
-    if (omniback::parser_v2::is_delimiter_separable(config) ||
+    if (om::parser_v2::is_delimiter_separable(config) ||
         config[0] == '(') {
       auto direct_split = parser.split_by_delimiter(config);
       std::vector<std::string> result;
@@ -1028,4 +1028,4 @@ class ParserTest : public BackendOne {
   }
 };
 OMNI_REGISTER_BACKEND(ParserTest, "ParserTest");
-} // namespace omniback
+} // namespace om

@@ -18,17 +18,17 @@
 #include "omniback/builtin/proxy.hpp"
 #include "omniback/core/parser.hpp"
 
-using omniback::TASK_DATA_KEY;
-using omniback::TASK_DEFAULT_NODE_NAME_KEY;
-using omniback::TASK_ENTRY_KEY;
-using omniback::TASK_GLOBAL_KEY;
-using omniback::TASK_INDEX_KEY;
-using omniback::TASK_RESTART_KEY;
-using omniback::TASK_RESULT_KEY;
-using omniback::TASK_STREAM_KEY;
-using omniback::TASK_TMP_KEY;
+using om::TASK_DATA_KEY;
+using om::TASK_DEFAULT_NODE_NAME_KEY;
+using om::TASK_ENTRY_KEY;
+using om::TASK_GLOBAL_KEY;
+using om::TASK_INDEX_KEY;
+using om::TASK_RESTART_KEY;
+using om::TASK_RESULT_KEY;
+using om::TASK_STREAM_KEY;
+using om::TASK_TMP_KEY;
 
-// using dict = omniback::dict;
-// // using Backend = omniback::Backend;
+// using dict = om::dict;
+// // using Backend = om::Backend;
 
 #endif

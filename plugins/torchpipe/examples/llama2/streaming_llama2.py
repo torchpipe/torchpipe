@@ -295,7 +295,7 @@ class CustomBackendEngine(BackendEngine):
             
 
 def main(num_layers = 2, max_num_page = 0, port=8000, use_trt=False):
-    print( f"CXX11_ABI = {torch._C._GLIBCXX_USE_CXX11_ABI}")
+    print(f"CXX11_ABI = {torch.compiled_with_cxx11_abi()}")
     
     # omniback.init("DebugLogger")
     os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"

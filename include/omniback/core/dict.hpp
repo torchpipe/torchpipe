@@ -29,12 +29,12 @@
 #include "omniback/helper/symbol.hpp"
 #include "omniback/ffi/dict.h"
 
-namespace omniback {
+namespace om {
 
  
 using ffi::dict;
 inline dict make_dict() {
-  return std::make_shared<std::unordered_map<std::string, omniback::any>>();
+  return std::make_shared<std::unordered_map<std::string, om::any>>();
 }
 
 
@@ -140,7 +140,7 @@ template <typename T>
 std::optional<T> try_get(dict data, const string& key) {
   auto iter = data->find(key);
   if (iter != data->end()) {
-    if (auto value = iter->second.try_cast<T>)
+    if (auto value = iter->second.try_cast<T>())
       return std::nullopt;
     T* result = any_cast<T>(&iter->second);
     return *result;
@@ -230,4 +230,4 @@ void try_update(const TypedDict& data, const std::string& key, T& result) {
 //   std::shared_ptr<T> ptr;
 // };
 
-} // namespace omniback
+} // namespace om

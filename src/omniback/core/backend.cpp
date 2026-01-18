@@ -8,7 +8,7 @@
 #include "omniback/helper/base_logging.hpp"
 #include "omniback/helper/string.hpp"
 
-namespace omniback {
+namespace om {
 
 // void Backend::get_class_name(std::string& default_name) const {
 //     auto name = OMNI_OBJECT_NAME(Backend, this);
@@ -80,6 +80,10 @@ void register_backend(
 }
 void unregister_backend(const std::string& aspect_name_str) {
   OMNI_INSTANCE_UNREGISTER(Backend, aspect_name_str);
+}
+
+std::vector<std::string> list_backends(){
+  return OMNI_ALL_NAMES(Backend);
 }
 
 void cleanup_backend() {
@@ -220,9 +224,9 @@ std::string get_dependency_name(
   return iter->second;
 }
 } // namespace backend
-} // namespace omniback
+} // namespace om
 
-namespace omniback::parser_v2 {
+namespace om::parser_v2 {
 bool get_backend_name(const Backend* obj_ptr, std::string& cls_name) {
   auto name = OMNI_OBJECT_NAME(Backend, obj_ptr);
   if (name) {
@@ -285,4 +289,4 @@ ArgsKwargs get_args_kwargs(
 
   return {{}, config};
 }
-} // namespace omniback::parser_v2
+} // namespace om::parser_v2

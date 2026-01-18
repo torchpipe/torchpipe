@@ -47,7 +47,7 @@ def test_tensorrt_inference():
         "Benchmark", {"num_clients": "4", "total_number": "10000"})
     bench.forward_with_dep([data]*100, model)
 
-    q = omniback.ffi.default_queue()
+    q = omniback.default_queue()
     print(q.size())
     print(q)
     assert not q.empty()

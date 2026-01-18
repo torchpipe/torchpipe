@@ -21,7 +21,7 @@
 
 #include "omniback/helper/base_logging.hpp"
 
-namespace omniback {
+namespace om {
 std::shared_ptr<spdlog::logger> default_logger() {
   return spdlog::default_logger();
 }
@@ -38,4 +38,4 @@ std::string colored(const std::string& message) {
       message // The message to format
   );
 }
-} // namespace omniback
+} // namespace om

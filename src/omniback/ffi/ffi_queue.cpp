@@ -11,11 +11,11 @@
 
 #include "omniback/ffi/dict.h"
 
-namespace omniback::ffi {
+namespace om::ffi {
 
 TVM_FFI_STATIC_INIT_BLOCK() {
   namespace refl = tvm::ffi::reflection;
-  using omniback::ffi::Any;
+  using om::ffi::Any;
 
   refl::ObjectDef<ThreadSafeQueueObj>()
       // Constructors
@@ -119,6 +119,12 @@ ThreadSafeQueueObj* py_default_queue_one_arg(const std::string& tag = ""){
   return &q;
 }
 
-TVM_FFI_DLL_EXPORT_TYPED_FUNC(default_queue_one_arg, py_default_queue_one_arg);
+// TVM_FFI_DLL_EXPORT_TYPED_FUNC(default_queue_one_arg, py_default_queue_one_arg);
 
-} // namespace omniback::ffi
+TVM_FFI_STATIC_INIT_BLOCK() {
+  namespace refl = tvm::ffi::reflection;
+  refl::GlobalDef().def(
+      "omniback.default_queue_one_arg", py_default_queue_one_arg);
+}
+
+} // namespace om::ffi

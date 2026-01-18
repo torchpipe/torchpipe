@@ -5,10 +5,11 @@
 #include "tvm/ffi/container/variant.h"
 #include <tvm/ffi/container/array.h>
 #include <tvm/ffi/error.h>
+#include <tvm/ffi/extra/stl.h>
 
 #include "omniback/py/pybackend.hpp"
-namespace omniback::py {
-using omniback ::Backend;
+namespace om::py {
+using om::Backend;
 class BackendObj : public tvm::ffi::Object {
  public:
   std::shared_ptr<Backend> data_owned;
@@ -51,7 +52,7 @@ class BackendObj : public tvm::ffi::Object {
       tvm::ffi::Object);
 };
 
-using omniback::ffi::DictObj;
+using om::ffi::DictObj;
 namespace tf = tvm::ffi;
 namespace refl = tvm::ffi::reflection;
 
@@ -130,7 +131,7 @@ std::shared_ptr<Backend> pyinit(
   auto backend = init_backend(
       class_config,
       {params.begin(), params.end()},
-      [&]() -> std::shared_ptr<std::unordered_map<std::string, omniback::any>> {
+      [&]() -> std::shared_ptr<std::unordered_map<std::string, om::any>> {
         if (!options.has_value()) {
           return nullptr;
         }
@@ -143,7 +144,7 @@ std::shared_ptr<Backend> pyinit(
               options_value.as<tvm::ffi::Map<tvm::ffi::String, tvm::ffi::Any>>()
                   .value();
           return std::make_shared<
-              std::unordered_map<std::string, omniback::any>>(
+              std::unordered_map<std::string, om::any>>(
               map_data.begin(), map_data.end());
         }
       }(),
@@ -175,7 +176,7 @@ void backend_forward_with_dep_function(
     item->try_invoke_and_clean_pycallback();
   } else if (auto data = ios.as<tvm::ffi::Array<DictObj*>>()) {
     TVM_FFI_ICHECK(data.value().size() > 0) << "empty input is not allowed";
-    std::vector<omniback::dict> vec;
+    std::vector<om::dict> vec;
     DictObj::PyCallBackGuard guard;
     for (const auto& item : data.value()) {
       TVM_FFI_ICHECK(item) << "null DictObj* is not allowed";
@@ -214,6 +215,7 @@ TVM_FFI_STATIC_INIT_BLOCK() {
   refl::GlobalDef().def("omniback.register", pyregister);
   refl::GlobalDef().def("omniback.get", py_get_backend);
   refl::GlobalDef().def("omniback.cleanup", []() { cleanup_backend(); });
+  refl::GlobalDef().def("omniback.list_backends", []() { return list_backends(); });
 
   refl::ObjectDef<BackendObj>()
       .def(refl::init<>())
@@ -242,7 +244,7 @@ TVM_FFI_STATIC_INIT_BLOCK() {
               self->data->init(
                   {params.begin(), params.end()},
                   std::make_shared<
-                      std::unordered_map<std::string, omniback::any>>(
+                      std::unordered_map<std::string, om::any>>(
                       map_data.begin(), map_data.end()));
             }
             return self;
@@ -255,22 +257,22 @@ TVM_FFI_STATIC_INIT_BLOCK() {
         self->data->inject_dependency(dep->data);
       });
 };
-} // namespace omniback::py
+} // namespace om::py
 
 namespace tvm::ffi {
 template <>
 inline constexpr bool
-    use_default_type_traits_v<std::shared_ptr<omniback::Backend>> = false;
+    use_default_type_traits_v<std::shared_ptr<om::Backend>> = false;
 template <>
 inline constexpr bool
-    use_default_type_traits_v<std::unique_ptr<omniback::Backend>> = false;
+    use_default_type_traits_v<std::unique_ptr<om::Backend>> = false;
 
 template <>
-struct TypeTraits<std::shared_ptr<omniback::Backend>> : public TypeTraitsBase {
+struct TypeTraits<std::shared_ptr<om::Backend>> : public TypeTraitsBase {
  public:
   static constexpr bool storage_enabled = false;
-  using Self = std::shared_ptr<omniback::Backend>;
-  using BackendObj = omniback::py::BackendObj;
+  using Self = std::shared_ptr<om::Backend>;
+  using BackendObj = om::py::BackendObj;
 
   TVM_FFI_INLINE static void MoveToAny(Self&& src, TVMFFIAny* result) {
     if (!src) {
@@ -282,20 +284,20 @@ struct TypeTraits<std::shared_ptr<omniback::Backend>> : public TypeTraitsBase {
   }
 
   TVM_FFI_INLINE static std::string TypeStr() {
-    return "omniback::Backend";
+    return "om::Backend";
   }
   TVM_FFI_INLINE static std::string TypeSchema() {
-    return R"({"type":"omniback::Backend"})";
+    return R"({"type":"om::Backend"})";
   }
 };
 
 template <>
-struct TypeTraits<std::unique_ptr<omniback::Backend>>
-    : public TypeTraits<std::shared_ptr<omniback::Backend>> {
+struct TypeTraits<std::unique_ptr<om::Backend>>
+    : public TypeTraits<std::shared_ptr<om::Backend>> {
  public:
   static constexpr bool storage_enabled = false;
-  using Self = std::unique_ptr<omniback::Backend>;
-  using BackendObj = omniback::py::BackendObj;
+  using Self = std::unique_ptr<om::Backend>;
+  using BackendObj = om::py::BackendObj;
 
   TVM_FFI_INLINE static void MoveToAny(Self&& src, TVMFFIAny* result) {
     if (!src) {
@@ -308,12 +310,12 @@ struct TypeTraits<std::unique_ptr<omniback::Backend>>
 };
 
 template <>
-struct TypeTraits<omniback::Backend*>
-    : public TypeTraits<std::shared_ptr<omniback::Backend>> {
+struct TypeTraits<om::Backend*>
+    : public TypeTraits<std::shared_ptr<om::Backend>> {
  public:
   static constexpr bool storage_enabled = false;
-  using Self = omniback::Backend*;
-  using BackendObj = omniback::py::BackendObj;
+  using Self = om::Backend*;
+  using BackendObj = om::py::BackendObj;
 
   TVM_FFI_INLINE static void MoveToAny(Self&& src, TVMFFIAny* result) {
     if (!src) {

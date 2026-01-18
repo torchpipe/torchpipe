@@ -3,7 +3,7 @@
 #include "omniback/builtin/basic_backends.hpp"
 #include "omniback/helper/threadsafe_queue.hpp"
 
-namespace omniback {
+namespace om {
 
 class RestartEvent : public DependencyV0 {
   void pre_init(const std::unordered_map<string, string>& config, const dict&)
@@ -43,4 +43,4 @@ class RestartEvent : public DependencyV0 {
   std::vector<std::thread> threads_;
   std::atomic_bool bInited_{true};
 };
-} // namespace omniback
+} // namespace om

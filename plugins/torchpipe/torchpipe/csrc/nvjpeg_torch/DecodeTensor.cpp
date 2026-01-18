@@ -3,7 +3,7 @@
 #include "nvjpeg_torch/DecodeTensor.hpp"
 #include <c10/cuda/CUDAStream.h>
 #include <torch/torch.h>
-namespace str = omniback::str;
+namespace str = om::str;
 namespace {
 [[maybe_unused]] void check_nvjpeg_result(nvjpegStatus_t _e) {
   OMNI_ASSERT(
@@ -141,7 +141,7 @@ DecodeTensor::~DecodeTensor() {
 }
 void DecodeTensor::impl_init(
     const std::unordered_map<std::string, std::string>& config,
-    const omniback::dict& kwargs) {
+    const om::dict& kwargs) {
   str::try_update(config, "color", color_);
   str::try_update(config, "data_format", data_format_);
 
@@ -176,7 +176,7 @@ void DecodeTensor::impl_init(
   //   handle_));
 }
 
-void DecodeTensor::forward(const omniback::dict& input_dict) {
+void DecodeTensor::forward(const om::dict& input_dict) {
   auto& input = *input_dict;
 
   std::string data = input[TASK_DATA_KEY].cast<std::string>();
@@ -192,5 +192,5 @@ void DecodeTensor::forward(const omniback::dict& input_dict) {
   }
 }
 
-OMNI_REGISTER(omniback::Backend, DecodeTensor, "DecodeTensor");
+OMNI_REGISTER(om::Backend, DecodeTensor, "DecodeTensor");
 } // namespace torchpipe

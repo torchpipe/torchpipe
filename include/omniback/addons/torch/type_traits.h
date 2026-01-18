@@ -2,18 +2,35 @@
 #include <tvm/ffi/type_traits.h>
 #include <tvm/ffi/container/tensor.h>
 
-#include <ATen/DLConvertor.h>
+// #include <ATen/DLConvertor.h>
 #include <ATen/Functions.h>
-#include <torch/extension.h>
+// #include <torch/extension.h>
+#include <ATen/Tensor.h>
+#include <torch/version.h>
 
 #include "omniback/ffi/type_traits.h"
 
-namespace omniback::ffi {
+
+
+#include <ATen/ATen.h>
+#include <ATen/dlpack.h>
+
+#if TORCH_VERSION_MAJOR == 1 && TORCH_VERSION_MINOR <= 11
+// for torch<=1.11. see https://github.com/pytorch/pytorch/issues/82823
+namespace at {
+ DLManagedTensor* toDLPack(const Tensor& src);
+ Tensor fromDLPack(DLManagedTensor* src);
+}
+#else
+#include <ATen/DLConvertor.h>
+#endif
+
+namespace om::ffi {
 
 template <>
 struct OmTypeTraits<at::Tensor>
     : public OmTypeTraitsBase {};
-} // namespace omniback::ffi
+} // namespace om::ffi
 
 namespace tvm::ffi {
 template <>

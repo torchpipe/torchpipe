@@ -1,76 +1,79 @@
 #include "mat_torch/converts.hpp"
 
-#include "helper/mat.hpp"
-#include "helper/torch.hpp"
-#include <tvm/ffi/container/tensor.h>
-#include "omniback/addons/torch/type_traits.h"
-#include <torch/torch.h>
+// #include "helper/torch.hpp"
+
+// #include <torch/torch.h>
 #include "opencv2/imgcodecs.hpp"
 #include "opencv2/imgproc.hpp"
+#include "helper/mat.hpp"
 
-namespace torchpipe {
-
-inline torch::Tensor cvMat2TorchCPU(const cv::Mat& da) {
-  OMNI_ASSERT(
-      (da.type() == CV_8UC3 || da.type() == CV_32FC3) && da.isContinuous());
-
-  auto image_tensor = torch::from_blob(
-      da.data,
-      {da.rows, da.cols, da.channels()},
-      da.elemSize1() == 1 ? torch::kByte : torch::kFloat);
-
-  return image_tensor;
-}
-
-inline torch::Tensor cvMat2TorchCUDA(const cv::Mat& image) {
-  auto re = cvMat2TorchCPU(image);
-  return re.to(torch::kCUDA);
-}
-
-inline cv::Mat torchTensortoCVMatV2(torch::Tensor tensor, bool deepcopy) { //
-  tensor = img_hwc_guard(tensor);
-  cv::Mat mat;
-  tensor = tensor.to(torch::kCPU).contiguous();
-
-  if (tensor.dtype() == torch::kByte) {
-    mat = cv::Mat(
-        cv::Size(tensor.size(1), tensor.size(0)),
-        CV_8UC(tensor.size(2)),
-        tensor.data_ptr<uchar>());
-  } else if (tensor.dtype() == torch::kFloat) {
-    mat = cv::Mat(
-        cv::Size(tensor.size(1), tensor.size(0)),
-        CV_32FC(tensor.size(2)),
-        tensor.data_ptr<float>());
-  } else if (tensor.dtype() == torch::kHalf) {
-    tensor = tensor.to(torch::kFloat);
-    mat = cv::Mat(
-        cv::Size(tensor.size(1), tensor.size(0)),
-        CV_32FC(tensor.size(2)),
-        tensor.data_ptr<float>());
-  } else {
-    throw std::runtime_error(
-        "unsupported datatype " + std::string(tensor.dtype().name()));
+namespace torchpipe{
+namespace {
+using convert::ImageData ;
+cv::Mat ImageData2Mat(const ImageData& img) {
+  if (img.data == nullptr) {
+    throw std::runtime_error("ImageData::data is null.");
   }
 
-  if (deepcopy) {
-    mat = mat.clone();
-    OMNI_ASSERT(mat.isContinuous());
+  cv::Mat mat;
+  if (img.is_float) {
+    // float32
+    mat = cv::Mat(
+        static_cast<int>(img.rows),
+        static_cast<int>(img.cols),
+        CV_32FC(static_cast<int>(img.channels)));
+    std::memcpy(
+        mat.data, img.data, sizeof(float) * img.rows * img.cols * img.channels);
+  } else {
+    // uint8
+    mat = cv::Mat(
+        static_cast<int>(img.rows),
+        static_cast<int>(img.cols),
+        CV_8UC(static_cast<int>(img.channels)));
+    std::memcpy(
+        mat.data,
+        img.data,
+        sizeof(uint8_t) * img.rows * img.cols * img.channels);
+  }
 
-    return mat;
-
-  } else
-    return mat;
+  return mat;
 }
+
+convert::ImageData cvMatToImageData(const cv::Mat& mat) {
+  OMNI_ASSERT(mat.type() == CV_8UC3 || mat.type() == CV_32FC3);
+
+  ImageData out;
+  out.rows = mat.rows;
+  out.cols = mat.cols;
+  out.channels = mat.channels();
+  out.is_float = (mat.type() == CV_32FC3);
+
+  auto* heap_mat = new cv::Mat(mat);
+  if (!heap_mat->isContinuous()) {
+    *heap_mat = heap_mat->clone();
+  }
+
+  // shallow copy, shares data
+  out.data = heap_mat->data;
+  out.deleter = [heap_mat](void*) { delete heap_mat; };
+
+  return out;
+}
+} // 
+
+} // namespace namespace
+namespace torchpipe {
+
+using namespace convert;
 
 void Mat2Tensor::impl_init(
     const std::unordered_map<std::string, std::string>& config,
-    const omniback::dict& kwargs) {
-  omniback::str::try_update(config, "device", device_, {"cpu", "cuda"});
+    const om::dict& kwargs) {
+  om::str::try_update(config, "device", device_, {"cpu", "cuda"});
   //   capsule
 }
 
-void Mat2Tensor::forward(const omniback::dict& input_dict) {
+void Mat2Tensor::forward(const om::dict& input_dict) {
   auto& input = *input_dict;
 
   auto iter = input_dict->find(TASK_DATA_KEY);
@@ -78,27 +81,19 @@ void Mat2Tensor::forward(const omniback::dict& input_dict) {
   if (auto opt = iter->second.try_cast<cv::Mat>()) {
     cv::Mat data = opt.value();
     if (device_ == "cpu") {
-      if (!data.isContinuous()) {
-        SPDLOG_WARN("Mat is not continuous");
-        data = data.clone();
-      }
-      input[TASK_RESULT_KEY] = cvMat2TorchCPU(data).clone();
+      input[TASK_RESULT_KEY] = imageDataToAnyTorchCPU(cvMatToImageData(data));
     } else {
-      input[TASK_RESULT_KEY] = cvMat2TorchCUDA(data);
+      input[TASK_RESULT_KEY] = imageDataToAnyTorchGPU(cvMatToImageData(data));
     }
 
   } else if (auto opt = iter->second.try_cast<std::vector<cv::Mat>>()) {
     std::vector<cv::Mat> data = opt.value();
-    std::vector<torch::Tensor> result;
+    std::vector<om::any> result;
     for (auto d : data) {
       if (device_ == "cpu") {
-        if (!d.isContinuous()) {
-          SPDLOG_WARN("Mat is not continuous");
-          d = d.clone();
-        }
-        result.emplace_back(cvMat2TorchCPU(d).clone());
+        result.emplace_back(imageDataToAnyTorchCPU(cvMatToImageData(d)));
       } else
-        result.emplace_back(cvMat2TorchCUDA(d));
+        result.emplace_back(imageDataToAnyTorchGPU(cvMatToImageData(d)));
     }
 
     input[TASK_RESULT_KEY] = result;
@@ -107,19 +102,18 @@ void Mat2Tensor::forward(const omniback::dict& input_dict) {
   }
 }
 
-OMNI_REGISTER(omniback::Backend, Mat2Tensor);
+OMNI_REGISTER(om::Backend, Mat2Tensor);
 
-void Tensor2Mat::forward(const omniback::dict& input_dict) {
+void Tensor2Mat::forward(const om::dict& input_dict) {
   auto& input = *input_dict;
 
   auto iter = input_dict->find(TASK_DATA_KEY);
   OMNI_ASSERT(iter != input_dict->end());
-  auto data = iter->second.cast<torch::Tensor>();
-  {
-    auto result = torchTensortoCVMatV2(data, true); // true is for 'deepcopy'
-    input[TASK_RESULT_KEY] = result;
-  }
+  // auto data = iter->second.cast<torch::Tensor>();
+  auto data = ImageData2Mat(TorchAny2ImageData(iter->second));
+  input[TASK_RESULT_KEY] = data;
 }
-OMNI_REGISTER(omniback::Backend, Tensor2Mat);
+
+OMNI_REGISTER(om::Backend, Tensor2Mat);
 
 } // namespace torchpipe

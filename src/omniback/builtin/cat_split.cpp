@@ -5,7 +5,7 @@
 
 constexpr auto EXPECTED_DEPENDENCIES = 3;
 
-namespace omniback {
+namespace om {
 void CatSplit::post_init(
     const std::unordered_map<std::string, std::string>& config,
     const dict& kwargs) {
@@ -61,4 +61,4 @@ std::vector<uint32_t> CatSplit::set_init_order(uint32_t max_range) const {
 
 OMNI_REGISTER_BACKEND(CatSplit);
 
-} // namespace omniback
+} // namespace om

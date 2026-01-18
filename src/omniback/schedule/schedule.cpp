@@ -14,7 +14,7 @@
 #include "omniback/helper/string.hpp"
 #include "omniback/helper/timer.hpp"
 
-namespace omniback {
+namespace om {
 namespace {
 template <typename T>
 std::unordered_map<T, std::string> pair2map(
@@ -586,4 +586,4 @@ void FakeInstance::impl_forward(const std::vector<dict>& ios) {
 }
 OMNI_REGISTER_BACKEND(FakeInstance);
 
-} // namespace omniback
+} // namespace om

@@ -25,7 +25,7 @@
 // #include "time_utils.hpp"
 // #include "base_logging.hpp"
 // #include <torch/serialize.h>
-#include <torch/extension.h>
+// #include <torch/extension.h>
 #include <torch/torch.h>
 #include <fstream>
 
@@ -35,6 +35,8 @@
 #include "omniback/helper/timer.hpp"
 #include "helper/dlpack_helper.hpp"
 #include <c10/cuda/CUDAStream.h>
+#include <tvm/ffi/container/tensor.h>
+#include "omniback/addons/torch/type_traits.h"
 
 namespace torchpipe {
 
@@ -137,7 +139,7 @@ bool is_cpu_tensor(torch::Tensor input) {
 #endif
 }
 // Check if the given data variable is of CPU type.
-bool is_any_cpu(omniback::any data) {
+bool is_any_cpu(om::any data) {
   if (auto tensor_opt = data.try_cast<torch::Tensor>()) {
     torch::Tensor tensor = tensor_opt.value();
     return is_cpu_tensor(tensor);
@@ -180,7 +182,7 @@ float cuda_time() {
     sync_event.record(get_current_stream());
     sync_event.synchronize();
 
-    auto cpu_elapsed = omniback::helper::timestamp();
+    auto cpu_elapsed = om::helper::timestamp();
     return cpu_elapsed - start_event().elapsed_time(sync_event);
   }();
 
@@ -510,12 +512,12 @@ torch::Tensor tensor_permute(
 }
 
 std::vector<torch::Tensor> get_tensors(
-    omniback::dict input_dict,
+    om::dict input_dict,
     const std::string& key) {
   auto iter = input_dict->find(key);
   OMNI_ASSERT(iter != input_dict->end(), "key not found: " + key);
   std::vector<torch::Tensor> image_embeds;
-  omniback::any& data = iter->second;
+  om::any& data = iter->second;
   if (auto opt = data.try_cast<torch::Tensor>()) {
     torch::Tensor input_tensor = opt.value();
 
@@ -580,10 +582,10 @@ torch::Tensor try_quick_cat(std::vector<torch::Tensor> resized_inputs) {
   return true_input;
 }
 
-std::string get_sm() {
-  cudaDeviceProp* prop = at::cuda::getCurrentDeviceProperties();
-  return std::to_string(prop->major) + "." + std::to_string(prop->minor);
-}
+// std::string get_sm() {
+//   cudaDeviceProp* prop = at::cuda::getCurrentDeviceProperties();
+//   return std::to_string(prop->major) + "." + std::to_string(prop->minor);
+// }
 
 // Function to ensure the tensor is of the desired type
 void fix_tensor_type(torch::Tensor& input, NetIOInfo::DataType in_type) {
@@ -650,7 +652,7 @@ void fix_tensor_shape(
   if (!err_msg.empty())
     throw std::invalid_argument(
         "fix_tensor_shape: invalid tensor shape : " +
-        omniback::str::vec2str(data.sizes().vec()) + " err_msg: " + err_msg);
+        om::str::vec2str(data.sizes().vec()) + " err_msg: " + err_msg);
 }
 
 // Function to convert NetIOInfo::Device to torch::Device
@@ -731,6 +733,42 @@ std::string print_torch_scale_type(c10::ScalarType tp) {
       return "Unknown";
   }
 }
+
+
+int torch_malloc_async(
+    void* ctx,
+    void** p,
+    size_t size,
+    cudaStream_t stream) {
+  (void)ctx; // Ignore the context pointer if not used
+  if (size == 0) {
+    *p = nullptr;
+    return -1; // Error: Invalid size
+  }
+
+  *p = c10::cuda::CUDACachingAllocator::raw_alloc_with_stream(size, stream);
+  if (*p == nullptr) {
+    return -2; // Error: Memory allocation failed
+  }
+
+  return 0; // Success
+}
+
+// Async Memory Free with Error Handling
+int torch_free_async(
+    void* ctx,
+    void* p,
+    size_t size,
+    cudaStream_t stream) {
+  (void)ctx; // Ignore the context pointer if not used
+  if (p == nullptr) {
+    return -3; // Error: Invalid pointer
+  }
+
+  c10::cuda::CUDACachingAllocator::raw_delete(p);
+  return 0; // Success
+}
+
 void fix_tensors(
     std::vector<torch::Tensor>& tensors,
     const std::shared_ptr<NetIOInfos>& infos) {
@@ -848,5 +886,58 @@ bool match(NetIOInfo::Dims64& dst, const torch::Tensor& src) {
 //   return alloc(prototype, out, error_ctx, SetError);
 // }
 
+torch::Tensor imageDataToTorchCPU(const convert::ImageData& img) {
+  if (!img.data) {
+    throw std::invalid_argument("ImageData has null data");
+  }
 
+  auto options = torch::TensorOptions()
+                     .dtype(img.is_float ? torch::kFloat : torch::kByte)
+                     .device(torch::kCPU);
+
+  auto tensor = torch::from_blob(
+      img.data,
+      {static_cast<int64_t>(img.rows),
+       static_cast<int64_t>(img.cols),
+       static_cast<int64_t>(img.channels)},
+      img.deleter,
+      options);
+  return tensor;
+}
+
+om::any imageDataToAnyTorchCPU(const convert::ImageData& img) {
+  return imageDataToTorchCPU(img);
+}
+
+om::any imageDataToAnyTorchGPU(const convert::ImageData& img){
+  return imageDataToTorchCPU(img).cuda();
+}
+convert::ImageData torch2ImageData(torch::Tensor tensor) {
+  // 确保是 HWC 格式
+  tensor = img_hwc_guard(tensor);
+  if (!is_cpu_tensor(tensor))
+    tensor = tensor.to(torch::kCPU);
+  if (!tensor.is_contiguous()) {
+    tensor = tensor.contiguous();
+  }
+
+  convert::ImageData img_data;
+  img_data.rows = tensor.size(0); // H
+  img_data.cols = tensor.size(1); // W
+  img_data.channels = tensor.size(2); // C
+
+  if (tensor.dtype() == torch::kByte) {
+    img_data.is_float = false;
+    img_data.data = tensor.data_ptr<uint8_t>();
+  } else if (tensor.dtype() == torch::kFloat) {
+    img_data.is_float = true;
+    img_data.data = tensor.data_ptr<float>();
+  } else {
+    throw std::runtime_error(
+        "Unsupported datatype: " + std::string(tensor.dtype().name()) +
+        ". Only torch.uint8 and torch.float32 are supported.");
+  }
+
+  return img_data;
+}
 } // namespace torchpipe

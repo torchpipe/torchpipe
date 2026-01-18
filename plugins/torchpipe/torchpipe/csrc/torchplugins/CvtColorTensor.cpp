@@ -5,7 +5,7 @@
 #include "helper/task_keys.hpp"
 #include "helper/torch.hpp"
 
-using namespace omniback;
+using namespace om;
 
 namespace torchpipe {
 
@@ -37,7 +37,7 @@ void CvtColorTensor::forward(const dict& input_dict) {
 
 #if 1
   auto input_tensor =
-      omniback::dict_get<torch::Tensor>(input_dict, TASK_DATA_KEY);
+      om::dict_get<torch::Tensor>(input_dict, TASK_DATA_KEY);
 
   const auto mem = guard_valid_memory_format(input_tensor);
   switch (mem) {

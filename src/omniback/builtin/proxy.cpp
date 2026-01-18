@@ -3,7 +3,7 @@
 #include "omniback/core/reflect.h"
 #include "omniback/helper/base_logging.hpp"
 
-namespace omniback {
+namespace om {
 
 void BackendProxy::impl_init(
     const std::unordered_map<string, string>& config,
@@ -125,4 +125,4 @@ void DI::impl_init(
 OMNI_REGISTER_BACKEND(DI_v0);
 OMNI_REGISTER_BACKEND(DI);
 
-} // namespace omniback
+} // namespace om

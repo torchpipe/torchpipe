@@ -6,7 +6,7 @@
 #include "omniback/core/event.hpp"
 #include "omniback/core/parser.hpp"
 #include "omniback/helper/threadsafe_queue.hpp"
-namespace omniback {
+namespace om {
 class DagDispatcher : public HasEventForwardGuard {
  private:
   void impl_init(
@@ -80,4 +80,4 @@ class DagDispatcher : public HasEventForwardGuard {
       std::shared_ptr<Stack> pstack,
       dict curr_data);
 };
-} // namespace omniback
+} // namespace om

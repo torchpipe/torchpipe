@@ -8,7 +8,7 @@
 #include "omniback/helper/macro.h"
 #include "omniback/helper/string.hpp"
 
-namespace omniback {
+namespace om {
 
 void Aspect::post_init(
     const std::unordered_map<std::string, std::string>& config,
@@ -63,4 +63,4 @@ std::pair<uint32_t, uint32_t> Aspect::update_min_max(
 
 OMNI_REGISTER(Backend, Aspect);
 
-} // namespace omniback
+} // namespace om

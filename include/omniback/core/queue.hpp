@@ -5,7 +5,7 @@
 #include "omniback/ffi/queue.h"
 
 
-namespace omniback {
+namespace om {
 // using ffi::Queue;
 // using ffi::default_queue;
 using Queue = ffi::ThreadSafeQueueObj;
@@ -21,4 +21,4 @@ using ffi::default_queue;
 // Queue& default_queue(const std::string& tag = "");
 
 // SizedQueue& default_sized_queue();
-} // namespace omniback
+} // namespace om

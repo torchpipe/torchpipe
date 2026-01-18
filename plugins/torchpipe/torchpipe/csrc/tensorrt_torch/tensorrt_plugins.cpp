@@ -24,7 +24,8 @@
 
 #include <ATen/cuda/CUDAEvent.h>
 #include <c10/cuda/CUDAStream.h> // 必须包含此头文件
-#include <torch/torch.h>
+// #include <torch/torch.h>
+#include <torch/types.h>
 #include "c10/cuda/CUDAGuard.h"
 
 namespace nvinfer1 {
@@ -32,20 +33,20 @@ namespace plugin {
 #if NV_TENSORRT_MAJOR >= 10
 TorchPlugin::TorchPlugin(const std::string& params, bool is_build_phase)
     : serialization_(params), is_build_phase_(is_build_phase) {
-  params_ = omniback::str::map_split(params, '=', ';');
+  params_ = om::str::map_split(params, '=', ';');
 
-  omniback::str::try_update(params_, "num_output", torch_params_.num_output);
-  omniback::str::try_update(params_, "num_input", torch_params_.num_input);
-  omniback::str::try_update(params_, "layer_idx", torch_params_.layer_idx);
-  omniback::str::try_update(params_, "workspace", torch_params_.workspace_size);
+  om::str::try_update(params_, "num_output", torch_params_.num_output);
+  om::str::try_update(params_, "num_input", torch_params_.num_input);
+  om::str::try_update(params_, "layer_idx", torch_params_.layer_idx);
+  om::str::try_update(params_, "workspace", torch_params_.workspace_size);
   OMNI_ASSERT(
       torch_params_.workspace_size <= std::numeric_limits<long int>::max());
 
-  omniback::str::try_update<std::string>(params_, "name", torch_params_.name);
+  om::str::try_update<std::string>(params_, "name", torch_params_.name);
 
   std::string dtype = "fp16";
-  omniback::str::try_update(params_, "dtype", dtype);
-  std::vector<std::string> types = omniback::str::str_split(dtype, ',');
+  om::str::try_update(params_, "dtype", dtype);
+  std::vector<std::string> types = om::str::str_split(dtype, ',');
   for (const auto& item : types)
     torch_params_.type.push_back(torchpipe::convert2trt(item));
   OMNI_ASSERT(!torch_params_.type.empty());
@@ -64,8 +65,8 @@ TorchPlugin::TorchPlugin(const std::string& params, bool is_build_phase)
   }();
 
   if (!is_build_phase) {
-    // dependency_ = OMNI_INSTANCE_GET(omniback::Backend, torch_params_.name);
-    dependency_ = omniback::init_backend(torch_params_.name, params_);
+    // dependency_ = OMNI_INSTANCE_GET(om::Backend, torch_params_.name);
+    dependency_ = om::init_backend(torch_params_.name, params_);
     OMNI_ASSERT(dependency_);
   }
 }
@@ -267,7 +268,7 @@ int32_t TorchPlugin::enqueue(
   // 1. 解析输入张量
   //----------------------------------------------
   const int nbInputs = torch_params_.num_input;
-  std::vector<torch::Tensor> input_tensors;
+  std::vector<at::Tensor> input_tensors;
   for (int i = 0; i < nbInputs; ++i) { // 使用函数参数nbInputs
     const PluginTensorDesc& desc = inputDesc[i];
 
@@ -312,7 +313,7 @@ int32_t TorchPlugin::enqueue(
             const_cast<void*>(inputs[i]),
             sizes,
             strides,
-            torch::TensorOptions().dtype(dtype).device(
+            at::TensorOptions().dtype(dtype).device(
                 torch::kCUDA, device_id)));
   }
 
@@ -320,7 +321,7 @@ int32_t TorchPlugin::enqueue(
   // 2. 构造输出张量容器
   //----------------------------------------------
   const int nbOutputs = torch_params_.num_output;
-  std::vector<torch::Tensor> output_tensors;
+  std::vector<at::Tensor> output_tensors;
   for (int o = 0; o < nbOutputs; ++o) { // 使用函数参数nbOutputs
     const PluginTensorDesc& desc = outputDesc[o];
 
@@ -365,32 +366,26 @@ int32_t TorchPlugin::enqueue(
             outputs[o],
             sizes,
             strides,
-            torch::TensorOptions().dtype(dtype).device(
+            at::TensorOptions().dtype(dtype).device(
                 torch::kCUDA, device_id)));
   }
   bool in_err = false;
   try {
-    auto io = omniback::make_dict();
-    (*io)[omniback::TASK_DATA_KEY] = input_tensors;
-    (*io)[omniback::TASK_OUTPUT_KEY] = output_tensors;
+    auto io = om::make_dict();
+    (*io)[om::TASK_DATA_KEY] = input_tensors;
+    (*io)[om::TASK_OUTPUT_KEY] = output_tensors;
     if (torch_params_.workspace_size > 0) {
       OMNI_FATAL_ASSERT(workspace);
       (*io)["workspace"] = torch::from_blob(
           workspace,
           {(long int)(torch_params_.workspace_size)},
           {1},
-          torch::TensorOptions()
-              .dtype(torch::kByte)
-              .device(torch::kCUDA, device_id));
+          at::TensorOptions()
+              .dtype(c10::kByte)
+              .device(c10::kCUDA, device_id));
     }
     if (dependency_)
-      dependency_->forward({io}); // 可能抛出Python异常
-  } catch (const pybind11::error_already_set& e) {
-    SPDLOG_ERROR("Python error: {}", e.what());
-    // e.restore(); // 保持Python错误状态
-    // PyErr_Print(); // 可选：将错误打印到标准错误流
-    // return cudaErrorUnknown;
-    in_err = true;
+      dependency_->forward({io}); // todo: 可能抛出Python异常 测试tvm_ffi
   } catch (const std::exception& e) { // 其他C++异常
     SPDLOG_ERROR("C++ runtime error: {}", e.what());
     // return cudaErrorUnknown;
@@ -500,7 +495,7 @@ IPluginV3* TorchPluginCreator::createPlugin(
       }
       SPDLOG_INFO("Plugin Attributes: params -> {}", params);
       // check
-      // [[maybe_unused]] auto map_params = omniback::str::str_split(params,
+      // [[maybe_unused]] auto map_params = om::str::str_split(params,
       // ',');
 
       TorchPlugin* const plugin{new TorchPlugin{params, true}};

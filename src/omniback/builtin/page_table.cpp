@@ -10,11 +10,11 @@
 #include <tvm/ffi/reflection/registry.h>
 #include <tvm/ffi/extra/stl.h>
 
-namespace omniback {
+namespace om {
 
 TVM_FFI_STATIC_INIT_BLOCK() {
   namespace refl = tvm::ffi::reflection;
-  // using omniback::ffi::Any;
+  // using om::ffi::Any;
   refl::ObjectDef<PageTable::PageInfo>()
       .def(refl::init<>())
       // .def_readwrite("kv_page_indices",
@@ -77,7 +77,7 @@ TVM_FFI_STATIC_INIT_BLOCK() {
   ;
 }
 
-bool PageTable::reset(const omniback::id_type& name, size_t num_tok) {
+bool PageTable::reset(const om::id_type& name, size_t num_tok) {
   // std::lock_guard<std::mutex> lock(page_infos_lock_);
   // auto iter = page_infos_.find(name);
   // OMNI_ASSERT(iter != page_infos_.end());
@@ -127,7 +127,7 @@ float PageTable::get_time() {
   return helper::time_passed(start_time);
 }
 
-bool PageTable::extend(const omniback::id_type& name) {
+bool PageTable::extend(const om::id_type& name) {
   // std::lock_guard<std::mutex> lock(page_infos_lock_);
   // auto iter = page_infos_.find(name);
   // OMNI_ASSERT(iter != page_infos_.end());
@@ -292,7 +292,7 @@ void PageTable::deactivate() {
   // std::swap(ids_, empty);
 }
 
-// bool PageTable::alloc_pages(const omniback::id_type& name, size_t num_page) {
+// bool PageTable::alloc_pages(const om::id_type& name, size_t num_page) {
 //   std::unique_lock<std::mutex> lock(page_infos_lock_);
 
 //   auto& info = page_infos_.at(name);
@@ -318,7 +318,7 @@ void PageTable::deactivate() {
 //   return true;
 // }
 
-bool PageTable::alloc_or_reset(const omniback::id_type& name, size_t num_tok) {
+bool PageTable::alloc_or_reset(const om::id_type& name, size_t num_tok) {
   bool find_id = false;
   {
     std::unique_lock<std::mutex> lock(page_infos_lock_);
@@ -336,7 +336,7 @@ bool PageTable::alloc_or_reset(const omniback::id_type& name, size_t num_tok) {
     return alloc(name, num_tok);
 }
 
-bool PageTable::alloc(const omniback::id_type& name, size_t num_tok) {
+bool PageTable::alloc(const om::id_type& name, size_t num_tok) {
   std::unique_lock<std::mutex> lock(page_infos_lock_);
   if (page_infos_.size() >= max_num_req_) {
     SPDLOG_WARN(
@@ -393,6 +393,11 @@ PageTable* py_default_page_table(const std::string& tag) {
 }
   
   
-TVM_FFI_DLL_EXPORT_TYPED_FUNC(default_page_table, py_default_page_table);
+// TVM_FFI_DLL_EXPORT_TYPED_FUNC(default_page_table, py_default_page_table);
 
-} // namespace omniback
+TVM_FFI_STATIC_INIT_BLOCK() {
+  namespace refl = tvm::ffi::reflection;
+  refl::GlobalDef().def("omniback.default_page_table", py_default_page_table);
+}
+
+} // namespace om

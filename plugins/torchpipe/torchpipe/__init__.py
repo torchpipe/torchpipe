@@ -1,148 +1,85 @@
+# isort: skip_file
+
+from packaging import version
+import logging
+logger = logging.getLogger(__name__)  # type: ignore
+
 import ctypes, os
 
-import omniback
+ORI_TVM_FFI_DISABLE_TORCH_C_DLPACK = os.environ.get(
+    "TVM_FFI_DISABLE_TORCH_C_DLPACK", "0")
+if ORI_TVM_FFI_DISABLE_TORCH_C_DLPACK == "0":
+    os.environ["TVM_FFI_DISABLE_TORCH_C_DLPACK"] = "1"
 
-import tvm_ffi
-# ctypes.CDLL(omniback._C.__file__, mode=ctypes.RTLD_GLOBAL)
+# import time
+# start = time.time()
+import omniback
+# print(f'end = {time.time() - start}')
 
 import torch
 
-from importlib.metadata import version
+# from importlib.metadata import version
 
-__version__ = version("torchpipe")
+# __version__ = version("torchpipe")
 
-ctypes.CDLL(os.path.join(os.path.dirname(__file__), "native.so"), mode=ctypes.RTLD_GLOBAL)
 
 try:
-    image = tvm_ffi.load_module(os.path.join(
-        os.path.dirname(__file__), "image.so"))
+    # type: ignore[import-not-found]
+    from ._version import __version__, __version_tuple__
 except ImportError:
-    print(f'nvjpeg related backends not loaded')
-try:
-    trt = tvm_ffi.load_module(os.path.join(
-        os.path.dirname(__file__), "trt.so"))
-except ImportError:
-    print(f'trt related backends not loaded: ', os.path.dirname(__file__), "trt.so")
-try:
-    # from . import mat
-    mat = tvm_ffi.load_module(os.path.join(
-        os.path.dirname(__file__), "mat.so"))
+    __version__ = "0.0.0.dev0"
+    __version_tuple__ = (0, 0, 0, "dev0", "unknown")
 
-except ImportError:
-    print(f'opencv related backends not loaded')
+ 
+# -----------------------
 
+assert omniback.compiled_with_cxx11_abi() == torch.compiled_with_cxx11_abi()
 
-
-from . import utils
-if (omniback._C.use_cxx11_abi() != torch._C._GLIBCXX_USE_CXX11_ABI):
-    info = f"Incompatible C++ ABI detected. Please re-install PyTorch/Torchpipe or omniback with the same C++ ABI. "
-    info += "omniback CXX11_ABI = {}, torch CXX11_ABI = {}. ".format(
-        omniback._C.use_cxx11_abi(), torch._C._GLIBCXX_USE_CXX11_ABI)
-    info += f"""\nFor omniback, you can use 
-        pip3 install omniback --platform manylinux2014_x86_64 --only-binary=:all:   --target `python3 -c "import site; print(site.getsitepackages()[0])"` 
-        to install the pre-cxx11 abi version. Or use `USE_CXX11_ABI={int(not omniback._C.use_cxx11_abi())} pip install -e .` to rebuild omniback.
-    """
-    raise RuntimeError(info)
-
-
-
-torch.cuda.init()
+logger.info(f'torch.cuda.is_available() = {torch.cuda.is_available()}')
 
 torch.set_num_threads(torch.get_num_threads())
 
-import omniback as omni #
+# -----------------------
+from .load_libs import _load_or_build_lib, _load_or_build_lib_skip_if_error  # nosort
+
+try:
+    _load_or_build_lib("torchpipe_core")
+    _load_or_build_lib_skip_if_error("torchpipe_nvjpeg")
+    _load_or_build_lib_skip_if_error("torchpipe_tensorrt")
+    _load_or_build_lib_skip_if_error("torchpipe_opencv")
+except Exception as e:
+    logger.warning(f'Failed to load or JIT compile builtin extensions: \n{e}')
+
+
+# -----------------------
 pipe = omniback.pipe
 Dict = omniback.Dict
 register = omniback.register
-# class pipe:
-#     """python interface for the c++ library. A simple wrapper for :ref:`Interpreter <Interpreter>` . Usage:
-
-#     .. code-block:: python
-
-#         models = pipe({"model":"model_bytes...."})
-#         input = {'data':torch.from_numpy(...)}
-#         result : torch.Tensor = input['result']
-
-#     """
-
-#     def __init__(self, config: Union[Dict[str, str], Dict[str, Dict[str, str]], str]):
-#         """init with configuration.
-
-#         :param config: toml file and plain dict are supported. These parameters will be passed to all the backends involved.
-#         :type config: Dict[str, str] | Dict[str,Dict[str, str]] | str
-#         """
-#         self.Interpreter = omniback.create("Interpreter")
-#         if not config:
-#             raise RuntimeError(f"empty config : {config}")
-#         if isinstance(config, dict):
-#             for k, v in config.items():
-#                 if isinstance(v, dict):
-#                     for k2, v2 in v.items():
-#                         if not isinstance(v, (bytes, str)):
-#                             config[k][k2] = str(v2)  # .encode("utf8")
-#                 else:
-#                     if not isinstance(v, (bytes, str)):
-#                         config[k] = str(v)  # .encode("utf8")
-#             self._init(config)
-#         else:
-#             self._init_from_toml(config)
-
-#     def _init_from_toml(self, toml_path):
-#         self.config = omniback.parse(toml_path)
-#         return self.Interpreter.init(self.config)
-
-#     def _init(self, config):
-#         self.config = config
-#         return self.Interpreter.init(config)
-
-#     def __call__(
-#         self,
-#         data: Optional["Dict[str, Any] | List[Dict[str, Any]]"] = None,
-#         **kwargs: Any,
-#     ) -> Union[None, Any]:
-#         """thread-safe inference. The input could be a single dict, a list of dict for multiple inputs, or raw key-value pairs.
-
-#         :param data: input dict(s), defaults to None
-#         :type data: `Dict[str, Any] | List[Dict[str, Any]]`, optional
-#         :return: None if data exists, else Any.
-#         :rtype: Union[None, Any]
-#         """
-#         if isinstance(data, list):
-#             if len(kwargs):
-#                 for di in data:
-#                     di.update(kwargs)
-#             self.Interpreter(data)
-#         elif isinstance(data, dict):
-#             data.update(kwargs)
-#             self.Interpreter(data)
-#         else:
-#             raise RuntimeError(f"invalid input: {type(data)}")
-#             data = {}
-#             data.update(kwargs)
-#             self.Interpreter(data)
-#             return data[TASK_RESULT_KEY]
-
-#     def max(self):
-#         return self.Interpreter.max()
-
-#     def min(self):
-#         return self.Interpreter.min()
-
-#     def __del__(self):
-#         self.Interpreter = None
 
 
-if hasattr(torch.Tensor, "__dlpack_c_exchange_api__"):
-    # type: ignore[attr-defined]
-    api_attr = torch.Tensor.__dlpack_c_exchange_api__
-    if api_attr:
-        # PyCapsule - extract the pointer as integer
-        pythonapi = ctypes.pythonapi
-        # Set restype to c_size_t to get integer directly (avoids c_void_p quirks)
-        pythonapi.PyCapsule_GetPointer.restype = ctypes.c_size_t
-        pythonapi.PyCapsule_GetPointer.argtypes = [
-            ctypes.py_object, ctypes.c_char_p]
-        capsule_name = b"dlpack_exchange_api"
-        api_ptr = pythonapi.PyCapsule_GetPointer(api_attr, capsule_name)
-        assert api_ptr != 0, "API pointer from PyCapsule should not be NULL"
-        omniback.ffi.set_dlpack_exchange_api(api_ptr)
+# -----------------------
+def set_fast_dlpack():
+    import tvm_ffi
+    tvm_ffi._optional_torch_c_dlpack.load_torch_c_dlpack_extension()
+    tvm_ffi._optional_torch_c_dlpack.patch_torch_cuda_stream_protocol()
+    if hasattr(torch.Tensor, "__dlpack_c_exchange_api__"):
+        # type: ignore[attr-defined]
+        api_attr = torch.Tensor.__dlpack_c_exchange_api__
+        if api_attr:
+            # PyCapsule - extract the pointer as integer
+            pythonapi = ctypes.pythonapi
+            # Set restype to c_size_t to get integer directly (avoids c_void_p quirks)
+            pythonapi.PyCapsule_GetPointer.restype = ctypes.c_size_t
+            pythonapi.PyCapsule_GetPointer.argtypes = [
+                ctypes.py_object, ctypes.c_char_p]
+            capsule_name = b"dlpack_exchange_api"
+            api_ptr = pythonapi.PyCapsule_GetPointer(api_attr, capsule_name)
+            assert api_ptr != 0, "API pointer from PyCapsule should not be NULL"
+            omniback.ffi.set_dlpack_exchange_api(api_ptr)
+
+
+if version.parse(torch.__version__) >= version.parse("2.4.0"):
+    if ORI_TVM_FFI_DISABLE_TORCH_C_DLPACK == "0":
+        os.environ["TVM_FFI_DISABLE_TORCH_C_DLPACK"] = "0"
+        
+    set_fast_dlpack()

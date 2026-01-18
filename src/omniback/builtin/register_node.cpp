@@ -6,7 +6,7 @@
 #include "omniback/core/task_keys.hpp"
 #include "omniback/helper/base_logging.hpp"
 
-namespace omniback {
+namespace om {
 void Register::impl_init(
     const std::unordered_map<std::string, std::string>& params,
     const dict& kwargs) {
@@ -102,4 +102,4 @@ class InstancesRegister : public Backend {
 
 OMNI_REGISTER(Backend, InstancesRegister, "InstancesRegister,Instances");
 
-} // namespace omniback
+} // namespace om

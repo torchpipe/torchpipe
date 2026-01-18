@@ -5,7 +5,7 @@
 #include "omniback/helper/base_logging.hpp"
 #include "omniback/helper/string.hpp"
 
-namespace omniback {
+namespace om {
 
 bool omniback_load() {
   const static auto tmp = []() { return true; }();
@@ -97,4 +97,4 @@ template ClassRegistryBase<Backend>& ClassRegistryInstance<Backend>();
 template ClassRegistryBase<Queue>& ClassRegistryInstance<Queue>();
 template ClassRegistryBase<Event>& ClassRegistryInstance<Event>();
 
-} // namespace omniback
+} // namespace om

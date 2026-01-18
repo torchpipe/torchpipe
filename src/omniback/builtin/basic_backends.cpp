@@ -11,7 +11,7 @@
 #include "omniback/helper/macro.h"
 #include "omniback/helper/string.hpp"
 
-namespace omniback {
+namespace om {
 void DependencyV0::impl_init(
     const std::unordered_map<std::string, std::string>& config,
     const dict& kwargs) {
@@ -364,4 +364,4 @@ class ReadFile : public BackendOne {
 };
 
 OMNI_REGISTER_BACKEND(ReadFile);
-} // namespace omniback
+} // namespace om

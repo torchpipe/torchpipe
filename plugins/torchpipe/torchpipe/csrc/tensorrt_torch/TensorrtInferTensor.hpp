@@ -9,12 +9,12 @@
 
 namespace torchpipe {
 
-class TensorrtInferTensor : public omniback::Backend {
+class TensorrtInferTensor : public om::Backend {
  private:
   void impl_init(
       const std::unordered_map<std::string, std::string>& config,
-      const omniback::dict& kwargs) override;
-  void impl_forward(const std::vector<omniback::dict>& input) override;
+      const om::dict& kwargs) override;
+  void impl_forward(const std::vector<om::dict>& input) override;
   [[nodiscard]] uint32_t impl_max() const {
     return (size_t)info_.first.at(0).max.d[0];
   }

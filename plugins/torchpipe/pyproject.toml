@@ -1,0 +1,64 @@
+[project]
+name = "torchpipe"
+dynamic = ["version"]
+
+requires-python = ">=3.8"
+description = "Serving inside Pytorch"
+dependencies = [
+    "torch",
+    "omniback",
+    "numpy",
+    "setuptools",
+    "packaging",
+    "tqdm",
+    "requests"
+]
+
+authors = [{ name = "torchpipe team" }]
+readme = "README.md"
+license = { text = "Apache-2.0" }
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Education",
+    "Intended Audience :: Science/Research",
+]
+
+[build-system]
+requires = [
+    "setuptools>=61.0",
+    "setuptools_scm[toml]>=6.2",
+    "wheel"
+]
+build-backend = "setuptools.build_meta"
+
+[project.optional-dependencies]
+test = [
+    "onnx-graphsurgeon>=0.5.8",  
+    "onnxslim",
+    "pytest",          
+]
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools_scm]
+version_file = "torchpipe/_version.py"
+write_to = "torchpipe/_version.py"
+fallback_version = "0.0.1-dev"
+tag_regex = "^t(.*)"
+local_scheme = "no-local-version"
+git_describe_command = ["git", "describe", "--tags", "--long", "--match", "t*"]
+
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["torchpipe", "torchpipe.*"]
+
+[tool.setuptools.package-data]
+"torchpipe" = [
+    "*.py",
+    "*.so", "*.dll", "*.dylib",
+    "csrc/**/*",
+    "csrc/**/.*"  # 包含隐藏文件（如 .gitignore，可选）
+]

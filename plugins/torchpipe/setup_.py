@@ -215,6 +215,10 @@ def build_core_extension():
 
 
 def build_nvjpeg_extension():
+    nvjpeg_found = CUDA_HOME is not None and (
+        Path(CUDA_HOME) / "include/nvjpeg.h").exists()
+    assert nvjpeg_found
+    
     sources = config.csrc_dir.glob("nvjpeg_torch/*.cpp")
     sources = [str(x) for x in sources]
     return BuildHelper.create_extension(

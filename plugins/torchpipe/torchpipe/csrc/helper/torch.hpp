@@ -21,9 +21,10 @@
 #include "helper/net_info.hpp"
 #include "omniback/ffi/type_traits.h"
 #include <omniback/addons/torch/type_traits.h>
+#include "helper/mat.hpp"
 
 namespace torchpipe {
-using dict = omniback::dict;
+using dict = om::dict;
 
 #if 1
 bool torch_not_use_default_stream(bool high_prio = false);
@@ -33,12 +34,12 @@ torch::Tensor to_current_device(torch::Tensor input);
 
 #endif
 
-torch::Tensor get_tensor_from_any(omniback::any input);
+torch::Tensor get_tensor_from_any(om::any input);
 std::string print_tensor(
     const std::vector<torch::Tensor>& data,
     const std::string& tag = "");
 
-bool is_any_cpu(omniback::any input);
+bool is_any_cpu(om::any input);
 bool is_cpu_tensor(torch::Tensor input);
 static inline torch::TensorOptions get_tensor_option(c10::ScalarType dtype) {
   return torch::TensorOptions()
@@ -111,7 +112,7 @@ static inline torch::Tensor torch_allocate(int64_t size) {
 }
 
 std::vector<torch::Tensor> get_tensors(
-    omniback::dict input_dict,
+    om::dict input_dict,
     const std::string& key);
 
 void copy2ptr(torch::Tensor input, char* ptr);
@@ -130,39 +131,18 @@ int static inline torch_free(void* p) {
 }
 
 // Async Memory Allocation with Error Handling
-static inline int torch_malloc_async(
+int torch_malloc_async(
     void* ctx,
     void** p,
     size_t size,
-    cudaStream_t stream) {
-  (void)ctx; // Ignore the context pointer if not used
-  if (size == 0) {
-    *p = nullptr;
-    return -1; // Error: Invalid size
-  }
-
-  *p = c10::cuda::CUDACachingAllocator::raw_alloc_with_stream(size, stream);
-  if (*p == nullptr) {
-    return -2; // Error: Memory allocation failed
-  }
-
-  return 0; // Success
-}
+    cudaStream_t stream);
 
 // Async Memory Free with Error Handling
-static inline int torch_free_async(
+int torch_free_async(
     void* ctx,
     void* p,
     size_t size,
-    cudaStream_t stream) {
-  (void)ctx; // Ignore the context pointer if not used
-  if (p == nullptr) {
-    return -3; // Error: Invalid pointer
-  }
-
-  c10::cuda::CUDACachingAllocator::raw_delete(p);
-  return 0; // Success
-}
+    cudaStream_t stream);
 
 // Pinned Memory Allocator Using PyTorch
 int static inline torch_pinned_malloc_async(
@@ -202,7 +182,7 @@ int static inline torch_pinned_free_async(
   return 0;
 }
 
-std::string get_sm();
+// std::string get_sm();
 
 // torch::Tensor fix_and_cat_tensor(std::vector<torch::Tensor>& data,
 //                                  const NetIOInfo& info);
@@ -226,8 +206,13 @@ void check_batched_inputs(
 bool match(NetIOInfo::Dims64& dst, const torch::Tensor& src);
 
 c10::ScalarType netinfo2torch_type(NetIOInfo::DataType dtype);
+torch::Tensor imageDataToTorchCPU(
+    const convert::ImageData& img) ;
+
+
 
 float cuda_time();
+convert::ImageData torch2ImageData(torch::Tensor tensor);
 // int StreamOrderedManagedTensorAllocator(
 //     void* stream,
 //     DLTensor* prototype,

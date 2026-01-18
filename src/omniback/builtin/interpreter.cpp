@@ -5,7 +5,7 @@
 #include "omniback/helper/base_logging.hpp"
 #include "omniback/helper/macro.h"
 #include <tvm/ffi/extra/stl.h>
-namespace omniback {
+namespace om {
 void Interpreter::impl_init(
     const std::unordered_map<std::string, std::string>& config,
     const dict& kwargs) {
@@ -90,4 +90,4 @@ void Interpreter::impl_init(
 }
 
 OMNI_REGISTER(Backend, Interpreter);
-} // namespace omniback
+} // namespace om
