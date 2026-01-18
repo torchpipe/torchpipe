@@ -9,7 +9,9 @@ dependencies = [
     "omniback",
     "numpy",
     "setuptools",
-    "packaging"
+    "packaging",
+    "tqdm",
+    "requests"
 ]
 
 authors = [{ name = "torchpipe team" }]

@@ -9,7 +9,7 @@ import omniback
 INIT_STR = "ModelLoadder[(.onnx)Onnx2Tensorrt,(.trt)LoadTensorrtEngine], TensorrtInferTensor"
 FORWARD_STR = "CatSplit[S_v0[GpuTensor,CatTensor],S_v0[ContiguousTensor,TensorrtInferTensor,ProxyFromParam[post_processor]],SplitTensor]"
 BACKEND_STR = f"StreamGuard[TensorrtTensor]"
-BACKEND_STR = "Identity"
+# BACKEND_STR = "Identity"
 class Conv(torch.nn.Module):
     def __init__(self):
         super(Conv, self).__init__()
