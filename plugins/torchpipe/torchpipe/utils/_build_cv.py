@@ -11,9 +11,20 @@ logger = logging.getLogger(__name__)  # type: ignore
 def is_system_exists_cv():
     exists_header = exists_lib = False
     for inc in system_include_dirs:
-        if os.path.exists(os.path.join(inc, "opencv2/core.hpp")):
+        if os.path.exists(os.path.join(inc, "opencv4/opencv2/core.hpp")):
             exists_header = True
             break
+    for lib in system_library_dirs:
+        if os.path.exists(os.path.join(lib, "libopencv_core.so")):
+            exists_lib = True
+            break
+    return exists_lib and exists_header
+def get_system_exists_cv():
+    exists_header = exists_lib = False
+    for inc in system_include_dirs:
+        if os.path.exists(os.path.join(inc, "opencv4/opencv2/core.hpp")):
+            return os.path.join(inc, "opencv4/")
+    raise RuntimeError('find no system opencv header')
     for lib in system_library_dirs:
         if os.path.exists(os.path.join(lib, "libopencv_core.so")):
             exists_lib = True
@@ -226,6 +237,7 @@ def _build_cv(csrc_dir):
             env={**os.environ, "EXAMPLE_ENV": "1"},
         )
     else:
+        cv_inc = get_system_exists_cv()
         subprocess.run(
             [
                 sys.executable,
@@ -235,6 +247,7 @@ def _build_cv(csrc_dir):
                 os.path.join(csrc_dir, "csrc/mat_torch/"),
                 "--include-dirs",
                 os.path.join(csrc_dir, "csrc/"),
+                f"{cv_inc}",
                 "--no-torch",
                 f"--ldflags= -lopencv_core -lopencv_imgproc -lopencv_imgcodecs",
                 "--name",
