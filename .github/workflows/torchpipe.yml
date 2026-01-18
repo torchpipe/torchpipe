@@ -59,28 +59,30 @@ jobs:
           name: pypi-wheels-linux-${{ matrix.arch }}
           path: ./wheelhouse/*.whl
   
-  # upload_pypi:
-  #   needs: [build_wheels_linux]
-  #   runs-on: ubuntu-latest
-  #   environment: pypi
-  #   permissions:
-  #     id-token: write
-  #     attestations: write
-  #   if: github.event_name == 'workflow_dispatch'   # <-- publish only on manual trigger
-  #   steps:
-  #     - uses: actions/download-artifact@v4
-  #       with:
-  #         pattern: pypi-*
-  #         path: dist
-  #         merge-multiple: true
-  #     - name: Generate artifact attestation for sdist and wheels
-  #       uses: actions/attest-build-provenance@v1
-  #       with:
-  #         subject-path: dist/*
-  #     - name: Publish package distributions to PyPI
-  #       uses: pypa/gh-action-pypi-publish@release/v1
-  #       with:
-  #         attestations: true
-  #         verbose: true
-  #         # testing publish url
-  #         # repository-url: https://test.pypi.org/legacy/
+  upload_pypi:
+    needs: [build_wheels_linux]
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+      attestations: write
+    if: github.event_name == 'workflow_dispatch'   # <-- publish only on manual trigger
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: pypi-*
+          path: dist
+          merge-multiple: true
+      # - name: Generate artifact attestation for sdist and wheels
+      #   uses: actions/attest-build-provenance@v1
+      #   with:
+      #     subject-path: dist/*
+      - name: Publish package distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          attestations: true
+          verbose: true
+          user: __token__
+          password: ${{ secrets.PYPI_API_TOKEN }}
+          # testing publish url
+          # repository-url: https://test.pypi.org/legacy/

@@ -95,7 +95,7 @@ source "$omniback"/.venv/build/bin/activate
 uv pip install build wheel
 cd "$torchpipe"
 mkdir -p wheelhouse/
-rm -r dist/
+rm -rf dist/
 python -m build -w
 ls dist
 if [[ "$os" == "Linux" ]]; then
