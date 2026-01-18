@@ -133,7 +133,7 @@ function(add_omniback_library TARGET_NAME ABI_FLAG OUTPUT_NAME_SUFFIX)
         )
     endif()
 
-    tvm_ffi_configure_target(${TARGET_NAME} LINK_SHARED ON LINK_HEADER ON)
+    tvm_ffi_configure_target(${TARGET_NAME} LINK_SHARED OFF LINK_HEADER ON)
 
     set_target_properties(${TARGET_NAME} PROPERTIES
         OUTPUT_NAME "omniback${OUTPUT_NAME_SUFFIX}"

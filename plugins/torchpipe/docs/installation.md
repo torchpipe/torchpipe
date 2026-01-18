@@ -18,7 +18,7 @@ docker run --rm --gpus all -it --rm --network host \
 
 # pip config set global.index-url https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple
 # python -m pip install --upgrade pip # for 23.05, 22.12, 24.05
-cd /workspace && pip install . && cd /workspace/plugins/torchpipe && pip install . --no-build-isolation
+cd /workspace && pip install . -v && cd /workspace/plugins/torchpipe && pip install . --no-build-isolation
 
 
 # JIT compile built-in backends
