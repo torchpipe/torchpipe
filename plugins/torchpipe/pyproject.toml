@@ -1,6 +1,6 @@
 [project]
 name = "torchpipe"
-dynamic = ["version"]
+version = "0.1.19"
 
 requires-python = ">=3.8"
 description = "Serving inside Pytorch"
@@ -41,14 +41,6 @@ test = [
 
 [tool.setuptools]
 include-package-data = true
-
-[tool.setuptools_scm]
-version_file = "torchpipe/_version.py"
-write_to = "torchpipe/_version.py"
-fallback_version = "0.0.1-dev"
-tag_regex = "^t(.*)"
-local_scheme = "no-local-version"
-git_describe_command = ["git", "describe", "--tags", "--long", "--match", "t*"]
 
 
 [tool.setuptools.packages.find]

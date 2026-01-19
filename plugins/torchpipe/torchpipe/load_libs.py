@@ -33,7 +33,8 @@ def _load_lib_with_torch_cuda(name):
                     cuda_version = int(torch.version.cuda.split('.')[0])
 
                     logger.warning(
-                        f"Can not find TensorRT. Skip load torchpipe_tensorrt. Set TENSORRT_INCLUDE and TENSORRT_LIB or `pip install tensorrt-cu{cuda_version}`")
+                        f"Can not find TensorRT. Skip load torchpipe_tensorrt. Set TENSORRT_INCLUDE and TENSORRT_LIB")
+                    #  or `pip install tensorrt-cu{cuda_version}`
                     has_import_trt=False
                     try:
                         import tensorrt

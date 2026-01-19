@@ -1,27 +1,32 @@
 #!/bin/bash
 
-set -e
+# set -e
 
-# Check if a tag name is provided
+# If no tag is provided, do nothing and exit gracefully
 if [ -z "$1" ]; then
-  echo "Usage: $0 <tag>"
-  exit 1
+  echo "No tag provided. Skipping tag re-creation."
+  exit 0
 fi
 
-TAG=$1
+TAG="$1"
 
-# Delete the local tag
-git tag -d $TAG
+# Check if the local tag exists before deleting
+if git rev-parse --verify --quiet "refs/tags/$TAG" >/dev/null; then
+  echo "Deleting existing local tag: $TAG"
+  git tag -d "$TAG"
+else
+  echo "Local tag $TAG does not exist. Skipping deletion."
+fi
 
-# Delete the remote tag
-git push origin --delete $TAG
+# Check if the remote tag exists before deleting
+if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
+  echo "Deleting existing remote tag: $TAG"
+  git push origin --delete "$TAG"
+else
+  echo "Remote tag $TAG does not exist. Skipping deletion."
+fi
 
-# # Create the tag again
-# git tag $TAG
-
-# # Push the tag to the remote repository
-# git push origin $TAG
-
-
-
-# git ls-remote --tags origin | awk '{print $2}' | sed 's|refs/tags/||' | xargs -I {} git push origin :refs/tags/{}
+# Create and push the new tag
+echo "Creating and pushing new tag: $TAG"
+git tag "$TAG"
+git push origin "$TAG"

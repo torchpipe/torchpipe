@@ -18,21 +18,14 @@ import omniback
 
 import torch
 
-# from importlib.metadata import version
-
-# __version__ = version("torchpipe")
-
 
 try:
-    # type: ignore[import-not-found]
-    from ._version import __version__, __version_tuple__
-except ImportError:
-    __version__ = "0.0.0.dev0"
-    __version_tuple__ = (0, 0, 0, "dev0", "unknown")
+    from importlib.metadata import version
+    __version__ = version("torchpipe")
+except Exception:
+    __version__ = "0.0.0-dev"  
 
- 
 # -----------------------
-
 assert omniback.compiled_with_cxx11_abi() == torch.compiled_with_cxx11_abi()
 
 logger.info(f'torch.cuda.is_available() = {torch.cuda.is_available()}')
