@@ -20,8 +20,8 @@ import torch
 
 
 try:
-    from importlib.metadata import version
-    __version__ = version("torchpipe")
+    from importlib.metadata import _get_version
+    __version__ = _get_version("torchpipe")
 except Exception:
     __version__ = "0.0.0-dev"  
 
@@ -71,7 +71,7 @@ def set_fast_dlpack():
             omniback.ffi.set_dlpack_exchange_api(api_ptr)
 
 
-if version.parse(torch.__version__) >= version.parse("2.4.0"):
+if torch.__version__ >= torch.torch_version.TorchVersion("2.3.0"):
     if ORI_TVM_FFI_DISABLE_TORCH_C_DLPACK == "0":
         os.environ["TVM_FFI_DISABLE_TORCH_C_DLPACK"] = "0"
         
