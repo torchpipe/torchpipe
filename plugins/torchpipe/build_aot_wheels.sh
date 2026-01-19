@@ -35,6 +35,8 @@ esac
 omniback="$PWD"
 torchpipe="$omniback"/plugins/torchpipe
 
+ls -la "$omniback"/.git
+git describe --tags
 
 function get_torch_url() {
     local version="$1"

@@ -17,10 +17,10 @@ git tag -d $TAG
 git push origin --delete $TAG
 
 # # Create the tag again
-git tag $TAG
+# git tag $TAG
 
 # # Push the tag to the remote repository
-git push origin $TAG
+# git push origin $TAG
 
 
 

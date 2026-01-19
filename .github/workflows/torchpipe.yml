@@ -47,7 +47,7 @@ jobs:
           docker pull quay.io/pypa/manylinux_2_28_${{ matrix.arch }}:latest
           docker run --name build_lib -d quay.io/pypa/manylinux_2_28_${{ matrix.arch }}:latest tail -f /dev/null
           docker cp torchpipe build_lib:/torchpipe
-          docker exec build_lib bash -c "dnf -y install git && dnf clean all"
+          docker exec build_lib bash -c "dnf -y install git"
       - name: build torch libs and wheels
         run: |
           docker exec -w /torchpipe build_lib bash ./plugins/torchpipe/build_aot_wheels.sh ${{ matrix.arch }}
