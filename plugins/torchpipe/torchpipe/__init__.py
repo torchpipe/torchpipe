@@ -20,7 +20,7 @@ import torch
 
 
 try:
-    from importlib.metadata import _get_version
+    from importlib.metadata import version as _get_version
     __version__ = _get_version("torchpipe")
 except Exception:
     __version__ = "0.0.0-dev"  
