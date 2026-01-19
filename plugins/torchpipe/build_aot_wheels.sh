@@ -36,6 +36,7 @@ omniback="$PWD"
 torchpipe="$omniback"/plugins/torchpipe
 
 ls -la "$omniback"/.git
+git config --global --add safe.directory "$omniback"
 git describe --tags
 
 function get_torch_url() {
