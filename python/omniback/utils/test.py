@@ -869,7 +869,40 @@ def multiple_round_inference(file_dir, port, num_round=10, save_prefix="result",
             pickle.dump(result, f)
             print(f'{pkl_name} saved.')
 
+def thriftpy2_example(file_dir, thrift_file, host, port, num_clients):
+    import thriftpy2
+    RESULT_GLOBAL = []
+    class ThriftPy2Client:
+        def __init__(self, thrift_file, host, port, id2data):
+            import thriftpy2
+            self.thrift_def = thriftpy2.load(thrift_file, module_name="imported_thrift")
 
+            # Create a client to use the protocol encoder
+            from thriftpy2.rpc import make_client
+            self.client = make_client(self.thrift_def.DetectService, host, port)
+            self.id2data=id2data
+            
+        def forward(self, ids: List[int]) :
+            data = [self.id2data[x] for x in ids]
+            input_bytes = [pickle.load(open(img_path, 'rb')) for img_path in data]
+            tran_list = [self.thrift_def.DetectParams(str(x), y) for x, y in zip(ids, input_bytes)]
+            results = self.client.detect_batch(tran_list)
+
+            for img_name, result in zip(data, results):
+                RESULT_GLOBAL.append((img_name, result))
+    
+    import glob
+    files = glob.glob(os.path.join(file_dir, f"*.pickle"))
+
+    instances = [ThriftPy2Client(thrift_file, host, port, files) for i in range(num_clients)]
+    
+    ids = list(range(len(files)))
+        
+    test_from_ids(
+        forward_function=[x.forward for x in instances],
+        ids=ids
+    )
+    
 def mutil_clients_inference(file_dir, thrift, port, host="127.0.0.1", num_clients=10, shuffle=False):
     import thriftpy2
     pingpong_thrift = thriftpy2.load(thrift, module_name="pingpong_thrift")

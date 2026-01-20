@@ -19,7 +19,7 @@
 set -eux
 
 arch=$1
-python_version=3.8
+
 
 os=$(uname -s)
 
@@ -39,31 +39,10 @@ ls -la "$omniback"/.git
 git config --global --add safe.directory "$omniback"
 git describe --tags
 
-function get_torch_url() {
-    local version="$1"
-    case "$version" in
-        "2.4" | "2.5")
-            echo "https://download.pytorch.org/whl/cu124"
-            ;;
-        "2.6")
-            echo "https://download.pytorch.org/whl/cu126"
-            ;;
-        "2.7")
-            echo "https://download.pytorch.org/whl/cu128"
-            ;;
-        "2.8" | "2.9")
-            echo "https://download.pytorch.org/whl/cu129"
-            ;;
-        *)
-            echo "Unknown or unsupported torch version: $version" >&2
-            return 1
-            ;;
-    esac
-}
-
 
 function build_local_libs() {
     local torch_version=$1
+    local python_version=$2
 
     uv venv "$omniback"/.venv/torch"$torch_version" --python "$python_version"
     source "$omniback"/.venv/torch"$torch_version"/bin/activate
@@ -87,10 +66,15 @@ function build_local_libs() {
 mkdir -p "$omniback"/.venv
 mkdir -p "$omniback"/lib
 
-# torch_versions=("2.4" "2.5" "2.6" "2.7" "2.8" "2.9")
-# for version in "${torch_versions[@]}"; do
-#     build_local_libs "$version"
-# done
+torch_versions=("1.13" "2.0" "2.1" "2.2" "2.3" "2.4" "2.5" "2.6" "2.7" "2.8")
+for version in "${torch_versions[@]}"; do
+    build_local_libs "$version" 3.9
+done
+
+torch_versions=("2.9")
+for version in "${torch_versions[@]}"; do
+    build_local_libs "$version" 3.14
+done
 
 # cp "$omniback"/lib/*.so "$torchpipe"/torchpipe
 uv venv "$omniback"/.venv/build --python "$python_version"
