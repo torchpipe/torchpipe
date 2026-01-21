@@ -51,6 +51,7 @@ include = ["torchpipe", "torchpipe.*"]
 "torchpipe" = [
     "*.py",
     "*.so", "*.dll", "*.dylib",
+    "lib/*.so",
     "csrc/**/*",
     "csrc/**/.*"  # 包含隐藏文件（如 .gitignore，可选）
 ]

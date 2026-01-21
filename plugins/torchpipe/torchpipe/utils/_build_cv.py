@@ -1,4 +1,18 @@
 
+# Copyright 2021-2026 NetEase.
+
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+
+#  http://www.apache.org/licenses/LICENSE-2.0
+
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 from omniback.utils.system_path import system_include_dirs, system_library_dirs
 import os
 import sys
@@ -61,7 +75,7 @@ def get_cv_include_lib_dir():
     cache_header = os.path.join(get_cache_dir(), "opencv/include/opencv4/")
     cache_lib = os.path.join(get_cache_dir(), "opencv/lib/")
     possible_header_dirs = [cache_header]
-    possible_lib_dirs = [cache_lib]
+    possible_lib_dirs = [cache_lib] +[os.path.join(get_cache_dir(), "opencv/lib64/")]
     for item in possible_header_dirs:
         if os.path.exists(os.path.join(item, "opencv2/core.hpp")):
             OPENCV_INCLUDE = item
@@ -200,6 +214,9 @@ def cache_cv_dir():
     # Return installation paths
     cache_header = cache_dir / "include/opencv4/"
     cache_lib = cache_dir / "lib/"
+    if not cache_lib.exists():
+        cache_lib = cache_dir / "lib64/"
+        
     return str(cache_header), str(cache_lib)
 
 
