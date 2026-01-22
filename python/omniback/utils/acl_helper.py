@@ -96,9 +96,8 @@ class OmModel(metaclass=ABCMeta):
 
         if isinstance(model_path, str):
             if not os.path.exists(model_path):
-                raise RuntimeError("Model file not found: ", model_path)
-            if not os.path.exists(model_path):
-                raise RuntimeError()
+                raise RuntimeError(f"Model file not found: {model_path}")
+
             model_id, ret = acl.mdl.load_from_file(model_path)
             print(f"load {model_path}")
             check_ret("acl.mdl.load_from_file", ret)
@@ -322,7 +321,7 @@ class OmModel(metaclass=ABCMeta):
 
         return result
 
-    def __call__(self, input_data: torch.Tensor, padding_batch=True):
+    def __call__(self, input_data: torch.Tensor, padding_batch=True, to_cpu=True):
         device_guard()
 
         assert isinstance(input_data, torch.Tensor)
@@ -330,20 +329,22 @@ class OmModel(metaclass=ABCMeta):
         in_bs = input_data.shape[0]
         # input_data = [input_data]
         if in_bs in self.supported_sorted_batchsize:
-            return self._forward(input_data)
+            re = self._forward(input_data, to_cpu=to_cpu)
+            return re
 
         if padding_batch and in_bs <= self.supported_sorted_batchsize[0]:
             for item in self.supported_sorted_batchsize:
                 if in_bs <= item:
                     padding_bs = item
             print(f"padding batch size from {in_bs} to {padding_bs}")
-            return self._forward(input_data, padding_bs - in_bs)
+            re = self._forward(input_data, padding_bs - in_bs, to_cpu=to_cpu)
+            return re
 
         input_datas = self._split_batch(input_data)
         # print(f"split batch size from {in_bs} to {[x.shape[0] for x in input_datas]}")
         result = []
         for item in input_datas:
-            result.append(self._forward(item))
+            result.append(self._forward(item, to_cpu=to_cpu))
         with torch.npu.stream(self.stream):
             # print("\nconcat ", [x.shape for x in result])
             result = torch.cat(result, dim=0)
@@ -353,7 +354,7 @@ class OmModel(metaclass=ABCMeta):
         return result
 
         # https://www.hiascend.com/doc_center/source/zh/canncommercial/80RC1/developmentguide/appdevg/aclpythondevg/aclpythondevg_0047.html
-    def _forward(self, input_data: torch.Tensor, padding_batchsize=0):
+    def _forward(self, input_data: torch.Tensor, padding_batchsize=0, to_cpu=True):
         # start  = timer()
         self.should_change_bs = None
 
@@ -408,17 +409,19 @@ class OmModel(metaclass=ABCMeta):
             self.stream.synchronize()
 
             destroy_data_set_buffer(dataset_in)
-            destroy_data_set_buffer(dataset_out)
 
             check_ret("acl.rt.synchronize_stream failed", ret)
 
             if padding_batchsize > 0:
                 outputs = [output[:(input_data.shape[0] - padding_batchsize)]
                            for output in outputs]
-
+            if to_cpu:
+                outputs = [x.cpu() for x in outputs]
+            self.stream.synchronize()
             if len(outputs) == 1:
                 outputs = outputs[0]
 
+            destroy_data_set_buffer(dataset_out)
             # end = timer() - start
             # print(f"inference {input_data.shape} time: {end}")
             return outputs
@@ -456,14 +459,14 @@ def _get_soc_version():
     except subprocess.CalledProcessError as e:
         print(f"Error occurred while getting soc_version: {e}")
     raise RuntimeError(
-        "Failed to get soc_version. result.stdout = ", result.stdout.splitlines())
+        f"Failed to get soc_version. result.stdout = {result.stdout.splitlines()}")
 
 
 def onnx2om(onnx_path_or_dir: str, atc_args=''):
     """
     # 动态batchsize(推荐模式)
     python3 acl_helper.py onnx2om /path/to.onnx  --atc_args="--input_shape=input:-1,3,224,224 --dynamic_batch_size=1,2,3,4,8 "
-     
+
      # 静态batchsize
     python src/acl_helper.py onnx2om model/classifier.onnx 
     python src/acl_helper.py onnx2om model/classifier_dynamic.onnx --atc_args="--input_shape=input:1,3,224,224"

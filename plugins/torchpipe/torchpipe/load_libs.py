@@ -5,6 +5,8 @@ from .utils._cache_setting import get_cache_dir
 
 import ctypes, os, sys
 import logging
+
+
 logger = logging.getLogger(__name__)  # type: ignore
 
 csrc_dir = os.path.dirname(__file__)
@@ -28,7 +30,9 @@ def get_whl_lib(path_of_cache):
     return None
 
 def _load_lib_with_torch_cuda(name):
-    device = f"cuda{torch.version.cuda.split('.')[0]}"
+    # import torch
+    # device = f"cuda{torch.version.cuda.split('.')[0]}"
+    device = "cuda"
     local_lib = build_lib.get_cache_lib(
         name, device, False)
     if load_whl_lib(local_lib):
@@ -85,12 +89,19 @@ def _load_lib(name):
             try:
                 ctypes.CDLL(torchpipe_opencv, mode=ctypes.RTLD_GLOBAL)
             except OSError:
-                from .utils._build_cv import get_cv_include_lib_dir
+                from .utils._build_cv import get_cv_include_lib_dir, is_system_exists_cv, get_system_cv
                 _, lib_dir = get_cv_include_lib_dir()
+                if lib_dir is None:
+                    if is_system_exists_cv():
+                        _, lib_dir = get_system_cv()
+                        
+                if lib_dir is None:
+                    raise RuntimeError(
+                        "can not find opencv library. You can set it through OPENCV_LIB")
+                    
                 os.environ["LD_LIBRARY_PATH"] = f"{lib_dir}:" + \
                     os.environ.get("LD_LIBRARY_PATH", "")
-                # if lib_dir is None:
-                #     raise RuntimeError("can not find opencv library. You can set it through OPENCV_LIB")
+                
                 core = Path(lib_dir)/"libopencv_core.so"
                 imgproc = Path(lib_dir)/"libopencv_imgproc.so"
                 imgcodecs = Path(lib_dir)/"libopencv_imgcodecs.so"

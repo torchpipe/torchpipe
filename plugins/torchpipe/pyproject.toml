@@ -1,6 +1,6 @@
 [project]
 name = "torchpipe"
-version = "0.1.21"
+version = "0.1.21.post0"
 
 requires-python = ">=3.8"
 description = "Serving inside Pytorch"

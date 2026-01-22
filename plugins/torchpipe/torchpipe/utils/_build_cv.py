@@ -33,7 +33,7 @@ def is_system_exists_cv():
             exists_lib = True
             break
     return exists_lib and exists_header
-def get_system_exists_cv():
+def get_system_cv():
     exists_header = exists_lib = False
     for inc in system_include_dirs:
         if os.path.exists(os.path.join(inc, "opencv4/opencv2/core.hpp")):
@@ -254,7 +254,7 @@ def _build_cv(csrc_dir):
             env={**os.environ, "EXAMPLE_ENV": "1"},
         )
     else:
-        cv_inc = get_system_exists_cv()
+        cv_inc = get_system_cv()
         subprocess.run(
             [
                 sys.executable,
