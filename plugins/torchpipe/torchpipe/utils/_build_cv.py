@@ -112,9 +112,11 @@ def cache_cv_dir():
         zip_path = cache_dir / OPENCV_ZIP
         zip_path_cache = cache_dir / (OPENCV_ZIP+".cache")
         if not zip_path.exists():
-            logger.warning(f"Downloading OpenCV {OPENCV_VERSION}...")
             logger.warning(
-                f'You can set envs OPENCV_INCLUDE and OPENCV_LIB to skip this step.')
+                f"Downloading OpenCV {OPENCV_VERSION}... to {zip_path} from {OPENCV_URL}")
+            logger.warning(
+                f'You can manully download it.')
+            
             response = requests.get(OPENCV_URL, stream=True)
             response.raise_for_status()
             with open(zip_path_cache, "wb") as f:
@@ -130,8 +132,11 @@ def cache_cv_dir():
     # Prepare build directory
     build_dir = OPENCV_DIR / "build"
     build_dir.mkdir(exist_ok=True)
-
-    print(f"Building in {build_dir}")
+    
+    logger.warning(f"Building OpenCV {OPENCV_VERSION}... Skipping by providing envs OPENCV_INCLUDE and OPENCV_LIB.")
+    logger.info(f"Building in {build_dir}")
+    logger.warning(
+        f'You can set envs OPENCV_INCLUDE and OPENCV_LIB to skip the downloading/building steps.')
     import omniback
     abi_flag = int(omniback.compiled_with_cxx11_abi())
 
@@ -207,7 +212,9 @@ def cache_cv_dir():
     ]
 
     # Build and install
-    subprocess.run(cmake_args, cwd=build_dir, check=True)
+    subprocess.run(cmake_args, cwd=build_dir, check=True, stdout=subprocess.DEVNULL,
+                   stderr=subprocess.PIPE, 
+                   text=True)
     subprocess.run(["make", "-j4"], cwd=build_dir, check=True)
     subprocess.run(["make", "install"], cwd=build_dir, check=True)
 

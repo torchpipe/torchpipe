@@ -40,9 +40,15 @@ try:
 except Exception as e:
     logger.warning(f'Failed to load or JIT compile builtin extensions: \n{e}')
     
+SKIP_TENSORRT=os.environ.get("TORCHPIPE_SKIP_TENSORRT", "0")
+if SKIP_TENSORRT != "1":
+    _load_or_build_lib_skip_if_error("torchpipe_tensorrt")
+
+SKIP_OPENCV=os.environ.get("TORCHPIPE_SKIP_OPENCV", "0")
+if SKIP_OPENCV != "1":
+    _load_or_build_lib_skip_if_error("torchpipe_opencv")
+
 _load_or_build_lib_skip_if_error("torchpipe_nvjpeg")
-_load_or_build_lib_skip_if_error("torchpipe_tensorrt")
-_load_or_build_lib_skip_if_error("torchpipe_opencv")
 
 # -----------------------
 pipe = omniback.pipe
