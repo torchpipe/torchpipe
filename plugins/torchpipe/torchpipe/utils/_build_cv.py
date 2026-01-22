@@ -113,9 +113,9 @@ def cache_cv_dir():
         zip_path_cache = cache_dir / (OPENCV_ZIP+".cache")
         if not zip_path.exists():
             logger.warning(
-                f"Downloading OpenCV {OPENCV_VERSION}... to {zip_path} from {OPENCV_URL}")
+                f"Downloading {OPENCV_URL} to {zip_path}")
             logger.warning(
-                f'You can manully download it.')
+                f'You may manully download it if it is too slow.')
             
             response = requests.get(OPENCV_URL, stream=True)
             response.raise_for_status()

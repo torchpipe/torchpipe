@@ -90,9 +90,10 @@ bool torch_not_use_default_stream(bool high_prio) {
 }
 
 bool torch_not_use_default_stream(int device_id, bool high_prio) {
-  if (c10::cuda::current_device() != device_id && device_id >= 0) {
-    c10::cuda::set_device(device_id);
-  }
+  // if (c10::cuda::current_device() != device_id && device_id >= 0) {
+  //   c10::cuda::set_device(device_id);
+  // }
+  OMNI_ASSERT(device_id < 0 || c10::cuda::current_device() == device_id);
   if (c10::cuda::getCurrentCUDAStream(device_id) ==
       c10::cuda::getDefaultCUDAStream(device_id)) {
     c10::cuda::setCurrentCUDAStream(
