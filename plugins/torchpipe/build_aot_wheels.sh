@@ -67,7 +67,7 @@ function build_local_libs() {
     # else
     #     uv pip install torch=="$torch_version"
     # fi
-    uv pip install torch==$torch_version 
+    uv pip install torch==$torch_version # -i  http://mirrors.aliyun.com/pypi/simple/
     
     if [[ "$os" == "Linux" ]]; then
         python -m omniback.utils.build_lib --output-dir "$torchpipe"/torchpipe/lib --source-dirs "$csrc"/csrc/torchplugins/ "$csrc"/csrc/helper/ --include-dirs="$csrc"/csrc/ --build-with-cuda --name torchpipe_core
@@ -95,13 +95,14 @@ uv pip install -v .
 deactivate
 
 # https://pytorch.org/get-started/previous-versions/
-torch_versions=("1.13" "2.0" "2.1")
+# torch_versions=("1.13" "2.0" "2.1")
+torch_versions=("1.12")
 for version in "${torch_versions[@]}"; do
     build_local_libs "$version" 3.9
 done
 
-# "2.5" "2.6" "2.7" "2.8" => next version
-torch_versions=("2.2" "2.3" "2.4" "2.9")
+# "2.3" "2.4" "2.5" "2.6" "2.7" "2.8" => next version
+torch_versions=("2.8")
 for version in "${torch_versions[@]}"; do
     build_local_libs "$version" 3.11
 done
