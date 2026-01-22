@@ -574,7 +574,7 @@ void FakeInstance::impl_forward(const std::vector<dict>& ios) {
   // SPDLOG_INFO("FakeInstance: size={} index={}", size, index);
   // auto ios = ios_data;
   if (size != ios.size()) {
-    IPIPE_ASSERT(index >= 0); // garentied
+    OMNI_ASSERT(index >= 0); // garentied
     backends_[index]->forward(ios);
   } else {
     if (index < 0) {

@@ -49,11 +49,11 @@ void save(std::string save_name, torch::Tensor input) {
 }
 
 void copy2ptr(torch::Tensor input, char* ptr) {
-  IPIPE_ASSERT(
+  OMNI_ASSERT(
       input.is_contiguous(), "copy2ptr: input tensor must be contiguous");
   cudaStream_t stream = c10::cuda::getCurrentCUDAStream();
   size_t size = input.numel() * input.element_size();
-  IPIPE_ASSERT(
+  OMNI_ASSERT(
       cudaMemcpyAsync(
           ptr, input.data_ptr(), size, cudaMemcpyDeviceToDevice, stream) ==
           cudaSuccess,
@@ -131,7 +131,7 @@ torch::Tensor to_current_device(torch::Tensor input) {
 
 bool is_cpu_tensor(torch::Tensor input) {
 #ifndef TORCH_VERSION_MAJOR
-  IPIPE_ASSERT(0, "TORCH_VERSION_MAJOR not defined");
+  OMNI_ASSERT(0, "TORCH_VERSION_MAJOR not defined");
 #endif
 #if TORCH_VERSION_MAJOR == 1 && TORCH_VERSION_MINOR < 10
   return input.device().is_cpu();
@@ -533,7 +533,7 @@ std::vector<torch::Tensor> get_tensors(
 }
 
 torch::Tensor try_quick_cat(std::vector<torch::Tensor> resized_inputs) {
-  IPIPE_ASSERT(resized_inputs.size() >= 2);
+  OMNI_ASSERT(resized_inputs.size() >= 2);
   bool share_same_storage = true;
   bool is_continuous = true;
   auto first_data_ptr = resized_inputs[0].storage().data_ptr().get();
@@ -571,7 +571,7 @@ torch::Tensor try_quick_cat(std::vector<torch::Tensor> resized_inputs) {
                          resized_inputs[0].storage_offset(),
                          sizes,
                          resized_inputs[0].strides());
-    IPIPE_ASSERT(true_input.is_contiguous());
+    OMNI_ASSERT(true_input.is_contiguous());
     SPDLOG_DEBUG("use quick cat");
     assert(true_input.storage().data_ptr().get() == first_data_ptr);
   } else {

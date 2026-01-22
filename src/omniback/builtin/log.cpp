@@ -48,4 +48,20 @@ class InfoLogger : public Backend {
   }
 };
 OMNI_REGISTER_BACKEND(InfoLogger);
+
+
+
+namespace {
+  struct DefaultLoggerInitializer {
+    DefaultLoggerInitializer() {
+        auto logger = default_logger();
+
+        if (logger) {
+          logger->set_pattern("[%s:%#] %v");
+        }
+    }
+};
+
+static DefaultLoggerInitializer g_default_logger_init;
+}
 } // namespace om

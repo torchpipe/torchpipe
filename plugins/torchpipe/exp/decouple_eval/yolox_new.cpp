@@ -80,7 +80,7 @@ class PostProcYolox : public Backend {
     return true;
   };
   void forward(const std::vector<dict>& data) override {
-    IPIPE_ASSERT(data.size() == 1);
+    OMNI_ASSERT(data.size() == 1);
     torch::Tensor result = dict_get<torch::Tensor>(data[0], TASK_DATA_KEY);
     forward({result}, data);
   }
