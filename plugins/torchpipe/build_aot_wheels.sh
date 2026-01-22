@@ -95,16 +95,26 @@ uv pip install -v .
 deactivate
 
 # https://pytorch.org/get-started/previous-versions/
-torch_versions=("1.13" "2.0" "2.1")
+torch_versions=("1.13" "2.1")
 for version in "${torch_versions[@]}"; do
     build_local_libs "$version" 3.9
 done
 
-torch_versions=("2.3" "2.4" "2.5" "2.6" "2.7" "2.8" "2.9") # => next version
+uv cache clean
+
+torch_versions=("2.3") # => next version
 for version in "${torch_versions[@]}"; do
     build_local_libs "$version" 3.11
 done
 
+uv cache clean
+
+torch_versions=("2.6" "2.7" "2.8" "2.9") # => next version
+for version in "${torch_versions[@]}"; do
+    build_local_libs "$version" 3.11
+done
+
+uv cache clean
 
 # cp "$omniback"/lib/*.so "$torchpipe"/torchpipe
 source "$omniback"/.venv/py3.9/bin/activate

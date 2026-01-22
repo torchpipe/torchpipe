@@ -45,6 +45,11 @@ include-package-data = true
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["torchpipe", "torchpipe.*"]
+exclude = [
+    "torchpipe.examples*",
+    "torchpipe.exp*",
+    "torchpipe.tests*",
+]
 
 [tool.setuptools.package-data]
 "torchpipe" = [

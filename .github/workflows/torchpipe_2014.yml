@@ -1,0 +1,89 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+name: torchpipe
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: "Branch or tag to publish (manual run)"
+        required: true
+
+jobs:
+  build_wheels_linux:
+    strategy:
+      fail-fast: false
+      matrix:
+        # arch: ["x86_64", "aarch64"]
+        arch: ["x86_64"]
+    runs-on: ${{ matrix.arch == 'aarch64' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
+    steps:
+      - uses: jlumbroso/free-disk-space@main
+        if: ${{ matrix.arch == 'x86_64'}}
+      - uses: actions/checkout@v5
+        with:
+          repository: torchpipe/torchpipe
+          ref: main
+          fetch-depth: 0
+          submodules: recursive
+          path: torchpipe
+      - name: prepare docker environment
+        run: |
+          docker pull quay.io/pypa/manylinux_2_28_${{ matrix.arch }}:latest
+          docker run --name build_lib -d quay.io/pypa/manylinux_2_28_${{ matrix.arch }}:latest tail -f /dev/null
+          docker cp torchpipe build_lib:/torchpipe
+          docker exec build_lib bash -c "dnf -y install git vim curl wget"
+      - name: build torch libs and wheels
+        run: |
+          docker exec -w /torchpipe build_lib bash ./plugins/torchpipe/build_aot_wheels_2014.sh
+      - name: collect built wheels
+        run: |
+          mkdir wheelhouse
+          docker cp build_lib:/torchpipe/plugins/torchpipe/wheelhouse/ .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pypi-wheels-linux-${{ matrix.arch }}
+          path: ./wheelhouse/*.whl
+  
+  upload_pypi:
+    needs: [build_wheels_linux]
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+      attestations: write
+    if: github.event_name == 'workflow_dispatch'   # <-- publish only on manual trigger
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: pypi-*
+          path: dist
+          merge-multiple: true
+      # - name: Generate artifact attestation for sdist and wheels
+      #   uses: actions/attest-build-provenance@v1
+      #   with:
+      #     subject-path: dist/*
+      - name: Publish package distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          attestations: true
+          verbose: true
+          user: __token__
+          password: ${{ secrets.PYPI_API_TOKEN }}
+          # testing publish url
+          # repository-url: https://test.pypi.org/legacy/
