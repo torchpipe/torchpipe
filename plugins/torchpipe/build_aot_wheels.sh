@@ -100,7 +100,7 @@ for version in "${torch_versions[@]}"; do
     build_local_libs "$version" 3.9
 done
 
-"2.3" "2.4" "2.5" "2.6" "2.7" "2.8" "2.9" # => next version
+torch_versions=("2.3" "2.4" "2.5" "2.6" "2.7" "2.8" "2.9") # => next version
 for version in "${torch_versions[@]}"; do
     build_local_libs "$version" 3.11
 done

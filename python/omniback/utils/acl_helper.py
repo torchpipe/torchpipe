@@ -439,6 +439,9 @@ class OmModel(metaclass=ABCMeta):
             print("acl.finalize")
 
 
+def get_soc_version():
+    return _get_soc_version()
+
 def _get_soc_version():
     """
     获取 soc_version，通过调用系统命令 'npu-smi info -m | grep Ascend'。
