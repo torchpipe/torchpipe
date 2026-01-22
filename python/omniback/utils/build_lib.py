@@ -234,6 +234,8 @@ def main() -> None:  # noqa: PLR0912, PLR0915
         if not args.no_torch:
             if args.build_with_cuda:
                 cflags.append("-DBUILD_WITH_CUDA")
+                if torch.utils.cpp_extension.CUDA_HOME is None:
+                    logger.error("can not find CUDA_HOME")
             elif args.build_with_rocm:
                 cflags.extend(torch.utils.cpp_extension.COMMON_HIP_FLAGS)
                 cflags.append("-DBUILD_WITH_ROCM")

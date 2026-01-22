@@ -1,6 +1,6 @@
 [project]
 name = "torchpipe"
-version = "0.1.20"
+version = "0.1.21"
 
 requires-python = ">=3.8"
 description = "Serving inside Pytorch"
@@ -51,6 +51,7 @@ include = ["torchpipe", "torchpipe.*"]
 "torchpipe" = [
     "*.py",
     "*.so", "*.dll", "*.dylib",
+    "lib/*.so",
     "csrc/**/*",
     "csrc/**/.*"  # 包含隐藏文件（如 .gitignore，可选）
 ]

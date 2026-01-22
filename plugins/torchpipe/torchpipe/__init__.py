@@ -37,12 +37,12 @@ from .load_libs import _load_or_build_lib, _load_or_build_lib_skip_if_error  # n
 
 try:
     _load_or_build_lib("torchpipe_core")
-    _load_or_build_lib_skip_if_error("torchpipe_nvjpeg")
-    _load_or_build_lib_skip_if_error("torchpipe_tensorrt")
-    _load_or_build_lib_skip_if_error("torchpipe_opencv")
 except Exception as e:
     logger.warning(f'Failed to load or JIT compile builtin extensions: \n{e}')
-
+    
+_load_or_build_lib_skip_if_error("torchpipe_nvjpeg")
+_load_or_build_lib_skip_if_error("torchpipe_tensorrt")
+_load_or_build_lib_skip_if_error("torchpipe_opencv")
 
 # -----------------------
 pipe = omniback.pipe

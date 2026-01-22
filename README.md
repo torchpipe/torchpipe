@@ -127,8 +127,3 @@ See [Basic Usage](https://torchpipe.github.io/torchpipe/usage/basic_usage.html).
 
 WIP
 
-## Version Migration Notes 
-
-
-
-TorchPipe (v1, this version)  is a collection of deep learning computation backends built on  Omniback library. Not all computation backends from TorchPipe (v0) have been ported to TorchPipe (v1) yet.

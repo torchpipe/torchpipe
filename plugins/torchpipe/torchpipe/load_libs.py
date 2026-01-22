@@ -8,17 +8,29 @@ import logging
 logger = logging.getLogger(__name__)  # type: ignore
 
 csrc_dir = os.path.dirname(__file__)
+
 def load_whl_lib(path_of_cache):
-    p = os.path.join(os.path.dirname(__file__),
+    p = os.path.join(os.path.dirname(__file__), 'lib',
                      os.path.basename(path_of_cache))
     if os.path.exists(p):
         ctypes.CDLL(p, mode=ctypes.RTLD_GLOBAL)
+        logger.info(f'Successfully loaded precompiled {p} from the installed package')
         return True
     return False
 
+def get_whl_lib(path_of_cache):
+    p = os.path.join(os.path.dirname(__file__), 'lib',
+                     os.path.basename(path_of_cache))
+    if os.path.exists(p):
+        # ctypes.CDLL(p, mode=ctypes.RTLD_GLOBAL)
+        # logger.info(f'Successfully loaded precompiled {p} from the installed package')
+        return p
+    return None
+
 def _load_lib_with_torch_cuda(name):
+    device = f"cuda{torch.version.cuda.split('.')[0]}"
     local_lib = build_lib.get_cache_lib(
-        name, "cuda", False)
+        name, device, False)
     if load_whl_lib(local_lib):
         return True
     if name == "torchpipe_tensorrt":
@@ -164,3 +176,9 @@ def _load_or_build_lib(name):
     if not _load_lib(name):
         _build_lib(name)
         return _load_lib(name)
+
+if __name__ == "__main__":
+    import fire
+    fire.Fire({
+        "build":  _build_lib
+    })
