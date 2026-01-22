@@ -6,7 +6,7 @@ requires-python = ">=3.8"
 description = "Serving inside Pytorch"
 dependencies = [
     "torch",
-    "omniback",
+    "omniback==0.1.21",
     "numpy",
     "setuptools",
     "packaging",

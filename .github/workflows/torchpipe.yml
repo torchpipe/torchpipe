@@ -91,7 +91,7 @@ jobs:
         with:
           attestations: true
           verbose: true
-          # user: __token__
-          # password: ${{ secrets.PYPI_API_TOKEN }}
+          user: __token__
+          password: ${{ secrets.PYPI_API_TOKEN }}
           # testing publish url
           # repository-url: https://test.pypi.org/legacy/
