@@ -128,7 +128,7 @@ def cache_trt_dir():
             # 获取文件总大小（注意：有些服务器可能不提供 Content-Length）
             total_size = int(response.headers.get('content-length', 0))
             logger.warning(
-                f'You can set envs TENSORRT_INCLUDE and TENSORRT_LIB to skip downloading. Set TORCHPIPE_SKIP_TENSORRT=1 to skip loading TensorRT.')
+                f'You can set the environment variables TENSORRT_INCLUDE and TENSORRT_LIB to specify the locations of the TensorRT headers and libraries, respectively, to skip downloading. Additionally, set TORCHPIPE_SKIP_TENSORRT=1 to bypass loading TensorRT-related backends.')
             with open(tar_path+".cache", "wb") as f:
                 with tqdm(
                     desc=f"Downloading {trt_file_name}",

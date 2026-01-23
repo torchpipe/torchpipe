@@ -14,6 +14,7 @@ torchpipe is an alternative choice for Triton Inference Server, mainly featuring
 
 
 ## update
+- [20260123] Available on Pypi: `pip install torchpipe`
 - [20260104] We switched to [tvm_ffi](https://github.com/apache/tvm-ffi) to provide clearer C++-Python interaction.
 
 

@@ -46,13 +46,7 @@ bool decode(
     return false;
   }
 
-  // if (nComponents == 1)
-  // {
 
-  //     SPDLOG_WARN(
-  //         "Forcing conversion from nComponents == 1 to nComponents == 3");
-  //     // nComponents = 3;
-  // }
   if (nComponents != 3) {
     SPDLOG_ERROR(
         "Invalid channel count: {}. Supported values: 3. (This is might be "
@@ -60,10 +54,6 @@ bool decode(
         nComponents);
     return false;
   }
-  //   if (!SupportedSubsampling(subsampling)) {
-  //     SPDLOG_ERROR("subsampling not supported");
-  //     return false;
-  //   }
 
   int h = heights[0];
   int w = widths[0];

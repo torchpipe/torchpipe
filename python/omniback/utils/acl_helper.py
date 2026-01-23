@@ -37,31 +37,29 @@ def check_ret(message, ret):
         raise Exception("{} failed ret={}".format(message, ret))
 
 
-def device_guard():
-    device_id, ret = acl.rt.get_device()
-    if (ret != 0):
-
-        count, ret = acl.rt.get_device_count()
-        check_ret("acl.rt.get_device_count", ret)
-        if count == 0:
-            raise Exception("No device found")
-        else:
-            print("Found {} devices".format(count))
-
-        ret = acl.rt.set_device(0)
-        check_ret("acl.rt.set_device(0)", ret)
-
-    return device_id
+def device_guard(device_id: int = 0):
+    local_device_id, ret = acl.rt.get_device()
+    if (ret == 0 and local_device_id == device_id):
+        return
+        
+    ret = acl.rt.set_device(device_id)
+    check_ret("acl.rt.set_device()", ret)
 
 
+def set_device(device_id: int):
+    ret = acl.rt.set_device(device_id)
+    check_ret("acl.rt.set_device", ret)
+    
 def init_acl():
-    torch.npu.set_device(torch.device("npu:0"))
-    device_guard()
-    # managed by pytorch
-    if False:
-        ret = acl.init()
-        check_ret("acl.init", ret)
-        print("acl.init success")
+    MULTIPLE_DEVICE_MODE = os.getenv("ACL_HELPER_MULTIPLE_DEVICE_MODE", "0")
+    if MULTIPLE_DEVICE_MODE == "0":
+        
+        assert torch.npu.device_count(
+        ) == 1, "Only support single NPU device, but got {torch.npu.device_count()} devices.  You must run this script in docker contaier with --device=/dev/davinciX, where X is the NPU device id that no other process occupied. You may also set ASCEND_RT_VISIBLE_DEVICES env."
+
+    ret = acl.init()
+    check_ret("acl.init", ret)
+    print("acl.init success")
 
 
 _ = init_acl()
@@ -90,9 +88,9 @@ class ThreadSafeWrapper:
 
 
 class OmModel(metaclass=ABCMeta):
-    def __init__(self, model_path: Union[str, bytes]):
+    def __init__(self, model_path: Union[str, bytes], device_id: int = 0):
 
-        device_guard()
+        device_guard(device_id)
 
         if isinstance(model_path, str):
             if not os.path.exists(model_path):

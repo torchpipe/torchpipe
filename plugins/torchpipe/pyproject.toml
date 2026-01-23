@@ -1,16 +1,18 @@
 [project]
 name = "torchpipe"
-version = "0.1.21.post2"
+version = "0.1.22"
 
 requires-python = ">=3.8"
 description = "Serving inside Pytorch"
 dependencies = [
     "torch",
-    "omniback==0.1.21",
+    "omniback==0.1.22",
     "setuptools",
     "packaging",
     "tqdm",
-    "requests"
+    "requests",
+    "ninja",
+    "cmake",
 ]
 
 authors = [{ name = "torchpipe team" }]

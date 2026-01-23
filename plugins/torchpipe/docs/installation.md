@@ -50,6 +50,14 @@ pip install . --no-deps --no-build-isolation -v
 python -c "import torchpipe"
 ```
 
+## 基础环境镜像
+可如下构建基础环境镜像：
+```bash
+# 显卡驱动 >=545
+# cuda12.6 + trt10.14
+docker build -t torchpipe:base_trt1014 -f docker/DockerfileCuda12_TRT1014 .
+```
+
 ### Dependency Compatibility
 
 

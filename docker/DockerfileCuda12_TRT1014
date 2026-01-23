@@ -4,15 +4,16 @@ FROM nvcr.io/nvidia/cuda:12.6.2-cudnn-runtime-ubuntu24.04 AS base
 LABEL maintainer="nan2088"
 WORKDIR /app
 
+ARG USE_GH_PROXY=0
 
 
 # 1) base
 ENV PIP_BREAK_SYSTEM_PACKAGES=1
 RUN apt-get update -y && apt-get install -y vim ninja-build zip curl python3-pip wget && apt-get clean && apt-get autoclean && apt-get autoremove && rm -rf /root/.cache/*
 RUN ln -s /usr/bin/python3 /usr/bin/python # && python -m pip install --upgrade pip 
-RUN pip config set global.index-url https://mirrors.aliyun.com/pypi/simple/
+# RUN pip config set global.index-url https://mirrors.aliyun.com/pypi/simple/
 
-RUN pip --no-cache-dir install torch==2.9.1 numpy torchvision==0.24.1  -i https://mirrors.aliyun.com/pypi/simple &&\
+RUN pip --no-cache-dir install torch==2.10.0 "numpy<2" torchvision &&\
     rm -rf /root/.cache/
 # --index-url https://download.pytorch.org/whl/cu126 
 
@@ -20,7 +21,12 @@ FROM base AS thirdparty
 RUN pip config set global.index-url https://mirrors.aliyun.com/pypi/simple/
 
 # 2) TensorRT/opencv Installation
-RUN wget https://codeload.github.com/opencv/opencv/zip/refs/tags/4.5.4 -O /app/opencv-4.5.4.zip
+ARG USE_GH_PROXY=0
+RUN if [ "$USE_GH_PROXY" = "1" ]; then \
+        wget "https://gh-proxy.org/https://codeload.github.com/opencv/opencv/zip/refs/tags/4.5.4" -O /app/opencv-4.5.4.zip; \
+    else \
+        wget "https://codeload.github.com/opencv/opencv/zip/refs/tags/4.5.4" -O /app/opencv-4.5.4.zip; \
+    fi
 
 RUN unzip opencv-4.5.4.zip  && rm -rf /app/opencv-4.5.4.zip
 RUN pip  --no-cache-dir install cmake
@@ -87,7 +93,7 @@ RUN cd opencv-4.5.4/ && mkdir build && cd build && \
 
 
 
-# Please manually download the TensorRT installation package from https://github.com/NVIDIA/TensorRT/releases.
+# Please manually download the TensorRT installation package from https://github.com/NVIDIA/TensorRT.
 # Check if the file exists in the local directory
 RUN if [ ! -f ./TensorRT-10.14.1.48.Linux.x86_64-gnu.cuda-12.9.tar.gz ]; then \
     # If not, download the file to the /app directory
