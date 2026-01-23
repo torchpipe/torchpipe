@@ -27,7 +27,8 @@ classifiers = [
 requires = [
     "setuptools>=61.0",
     "setuptools_scm[toml]>=6.2",
-    "wheel"
+    "wheel",
+    "ninja"
 ]
 build-backend = "setuptools.build_meta"
 
