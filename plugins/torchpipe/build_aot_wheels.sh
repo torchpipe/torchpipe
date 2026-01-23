@@ -83,15 +83,16 @@ mkdir -p "$torchpipe"/lib
 
 uv venv "$omniback"/.venv/py3.9 --python 3.9
 source "$omniback"/.venv/py3.9/bin/activate
-# uv pip install setuptools ninja fire
-uv pip install omniback ninja --upgrade
+uv pip install setuptools ninja fire
+uv pip install omniback --upgrade
 deactivate
+
+rm -rf build
 
 uv venv "$omniback"/.venv/py3.11 --python 3.11
 source "$omniback"/.venv/py3.11/bin/activate
-# uv pip install setuptools ninja fire
-rm -rf build
-uv pip install omniback ninja --upgrade
+uv pip install setuptools ninja fire
+uv pip install omniback --upgrade
 deactivate
 
 # https://pytorch.org/get-started/previous-versions/
