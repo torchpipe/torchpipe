@@ -8,6 +8,8 @@
 #include <tvm/ffi/extra/stl.h>
 
 #include "omniback/py/pybackend.hpp"
+#include "omniback/builtin/partial_backend.hpp"
+
 namespace om::py {
 using om::Backend;
 class BackendObj : public tvm::ffi::Object {
@@ -117,6 +119,14 @@ void pyregister(
   }
 }
 
+void partial_register(std::string name, uint32_t force_max = 0) {
+  std::function<Backend*()> f =
+      [name, force_max]() {
+        return new PartialBackend(name, force_max);
+      };
+  ClassRegistryInstance<Backend>().DoAddClass(name, f);
+}
+
 Backend* py_get_backend(const std::string& aspect_name_str) {
   return OMNI_INSTANCE_GET(Backend, aspect_name_str);
 }
@@ -209,10 +219,14 @@ void backend_forward(
 
 } // namespace
 
+
+
+
 TVM_FFI_STATIC_INIT_BLOCK() {
   refl::GlobalDef().def("omniback.create", pycreate);
   refl::GlobalDef().def("omniback.init", pyinit);
   refl::GlobalDef().def("omniback.register", pyregister);
+  refl::GlobalDef().def("omniback.partial_register", partial_register);
   refl::GlobalDef().def("omniback.get", py_get_backend);
   refl::GlobalDef().def("omniback.cleanup", []() { cleanup_backend(); });
   refl::GlobalDef().def("omniback.list_backends", []() { return list_backends(); });

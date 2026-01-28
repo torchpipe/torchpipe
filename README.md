@@ -79,7 +79,7 @@ result = data['result']
 
 
 - **NGC Docker containers (recommended):**
- > test on 25.05, 25.06, ~~24.05, 23.05, and 22.12~~
+ > test on 25.05, 25.06, 24.05, 23.05
   ```bash
   img_name=nvcr.io/nvidia/pytorch:25.05-py3
 

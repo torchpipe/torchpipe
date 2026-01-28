@@ -1,5 +1,5 @@
-FROM nvcr.io/nvidia/cuda:12.6.2-cudnn-devel-ubuntu24.04 AS base_devel
-FROM nvcr.io/nvidia/cuda:12.6.2-cudnn-runtime-ubuntu24.04 AS base
+FROM nvcr.io/nvidia/cuda:12.4.1-cudnn-devel-ubuntu22.04 AS base_devel
+FROM nvcr.io/nvidia/cuda:12.4.1-cudnn-runtime-ubuntu22.04 AS base
 
 LABEL maintainer="nan2088"
 WORKDIR /app

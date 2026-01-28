@@ -255,6 +255,11 @@ BaseClassName* ClassRegistry_NewObject() {
   return new SubClassName();
 }
 
+template <typename BaseClassName, typename SubClassName>
+std::function<BaseClassName*(void)> ClassRegistry_NewObject_WithArg(std::string arg) {
+  return [arg](){return new SubClassName(arg);};
+}
+
 template <typename BaseClassName>
 class OMNI_EXPORT ClassRegister {
  public:
@@ -282,6 +287,15 @@ class OMNI_EXPORT ClassRegister {
 #define OMNI_REGISTER(base_class_type, class_name, ...)                    \
   static om::ClassRegister<base_class_type> class_name##RegistryTag( \
       om::ClassRegistry_NewObject<base_class_type, class_name>, #class_name, {#class_name, ##__VA_ARGS__});
+
+#define OMNI_PARTIAL_REGISTER(base_class_type, class_name, register_name, ...)                    \
+  static om::ClassRegister<base_class_type> class_name##register_name##RegistryTag( \
+      om::ClassRegistry_NewObject_WithArg<base_class_type, class_name>(#register_name), #register_name, {#register_name, ##__VA_ARGS__});
+
+#define OMNI_REGISTER_FROM_CREATOR(base_class_type, creator, register_name, ...)                    \
+  static om::ClassRegister<base_class_type> base_class_type##register_name##RegistryTag( \
+      creator, #register_name, {#register_name, ##__VA_ARGS__});
+
 
 #define OMNI_REGISTER_BACKEND(class_name, ...)                               \
   static om::ClassRegister<om::Backend> class_name##RegistryTag( \

@@ -1,4 +1,5 @@
 
+import importlib
 import struct
 import tvm_ffi
 import ctypes
@@ -7,6 +8,7 @@ from . import libinfo
 import logging
 logger = logging.getLogger(__name__)  # type: ignore
 
+from . import _pre_register_to_tvm_ffi  # noqa: F401
 
 libomniback = ctypes.CDLL(str(libinfo.find_libomniback()),
                  getattr(ctypes, "RTLD_GLOBAL"))
@@ -34,23 +36,6 @@ class OmDict(tvm_ffi.Object):
         else:
             assert isinstance(data, dict)
             self.__ffi_init__(data)
-
-
-# @tvm_ffi.register_object("omniback.StdAny")
-# class StdAny(tvm_ffi.Object):
-#     def __init__(self) -> None:
-#         """Construct a omniback.StdAny."""
-#         self.__ffi_init__()  # todo; repair
-    
-#     def as_torch(self):
-#         return omniback.ffi.from_dlpack(self.to_tensor())
-    
-#     def __dlpack__(self, stream):
-#         self.data = self.to_tensor()
-#         return self.data.__dlpack__(stream)
-
-#     def __dlpack_device__(self):
-#         return self.data.__dlpack_device__()
 
 
 class _PyDictWrapper:
@@ -105,8 +90,3 @@ class Event(tvm_ffi.Object):
 
 Queue = FFIQueue
 # _C.Queue = FFIQueue
-
-
-
-
-# _C.default_queue = default_queue
