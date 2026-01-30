@@ -42,14 +42,14 @@ When implementing custom OpenCV-based backends, they must provide a compatible O
 
 
 ```bash
-wget https://codeload.github.com/opencv/opencv/zip/refs/tags/4.5.4 -O ./opencv-4.5.4.zip
+wget https://codeload.github.com/opencv/opencv/zip/refs/tags/4.12.0 -O ./opencv-4.12.0.zip
 
-unzip opencv-4.5.4.zip  && rm -rf ./opencv-4.5.4.zip
+unzip opencv-4.12.0.zip  && rm -rf ./opencv-4.12.0.zip
 pip  --no-cache-dir install cmake
 
 abi_flag=$(python -c "import torch; print(int(torch.compiled_with_cxx11_abi()))")
 
-cd opencv-4.5.4/ && mkdir build && cd build && \
+cd opencv-4.12.0/ && mkdir build && cd build && \
         cmake -D CMAKE_BUILD_TYPE=Release \
             -DCMAKE_CXX_FLAGS=-D_GLIBCXX_USE_CXX11_ABI=$abi_flag \
             -D BUILD_WITH_DEBUG_INFO=OFF \

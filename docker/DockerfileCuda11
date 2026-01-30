@@ -16,11 +16,11 @@ RUN pip --no-cache-dir install torch numpy torchvision --index-url https://downl
 
 From base as thirdparty
 # 2) TensorRT/opencv Installation
-RUN wget https://codeload.github.com/opencv/opencv/zip/refs/tags/4.5.4 -O /app/opencv-4.5.4.zip
+RUN wget https://codeload.github.com/opencv/opencv/zip/refs/tags/4.12.0 -O /app/opencv-4.12.0.zip
 
-RUN unzip opencv-4.5.4.zip  && rm -rf /app/opencv-4.5.4.zip
+RUN unzip opencv-4.12.0.zip  && rm -rf /app/opencv-4.12.0.zip
 RUN pip  --no-cache-dir install cmake==3.21
-RUN cd opencv-4.5.4/ && sed -i '1a add_definitions(-D_GLIBCXX_USE_CXX11_ABI=0)' CMakeLists.txt  && mkdir build && cd build && \
+RUN cd opencv-4.12.0/ && sed -i '1a add_definitions(-D_GLIBCXX_USE_CXX11_ABI=0)' CMakeLists.txt  && mkdir build && cd build && \
         cmake -D CMAKE_BUILD_TYPE=Release \
             -D BUILD_WITH_DEBUG_INFO=OFF \
             -D CMAKE_INSTALL_PREFIX=/opencv_install \

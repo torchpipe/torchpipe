@@ -35,7 +35,7 @@ esac
 export UV_VENV_CLEAR=1
 export TVM_FFI_DISABLE_TORCH_C_DLPACK=1
 
-omniback="$PWD"
+omniback="$PWD"/
 torchpipe="$omniback"/plugins/torchpipe
 csrc="$omniback"/plugins/torchpipe/torchpipe
 
@@ -69,23 +69,23 @@ function build_local_libs() {
     # fi
     uv pip install torch==$torch_version # -i  http://mirrors.aliyun.com/pypi/simple/
     
+    abi_flag=$(python -c "import torch; print(int(torch.compiled_with_cxx11_abi()))")
     if [[ "$os" == "Linux" ]]; then
-        python -m omniback.utils.build_lib --output-dir "$torchpipe"/torchpipe/lib --source-dirs "$csrc"/csrc/torchplugins/ "$csrc"/csrc/helper/ --include-dirs="$csrc"/csrc/ --build-with-cuda --name torchpipe_core
+        python -m omniback.utils.build_lib --output-dir "$torchpipe"/torchpipe/lib/ --source-dirs "$csrc"/csrc/torchplugins/ "$csrc"/csrc/helper/ --include-dirs="$csrc"/csrc/ --build-with-cuda --name torchpipe_core
+
+        for abi_flag in 1 0; do
+            opencv_install=/opencv_install/abi_flag$abi_flag
+            python -m omniback.utils.build_lib --output-dir "$torchpipe"/torchpipe/lib/ --source-dirs "$csrc"/csrc/mat_torch/  \
+                --ldflags "-L$opencv_install/lib -Wl,-Bstatic -lopencv_core -lopencv_imgproc -lopencv_imgcodecs -ltbb  -lippiw -lippicv -Wl,-Bdynamic -ldl  -lpthread"  \
+                --include-dirs="$csrc"/csrc/ $opencv_install/include/opencv4/ --name torchpipe_opencv --no-torch --cxxabi=$abi_flag
+        done
     fi
     ls "$torchpipe"/torchpipe/lib
     deactivate
-    rm -rf "$omniback"/.venv/torch"$torch_version"
-
 }
 
-mkdir -p "$omniback"/.venv
 mkdir -p "$torchpipe"/lib
 
-uv venv "$omniback"/.venv/py3.9 --python 3.9
-source "$omniback"/.venv/py3.9/bin/activate
-uv pip install setuptools ninja fire
-uv pip install omniback --upgrade
-deactivate
 
 rm -rf build
 
@@ -96,9 +96,9 @@ uv pip install omniback --upgrade
 deactivate
 
 # https://pytorch.org/get-started/previous-versions/
-torch_versions=("1.13" "2.0")
+torch_versions=("1.13" "2.4") # => next version
 for version in "${torch_versions[@]}"; do
-    build_local_libs "$version" 3.9
+    build_local_libs "$version" 3.11
 done
 
 uv cache clean
@@ -118,7 +118,7 @@ done
 uv cache clean
 
 # cp "$omniback"/lib/*.so "$torchpipe"/torchpipe
-source "$omniback"/.venv/py3.9/bin/activate
+source "$omniback"/.venv/py3.11/bin/activate
 uv pip install build wheel scikit_build_core setuptools-scm
 cd "$torchpipe"
 mkdir -p wheelhouse/

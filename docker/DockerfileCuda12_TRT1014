@@ -23,14 +23,14 @@ RUN pip config set global.index-url https://mirrors.aliyun.com/pypi/simple/
 # 2) TensorRT/opencv Installation
 ARG USE_GH_PROXY=0
 RUN if [ "$USE_GH_PROXY" = "1" ]; then \
-        wget "https://gh-proxy.org/https://codeload.github.com/opencv/opencv/zip/refs/tags/4.5.4" -O /app/opencv-4.5.4.zip; \
+        wget "https://gh-proxy.org/https://codeload.github.com/opencv/opencv/zip/refs/tags/4.12.0" -O /app/opencv-4.12.0.zip; \
     else \
-        wget "https://codeload.github.com/opencv/opencv/zip/refs/tags/4.5.4" -O /app/opencv-4.5.4.zip; \
+        wget "https://codeload.github.com/opencv/opencv/zip/refs/tags/4.12.0" -O /app/opencv-4.12.0.zip; \
     fi
 
-RUN unzip opencv-4.5.4.zip  && rm -rf /app/opencv-4.5.4.zip
+RUN unzip opencv-4.12.0.zip  && rm -rf /app/opencv-4.12.0.zip
 RUN pip  --no-cache-dir install cmake
-RUN cd opencv-4.5.4/ && mkdir build && cd build && \
+RUN cd opencv-4.12.0/ && mkdir build && cd build && \
         cmake -D CMAKE_BUILD_TYPE=Release \
             -D BUILD_WITH_DEBUG_INFO=OFF \
             -D CMAKE_INSTALL_PREFIX=/opencv_install \

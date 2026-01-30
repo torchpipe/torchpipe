@@ -1,12 +1,14 @@
 
 #include "omniback/core/backend.hpp"
-#include <memory>
 #include "omniback/core/event.hpp"
 #include "omniback/core/helper.hpp"
 #include "omniback/core/parser.hpp"
 #include "omniback/core/reflect.h"
 #include "omniback/helper/base_logging.hpp"
 #include "omniback/helper/string.hpp"
+
+#include <tvm/ffi/error.h>
+#include <memory>
 
 namespace om {
 
@@ -124,6 +126,16 @@ std::unique_ptr<Backend> init_backend(
   backend->init(dst_config, dict_kwargs);
   return backend;
 };
+
+
+std::string get_current_dependency(){
+  TVM_FFI_THROW(NotImplement) ;
+  return "";
+}
+void set_current_dependency(){
+  TVM_FFI_THROW(NotImplement) ;
+  return;
+}
 
 Backend* get_backend(const std::string& aspect_name_str) {
   return OMNI_INSTANCE_GET(Backend, aspect_name_str);

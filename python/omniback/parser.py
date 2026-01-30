@@ -51,6 +51,36 @@ def to_dual_str(config: Dict[str, Dict[str, Any]]) -> Dict[str, Dict[str, str]]:
     return re
 
 
+
+def parse_group(file_path: Union[str, Path]):
+    """
+    Parse and convert TOML file content to string-based nested configuration.
+
+    Args:
+        file_path: Path to the TOML configuration file
+
+    Returns:
+        Nested dictionary with all values converted to strings
+
+    Raises:
+        FileNotFoundError: If specified file doesn't exist
+        IOError: For file reading errors
+        RuntimeError: For parsing/validation errors
+    """
+    # Convert to Path object for modern path handling
+    path = Path(file_path)
+
+    if not path.exists():
+        raise FileNotFoundError(f"Config file not found: {file_path}")
+    if not path.is_file():
+        raise IOError(f"Path is not a file: {file_path}")
+
+    try:
+        with path.open('rb') as f:
+            raw_config = tomllib.load(f)
+    except tomllib.TOMLDecodeError as e:
+        raise RuntimeError(f"TOML parsing failed: {e}") from e
+    
 def parse(file_path: Union[str, Path]) -> Dict[str, Dict[str, str]]:
     """
     Parse and convert TOML file content to string-based nested configuration.

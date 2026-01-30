@@ -39,10 +39,14 @@ try:
         if not hasattr(torch, dtype):
             setattr(torch, dtype, None)
 except:
+    torch = None
     pass
 
-import torch.torch_version
-import torch.utils.cpp_extension
+try:
+    import torch.torch_version
+    import torch.utils.cpp_extension
+except:
+    pass
 
 import logging
 logger = logging.getLogger(__name__)  # type: ignore
@@ -103,14 +107,16 @@ def get_lib_name(name: str, device: str, no_torch: bool):
     suffix = ".dll" if IS_WINDOWS else ".so"
     return get_cache_name(name, device, no_torch)+suffix
 
-def get_cache_name(name: str, device: str, no_torch: bool):
+def get_cache_name(name: str, device: str, no_torch: bool, cxxabi: str = ""):
     # resolve library name
+    if cxxabi == "":
+        cxxabi = str(int(torch.compiled_with_cxx11_abi()))
     if no_torch:
-        return f"{name}-cxx11{torch.compiled_with_cxx11_abi()}"
+        return f"{name}-cxx11{cxxabi}"
     major, minor = torch.__version__.split(".")[:2]
 
     suffix = ".dll" if IS_WINDOWS else ".so"
-    return f"{name}-torch{major}{minor}-{device}-cxx11{torch.compiled_with_cxx11_abi()}"
+    return f"{name}-torch{major}{minor}-{device}-cxx11{cxxabi}"
 
 def main() -> None:  # noqa: PLR0912, PLR0915
     """Build the torch extension."""
@@ -156,6 +162,16 @@ def main() -> None:  # noqa: PLR0912, PLR0915
         default=get_cache_dir(),
         help="Directory to store the built extension library. If not specified, the default cache directory of omniback will be used.",
     )
+    
+    parser.add_argument(
+        "--cxxabi",
+        type=str,
+        required=False,
+        default="",
+        help="",
+    )
+    
+    
     parser.add_argument(
         "--build-with-cuda",
         action="store_true",
@@ -197,8 +213,16 @@ def main() -> None:  # noqa: PLR0912, PLR0915
         device = "rocm"
     else:
         device = "cpu"
-        
-    libname = get_cache_name(args.name, device, args.no_torch)
+    
+    cxxabi = args.cxxabi
+    if cxxabi not in  ["1", "0"]:
+        # use CXX11 ABI
+        if torch.compiled_with_cxx11_abi():
+            cxxabi == "1"
+        else:
+            cxxabi == "0"
+            
+    libname = get_cache_name(args.name, device, args.no_torch, cxxabi)
     
     tmp_libname = libname + ".tmp"
 
@@ -224,9 +248,8 @@ def main() -> None:  # noqa: PLR0912, PLR0915
         include_paths = [] + include_dirs
         cflags = []
         # include_paths.append(sysconfig.get_paths()["include"])
-
-        # use CXX11 ABI
-        if torch.compiled_with_cxx11_abi():
+        
+        if cxxabi == "1":
             cflags.append("-D_GLIBCXX_USE_CXX11_ABI=1")
         else:
             cflags.append("-D_GLIBCXX_USE_CXX11_ABI=0")

@@ -90,18 +90,41 @@ def get_sm():
         return sm_version
     else:
         return 0
-    
-def cache_trt_dir():
+
+def get_trt_url():
     if cuda_version == 11:
-        cuda_urls = ["https://developer.nvidia.com/downloads/compute/machine-learning/tensorrt/9.3.0/tensorrt-9.3.0.1.linux.x86_64-gnu.cuda-11.8.tar.gz"]
+        cuda_urls = [
+            "https://developer.nvidia.com/downloads/compute/machine-learning/tensorrt/9.3.0/tensorrt-9.3.0.1.linux.x86_64-gnu.cuda-11.8.tar.gz"]
     elif cuda_version == 12:
         cuda_urls = ["https://developer.nvidia.com/downloads/compute/machine-learning/tensorrt/10.5.0/tars/TensorRT-10.5.0.18.Linux.x86_64-gnu.cuda-12.6.tar.gz",
                      "https://developer.nvidia.com/downloads/compute/machine-learning/tensorrt/9.3.0/tensorrt-9.3.0.1.linux.x86_64-gnu.cuda-12.2.tar.gz",
-                "https://developer.nvidia.com/downloads/compute/machine-learning/tensorrt/10.14.1/tars/TensorRT-10.14.1.48.Linux.x86_64-gnu.cuda-12.9.tar.gz"]
+                     "https://developer.nvidia.com/downloads/compute/machine-learning/tensorrt/10.14.1/tars/TensorRT-10.14.1.48.Linux.x86_64-gnu.cuda-12.9.tar.gz"]
     elif cuda_version == 13:
-        cuda_urls = ["https://developer.nvidia.com/downloads/compute/machine-learning/tensorrt/10.14.1/tars/TensorRT-10.14.1.48.Linux.x86_64-gnu.cuda-13.0.tar.gz"]
-    
-    trt_url = cuda_urls[0]
+        cuda_urls = [
+            "https://developer.nvidia.com/downloads/compute/machine-learning/tensorrt/10.14.1/tars/TensorRT-10.14.1.48.Linux.x86_64-gnu.cuda-13.0.tar.gz"]
+    return cuda_urls[0]
+
+def need_download_trt_for_cache():
+    trt_url = get_trt_url()
+    trt_file_name = trt_url.split('/')[-1]
+    cache_dir = os.path.join(get_cache_dir(), "tensorrt")
+    TRT_DIR = os.path.join(cache_dir, f"tensorrt_cuda{cuda_version}")
+
+    core_files = [
+        "lib/libnvinfer.so",
+        "lib/libnvonnxparser.so",
+        "include/NvInfer.h",
+        "lib/libnvinfer_plugin.so",
+        "include/NvInferPlugin.h",
+    ]
+    if not all(os.path.exists(os.path.join(TRT_DIR, f)) for f in core_files):
+        tar_path = os.path.join(cache_dir, trt_file_name)
+        if not os.path.exists(tar_path):
+            return True
+    return False
+
+def cache_trt_dir():
+    trt_url = get_trt_url()
     TENSORRT_VERSION = trt_url.split(
         "machine-learning/tensorrt/")[1].split("/")[0]
     trt_file_name = trt_url.split('/')[-1]
@@ -161,7 +184,17 @@ def cache_trt_dir():
     return cache_header, cache_lib
 
 
-def _build_trt(csrc_dir):
+def need_download_for_jit():
+    if not is_system_exists_trt() and not can_use_trt_env():
+        trt_inc, trt_lib = get_trt_include_lib_dir()
+        if trt_inc is None:
+            return need_download_trt_for_cache()
+    return False
+    
+def _build_trt(csrc_dir, skip_download=True):
+    if skip_download and need_download_for_jit():
+        return
+
     # python -m omniback.utils.build_lib --source-dirs csrc/tensorrt_torch/ --include-dirs=csrc/ --build-with-cuda --ldflags="-lnvinfer -lnvonnxparser  -lnvinfer_plugin" --name torchpipe_tensorrt
 
     if not is_system_exists_trt() and not can_use_trt_env():

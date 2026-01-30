@@ -43,8 +43,13 @@ OMNI_EXPORT std::vector<std::string> strict_str_split(std::string strtem, char a
 OMNI_EXPORT std::vector<std::array<std::string, 2>> multi_str_split(std::string strtem, char inner_sp, char outer);
 OMNI_EXPORT void print_check_distance(std::string strtem, const std::vector<std::string>& targets);
 
+class ClassRegistryBaseHelper{
+  protected:
+  bool try_register_callback(const std::string& class_name);
+};
+
 template <typename ClassName>
-class OMNI_EXPORT ClassRegistryBase {
+class OMNI_EXPORT ClassRegistryBase : public ClassRegistryBaseHelper{
  public:
   ClassRegistryBase() {
     omniback_load();
@@ -101,6 +106,15 @@ class OMNI_EXPORT ClassRegistryBase {
   }
 
   ClassName* DoCreateObject(const std::string& class_name, const std::string& aspect_name = "") {
+    bool class_registered = false;
+    {
+      std::unique_lock<std::mutex> guard(getter_map_mutex_);
+      class_registered = getter_map_.find(class_name) != getter_map_.end();
+    }
+    if (!class_registered){
+      ClassRegistryBaseHelper::try_register_callback(class_name);
+    }
+
     std::unique_lock<std::mutex> guard(getter_map_mutex_);
     typename ClassMap::const_iterator it = getter_map_.find(class_name);
 

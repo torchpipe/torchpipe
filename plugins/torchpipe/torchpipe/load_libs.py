@@ -5,7 +5,7 @@ from .utils._cache_setting import get_cache_dir
 
 import ctypes, os, sys
 import logging
-
+import tvm_ffi
 
 logger = logging.getLogger(__name__)  # type: ignore
 
@@ -188,6 +188,18 @@ def _load_or_build_lib(name):
         _build_lib(name)
         return _load_lib(name)
 
+def _setting_group_handle(toml_path: str):
+    from omniback.group_registry import toml2groups
+    _backend_to_groups, _ = toml2groups(toml_path)
+    # todo:  dependency loading
+    _register_backend_group = tvm_ffi.get_global_func(
+        "omniback.register_backend_group")
+    for backend, grp_names in _backend_to_groups.items():
+        assert len(
+            grp_names) == 1, f"backend {backend} has multiple groups: {grp_names}"
+        grp_name = next(iter(grp_names))
+        _register_backend_group(backend, grp_name,
+                                lambda: _load_or_build_lib_skip_if_error(grp_name.replace("torchpipe.", "torchpipe_")))
 if __name__ == "__main__":
     import fire
     fire.Fire({

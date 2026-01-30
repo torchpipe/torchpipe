@@ -11,10 +11,7 @@ ORI_TVM_FFI_DISABLE_TORCH_C_DLPACK = os.environ.get(
 if ORI_TVM_FFI_DISABLE_TORCH_C_DLPACK == "0":
     os.environ["TVM_FFI_DISABLE_TORCH_C_DLPACK"] = "1"
 
-# import time
-# start = time.time()
 import omniback
-# print(f'end = {time.time() - start}')
 
 import torch
 
@@ -26,7 +23,7 @@ except Exception:
     __version__ = "0.0.0-dev"  
 
 # -----------------------
-assert omniback.compiled_with_cxx11_abi() == torch.compiled_with_cxx11_abi()
+# assert omniback.compiled_with_cxx11_abi() == torch.compiled_with_cxx11_abi()
 
 logger.info(f'torch.cuda.is_available() = {torch.cuda.is_available()}')
 
@@ -34,6 +31,7 @@ torch.set_num_threads(torch.get_num_threads())
 
 # -----------------------
 from .load_libs import _load_or_build_lib, _load_or_build_lib_skip_if_error  # nosort
+from .load_libs import _setting_group_handle  # nosort
 
 SKIP_ALL=os.environ.get("TORCHPIPE_SKIP_ALL", "0")
 
@@ -54,7 +52,13 @@ if torch.cuda.is_available() and SKIP_ALL != "1":
         _load_or_build_lib_skip_if_error("torchpipe_nvjpeg")
 else:
     logger.warning("CUDA is not available, skip loading CUDA extensions.")
-    
+
+grp_config = os.path.join(os.path.dirname(__file__), "group-torchpipe.toml")
+assert os.path.exists(grp_config), grp_config
+_setting_group_handle(grp_config)
+logger.info(f"Loaded group config from {grp_config}")
+
+
 # -----------------------
 pipe = omniback.pipe
 Dict = omniback.Dict

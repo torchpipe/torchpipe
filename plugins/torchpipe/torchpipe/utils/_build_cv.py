@@ -97,7 +97,7 @@ def cache_cv_dir():
     import subprocess
     from pathlib import Path
 
-    OPENCV_VERSION = "4.5.4"
+    OPENCV_VERSION = "4.12.0"
     OPENCV_URL = f"https://codeload.github.com/opencv/opencv/zip/refs/tags/{OPENCV_VERSION}"
     OPENCV_ZIP = f"opencv-{OPENCV_VERSION}.zip"
 

@@ -4,8 +4,12 @@
 #include "omniback/core/queue.hpp"
 #include "omniback/helper/base_logging.hpp"
 #include "omniback/helper/string.hpp"
-
+#include "omniback/core/group.hpp"
 namespace om {
+
+bool ClassRegistryBaseHelper::try_register_callback(const std::string& class_name){
+  return try_callback_from_group(class_name);
+}
 
 bool omniback_load() {
   const static auto tmp = []() { return true; }();
