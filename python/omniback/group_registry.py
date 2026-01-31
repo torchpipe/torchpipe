@@ -161,17 +161,17 @@ class GroupRegistry:
         return self._groups[group_name].copy()
 
 
-def register_group(toml_path: str, cb: Callable):
-    registry = GroupRegistry()
-    registry.load_from_toml(toml_path)
-    for backend, grp_names in registry._backend_to_groups.items():
-        assert len(
-            grp_names) == 1, f"backend {backend} has multiple groups: {grp_names}"
-        _register_backend_group = tvm_ffi.get_global_func(
-            "omniback.register_backend_group")
-        grp_name = next(iter(grp_names))
-        _register_backend_group(backend, grp_name,
-                                lambda: cb(backend, grp_name))
+# def register_group(toml_path: str, cb: Callable):
+#     registry = GroupRegistry()
+#     registry.load_from_toml(toml_path)
+#     for backend, grp_names in registry._backend_to_groups.items():
+#         assert len(
+#             grp_names) == 1, f"backend {backend} has multiple groups: {grp_names}"
+#         _register_backend_group = tvm_ffi.get_global_func(
+#             "omniback.register_backend_group")
+#         grp_name = next(iter(grp_names))
+#         _register_backend_group(backend, grp_name,
+#                                 lambda: cb(backend, grp_name))
 
 def toml2groups(toml_path: str):
     registry = GroupRegistry()

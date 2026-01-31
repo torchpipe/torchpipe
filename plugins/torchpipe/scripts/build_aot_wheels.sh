@@ -37,7 +37,7 @@ export TVM_FFI_DISABLE_TORCH_C_DLPACK=1
 
 omniback="$PWD"/
 torchpipe="$omniback"/plugins/torchpipe
-csrc="$omniback"/plugins/torchpipe/torchpipe
+csrc="$omniback"/plugins/torchpipe/torchpipe/csrc
 
 rm -f "$torchpipe"/torchpipe/lib/*.so
 
@@ -69,16 +69,14 @@ function build_local_libs() {
     # fi
     uv pip install torch==$torch_version # -i  http://mirrors.aliyun.com/pypi/simple/
     
-    abi_flag=$(python -c "import torch; print(int(torch.compiled_with_cxx11_abi()))")
+    abiflag=$(python -c "import torch; print(int(torch.compiled_with_cxx11_abi()))")
     if [[ "$os" == "Linux" ]]; then
-        python -m omniback.utils.build_lib --output-dir "$torchpipe"/torchpipe/lib/ --source-dirs "$csrc"/csrc/torchplugins/ "$csrc"/csrc/helper/ --include-dirs="$csrc"/csrc/ --build-with-cuda --name torchpipe_core
+        python -m omniback.utils.build_lib --output-dir "$torchpipe"/torchpipe/lib/ --source-dirs "$csrc"/torchplugins/ "$csrc"/helper/ --include-dirs="$csrc"/ --build-with-cuda --name torchpipe_core
 
-        for abi_flag in 1 0; do
-            opencv_install=/opencv_install/abi_flag$abi_flag
-            python -m omniback.utils.build_lib --output-dir "$torchpipe"/torchpipe/lib/ --source-dirs "$csrc"/csrc/mat_torch/  \
-                --ldflags "-L$opencv_install/lib -Wl,-Bstatic -lopencv_core -lopencv_imgproc -lopencv_imgcodecs -ltbb  -lippiw -lippicv -Wl,-Bdynamic -ldl  -lpthread"  \
-                --include-dirs="$csrc"/csrc/ $opencv_install/include/opencv4/ --name torchpipe_opencv --no-torch --cxxabi=$abi_flag
-        done
+        for abiflag in 1 0; do
+            opencv_install=/opencv_install/abiflag$abiflag/
+            cv_lib=/opencv_install/abiflag$abiflag/lib
+      cc done
     fi
     ls "$torchpipe"/torchpipe/lib
     deactivate
@@ -130,7 +128,7 @@ if [[ "$os" == "Linux" ]]; then
     uv pip install auditwheel
     ls dist/*.whl
     # cp dist/*.whl wheelhouse/
-    auditwheel repair --exclude libomniback.so --exclude libomniback_cxx03.so --exclude libtvm_ffi.so \
+    auditwheel repair --exclude libomniback.so --exclude libtvm_ffi.so \
         --exclude libtorch.so --exclude libtorch_cpu.so --exclude libc10.so --exclude libtorch_python.so --exclude libtorch_cuda.so --exclude libc10_cuda.so dist/*.whl -w wheelhouse
 else
     # python -m wheel tags dist/*.whl --python-tag="$python_version" --abi-tag="$python_version" --platform-tag=macosx_11_0_arm64 --remove

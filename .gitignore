@@ -38,7 +38,7 @@ tmp.py
 omniback/_version.py
 site/
 _version.py
-
+opencv*.zip
 
 build_cxx11/
 build_cxx03/

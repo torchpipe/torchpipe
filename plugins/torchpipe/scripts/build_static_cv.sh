@@ -1,9 +1,13 @@
 #!/bin/bash
 set -e  # 遇错即停
 
+
+temp_dir=$(mktemp -d)
+trap 'rm -rf "$temp_dir"' EXIT
+
 # ==================== 1. 环境准备 ====================
 OPENCV_VERSION="4.12.0"
-OPENCV_SRC_DIR="opencv-${OPENCV_VERSION}"
+OPENCV_SRC_DIR="$temp_dir/opencv-${OPENCV_VERSION}"
 OPENCV_ZIP="opencv-${OPENCV_VERSION}.zip"
 
 # ==================== 2. 下载并解压源码 ====================
@@ -11,24 +15,17 @@ if [ ! -d "$OPENCV_SRC_DIR" ]; then
     if [ ! -f "$OPENCV_ZIP" ]; then
         wget "https://codeload.github.com/opencv/opencv/zip/refs/tags/${OPENCV_VERSION}" -O "$OPENCV_ZIP"
     fi
-    unzip -q "$OPENCV_ZIP" && rm -f "$OPENCV_ZIP"
+    unzip -q "$OPENCV_ZIP" -d $temp_dir 
 fi
 
-# apt install -y libopenblas-dev
-# dnf install -y openblas-devel
 
-temp_dir=$(mktemp -d)
-trap 'rm -rf "$temp_dir"' EXIT
-# root=$(pwd)
-root_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
-for abi_flag in 1 0; do
-    cd $root_dir
+for abiflag in 1 0; do
+    cd $OPENCV_SRC_DIR
     # 构建目录放在 OpenCV 源码目录内（推荐）
-    BUILD_DIR="$root_dir/$OPENCV_SRC_DIR/build_${abi_flag}"
-    INSTALL_PREFIX="/opencv_install/abi_flag${abi_flag}"
+    BUILD_DIR="$OPENCV_SRC_DIR/build_${abiflag}"
+    INSTALL_PREFIX="/opencv_install/abiflag${abiflag}"
 
-    echo ">>> 构建 ABI=${abi_flag} 版本（静态链接）..."
+    echo ">>> 构建 ABI=${abiflag} 版本（静态链接）..."
 
     # 清理旧构建
     rm -rf "$BUILD_DIR" "$INSTALL_PREFIX" 
@@ -37,14 +34,12 @@ for abi_flag in 1 0; do
     # 进入构建目录（已在源码目录内）
     cd "$BUILD_DIR"
 
-    #  -static-libstdc++ -static-libgcc
-    # CMake 配置：关键静态链接 + 动态调度 + 最大兼容性
     cmake .. \
         -D CMAKE_CXX_STANDARD=17 -D CMAKE_CXX_STANDARD_REQUIRED=ON \
         -D CMAKE_BUILD_TYPE=Release \
         -D CMAKE_INSTALL_PREFIX="${INSTALL_PREFIX}" \
         -D CMAKE_INSTALL_LIBDIR=lib \
-        -D CMAKE_CXX_FLAGS="-D_GLIBCXX_USE_CXX11_ABI=${abi_flag} -march=x86-64 -mtune=generic" \
+        -D CMAKE_CXX_FLAGS="-D_GLIBCXX_USE_CXX11_ABI=${abiflag} -march=x86-64 -mtune=generic" \
         -D BUILD_SHARED_LIBS=OFF \
         -D OPENCV_PYTHON_LINK_STATICALLY=OFF \
         -D BUILD_WITH_STATIC_CRT=ON \
@@ -100,8 +95,6 @@ for abi_flag in 1 0; do
         -D WITH_LAPACK=OFF \
         -D WITH_OPENBLAS=OFF 
 
-
-
         # -D WITH_IPP=ON \
         # -D BUILD_IPP_IW=ON \
         # -D IPP_IW_STATIC=ON \
@@ -114,11 +107,8 @@ for abi_flag in 1 0; do
     make -j$(nproc) VERBOSE=1
     make install
 
-
     cd ../..
 done
-
-
 
 
 # ================== 1. 写入 C++ 源文件 ==================
@@ -135,7 +125,7 @@ EOF
 # ================== 2. 设置路径 ==================
 rm -f $temp_dir/check_build
 
-INSTALL_PREFIX="/opencv_install/abi_flag1"
+INSTALL_PREFIX="/opencv_install/abiflag1"
 # ================== 3. 编译 ==================
 c++ -std=c++11 $temp_dir/check_build.cpp \
     -I"$INSTALL_PREFIX/include/opencv4" \

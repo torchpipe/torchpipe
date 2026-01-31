@@ -12,6 +12,8 @@ from . import _pre_register_to_tvm_ffi  # noqa: F401
 
 libomniback = ctypes.CDLL(str(libinfo.find_libomniback()),
                  getattr(ctypes, "RTLD_GLOBAL"))
+logger.info(f"Loaded omniback library: {libomniback}")
+# print(f"Loaded omniback library: {libomniback}")
 # _C = tvm_ffi.load_module(libinfo.find_libomniback())
 
 # this is a short cut to register all the global functions

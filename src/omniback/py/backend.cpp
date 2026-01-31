@@ -119,11 +119,12 @@ void pyregister(
   }
 }
 
-void partial_register(std::string name, uint32_t force_max = 0) {
-  std::function<Backend*()> f =
-      [name, force_max]() {
-        return new PartialBackend(name, force_max);
-      };
+void partial_register(
+    std::string name,
+    std::string group_name, uint32_t force_max = 0) {
+  std::function<Backend*()> f = [name, force_max, group_name]() {
+    return new PartialBackend(name, group_name, force_max);
+  };
   ClassRegistryInstance<Backend>().DoAddClass(name, f);
 }
 

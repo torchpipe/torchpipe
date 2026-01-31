@@ -63,9 +63,9 @@ def find_libomniback() -> str:
         The full path to the located library.
     """
     if should_use_cxx11():
-        candidate = _find_library_by_basename("omniback", "omniback")
+        candidate = _find_library_by_basename("omniback", "omniback", "lib/abiflag1")
     else:
-        candidate = _find_library_by_basename("omniback", "omniback_cxx03")
+        candidate = _find_library_by_basename("omniback", "omniback", "lib/abiflag0")
     if ret := _resolve_and_validate([candidate], cond=lambda _: True):
         return ret
     
@@ -218,7 +218,7 @@ def load_lib_ctypes(package: str, target_name: str, mode: str) -> ctypes.CDLL:
     return ctypes.CDLL(str(lib_path), getattr(ctypes, mode))
 
 
-def _find_library_by_basename(package: str, target_name: str) -> Path:  # noqa: PLR0912
+def _find_library_by_basename(package: str, target_name: str, path_prefix: str) -> Path:  # noqa: PLR0912
     """Find a shared library by target_name name across known directories.
 
     Parameters
@@ -254,6 +254,8 @@ def _find_library_by_basename(package: str, target_name: str) -> Path:  # noqa: 
     for line in record.splitlines():
         partial_path, *_ = line.split(",")
         if partial_path.endswith(lib_dll_names):
+            if path_prefix not in partial_path:
+                continue
             try:
                 path = (dist._path.parent / partial_path).resolve()
             except OSError:
@@ -266,10 +268,10 @@ def _find_library_by_basename(package: str, target_name: str) -> Path:  # noqa: 
     dll_paths: list[Path] = []
 
     # Case 1. It is under $PROJECT_ROOT/build/lib/ or $PROJECT_ROOT/lib/
-    dll_paths.append(_rel_top_directory() / "build" / "libs")
-    dll_paths.append(_rel_top_directory() / "libs")
-    dll_paths.append(_dev_top_directory() / "build" / "libs")
-    dll_paths.append(_dev_top_directory() / "libs")
+    dll_paths.append(_rel_top_directory() / path_prefix)
+    dll_paths.append(_dev_top_directory() / path_prefix)
+    # dll_paths.append(_rel_top_directory() / "build" / path_prefix)
+    # dll_paths.append(_dev_top_directory() / "build" / path_prefix)
 
     # Case 2. It is specified in PATH-related environment variables
     if sys.platform.startswith("win32"):

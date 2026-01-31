@@ -35,24 +35,27 @@ from .load_libs import _setting_group_handle  # nosort
 
 SKIP_ALL=os.environ.get("TORCHPIPE_SKIP_ALL", "0")
 
-if torch.cuda.is_available() and SKIP_ALL != "1":
+if SKIP_ALL != "1":
     try:
         _load_or_build_lib("torchpipe_core")
     except Exception as e:
         logger.warning(f'Failed to load or JIT compile builtin extensions: \n{e}')
+        SKIP_ALL == "1"
     else:
         SKIP_TENSORRT=os.environ.get("TORCHPIPE_SKIP_TENSORRT", "0")
-        if SKIP_TENSORRT != "1":
-            _load_or_build_lib_skip_if_error("torchpipe_tensorrt")
+                
+        if torch.cuda.is_available():
+            if SKIP_TENSORRT != "1":
+                _load_or_build_lib_skip_if_error("torchpipe_tensorrt")
+
+            _load_or_build_lib_skip_if_error("torchpipe_nvjpeg")
+        else:
+            logger.warning("CUDA is not available, skip loading CUDA extensions.")
 
         SKIP_OPENCV=os.environ.get("TORCHPIPE_SKIP_OPENCV", "0")
         if SKIP_OPENCV != "1":
             _load_or_build_lib_skip_if_error("torchpipe_opencv")
-
-        _load_or_build_lib_skip_if_error("torchpipe_nvjpeg")
-else:
-    logger.warning("CUDA is not available, skip loading CUDA extensions.")
-
+        
 grp_config = os.path.join(os.path.dirname(__file__), "group-torchpipe.toml")
 assert os.path.exists(grp_config), grp_config
 _setting_group_handle(grp_config)

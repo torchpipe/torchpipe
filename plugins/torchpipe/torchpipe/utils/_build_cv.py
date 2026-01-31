@@ -16,11 +16,53 @@
 from omniback.utils.system_path import system_include_dirs, system_library_dirs
 import os
 import sys
+import subprocess
+import os
+import re
 from ._cache_setting import get_cache_dir
 import subprocess
 import logging
 logger = logging.getLogger(__name__)  # type: ignore
 
+
+
+def check_is_cxx11abi(lib_path):
+    if not os.path.exists(lib_path):
+        raise FileNotFoundError(f"Library not found: {lib_path}")
+
+    try:
+        # 使用 nm -D 获取动态符号表
+        result = subprocess.run(['nm', '-D', lib_path], 
+                                stdout=subprocess.PIPE, 
+                                stderr=subprocess.PIPE, 
+                                text=True)
+        if result.returncode != 0:
+            # fallback to readelf if nm fails (e.g., on stripped binaries)
+            raise RuntimeError(f"nm failed: {result.stderr}")
+
+        symbols = result.stdout
+
+        # 检查是否存在 __cxx11（表示 C++11 ABI）
+        if re.search(r'__cxx11', symbols):
+            return True
+        else:
+            return False
+
+    except Exception as e:
+        result = subprocess.run(['readelf', '-Ws', lib_path],
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE,
+                                text=True)
+        if ' __cxx11' in result.stdout or '_ZNSs' not in result.stdout:
+            # 更准确：看是否有 std::__cxx11::string 符号
+            if re.search(r'std::__cxx11::basic_string', result.stdout):
+                return True
+            elif re.search(r'std::basic_string', result.stdout) and not re.search(r'std::__cxx11::basic_string', result.stdout):
+                return False
+            else:
+                raise RuntimeError(f"Unable to determine C++ ABI version")
+        else:
+            return False
 
 def is_system_exists_cv():
     exists_header = exists_lib = False
@@ -29,8 +71,14 @@ def is_system_exists_cv():
             exists_header = True
             break
     for lib in system_library_dirs:
-        if os.path.exists(os.path.join(lib, "libopencv_core.so")):
-            exists_lib = True
+        cv_lib = os.path.join(lib, "libopencv_core.so")
+        if os.path.exists(cv_lib):
+            import omniback
+            abiflag = (1==int(omniback.compiled_with_cxx11_abi()))
+            if abiflag == check_is_cxx11abi(cv_lib):
+                logger.warning(f"{cv_lib} and omniback is compiled with different cxx abi. Skip")
+            else:
+                exists_lib = True
             break
     return exists_lib and exists_header
 def get_system_cv():
@@ -89,7 +137,26 @@ def get_cv_include_lib_dir():
 
     return None, None
 
+OPENCV_VERSION = os.environ.get("OPENCV_VERSION", "4.12.0")
 
+def need_download_for_jit():
+    if not is_system_exists_cv() and not can_use_cv_env():
+        cv_inc, cv_lib = get_cv_include_lib_dir()
+        if cv_inc is None:
+            OPENCV_ZIP = f"opencv-{OPENCV_VERSION}.zip"
+
+            cache_dir = Path(get_cache_dir()) / "opencv"
+
+            OPENCV_DIR = cache_dir / f"opencv-{OPENCV_VERSION}"
+            cmake_lists_path = OPENCV_DIR / "CMakeLists.txt"
+
+            # Download and extract if not exists
+            if not cmake_lists_path.exists():
+                zip_path = cache_dir / OPENCV_ZIP
+                if not zip_path.exists():
+                    return True
+    return False
+            
 def cache_cv_dir():
     import os
     import requests
@@ -97,7 +164,7 @@ def cache_cv_dir():
     import subprocess
     from pathlib import Path
 
-    OPENCV_VERSION = "4.12.0"
+    
     OPENCV_URL = f"https://codeload.github.com/opencv/opencv/zip/refs/tags/{OPENCV_VERSION}"
     OPENCV_ZIP = f"opencv-{OPENCV_VERSION}.zip"
 
@@ -138,12 +205,12 @@ def cache_cv_dir():
     logger.warning(
         f'You can set envs OPENCV_INCLUDE and OPENCV_LIB to skip the downloading/building steps.')
     import omniback
-    abi_flag = int(omniback.compiled_with_cxx11_abi())
+    abiflag = int(omniback.compiled_with_cxx11_abi())
 
     # CMake configuration
     cmake_args = [
         "cmake",
-        f"-DCMAKE_CXX_FLAGS=-D_GLIBCXX_USE_CXX11_ABI={abi_flag}",
+        f"-DCMAKE_CXX_FLAGS=-D_GLIBCXX_USE_CXX11_ABI={abiflag}",
         "-DCMAKE_BUILD_TYPE=Release",
         "-DBUILD_WITH_DEBUG_INFO=OFF",
         f"-DCMAKE_INSTALL_PREFIX={cache_dir}",

@@ -193,7 +193,17 @@ def need_download_for_jit():
     
 def _build_trt(csrc_dir, skip_download=True):
     if skip_download and need_download_for_jit():
-        return
+        FORCE_DOWNLOAD_TENSORRT = os.environ.get("FORCE_DOWNLOAD_TENSORRT", "0")
+        if FORCE_DOWNLOAD_TENSORRT == "0":
+            logger.warning(
+                "TensorRT not found. The system will first check the environment variables "
+                "TENSORRT_INCLUDE and TENSORRT_LIB (if set) for headers and libraries. "
+                "If those are not provided, it will fall back to searching standard system paths. "
+                "To resolve this, either:\n"
+                "  - Set TENSORRT_INCLUDE (e.g., /path/to/tensorrt/include) and TENSORRT_LIB (e.g., /path/to/tensorrt/lib), or\n"
+                "  - Set FORCE_DOWNLOAD_TENSORRT=1 to allow automatic download."
+            )
+            return
 
     # python -m omniback.utils.build_lib --source-dirs csrc/tensorrt_torch/ --include-dirs=csrc/ --build-with-cuda --ldflags="-lnvinfer -lnvonnxparser  -lnvinfer_plugin" --name torchpipe_tensorrt
 

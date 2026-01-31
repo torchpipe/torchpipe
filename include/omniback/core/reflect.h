@@ -45,7 +45,7 @@ OMNI_EXPORT void print_check_distance(std::string strtem, const std::vector<std:
 
 class ClassRegistryBaseHelper{
   protected:
-  bool try_register_callback(const std::string& class_name);
+  bool try_register_from_callback(const std::string& class_name);
 };
 
 template <typename ClassName>
@@ -112,7 +112,7 @@ class OMNI_EXPORT ClassRegistryBase : public ClassRegistryBaseHelper{
       class_registered = getter_map_.find(class_name) != getter_map_.end();
     }
     if (!class_registered){
-      ClassRegistryBaseHelper::try_register_callback(class_name);
+      if(!ClassRegistryBaseHelper::try_register_from_callback(class_name)) return nullptr;
     }
 
     std::unique_lock<std::mutex> guard(getter_map_mutex_);

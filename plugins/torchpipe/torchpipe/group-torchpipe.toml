@@ -8,11 +8,15 @@ backend = [
   "IndexSelectTensor",
   "ResizeTensor",
   "CvtColorTensor",
-  "SyncTensor",
   "SetTensorRequestSize",
   "EmbeddingTensor",
   "PrintTensor",
   "CopyMakeBorderTensor"
+]
+
+[torchpipe.core_cuda]
+backend = [
+  "SyncTensor",
 ]
 
 [torchpipe.opencv]

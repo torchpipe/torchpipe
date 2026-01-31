@@ -6,14 +6,18 @@ from .utils._cache_setting import get_cache_dir
 import ctypes, os, sys
 import logging
 import tvm_ffi
+import os
+import importlib.util
 
 logger = logging.getLogger(__name__)  # type: ignore
 
 csrc_dir = os.path.dirname(__file__)
+current_dir = os.path.join(os.path.dirname(__file__))
 
 def load_whl_lib(path_of_cache):
     p = os.path.join(os.path.dirname(__file__), 'lib',
                      os.path.basename(path_of_cache))
+    # print(f"load_whl_lib: {p}")
     if os.path.exists(p):
         ctypes.CDLL(p, mode=ctypes.RTLD_GLOBAL)
         logger.info(f'Successfully loaded precompiled {p} from the installed package')
@@ -29,10 +33,10 @@ def get_whl_lib(path_of_cache):
         return p
     return None
 
-def _load_lib_with_torch_cuda(name):
+def _load_lib_with_torch(name, device = "cuda"):
     # import torch
     # device = f"cuda{torch.version.cuda.split('.')[0]}"
-    device = "cuda"
+    
     local_lib = build_lib.get_cache_lib(
         name, device, False)
     if load_whl_lib(local_lib):
@@ -72,10 +76,12 @@ def _load_lib_with_torch_cuda(name):
                 ctypes.CDLL(nvinfer_plugin.resolve(), mode=ctypes.RTLD_GLOBAL)
                 
                 ctypes.CDLL(local_lib, mode=ctypes.RTLD_GLOBAL)
+            
             return True
     else:
         if os.path.exists(local_lib):
             ctypes.CDLL(local_lib, mode=ctypes.RTLD_GLOBAL)
+            print(f"load {local_lib}")
             return True
     return False
 
@@ -83,11 +89,12 @@ def _load_lib(name):
     if name == "torchpipe_opencv":
         torchpipe_opencv = build_lib.get_cache_lib(
             "torchpipe_opencv", "", True)
+
         if load_whl_lib(torchpipe_opencv):
             return True
         if os.path.exists(torchpipe_opencv):
             try:
-                ctypes.CDLL(torchpipe_opencv, mode=ctypes.RTLD_GLOBAL)
+                ctypes.CDLL(torchpipe_opencv, mode=ctypes.RTLD_LOCAL)
             except OSError:
                 from .utils._build_cv import get_cv_include_lib_dir, is_system_exists_cv, get_system_cv
                 _, lib_dir = get_cv_include_lib_dir()
@@ -112,8 +119,10 @@ def _load_lib(name):
                     
                 ctypes.CDLL(torchpipe_opencv, mode=ctypes.RTLD_GLOBAL)
             return True
+    elif name == "torchpipe_core":
+        return _load_lib_with_torch(name, device="cpu")
     else:
-        return _load_lib_with_torch_cuda(name)
+        return _load_lib_with_torch(name, device="cuda")
     return False
 
 
@@ -121,10 +130,10 @@ def _load_lib(name):
 
     
 def _build_lib(name):
-    logger.warning(
-        f'Pre-built library not found for {name}, starting JIT compilation')
+    logger.info(
+        f'\tPre-built library not found for {name}, starting JIT compilation')
     if name == "torchpipe_core":
-        # python -m omniback.utils.build_lib --source-dirs csrc/torchplugins/ csrc/helper/ --include-dirs=csrc/ --build-with-cuda --name torchpipe_core
+        # python -m omniback.utils.build_lib --source-dirs csrc/torchplugins/ csrc/helper/ --include-dirs=csrc/ --name torchpipe_core
         subprocess.run(
             [
                 sys.executable,
@@ -135,7 +144,6 @@ def _build_lib(name):
                 os.path.join(csrc_dir, "csrc/helper/"),
                 "--include-dirs",
                 os.path.join(csrc_dir, "csrc/"),
-                "--build-with-cuda",
                 "--name",
                 "torchpipe_core"
             ],
@@ -181,12 +189,26 @@ def _load_or_build_lib_skip_if_error(name):
     except Exception as e:
         logger.warning(
             f'Failed to load or JIT compile `{name}` extensions: \n{e}')
-
+        return False
         
 def _load_or_build_lib(name):
     if not _load_lib(name):
         _build_lib(name)
         return _load_lib(name)
+    return True
+
+def _set_group_callbacks(backend, grp_name):
+    callbacks = []
+    callbacks.append(lambda: _load_or_build_lib_skip_if_error(grp_name.replace("torchpipe.", "torchpipe_")))
+    
+    module_path = os.path.join(current_dir, f"jit/_build_{backend}.py")
+    # print(f'module_path={module_path}')
+    if os.path.exists(module_path):
+        spec = importlib.util.spec_from_file_location(f"_build_{backend}", module_path)
+        module = importlib.util.module_from_spec(spec)
+        callbacks.append(lambda: spec.loader.exec_module(module) or True)        
+    
+    return callbacks
 
 def _setting_group_handle(toml_path: str):
     from omniback.group_registry import toml2groups
@@ -198,8 +220,9 @@ def _setting_group_handle(toml_path: str):
         assert len(
             grp_names) == 1, f"backend {backend} has multiple groups: {grp_names}"
         grp_name = next(iter(grp_names))
-        _register_backend_group(backend, grp_name,
-                                lambda: _load_or_build_lib_skip_if_error(grp_name.replace("torchpipe.", "torchpipe_")))
+        for callback in _set_group_callbacks(backend, grp_name):
+            _register_backend_group(backend, grp_name, callback)
+      
 if __name__ == "__main__":
     import fire
     fire.Fire({

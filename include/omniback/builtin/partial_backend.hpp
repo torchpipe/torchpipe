@@ -40,13 +40,19 @@ class OMNI_EXPORT PartialBackend : public Backend {
   static ForwardCallback partial_ffi2forward(FfiPartialForwardFunc forward_func);
   static MaxMinCallback partial_ffi2maxmin(FfiPartialMaxMinFunc max_min_func);
 
-  PartialBackend(std::string name, uint32_t force_max = 0/**, bool lazy_setting = false */): name_(name) {
+  PartialBackend(
+      std::string name,
+      std::string grp = "om",
+      uint32_t force_max = 0 /**, bool lazy_setting = false */)
+      : name_(name) {
+    std::string prefix = grp +"."+ name;
     data_ = om::make_dict();
-    auto init_func = tvm::ffi::Function::GetGlobal("om.init."+name_);
+    auto init_func = tvm::ffi::Function::GetGlobal(prefix +".init");
     if (init_func)
       init_cb_ = partial_ffi2init(
           init_func.value());
-    auto forward_func = tvm::ffi::Function::GetGlobal("om.forward."+name_);
+    auto forward_func =
+        tvm::ffi::Function::GetGlobal(prefix + ".forward");
     if (forward_func)
       forward_cb_ = partial_ffi2forward(
           forward_func.value());
@@ -54,7 +60,7 @@ class OMNI_EXPORT PartialBackend : public Backend {
       max_cb_ = [force_max](const om::dict&) { return force_max; };
     }else
     {
-      auto max_func = tvm::ffi::Function::GetGlobal("om.max."+name_);
+      auto max_func = tvm::ffi::Function::GetGlobal(prefix + ".max");
       if (max_func)
         max_cb_ = partial_ffi2maxmin(
             max_func.value());
@@ -62,7 +68,7 @@ class OMNI_EXPORT PartialBackend : public Backend {
         max_cb_ = [](const om::dict&) { return Backend::default_max(); };
       }
     }
-    auto min_func = tvm::ffi::Function::GetGlobal("om.min."+name_);
+    auto min_func = tvm::ffi::Function::GetGlobal(prefix + ".min");
     if (min_func)
       min_cb_ = partial_ffi2maxmin(
           min_func.value());
@@ -70,7 +76,6 @@ class OMNI_EXPORT PartialBackend : public Backend {
         min_cb_ = [](const om::dict&) { return Backend::default_min(); };
       }
   }
-
 
  private:
   void impl_init(

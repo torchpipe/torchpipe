@@ -7,9 +7,23 @@
 #include "omniback/core/group.hpp"
 namespace om {
 
-bool ClassRegistryBaseHelper::try_register_callback(const std::string& class_name){
-  return try_callback_from_group(class_name);
+bool ClassRegistryBaseHelper::try_register_from_callback(const std::string& class_name){
+  // Log an info message indicating the class was not found and JIT compilation will be attempted.
+  SPDLOG_INFO("cannot find class: {}, try to jit compiling form callback", class_name);
+  
+  // Attempt to execute the registration via the callback mechanism for the specified class name.
+  try{
+    return try_callback_from_group(class_name);
+  }
+  catch(const std::exception& e){
+    SPDLOG_WARN("failed to jit compiling {} form callback, error: {}", class_name, e.what());
+    return false;
+  }
+  
 }
+
+
+
 
 bool omniback_load() {
   const static auto tmp = []() { return true; }();
