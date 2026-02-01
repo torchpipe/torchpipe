@@ -7,6 +7,8 @@
 
 #include <torch/torch.h>
 #include "helper/torch.hpp"
+#include "helper_cuda/torch.hpp"
+
 #include "tensorrt_torch/TensorrtInferTensor.hpp"
 #include "tensorrt_torch/tensorrt_helper.hpp"
 
@@ -91,8 +93,7 @@ void TensorrtInferTensor::impl_forward(
       "only support one (batched) input with explicit batch");
 
   // input
-  auto inputs =
-      om::dict_gets<torch::Tensor>(input_output[0], TASK_DATA_KEY);
+  auto inputs = om::dict_gets<torch::Tensor>(input_output[0], TASK_DATA_KEY);
 
   check_batched_inputs(inputs, info_.first);
 
@@ -118,10 +119,9 @@ void TensorrtInferTensor::impl_forward(
 
   // outputs from user
   std::vector<torch::Tensor> outputs;
-  if (input_output[0]->find(om::TASK_OUTPUT_KEY) !=
-      input_output[0]->end())
-    outputs = om::dict_gets<torch::Tensor>(
-        input_output[0], om::TASK_OUTPUT_KEY);
+  if (input_output[0]->find(om::TASK_OUTPUT_KEY) != input_output[0]->end())
+    outputs =
+        om::dict_gets<torch::Tensor>(input_output[0], om::TASK_OUTPUT_KEY);
 
   size_t predefined_size = outputs.size();
   // if (predefined_size != 0 && predefined_size != info_.second.size()) {

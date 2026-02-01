@@ -71,7 +71,10 @@ def import_or_install_package(package_name: str, import_name=None) -> None:
         module = importlib.import_module(import_name)
     except ImportError:
         print(f"Installing required package: {package_name}")
-        subprocess.run(["pip", "install", package_name], check=True)
+        try:
+            subprocess.run(["pip", "install", package_name], check=True)
+        except:
+            subprocess.run(["uv", "pip", "install", package_name], check=True)
         module = importlib.import_module(import_name)
     return module
 
@@ -110,8 +113,8 @@ def export_n3hw(model: nn.Module, onnx_path: str, input_h: int, input_w: int) ->
         Path to the exported ONNX model
     """
     # Ensure dependencies are installed
-    for package in ["onnxslim", "onnx", 'onnxsim']:
-        import_or_install_package(package)
+    # for package in ["onnxslim", "onnx", 'onnxsim']:
+    #     import_or_install_package(package)
 
     # Import required modules after installation
     import onnx

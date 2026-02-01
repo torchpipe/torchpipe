@@ -2,10 +2,12 @@
 #include "c10/cuda/CUDAStream.h"
 
 #include "ATen/cuda/CUDAEvent.h"
+#include "core_cuda/SyncTensor.hpp"
 #include "helper/torch.hpp"
+#include "helper_cuda/torch.hpp"
+
 #include "omniback/core/helper.hpp"
 #include "omniback/helper/resource_pool.hpp"
-#include "torchplugins/SyncTensor.hpp"
 
 #include <tvm/ffi/extra/c_env_api.h>
 #include "helper/dlpack_helper.hpp"
@@ -31,14 +33,11 @@ void SyncTensor::impl_init(
         "SyncTensor: device_id is not supported by SyncTensor yet.");
   }
 
-  const auto device_id_int = c10::cuda::current_device() ;//- 1;
+  const auto device_id_int = c10::cuda::current_device(); //- 1;
 
   c10::cuda::getCurrentCUDAStream().synchronize();
 
-   
-  
-  bNeedSync_ =
-      torch_not_use_default_stream(device_id_int, true);
+  bNeedSync_ = torch_not_use_default_stream(device_id_int, true);
   // Schedule保证了init和forward在同一个线程
   OMNI_ASSERT(
       bNeedSync_,
@@ -52,12 +51,12 @@ void SyncTensor::impl_init(
           kDLCUDA, device_id_int, in_stream, &out_original_stream));
   DLPackManagedTensorAllocator opt_out_original_allocator{nullptr};
   TVM_FFI_ICHECK(nullptr == TVMFFIEnvGetDLPackManagedTensorAllocator());
-      // https: //
-      // github.com/apache/tvm-ffi/blob/6e7cafab78cb007d066bc860c600e2ba80b4d1a7/python/tvm_ffi/utils/_build_optional_torch_c_dlpack.py#L535
+  // https: //
+  // github.com/apache/tvm-ffi/blob/6e7cafab78cb007d066bc860c600e2ba80b4d1a7/python/tvm_ffi/utils/_build_optional_torch_c_dlpack.py#L535
   TVM_FFI_ICHECK(
-          0 ==
-          TVMFFIEnvSetDLPackManagedTensorAllocator(
-              torch_allocator(), 0, &opt_out_original_allocator));
+      0 ==
+      TVMFFIEnvSetDLPackManagedTensorAllocator(
+          torch_allocator(), 0, &opt_out_original_allocator));
   TVM_FFI_ICHECK(nullptr == out_original_stream);
   // TVM_FFI_ICHECK(nullptr == opt_out_original_allocator);
 
@@ -99,8 +98,8 @@ class TorchStreamPool : public om::Backend {
         om::parser_v2::get_args_kwargs(this, "TorchStreamPool", params);
     om::str::try_update<size_t>(kwargs, "max_stream", max_stream_count_);
     OMNI_ASSERT(max_stream_count_ > 0 && max_stream_count_ < 32);
-    stream_pool_ = std::make_unique<om::pool::ResourcePool<size_t>>(
-        max_stream_count_);
+    stream_pool_ =
+        std::make_unique<om::pool::ResourcePool<size_t>>(max_stream_count_);
     for (size_t i = 0; i < max_stream_count_; ++i) {
       auto stream = c10::cuda::getStreamFromPool(true, -1);
       stream_event_.emplace_back(
@@ -108,9 +107,8 @@ class TorchStreamPool : public om::Backend {
     }
   }
 
-  void impl_forward_with_dep(
-      const std::vector<om::dict>& ios,
-      om::Backend& dep) override {
+  void impl_forward_with_dep(const std::vector<om::dict>& ios, om::Backend& dep)
+      override {
     auto index = stream_pool_->acquire();
     om::pool::ResourcePool<size_t>::lease_guard guard(
         stream_pool_.get(), index);
@@ -146,8 +144,5 @@ class TorchStreamPool : public om::Backend {
   std::unique_ptr<om::pool::ResourcePool<size_t>> stream_pool_;
 };
 
-OMNI_REGISTER(
-    om::Backend,
-    TorchStreamPool,
-    "TorchStreamPool, StreamPool");
+OMNI_REGISTER(om::Backend, TorchStreamPool, "TorchStreamPool, StreamPool");
 } // namespace torchpipe

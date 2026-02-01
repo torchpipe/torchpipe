@@ -71,12 +71,22 @@ function build_local_libs() {
     
     abiflag=$(python -c "import torch; print(int(torch.compiled_with_cxx11_abi()))")
     if [[ "$os" == "Linux" ]]; then
-        python -m omniback.utils.build_lib --output-dir "$torchpipe"/torchpipe/lib/ --source-dirs "$csrc"/torchplugins/ "$csrc"/helper/ --include-dirs="$csrc"/ --build-with-cuda --name torchpipe_core
+        python -m omniback.utils.build_lib --output-dir "$torchpipe"/torchpipe/lib/ --source-dirs "$csrc"/torchplugins/ "$csrc"/helper/ --include-dirs="$csrc"/ --name torchpipe_core
+        python -m omniback.utils.build_lib --output-dir "$torchpipe"/torchpipe/lib/ --source-dirs "$csrc"/core_cuda/ "$csrc"/helper_cuda/ --include-dirs="$csrc"/ --build-with-cuda --name torchpipe_core_cuda
 
         for abiflag in 1 0; do
-            opencv_install=/opencv_install/abiflag$abiflag/
-            cv_lib=/opencv_install/abiflag$abiflag/lib
-      cc done
+            # opencv_install=/opencv_install/abiflag$abiflag/
+            opencv_install=~/.cache/omniback/torchpipe/opencv/abiflag${abiflag}
+            # cv_lib=/opencv_install/abiflag$abiflag/lib
+            echo "opencv installed in ${opencv_install}"
+
+            python -m omniback.utils.build_lib --output-dir "$torchpipe"/torchpipe/lib/ --source-dirs "$csrc"/mat_torch/  \
+                --ldflags "-L$opencv_install/lib -Wl,-Bstatic -lopencv_imgproc -lopencv_imgcodecs -lopencv_core -L$opencv_install/lib/opencv4/3rdparty/ \
+                 -ltbb -llibjpeg-turbo -llibpng -llibtiff -llibopenjp2 -lzlib -lipphal -lippiw -lippicv -Wl,-Bdynamic -ldl  -lpthread"  \
+                --include-dirs="$csrc/ $opencv_install/include/opencv4/" --name torchpipe_opencv --no-torch --abiflag=$abiflag
+
+   
+        done
     fi
     ls "$torchpipe"/torchpipe/lib
     deactivate

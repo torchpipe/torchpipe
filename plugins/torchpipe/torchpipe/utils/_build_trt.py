@@ -99,6 +99,7 @@ def get_trt_url():
         cuda_urls = ["https://developer.nvidia.com/downloads/compute/machine-learning/tensorrt/10.5.0/tars/TensorRT-10.5.0.18.Linux.x86_64-gnu.cuda-12.6.tar.gz",
                      "https://developer.nvidia.com/downloads/compute/machine-learning/tensorrt/9.3.0/tensorrt-9.3.0.1.linux.x86_64-gnu.cuda-12.2.tar.gz",
                      "https://developer.nvidia.com/downloads/compute/machine-learning/tensorrt/10.14.1/tars/TensorRT-10.14.1.48.Linux.x86_64-gnu.cuda-12.9.tar.gz"]
+        return cuda_urls[1]
     elif cuda_version == 13:
         cuda_urls = [
             "https://developer.nvidia.com/downloads/compute/machine-learning/tensorrt/10.14.1/tars/TensorRT-10.14.1.48.Linux.x86_64-gnu.cuda-13.0.tar.gz"]
@@ -152,7 +153,11 @@ def cache_trt_dir():
             # 获取文件总大小（注意：有些服务器可能不提供 Content-Length）
             total_size = int(response.headers.get('content-length', 0))
             logger.warning(
-                f'You can set the environment variables TENSORRT_INCLUDE and TENSORRT_LIB to specify the locations of the TensorRT headers and libraries, respectively, to skip downloading. Additionally, set TORCHPIPE_SKIP_TENSORRT=1 to bypass loading TensorRT-related backends.')
+                "TensorRT headers and libraries not found. "
+                "Please either:\n"
+                "  - Set TENSORRT_INCLUDE (e.g., /path/to/TensorRT/include) and TENSORRT_LIB (e.g., /path/to/TensorRT/lib), or\n"
+                "  - Install TensorRT in a standard system path."
+            )
             with open(tar_path+".cache", "wb") as f:
                 with tqdm(
                     desc=f"Downloading {trt_file_name}",
@@ -196,12 +201,14 @@ def _build_trt(csrc_dir, skip_download=True):
         FORCE_DOWNLOAD_TENSORRT = os.environ.get("FORCE_DOWNLOAD_TENSORRT", "0")
         if FORCE_DOWNLOAD_TENSORRT == "0":
             logger.warning(
-                "TensorRT not found. The system will first check the environment variables "
-                "TENSORRT_INCLUDE and TENSORRT_LIB (if set) for headers and libraries. "
-                "If those are not provided, it will fall back to searching standard system paths. "
-                "To resolve this, either:\n"
-                "  - Set TENSORRT_INCLUDE (e.g., /path/to/tensorrt/include) and TENSORRT_LIB (e.g., /path/to/tensorrt/lib), or\n"
-                "  - Set FORCE_DOWNLOAD_TENSORRT=1 to allow automatic download."
+                "TensorRT not found. The system checked the following sources in order:\n"
+                "  1. Environment variables TENSORRT_INCLUDE and TENSORRT_LIB (not set),\n"
+                "  2. Standard system library paths (no valid TensorRT installation found).\n"
+                "\n"
+                "To proceed, please either:\n"
+                "  - Set TENSORRT_INCLUDE (e.g., /path/to/TensorRT/include) and TENSORRT_LIB (e.g., /path/to/TensorRT/lib), or\n"
+                "  - Set FORCE_DOWNLOAD_TENSORRT=1 to enable automatic download of a compatible TensorRT version."
+                "  - Set LD_LIBRARY_PATH"
             )
             return
 
@@ -219,7 +226,6 @@ def _build_trt(csrc_dir, skip_download=True):
         os.environ["LD_LIBRARY_PATH"] = f"{trt_lib}:" + \
             os.environ.get("LD_LIBRARY_PATH", "")
 
-
         subprocess.run(
             [
                 sys.executable,
@@ -231,7 +237,8 @@ def _build_trt(csrc_dir, skip_download=True):
                 os.path.join(csrc_dir, "csrc/"),
                 f"{trt_inc}",
                 "--build-with-cuda",
-                f"--ldflags=-L{trt_lib} -lnvinfer -lnvonnxparser  -lnvinfer_plugin",
+                # f"--ldflags=-L{trt_lib} -lnvinfer -lnvonnxparser  -lnvinfer_plugin",
+                f"--ldflags=-L{trt_lib} -Wl,-rpath,{trt_lib} -lnvinfer -lnvonnxparser -lnvinfer_plugin",
                 "--name",
                 "torchpipe_tensorrt"
             ],

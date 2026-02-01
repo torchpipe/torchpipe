@@ -223,7 +223,6 @@ def main() -> None:  # noqa: PLR0912, PLR0915
         else:
             abiflag = "0"
     
-    print(f'abiflag={abiflag}')
     libname = get_cache_name(args.name, device, args.no_torch, abiflag)
     
     tmp_libname = libname + ".tmp"
@@ -242,15 +241,16 @@ def main() -> None:  # noqa: PLR0912, PLR0915
         source_dirs = [Path(d).expanduser() for d in args.source_dirs]
         ldflags = [str(d) for d in args.ldflags]
         source_path = get_cpp_source(source_dirs)
-        if isinstance(args.include_dirs, str):
-            if " " in args.include_dirs:
-                args.include_dirs = args.include_dirs.split(" ")
+
+        _include_dirs = [str(Path(d).expanduser()) for d in args.include_dirs]
+        include_paths = []
+        for inc_dir in _include_dirs:
+            if " " in inc_dir:
+                include_paths += inc_dir.split()
             else:
-                args.include_dirs = [args.include_dirs]
-        include_dirs = [Path(d).expanduser() for d in args.include_dirs]
+                include_paths.append(inc_dir)
 
         # resolve configs
-        include_paths = [] + include_dirs
         cflags = []
         # include_paths.append(sysconfig.get_paths()["include"])
         
@@ -305,7 +305,7 @@ def main() -> None:  # noqa: PLR0912, PLR0915
         from omniback import get_include_dirs
         import omniback as om
         om_lib = om.libinfo.find_libomniback()
-        print(f'build with {om_lib}')
+
         ldflags.append(f"-L{os.path.dirname(om_lib)}")
         om_lib_name = os.path.splitext(os.path.basename(om_lib))[0].strip('lib')
         if om_lib_name.startswith('lib'):

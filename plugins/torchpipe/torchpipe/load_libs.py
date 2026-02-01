@@ -6,7 +6,8 @@ from .utils._cache_setting import get_cache_dir
 import ctypes, os, sys
 import logging
 import tvm_ffi
-import os
+import os, glob
+
 import importlib.util
 
 logger = logging.getLogger(__name__)  # type: ignore
@@ -33,6 +34,20 @@ def get_whl_lib(path_of_cache):
         return p
     return None
 
+
+def try_load(library):
+    try:
+        ctypes.CDLL(library, ctypes.RTLD_GLOBAL)
+    except OSError:
+        pass
+
+
+def try_load_libs_from_dir(path):
+    for lib in glob.iglob(os.path.join(path, "*.so*")):
+        try_load(lib)
+    for lib in glob.iglob(os.path.join(path, "*.dll*")):
+        try_load(lib)
+
 def _load_lib_with_torch(name, device = "cuda"):
     # import torch
     # device = f"cuda{torch.version.cuda.split('.')[0]}"
@@ -42,12 +57,17 @@ def _load_lib_with_torch(name, device = "cuda"):
     if load_whl_lib(local_lib):
         return True
     if name == "torchpipe_tensorrt":
+        from .utils._build_trt import get_trt_include_lib_dir
+        _, lib_dir = get_trt_include_lib_dir()
+        if lib_dir is not None:
+            logger.warning(f'[JIT] You may need to: export LD_LIBRARY_PATH={lib_dir}:$LD_LIBRARY_PATH')
         if os.path.exists(local_lib):
             try:
                 ctypes.CDLL(local_lib, mode=ctypes.RTLD_GLOBAL)
             except OSError:
-                from .utils._build_trt import get_trt_include_lib_dir
-                _, lib_dir = get_trt_include_lib_dir()
+
+                # lib_dir = "/home/nan/.venv/lib/python3.12/site-packages/tensorrt_libs/"
+                # lib_dir = "/home/nan/tensorrt_install/lib"
                 if lib_dir is None:
                     import torch
                     cuda_version = int(torch.version.cuda.split('.')[0])
@@ -55,25 +75,25 @@ def _load_lib_with_torch(name, device = "cuda"):
                     logger.warning(
                         f"Can not find TensorRT. Skip load torchpipe_tensorrt. Set TENSORRT_INCLUDE and TENSORRT_LIB")
                     #  or `pip install tensorrt-cu{cuda_version}`
-                    has_import_trt=False
-                    try:
-                        import tensorrt
-                        has_import_trt = True
-                    except:
-                        return False
-                    if has_import_trt:
-                        ctypes.CDLL(local_lib, mode=ctypes.RTLD_GLOBAL)
-                        return True
-                        
-                os.environ["LD_LIBRARY_PATH"] = f"{lib_dir}:" + \
-                    os.environ.get("LD_LIBRARY_PATH", "")
-                nvinfer = Path(lib_dir)/"libnvinfer.so"
-                nvonnxparser = Path(lib_dir)/"libnvonnxparser.so"
-                nvinfer_plugin = Path(lib_dir)/"libnvinfer_plugin.so"
+                    # has_import_trt=False
+                    # try:
+                    #     import tensorrt
+                    #     has_import_trt = True
+                    # except:
+                    #     return False
+                    # if has_import_trt:
+                    #     ctypes.CDLL(local_lib, mode=ctypes.RTLD_GLOBAL)
+                    #     return True
+                else:
+                    try_load_libs_from_dir(lib_dir)
+                # libs = ["libnvinfer.so.10", "libnvonnxparser.so.10", "libnvinfer_plugin.so.10"]        
 
-                ctypes.CDLL(nvinfer.resolve(), mode=ctypes.RTLD_GLOBAL)
-                ctypes.CDLL(nvonnxparser.resolve(), mode=ctypes.RTLD_GLOBAL)
-                ctypes.CDLL(nvinfer_plugin.resolve(), mode=ctypes.RTLD_GLOBAL)
+                # for lib in libs:
+                #     full_lib = Path(lib_dir)/lib
+                #     print(full_lib)
+                #     if full_lib.exists():
+                #         print(f"full_lib={full_lib}")
+                #         ctypes.CDLL(full_lib.resolve(), mode=ctypes.RTLD_GLOBAL)
                 
                 ctypes.CDLL(local_lib, mode=ctypes.RTLD_GLOBAL)
             
@@ -81,7 +101,6 @@ def _load_lib_with_torch(name, device = "cuda"):
     else:
         if os.path.exists(local_lib):
             ctypes.CDLL(local_lib, mode=ctypes.RTLD_GLOBAL)
-            print(f"load {local_lib}")
             return True
     return False
 
@@ -130,8 +149,8 @@ def _load_lib(name):
 
     
 def _build_lib(name):
-    logger.info(
-        f'\tPre-built library not found for {name}, starting JIT compilation')
+    logger.warning(
+        f'[JIT] Pre-built library not found for {name}, starting JIT compilation')
     if name == "torchpipe_core":
         # python -m omniback.utils.build_lib --source-dirs csrc/torchplugins/ csrc/helper/ --include-dirs=csrc/ --name torchpipe_core
         subprocess.run(
@@ -145,7 +164,25 @@ def _build_lib(name):
                 "--include-dirs",
                 os.path.join(csrc_dir, "csrc/"),
                 "--name",
-                "torchpipe_core"
+                name
+            ],
+            check=True,
+            env={**os.environ, "EXAMPLE_ENV": "1"},
+        )
+    elif name == "torchpipe_core_cuda":
+        subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "omniback.utils.build_lib",
+                "--source-dirs",
+                os.path.join(csrc_dir, "csrc/core_cuda/"),
+                os.path.join(csrc_dir, "csrc/helper_cuda/"),
+                "--include-dirs",
+                os.path.join(csrc_dir, "csrc/"),
+                "--build-with-cuda",
+                "--name",
+                name
             ],
             check=True,
             env={**os.environ, "EXAMPLE_ENV": "1"},
@@ -164,7 +201,7 @@ def _build_lib(name):
                 "--build-with-cuda",
                 "--ldflags=-lnvjpeg",
                 "--name",
-                "torchpipe_nvjpeg"
+                name
             ],
             check=True,
             # TVM_FFI_DISABLE_TORCH_C_DLPACK

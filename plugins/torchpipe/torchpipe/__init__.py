@@ -38,6 +38,8 @@ SKIP_ALL=os.environ.get("TORCHPIPE_SKIP_ALL", "0")
 if SKIP_ALL != "1":
     try:
         _load_or_build_lib("torchpipe_core")
+        if torch.cuda.is_available():
+            _load_or_build_lib("torchpipe_core_cuda")
     except Exception as e:
         logger.warning(f'Failed to load or JIT compile builtin extensions: \n{e}')
         SKIP_ALL == "1"
@@ -45,6 +47,7 @@ if SKIP_ALL != "1":
         SKIP_TENSORRT=os.environ.get("TORCHPIPE_SKIP_TENSORRT", "0")
                 
         if torch.cuda.is_available():
+            # _load_or_build_lib_skip_if_error("torchpipe_core_cuda")
             if SKIP_TENSORRT != "1":
                 _load_or_build_lib_skip_if_error("torchpipe_tensorrt")
 

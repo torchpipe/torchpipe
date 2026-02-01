@@ -1,6 +1,7 @@
 #!/bin/bash
 set -e  # 遇错即停
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 temp_dir=$(mktemp -d)
 trap 'rm -rf "$temp_dir"' EXIT
@@ -8,22 +9,28 @@ trap 'rm -rf "$temp_dir"' EXIT
 # ==================== 1. 环境准备 ====================
 OPENCV_VERSION="4.12.0"
 OPENCV_SRC_DIR="$temp_dir/opencv-${OPENCV_VERSION}"
-OPENCV_ZIP="opencv-${OPENCV_VERSION}.zip"
+OPENCV_ZIP=~/.cache/omniback/torchpipe/opencv/opencv-${OPENCV_VERSION}.zip
+OPENCV_ZIP_CACHE=~/.cache/omniback/torchpipe/opencv/opencv-${OPENCV_VERSION}.zip.cache
 
 # ==================== 2. 下载并解压源码 ====================
 if [ ! -d "$OPENCV_SRC_DIR" ]; then
     if [ ! -f "$OPENCV_ZIP" ]; then
-        wget "https://codeload.github.com/opencv/opencv/zip/refs/tags/${OPENCV_VERSION}" -O "$OPENCV_ZIP"
+        curl -L -o "$OPENCV_ZIP_CACHE" "https://codeload.github.com/opencv/opencv/zip/refs/tags/${OPENCV_VERSION}"
+        cp "$OPENCV_ZIP_CACHE" "$OPENCV_ZIP" && rm "$OPENCV_ZIP_CACHE"
     fi
     unzip -q "$OPENCV_ZIP" -d $temp_dir 
 fi
 
+# python $SCRIPT_DIR/download_cv.py --output-dir=$temp_dir
 
-for abiflag in 1 0; do
+ls $temp_dir
+
+for abiflag in 0 1; do
     cd $OPENCV_SRC_DIR
     # 构建目录放在 OpenCV 源码目录内（推荐）
     BUILD_DIR="$OPENCV_SRC_DIR/build_${abiflag}"
-    INSTALL_PREFIX="/opencv_install/abiflag${abiflag}"
+    # INSTALL_PREFIX="/opencv_install/abiflag${abiflag}"
+    INSTALL_PREFIX=~/.cache/omniback/torchpipe/opencv/abiflag${abiflag}
 
     echo ">>> 构建 ABI=${abiflag} 版本（静态链接）..."
 
@@ -106,9 +113,9 @@ for abiflag in 1 0; do
     # 编译安装
     make -j$(nproc) VERBOSE=1
     make install
-
-    cd ../..
 done
+
+cd $SCRIPT_DIR
 
 
 # ================== 1. 写入 C++ 源文件 ==================
@@ -125,7 +132,6 @@ EOF
 # ================== 2. 设置路径 ==================
 rm -f $temp_dir/check_build
 
-INSTALL_PREFIX="/opencv_install/abiflag1"
 # ================== 3. 编译 ==================
 c++ -std=c++11 $temp_dir/check_build.cpp \
     -I"$INSTALL_PREFIX/include/opencv4" \
