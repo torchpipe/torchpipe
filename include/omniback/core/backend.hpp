@@ -294,8 +294,8 @@ OMNI_EXPORT std::unique_ptr<Backend> init_backend(
     const dict& kwargs = nullptr,
     const std::string& registered_name = "");
 
-OMNI_EXPORT std::string get_current_dependency();
-OMNI_EXPORT void set_current_dependency();
+OMNI_EXPORT const std::string& get_current_dependency();
+OMNI_EXPORT void set_current_dependency(const std::string&);
 
 #define BACKEND_CLASS(ClassName)                                          \
   class ClassName : public om::Backend {                            \
@@ -317,6 +317,8 @@ std::string get_dependency_name(
 
 } // namespace backend
 } // namespace om
+
+
 
 namespace om::parser_v2 {
 

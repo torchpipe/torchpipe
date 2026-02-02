@@ -6,7 +6,8 @@ from .utils._cache_setting import get_cache_dir
 import ctypes, os, sys
 import logging
 import tvm_ffi
-import os, glob
+import os, glob, shutil
+import subprocess
 
 import importlib.util
 
@@ -34,14 +35,111 @@ def get_whl_lib(path_of_cache):
         return p
     return None
 
+# def get_unvalid_sm():
+#     props = torch.cuda.get_device_properties(torch.cuda.current_device())
+#     sm_version = int(float(f"{props.major}.{props.minor}") *10)
+#     unvalid_sm = set(['sm60', 'sm70', 'sm80', 'sm86', 'sm90', 'sm90', 'sm100', "sm120"])
+#     unvalid_sm.remove(f'sm{sm_version}')
+#     return unvalid_sm
 
-def try_load(library):
+def get_current_rpath(so_path: str) -> str:
     try:
-        ctypes.CDLL(library, ctypes.RTLD_GLOBAL)
-    except OSError:
-        pass
+        result = subprocess.run(
+            ["patchelf", "--print-rpath", so_path],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        return result.stdout.strip()
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return ""
 
+def try_load(library: str) -> bool:
+    """
+    Attempt to load a shared library.
+    If it's libnvinfer, first set its RPATH to its own directory using patchelf (if available).
+    Returns True if successfully loaded, False otherwise.
+    """
+    if not os.path.exists(library):
+        return False
 
+    return True
+    # 更健壮地判断是否为 TensorRT 主库
+    basename = os.path.basename(library)
+    if not basename.startswith("libnvinfer.so"):
+        # 非 TensorRT 库，直接尝试加载
+        try:
+            ctypes.CDLL(library, mode=ctypes.RTLD_GLOBAL)
+            return True
+        except OSError as e:
+            logger.debug(f"Failed to load library {library}: {e}")
+            return False
+
+    # 是 libnvinfer，尝试用 patchelf 修复 RPATH
+    lib_dir = os.path.dirname(os.path.abspath(library))
+    
+    # 检查 patchelf 是否可用
+    patchelf_path = shutil.which("patchelf")
+    if patchelf_path is None:
+        logger.warning("patchelf not found; skipping RPATH fix for %s", library)
+        logger.warning(
+            f'[JIT] You may need to:\n'
+            f'export LD_LIBRARY_PATH={os.path.dirname(library)}:$LD_LIBRARY_PATH'
+        )
+    else:
+        if get_current_rpath(library) != "":
+            return
+        try:
+            # 使用 check=True 确保命令失败时抛出异常
+            subprocess.run(
+                [patchelf_path, "--set-rpath", '$ORIGIN', library],
+                check=True,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.PIPE,
+                text=True
+            )
+            logger.debug("Successfully set RPATH for %s to %s", library, lib_dir)
+        except subprocess.CalledProcessError as e:
+            logger.warning("Failed to run patchelf on %s: %s (stderr: %s)", library, e, e.stderr)
+        except Exception as e:
+            logger.warning("Unexpected error running patchelf on %s: %s", library, e)
+    
+    ctypes.CDLL(library, mode=ctypes.RTLD_GLOBAL)
+    return True
+
+def fix_nvinfer_rpath(path):
+    for library in glob.iglob(os.path.join(path, "*.so*")):
+        basename = os.path.basename(library)
+        if not basename.startswith("libnvinfer.so"):
+            continue
+        
+        patchelf_path = shutil.which("patchelf")
+        if patchelf_path is None:
+            logger.warning("patchelf not found; skipping RPATH fix for %s", library)
+            logger.warning(
+                f'[JIT] You may need to:\n'
+                f'export LD_LIBRARY_PATH={os.path.dirname(library)}:$LD_LIBRARY_PATH'
+            )
+        else:
+            if get_current_rpath(library) != "":
+                return
+            try:
+                # 使用 check=True 确保命令失败时抛出异常
+                subprocess.run(
+                    [patchelf_path, "--set-rpath", os.path.dirname(library), library],
+                    check=True,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.PIPE,
+                    text=True
+                )
+                logger.debug("Successfully set RPATH for %s", library)
+            except subprocess.CalledProcessError as e:
+                logger.warning("Failed to run patchelf on %s: %s (stderr: %s)", library, e, e.stderr)
+            except Exception as e:
+                logger.warning("Unexpected error running patchelf on %s: %s", library, e)
+        
+
+        
 def try_load_libs_from_dir(path):
     for lib in glob.iglob(os.path.join(path, "*.so*")):
         try_load(lib)
@@ -59,9 +157,10 @@ def _load_lib_with_torch(name, device = "cuda"):
     if name == "torchpipe_tensorrt":
         from .utils._build_trt import get_trt_include_lib_dir
         _, lib_dir = get_trt_include_lib_dir()
-        if lib_dir is not None:
-            logger.warning(f'[JIT] You may need to: export LD_LIBRARY_PATH={lib_dir}:$LD_LIBRARY_PATH')
+        
         if os.path.exists(local_lib):
+            if lib_dir is not None:
+                fix_nvinfer_rpath(lib_dir)
             try:
                 ctypes.CDLL(local_lib, mode=ctypes.RTLD_GLOBAL)
             except OSError:
@@ -102,6 +201,12 @@ def _load_lib_with_torch(name, device = "cuda"):
         if os.path.exists(local_lib):
             ctypes.CDLL(local_lib, mode=ctypes.RTLD_GLOBAL)
             return True
+    
+    if name == "torchpipe_tensorrt" and lib_dir is not None:
+        logger.warning(
+            f'[JIT] You may need to:\n'
+            f'export LD_LIBRARY_PATH={lib_dir}:$LD_LIBRARY_PATH'
+        )
     return False
 
 def _load_lib(name):

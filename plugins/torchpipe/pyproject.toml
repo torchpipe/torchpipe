@@ -1,18 +1,20 @@
 [project]
 name = "torchpipe"
-version = "0.1.23"
+version = "0.1.23.a0"
 
 requires-python = ">=3.8"
 description = "Serving inside Pytorch"
 dependencies = [
     "torch",
-    "omniback",
+    "omniback==0.1.23.a0",
     "setuptools",
     "packaging",
     "tqdm",
     "requests",
     "ninja",
     "cmake",
+    "numpy<2",
+    "patchelf"
 ]
 
 authors = [{ name = "torchpipe team" }]
@@ -38,7 +40,8 @@ build-backend = "setuptools.build_meta"
 test = [
     "onnx-graphsurgeon>=0.5.8",  
     "onnxslim",
-    "pytest",          
+    "pytest",  
+    'pillow'        
 ]
 
 [tool.setuptools]

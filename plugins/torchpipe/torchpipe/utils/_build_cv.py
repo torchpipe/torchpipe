@@ -65,6 +65,7 @@ def check_is_cxx11abi(lib_path):
                 raise RuntimeError(f"Unable to determine C++ ABI version")
         else:
             return False
+    raise RuntimeError("Unable to determine C++ ABI version")
 
 def is_system_exists_cv():
     exists_header = exists_lib = False
@@ -77,7 +78,7 @@ def is_system_exists_cv():
         if os.path.exists(cv_lib):
             import omniback
             abiflag = (1==int(omniback.compiled_with_cxx11_abi()))
-            if abiflag == check_is_cxx11abi(cv_lib):
+            if abiflag != check_is_cxx11abi(cv_lib):
                 logger.warning(f"{cv_lib} and omniback is compiled with different cxx abi. Skip")
             else:
                 exists_lib = True

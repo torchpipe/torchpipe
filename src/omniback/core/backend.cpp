@@ -127,14 +127,19 @@ std::unique_ptr<Backend> init_backend(
   return backend;
 };
 
-
-std::string get_current_dependency(){
-  TVM_FFI_THROW(NotImplement) ;
-  return "";
+namespace {
+std::string& current_dependency() {
+  thread_local std::string _current_dependency;
+  return _current_dependency;
 }
-void set_current_dependency(){
-  TVM_FFI_THROW(NotImplement) ;
-  return;
+} // namespace
+
+const std::string& get_current_dependency() { // 注意返回 const&
+  return current_dependency();
+}
+
+void set_current_dependency(const std::string& dep) {
+  current_dependency() = dep;
 }
 
 Backend* get_backend(const std::string& aspect_name_str) {

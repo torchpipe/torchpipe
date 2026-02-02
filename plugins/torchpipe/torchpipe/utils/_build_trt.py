@@ -99,7 +99,8 @@ def get_trt_url():
         cuda_urls = ["https://developer.nvidia.com/downloads/compute/machine-learning/tensorrt/10.5.0/tars/TensorRT-10.5.0.18.Linux.x86_64-gnu.cuda-12.6.tar.gz",
                      "https://developer.nvidia.com/downloads/compute/machine-learning/tensorrt/9.3.0/tensorrt-9.3.0.1.linux.x86_64-gnu.cuda-12.2.tar.gz",
                      "https://developer.nvidia.com/downloads/compute/machine-learning/tensorrt/10.14.1/tars/TensorRT-10.14.1.48.Linux.x86_64-gnu.cuda-12.9.tar.gz"]
-        return cuda_urls[0]
+        if get_sm() >= 12.0:
+            return cuda_urls[2]
     elif cuda_version == 13:
         cuda_urls = [
             "https://developer.nvidia.com/downloads/compute/machine-learning/tensorrt/10.14.1/tars/TensorRT-10.14.1.48.Linux.x86_64-gnu.cuda-13.0.tar.gz"]
@@ -133,6 +134,9 @@ def cache_trt_dir():
     os.makedirs(cache_dir, exist_ok=True)
     # os.chdir(cache_dir)
     TRT_DIR = os.path.join(cache_dir, f"tensorrt_cuda{cuda_version}")
+    
+    cache_header = os.path.join(TRT_DIR, "include/")
+    cache_lib = os.path.join(TRT_DIR, "lib/")
 
     core_files = [
         "lib/libnvinfer.so",
@@ -152,15 +156,10 @@ def cache_trt_dir():
 
             # 获取文件总大小（注意：有些服务器可能不提供 Content-Length）
             total_size = int(response.headers.get('content-length', 0))
-            logger.warning(
-                "TensorRT headers and libraries not found. "
-                "Please either:\n"
-                "  - Set TENSORRT_INCLUDE (e.g., /path/to/TensorRT/include) and TENSORRT_LIB (e.g., /path/to/TensorRT/lib), or\n"
-                "  - Install TensorRT in a standard system path."
-            )
+            logger.warning(f"\nDownloading {trt_file_name}. You may need to set LD_LIBRARY_PATH={cache_lib}:$LD_LIBRARY_PATH after installation.")
             with open(tar_path+".cache", "wb") as f:
                 with tqdm(
-                    desc=f"Downloading {trt_file_name}",
+                    desc=f"Downloading",
                     total=total_size,
                     unit='B',
                     unit_scale=True,
@@ -171,7 +170,7 @@ def cache_trt_dir():
                             f.write(chunk)
                             pbar.update(len(chunk))
             os.rename(tar_path+".cache", tar_path)
-        print(f"Extracting {trt_file_name} to {cache_dir} ...")
+        print(f"Extracting {trt_file_name} to {cache_dir}")
         import tarfile
         with tarfile.open(tar_path, "r:gz") as tar_ref:
             tar_ref.extractall(path=cache_dir)
@@ -181,11 +180,9 @@ def cache_trt_dir():
                 shutil.rmtree(TRT_DIR)
             os.rename(os.path.join(cache_dir, top_level_name), TRT_DIR)
             os.remove(tar_path)
-            
-        print(f'saved to {TRT_DIR}')
+        
+        logger.warning(f'saved to {TRT_DIR}/')
 
-    cache_header = os.path.join(TRT_DIR, "include/")
-    cache_lib = os.path.join(TRT_DIR, "lib/")
     return cache_header, cache_lib
 
 
@@ -198,18 +195,18 @@ def need_download_for_jit():
     
 def _build_trt(csrc_dir, skip_download=True):
     if skip_download and need_download_for_jit():
+        logger.warning(
+                "TensorRT not found. Checked:\n"
+                "  1. Environment variables TENSORRT_INCLUDE and TENSORRT_LIB,\n"
+                "  2. Standard system library paths\n"
+                "\n"
+                "Please either:\n"
+                "  - Set TENSORRT_INCLUDE (e.g., /path/to/TensorRT/include) and TENSORRT_LIB (e.g., /path/to/TensorRT/lib), or\n"
+                "  - Set FORCE_DOWNLOAD_TENSORRT=1 to download.\n"
+                "You may also need to set LD_LIBRARY_PATH if not installed in a standard system path.\n"
+            )
         FORCE_DOWNLOAD_TENSORRT = os.environ.get("FORCE_DOWNLOAD_TENSORRT", "0")
         if FORCE_DOWNLOAD_TENSORRT == "0":
-            logger.warning(
-                "TensorRT not found. The system checked the following sources in order:\n"
-                "  1. Environment variables TENSORRT_INCLUDE and TENSORRT_LIB (not set),\n"
-                "  2. Standard system library paths (no valid TensorRT installation found).\n"
-                "\n"
-                "To proceed, please either:\n"
-                "  - Set TENSORRT_INCLUDE (e.g., /path/to/TensorRT/include) and TENSORRT_LIB (e.g., /path/to/TensorRT/lib), or\n"
-                "  - Set FORCE_DOWNLOAD_TENSORRT=1 to enable automatic download of a compatible TensorRT version."
-                "  - Set LD_LIBRARY_PATH"
-            )
             return
 
     # python -m omniback.utils.build_lib --source-dirs csrc/tensorrt_torch/ --include-dirs=csrc/ --build-with-cuda --ldflags="-lnvinfer -lnvonnxparser  -lnvinfer_plugin" --name torchpipe_tensorrt
