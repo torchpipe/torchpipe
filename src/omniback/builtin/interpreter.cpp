@@ -47,7 +47,7 @@ void Interpreter::impl_init(
     if (iter_init != item.second.end()) {
       init_config = iter_init->second;
     } else {
-      SPDLOG_INFO(
+      SPDLOG_DEBUG(
           "Interpreter: `node_entrypoint` not found in node config, using default: "
           "{}",
           DEFAULT_INIT_CONFIG);

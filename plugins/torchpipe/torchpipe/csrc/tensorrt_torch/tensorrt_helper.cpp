@@ -695,7 +695,7 @@ std::unique_ptr<nvinfer1::IHostMemory> onnx2trt(OnnxParams& params) {
   }
   max_threads = std::min(max_threads, size_t(8));
   if (builder->setMaxThreads(max_threads))
-    SPDLOG_INFO("tensorrt builder: max_threads={}", max_threads);
+    SPDLOG_DEBUG("tensorrt builder: max_threads={}", max_threads);
 
   SPDLOG_INFO("parse {}", params.model);
   // todo timecache

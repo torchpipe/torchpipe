@@ -31,11 +31,11 @@ bool omniback_load() {
 }
 
 void printlog_and_throw(std::string name) {
-  SPDLOG_INFO(name);
+  SPDLOG_ERROR(name);
   throw std::runtime_error(name);
 }
 void printlog(std::string name) {
-  SPDLOG_INFO(name);
+  SPDLOG_DEBUG(name);
 }
 
 void print_check_distance(

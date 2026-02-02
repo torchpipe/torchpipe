@@ -18,7 +18,7 @@ def test_register_backend_group():
         _register_backend_group(backend, grp_name,
                                 lambda: cb_func(backend))
         
-        with pytest.raises(TypeError) as exc_info:
+        with pytest.raises(RuntimeError) as exc_info:
             omniback.init(backend)
 
         assert str(exc_info.value) == backend

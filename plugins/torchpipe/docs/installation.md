@@ -50,19 +50,19 @@ However, if you want to modify the core library or encounter any compatibility i
 git clone https://github.com/torchpipe/torchpipe.git --recursive
 cd torchpipe/
 
-curl -LsSf https://astral.sh/uv/install.sh | sh
+curl -LsSf https://astral.sh/uv/install.sh | sh && source $HOME/.local/bin/env 
 
 uv venv && source .venv/bin/activate
 
-git tag t0.1.23.a0
+git tag t0.1.23a0
 
 uv pip install --upgrade scikit_build_core fire ninja setuptools-scm setuptools apache-tvm-ffi 
 
-uv pip install . --no-build-isolation -v
+uv pip install -e . --no-build-isolation -v
 
 cd plugins/torchpipe
 
-uv pip install . --no-build-isolation -v 
+uv pip install -e . --no-build-isolation
 
 python -c "import torchpipe"
 ```
