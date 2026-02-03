@@ -148,7 +148,7 @@ def export_n3hw(model: nn.Module, onnx_path: str, input_h: int, input_w: int) ->
         subprocess.run(["onnxslim", tmp_onnx_path, onnx_path], check=True)
     else:
         raise OSError("onnxslim not found")
-    if tmp_onnx_path != onnx_path:
+    if tmp_onnx_path != os.path.abspath(onnx_path):
         os.remove(tmp_onnx_path)
 
     print(f"Optimized ONNX model saved to: {onnx_path}")
