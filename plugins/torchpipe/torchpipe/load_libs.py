@@ -126,8 +126,7 @@ def fix_nvinfer_rpath(path):
             try:
                 # 使用 check=True 确保命令失败时抛出异常
                 subprocess.run(
-                    [patchelf_path, "--set-rpath", os.path.dirname(library), library],
-                    check=True,
+                    [patchelf_path, "--set-rpath", "$ORIGIN", library],
                     stdout=subprocess.DEVNULL,
                     stderr=subprocess.PIPE,
                     text=True
