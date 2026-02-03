@@ -145,8 +145,16 @@ function(add_omniback_library TARGET_NAME ABI_FLAG OUTPUT_NAME_SUFFIX)
         # set(CMAKE_VISIBILITY_INLINES_HIDDEN ON)
         PREFIX "lib"
     )
-
-    install(TARGETS ${TARGET_NAME} DESTINATION libs)
+    if(${ABI_FLAG})
+        install(TARGETS ${TARGET_NAME} DESTINATION lib/abiflag1)
+    else()
+        # install(TARGETS ${TARGET_NAME} DESTINATION lib/abiflag0)
+        install(
+            FILES "$<TARGET_FILE:${TARGET_NAME}>"
+            DESTINATION lib/abiflag0
+            RENAME libomniback.so
+        )
+    endif()
     
 endfunction()
 

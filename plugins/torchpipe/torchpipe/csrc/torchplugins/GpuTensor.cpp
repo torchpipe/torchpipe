@@ -268,7 +268,6 @@ class OMNI_EXPORT LogGPUTime : public om::Backend {
   void impl_forward(
       const std::vector<om::dict>& input_output) override final {
     // float time = get_time();
-    c10::cuda::getCurrentCUDAStream().synchronize();
     float time = om::helper::timestamp();
     SPDLOG_INFO("timer: {} = {}", key_, time);
     for (const auto& item : input_output) {

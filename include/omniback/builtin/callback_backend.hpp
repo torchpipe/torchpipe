@@ -6,6 +6,7 @@
 
 namespace om {
 
+// class PartialBackend: public Backend {
 class CallbackBackend : public Backend {
  public:
   using InitCallback = std::function<void(

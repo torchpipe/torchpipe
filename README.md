@@ -1,7 +1,4 @@
-<!-- <div align="center">
-<h1 align="center">TorchPipe</h1> -->
-<!-- <h6 align="center">Ensemble Pipeline Serving With PyTorch Frontend</h6>  
-</div> -->
+
 
 # Torchpipe
 
@@ -79,7 +76,7 @@ result = data['result']
 
 
 - **NGC Docker containers (recommended):**
- > test on 25.05, 25.06, ~~24.05, 23.05, and 22.12~~
+ > test on 25.05, 25.06, 24.05, 23.05
   ```bash
   img_name=nvcr.io/nvidia/pytorch:25.05-py3
 
@@ -98,18 +95,10 @@ The backends it introduces will be JIT-compiled and cached.
 
 
 
-or you can try
-
-```bash
-pip install torch>=2.3 torchpipe
-
-python -c "import torchpipe"
-```
-
 
 There are one core backend group(`torchpipe_core`) and three optional groups (`torchpipe_opencv`, `torchpipe_nvjpeg`, and `torchpipe_tensorrt`) with different dependencies. For details, see [here](plugins/torchpipe/group-torchpipe.toml).
 
-Dependencies such as OpenCV and TensorRT can be provided in the following ways:
+Dependencies such as OpenCV and TensorRT can also be provided in the following ways:
 
 - **providing environment variables:**  
   Users can specify paths via the following environment variables:  

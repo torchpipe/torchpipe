@@ -13,9 +13,7 @@
 // limitations under the License.
 
 #pragma once
-// #include <omniback/extension.hpp>
-#include <c10/cuda/CUDACachingAllocator.h>
-#include <c10/cuda/CUDAStream.h>
+
 #include <omniback/core/dict.hpp>
 #include <torch/torch.h>
 #include "helper/net_info.hpp"
@@ -26,15 +24,8 @@
 namespace torchpipe {
 using dict = om::dict;
 
-#if 1
-bool torch_not_use_default_stream(bool high_prio = false);
-bool torch_not_use_default_stream(int device_id, bool high_prio = false);
-bool torch_is_using_default_stream();
-torch::Tensor to_current_device(torch::Tensor input);
 
-#endif
 
-torch::Tensor get_tensor_from_any(om::any input);
 std::string print_tensor(
     const std::vector<torch::Tensor>& data,
     const std::string& tag = "");
@@ -115,72 +106,8 @@ std::vector<torch::Tensor> get_tensors(
     om::dict input_dict,
     const std::string& key);
 
-void copy2ptr(torch::Tensor input, char* ptr);
 torch::Tensor try_quick_cat(std::vector<torch::Tensor> resized_inputs);
 
-int static inline torch_malloc(void** p, size_t s) {
-  *p = c10::cuda::CUDACachingAllocator::raw_alloc_with_stream(s, nullptr);
-  // c10::cuda::getCurrentCUDAStream().synchronize();
-  return 0;
-}
-
-int static inline torch_free(void* p) {
-  assert(p != nullptr);
-  c10::cuda::CUDACachingAllocator::raw_delete(p);
-  return 0;
-}
-
-// Async Memory Allocation with Error Handling
-int torch_malloc_async(
-    void* ctx,
-    void** p,
-    size_t size,
-    cudaStream_t stream);
-
-// Async Memory Free with Error Handling
-int torch_free_async(
-    void* ctx,
-    void* p,
-    size_t size,
-    cudaStream_t stream);
-
-// Pinned Memory Allocator Using PyTorch
-int static inline torch_pinned_malloc_async(
-    void* ctx,
-    void** p,
-    size_t size,
-    cudaStream_t stream) {
-  // Check for zero allocation
-  if (size == 0) {
-    *p = nullptr;
-    return 0;
-  }
-
-  // Allocate pinned memory using CUDA runtime
-  cudaError_t cuda_err = cudaHostAlloc(p, size, cudaHostAllocDefault);
-  if (cuda_err != cudaSuccess) {
-    // Handle error (e.g., return negative error code)
-    return -1; // Error code for failure
-  }
-
-  return 0;
-}
-
-int static inline torch_pinned_free_async(
-    void* ctx,
-    void* p,
-    size_t size,
-    cudaStream_t stream) {
-  assert(p != nullptr); // Ensure pointer is valid
-
-  // Free pinned memory using CUDA runtime
-  cudaError_t cuda_err = cudaFreeHost(p);
-  if (cuda_err != cudaSuccess) {
-    return -1; // Error code for failure
-  }
-
-  return 0;
-}
 
 // std::string get_sm();
 
@@ -211,7 +138,6 @@ torch::Tensor imageDataToTorchCPU(
 
 
 
-float cuda_time();
 convert::ImageData torch2ImageData(torch::Tensor tensor);
 // int StreamOrderedManagedTensorAllocator(
 //     void* stream,

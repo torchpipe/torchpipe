@@ -39,10 +39,14 @@ try:
         if not hasattr(torch, dtype):
             setattr(torch, dtype, None)
 except:
+    torch = None
     pass
 
-import torch.torch_version
-import torch.utils.cpp_extension
+try:
+    import torch.torch_version
+    import torch.utils.cpp_extension
+except:
+    pass
 
 import logging
 logger = logging.getLogger(__name__)  # type: ignore
@@ -103,14 +107,16 @@ def get_lib_name(name: str, device: str, no_torch: bool):
     suffix = ".dll" if IS_WINDOWS else ".so"
     return get_cache_name(name, device, no_torch)+suffix
 
-def get_cache_name(name: str, device: str, no_torch: bool):
+def get_cache_name(name: str, device: str, no_torch: bool, abiflag: str = ""):
     # resolve library name
+    if abiflag == "":
+        abiflag = str(int(torch.compiled_with_cxx11_abi()))
     if no_torch:
-        return f"{name}-cxx11{torch.compiled_with_cxx11_abi()}"
+        return f"{name}-abiflag{abiflag}"
     major, minor = torch.__version__.split(".")[:2]
 
     suffix = ".dll" if IS_WINDOWS else ".so"
-    return f"{name}-torch{major}{minor}-{device}-cxx11{torch.compiled_with_cxx11_abi()}"
+    return f"{name}-torch{major}{minor}-{device}-abiflag{abiflag}"
 
 def main() -> None:  # noqa: PLR0912, PLR0915
     """Build the torch extension."""
@@ -156,6 +162,16 @@ def main() -> None:  # noqa: PLR0912, PLR0915
         default=get_cache_dir(),
         help="Directory to store the built extension library. If not specified, the default cache directory of omniback will be used.",
     )
+    
+    parser.add_argument(
+        "--abiflag",
+        type=str,
+        required=False,
+        default="",
+        help="",
+    )
+    
+    
     parser.add_argument(
         "--build-with-cuda",
         action="store_true",
@@ -197,8 +213,17 @@ def main() -> None:  # noqa: PLR0912, PLR0915
         device = "rocm"
     else:
         device = "cpu"
-        
-    libname = get_cache_name(args.name, device, args.no_torch)
+    
+    abiflag = args.abiflag
+    if abiflag not in  ["1", "0"]:
+        assert torch is not None, "torch is not installed. Specify --abiflag option."
+        # use CXX11 ABI
+        if torch.compiled_with_cxx11_abi():
+            abiflag = "1"
+        else:
+            abiflag = "0"
+    
+    libname = get_cache_name(args.name, device, args.no_torch, abiflag)
     
     tmp_libname = libname + ".tmp"
 
@@ -216,17 +241,20 @@ def main() -> None:  # noqa: PLR0912, PLR0915
         source_dirs = [Path(d).expanduser() for d in args.source_dirs]
         ldflags = [str(d) for d in args.ldflags]
         source_path = get_cpp_source(source_dirs)
-        if isinstance(args.include_dirs, str):
-            args.include_dirs = [args.include_dirs]
-        include_dirs = [Path(d).expanduser() for d in args.include_dirs]
+
+        _include_dirs = [str(Path(d).expanduser()) for d in args.include_dirs]
+        include_paths = []
+        for inc_dir in _include_dirs:
+            if " " in inc_dir:
+                include_paths += inc_dir.split()
+            else:
+                include_paths.append(inc_dir)
 
         # resolve configs
-        include_paths = [] + include_dirs
         cflags = []
         # include_paths.append(sysconfig.get_paths()["include"])
-
-        # use CXX11 ABI
-        if torch.compiled_with_cxx11_abi():
+        
+        if abiflag == "1":
             cflags.append("-D_GLIBCXX_USE_CXX11_ABI=1")
         else:
             cflags.append("-D_GLIBCXX_USE_CXX11_ABI=0")
@@ -277,7 +305,7 @@ def main() -> None:  # noqa: PLR0912, PLR0915
         from omniback import get_include_dirs
         import omniback as om
         om_lib = om.libinfo.find_libomniback()
-        
+
         ldflags.append(f"-L{os.path.dirname(om_lib)}")
         om_lib_name = os.path.splitext(os.path.basename(om_lib))[0].strip('lib')
         if om_lib_name.startswith('lib'):
@@ -302,7 +330,7 @@ def main() -> None:  # noqa: PLR0912, PLR0915
 
 
 # core
-# python -m omniback.utils.build_lib --source-dirs csrc/torchplugins/ csrc/helper/ --include-dirs=csrc/ --build-with-cuda --name torchpipe_core
+# python -m omniback.utils.build_lib --source-dirs csrc/torchplugins/ csrc/helper/ --include-dirs=csrc/ --name torchpipe_core
 
 # nvjpeg
 # python -m omniback.utils.build_lib --source-dirs csrc/nvjpeg_torch/ --include-dirs=csrc/ --build-with-cuda --ldflags="-lnvjpeg" --name torchpipe_nvjpeg

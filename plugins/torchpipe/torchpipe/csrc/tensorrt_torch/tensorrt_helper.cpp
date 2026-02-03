@@ -672,10 +672,19 @@ std::unique_ptr<nvinfer1::IHostMemory> onnx2trt(OnnxParams& params) {
           nvinfer1::NetworkDefinitionCreationFlag::kEXPLICIT_BATCH);
   std::unique_ptr<nvinfer1::IBuilder> builder{
       nvinfer1::createInferBuilder(*get_trt_logger())};
+  if (!builder) {
+    SPDLOG_ERROR(
+        "Failed to create builder. It seems that `libnvinfer_builder_resource*.so*` is not in the system library path. "
+        "Please set the LD_LIBRARY_PATH to the library's directory. See "
+        "https://docs.nvidia.com/deeplearning/tensorrt/10.14.1/installing-tensorrt/installing.html#tar-file-installation"
+        " for more details.");
+    return nullptr;
+  }
   std::unique_ptr<nvinfer1::INetworkDefinition> network{
       builder->createNetworkV2(explicitBatch)};
   std::unique_ptr<nvonnxparser::IParser> parser{
       nvonnxparser::createParser(*network, *get_trt_logger())};
+  OMNI_ASSERT(parser);
   std::unique_ptr<nvinfer1::IBuilderConfig> config{
       builder->createBuilderConfig()};
   size_t max_threads = std::thread::hardware_concurrency();
@@ -686,7 +695,7 @@ std::unique_ptr<nvinfer1::IHostMemory> onnx2trt(OnnxParams& params) {
   }
   max_threads = std::min(max_threads, size_t(8));
   if (builder->setMaxThreads(max_threads))
-    SPDLOG_INFO("tensorrt builder: max_threads={}", max_threads);
+    SPDLOG_DEBUG("tensorrt builder: max_threads={}", max_threads);
 
   SPDLOG_INFO("parse {}", params.model);
   // todo timecache
@@ -872,7 +881,7 @@ std::unique_ptr<nvinfer1::IHostMemory> onnx2trt(OnnxParams& params) {
   auto time_now = om::helper::now();
   std::unique_ptr<nvinfer1::IHostMemory> engine_plan(
       builder->buildSerializedNetwork(*network, *config));
-  OMNI_ASSERT(engine_plan->size() > 0);
+  OMNI_ASSERT(engine_plan && engine_plan->size() > 0);
   auto time_pass = om::helper::time_passed(time_now);
   SPDLOG_INFO(
       "Engine building completed in {:.2f} seconds", time_pass / 1000.0);

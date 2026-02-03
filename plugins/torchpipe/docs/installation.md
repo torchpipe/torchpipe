@@ -1,70 +1,79 @@
 
 
-## build from source
-### Inside NGC Docker Containers
 
-#### test on 25.05, 24.05, 23.05, and 22.12
+## Quick Installation (PyPI)
+
 ```bash
-git clone https://github.com/torchpipe/torchpipe.git
-cd torchpipe/
+img_name=nvcr.io/nvidia/pytorch:25.05-py3  # alternatives: 24.05, 23.05, 25.06, 24.04(for 1080)
 
-img_name=nvcr.io/nvidia/pytorch:25.05-py3 # you can also try 24.05, 23.05, 22.12, but may need to upgrade pip: python -m pip install --upgrade pip
-
-docker run --rm --gpus all -it --rm --network host \
-    -v $(pwd):/workspace/ --ipc=host --ulimit memlock=-1 --ulimit stack=67108864\
-    -w /workspace/ \
+docker run --rm --gpus all -it --network host \
+    -v $(pwd):/pwd/ --ipc=host --ulimit memlock=-1 --ulimit stack=67108864 \
+    -w /pwd/ \
     $img_name \
     bash
 
-# pip config set global.index-url https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple
-# python -m pip install --upgrade pip # for 23.05, 22.12, 24.05
-cd /workspace && pip install . -v && cd /workspace/plugins/torchpipe && pip install . --no-build-isolation
-
-
-# JIT compile built-in backends
+pip install torchpipe
 python -c "import torchpipe"
+```
+
+TorchPipe requires TensorRT headers and libraries in the system's linker search paths to enable TensorRT-related backends.  
+If installed in non-standard locations, specify them via `TENSORRT_INCLUDE` and `TENSORRT_LIB`:
+
+- `$TENSORRT_INCLUDE/NvInfer.h` must exist  
+- `$TENSORRT_LIB/libnvinfer.so` must exist  
+-  or you can `export FORCE_DOWNLOAD_TENSORRT=1`
+
+
+## build Env Image yourself
+
+You can build the base environment image as follows:
+
+```bash
+# GPU driver >= 550 required, cuda 12 compatible, support from 1080 Ti to 5090:
+docker build -t torchpipe:base_trt93 -f docker/DockerfileCuda12_TRT93 .
 ```
 
 
 
 
-### Rebuild the core library Omniback: No isolation
+
+## build from source
+
+
+
+### Rebuild the core library Omniback
 Omniback is usually not needed to be rebuilt.
 
- However, if you want to modify the core library or encounter any compatibility issues, you can rebuild Omniback first.
+However, if you want to modify the core library or encounter any compatibility issues, you can rebuild Omniback first.
 
 ```bash
 git clone https://github.com/torchpipe/torchpipe.git --recursive
 cd torchpipe/
 
-python -m pip install --upgrade pip 
+curl -LsSf https://astral.sh/uv/install.sh | sh && source $HOME/.local/bin/env 
 
-pip install --upgrade scikit_build_core fire ninja setuptools-scm setuptools apache-tvm-ffi 
+uv venv && source .venv/bin/activate
 
-pip install . --no-deps --no-build-isolation -v
+git tag t0.1.23a0
+
+uv pip install --upgrade scikit_build_core fire ninja setuptools-scm setuptools apache-tvm-ffi 
+
+uv pip install -e . --no-build-isolation -v
 
 cd plugins/torchpipe
 
-pip install . --no-deps --no-build-isolation -v 
+uv pip install -e . --no-build-isolation
 
 python -c "import torchpipe"
 ```
 
-## 基础环境镜像
-可如下构建基础环境镜像：
-```bash
-# 显卡驱动 >=545
-# cuda12.6 + trt10.14
-docker build -t torchpipe:base_trt1014 -f docker/DockerfileCuda12_TRT1014 .
-```
-
-### Dependency Compatibility
+## Dependency Compatibility
 
 
 | Library |  Required Version | Recommended Version | Notes |
 | :--- | :--- | :--- | :--- |
 | **TensorRT** | [`8.5`, `~10.9`] | `9.3`, `10.9` | Not all version tested |
 | **OpenCV** | `>=4` | `~=4.5.0` |  |
-| **PyTorch** | `>=1.10.2` | `~=2.7.0` |  |
+| **PyTorch** | `>=1.13` | `~=2.7.0` |  |
 | **CUDA** |   [`11`,`12`] |  |  |
 

@@ -1,8 +1,9 @@
 #include "helper/torch.hpp"
+#include "helper_cuda/torch.hpp"
 
-#include "nvjpeg_torch/DecodeTensor.hpp"
 #include <c10/cuda/CUDAStream.h>
 #include <torch/torch.h>
+#include "nvjpeg_torch/DecodeTensor.hpp"
 namespace str = om::str;
 namespace {
 [[maybe_unused]] void check_nvjpeg_result(nvjpegStatus_t _e) {
@@ -45,7 +46,6 @@ bool decode(
         int(re));
     return false;
   }
-
 
   if (nComponents != 3) {
     SPDLOG_ERROR(

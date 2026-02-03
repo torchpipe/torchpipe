@@ -43,8 +43,13 @@ OMNI_EXPORT std::vector<std::string> strict_str_split(std::string strtem, char a
 OMNI_EXPORT std::vector<std::array<std::string, 2>> multi_str_split(std::string strtem, char inner_sp, char outer);
 OMNI_EXPORT void print_check_distance(std::string strtem, const std::vector<std::string>& targets);
 
+class ClassRegistryBaseHelper{
+  protected:
+  bool try_register_from_callback(const std::string& class_name);
+};
+
 template <typename ClassName>
-class OMNI_EXPORT ClassRegistryBase {
+class OMNI_EXPORT ClassRegistryBase : public ClassRegistryBaseHelper{
  public:
   ClassRegistryBase() {
     omniback_load();
@@ -101,6 +106,15 @@ class OMNI_EXPORT ClassRegistryBase {
   }
 
   ClassName* DoCreateObject(const std::string& class_name, const std::string& aspect_name = "") {
+    bool class_registered = false;
+    {
+      std::unique_lock<std::mutex> guard(getter_map_mutex_);
+      class_registered = getter_map_.find(class_name) != getter_map_.end();
+    }
+    if (!class_registered){
+      if(!ClassRegistryBaseHelper::try_register_from_callback(class_name)) return nullptr;
+    }
+
     std::unique_lock<std::mutex> guard(getter_map_mutex_);
     typename ClassMap::const_iterator it = getter_map_.find(class_name);
 
@@ -255,6 +269,11 @@ BaseClassName* ClassRegistry_NewObject() {
   return new SubClassName();
 }
 
+template <typename BaseClassName, typename SubClassName>
+std::function<BaseClassName*(void)> ClassRegistry_NewObject_WithArg(std::string arg) {
+  return [arg](){return new SubClassName(arg);};
+}
+
 template <typename BaseClassName>
 class OMNI_EXPORT ClassRegister {
  public:
@@ -282,6 +301,15 @@ class OMNI_EXPORT ClassRegister {
 #define OMNI_REGISTER(base_class_type, class_name, ...)                    \
   static om::ClassRegister<base_class_type> class_name##RegistryTag( \
       om::ClassRegistry_NewObject<base_class_type, class_name>, #class_name, {#class_name, ##__VA_ARGS__});
+
+#define OMNI_PARTIAL_REGISTER(base_class_type, class_name, register_name, ...)                    \
+  static om::ClassRegister<base_class_type> class_name##register_name##RegistryTag( \
+      om::ClassRegistry_NewObject_WithArg<base_class_type, class_name>(#register_name), #register_name, {#register_name, ##__VA_ARGS__});
+
+#define OMNI_REGISTER_FROM_CREATOR(base_class_type, creator, register_name, ...)                    \
+  static om::ClassRegister<base_class_type> base_class_type##register_name##RegistryTag( \
+      creator, #register_name, {#register_name, ##__VA_ARGS__});
+
 
 #define OMNI_REGISTER_BACKEND(class_name, ...)                               \
   static om::ClassRegister<om::Backend> class_name##RegistryTag( \

@@ -5,3 +5,5 @@ _C.so
 torchpipe/*.so
 .venv/
 model.plan
+torchpipe_*.lock
+torchpipe_*.so

@@ -48,7 +48,7 @@ void Reflect::impl_init(
 
   default_dep =
       parse_dependency_from_param(this, config, "backend", "Identity");
-  SPDLOG_INFO("reflect default_dep = {}", default_dep);
+  SPDLOG_DEBUG("reflect default_dep = {}", default_dep);
   owned_backend_ = init_backend(default_dep, config, kwargs);
 
   OMNI_ASSERT(owned_backend_);
