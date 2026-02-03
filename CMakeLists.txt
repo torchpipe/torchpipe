@@ -158,12 +158,6 @@ function(add_omniback_library TARGET_NAME ABI_FLAG OUTPUT_NAME_SUFFIX)
             DESTINATION lib/abiflag0
             RENAME libomniback.so
         )
-
-        install(
-            FILES "$<TARGET_FILE:${TARGET_NAME}>"
-            DESTINATION lib/abiflag0
-            RENAME libomniback.so
-        )
     endif()
     
 endfunction()
