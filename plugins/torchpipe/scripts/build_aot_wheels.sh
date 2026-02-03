@@ -112,7 +112,7 @@ uv pip install omniback --upgrade --pre
 deactivate
 
 # https://pytorch.org/get-started/previous-versions/
-torch_versions=("1.13" "2.4") # => next version
+torch_versions=("1.13" "2.3" "2.4") # => next version
 for version in "${torch_versions[@]}"; do
     build_local_libs "$version" 3.11
 done

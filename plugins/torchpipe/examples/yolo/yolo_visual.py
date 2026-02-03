@@ -17,10 +17,10 @@ cpp = torch.utils.cpp_extension.load(
     name="yolo_cpp_extension",
     sources=["yolo.cpp"],
     extra_cflags=["-O3", "-Wall", "-std=c++17"],
-    extra_include_paths=[]+omniback.libinfo.include_paths(),
+    extra_include_paths=omniback.get_include_dirs(with_tvm_ffi=True),
     extra_ldflags=[f"-L{omniback.get_library_dir()}", '-lomniback'],
     verbose=True,
-    is_python_module=True,
+    is_python_module=False,
 )
 
 
@@ -65,8 +65,13 @@ def main(
     scale = io['scale']
     net_predict = io['result']
 
-    boxes = cpp.yolo11_post(
-        net_predict, conf_thres=conf_thres, iou_thres=iou_thres)
+    import tvm_ffi
+    # print(f'cpp={cpp}')
+    # yolo11_post = cpp.yolo11_post
+    import ctypes
+    lib=tvm_ffi.load_module(cpp)
+
+    boxes = lib.yolo11_post(net_predict, conf_thres, iou_thres, 100)
 
     img = cv2.imdecode(np.frombuffer(img_bytes, np.uint8), cv2.IMREAD_COLOR)
     for box in boxes:

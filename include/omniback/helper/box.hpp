@@ -3,7 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <vector>
-#include <tvm/ffi/object.h>
+
 namespace om {
 
 /**
@@ -33,16 +33,16 @@ struct Box {
   }
 };
 
-struct BoxObj : public tvm::ffi::Object {
-  Box box_;
-  BoxObj() = default;
-  BoxObj(Box box) : box_(box) {}
+// struct BoxObj : public tvm::ffi::Object {
+//   Box box_;
+//   BoxObj() = default;
+//   BoxObj(Box box) : box_(box) {}
 
-  TVM_FFI_DECLARE_OBJECT_INFO_FINAL(
-      /*type_key=*/"omniback.Box",
-      /*class=*/BoxObj,
-      /*parent_class=*/tvm::ffi::Object);
-};
+//   TVM_FFI_DECLARE_OBJECT_INFO_FINAL(
+//       /*type_key=*/"omniback.Box",
+//       /*class=*/BoxObj,
+//       /*parent_class=*/tvm::ffi::Object);
+// };
 
 /**
  * @brief Container for bounding boxes with advanced operations

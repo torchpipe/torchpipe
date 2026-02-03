@@ -2,7 +2,7 @@
 #include <stdexcept>
 #include <unordered_map>
 
-#include "omniback/builtin/box.hpp"
+#include "omniback/helper/box.hpp"
 
 namespace om {
 

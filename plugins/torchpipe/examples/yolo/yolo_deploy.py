@@ -9,21 +9,20 @@ from torch.utils import cpp_extension
 
 import torch
 
-import omniback._C
+import omniback as om
 import omniback
 import cv2
 
-print(omniback._C.Boxes)
+# print(omniback.Box)
 
 cpp = torch.utils.cpp_extension.load(
     name="yolo_cpp_extension",
     sources=["yolo.cpp"],
     extra_cflags=["-O3", "-Wall", "-std=c++17"],
-    extra_include_paths=[]+omniback.libinfo.include_paths(),
-    extra_ldflags=[f"-L{omniback.get_library_dir()}", '-lomniback',
-                   f'{os.path.join(omniback._C.__file__)}'],
+    extra_include_paths=omniback.get_include_dirs(with_tvm_ffi=True),
+    extra_ldflags=[f"-L{omniback.get_library_dir()}", '-lomniback'],
     verbose=True,
-    is_python_module=True,
+    is_python_module=False,
 )
 
 
@@ -65,6 +64,7 @@ def main(
     model(io)
     print(io.keys())
     boxes = io['result']
+    print(type(boxes), type(boxes[0]))
 
     img = cv2.imdecode(np.frombuffer(img_bytes, np.uint8), cv2.IMREAD_COLOR)
     for box in boxes:

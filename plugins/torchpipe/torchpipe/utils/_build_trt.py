@@ -101,6 +101,8 @@ def get_trt_url():
                      "https://developer.nvidia.com/downloads/compute/machine-learning/tensorrt/10.14.1/tars/TensorRT-10.14.1.48.Linux.x86_64-gnu.cuda-12.9.tar.gz"]
         if get_sm() >= 12.0:
             return cuda_urls[2]
+        elif get_sm() <= 6.1:
+            return cuda_urls[1]
     elif cuda_version == 13:
         cuda_urls = [
             "https://developer.nvidia.com/downloads/compute/machine-learning/tensorrt/10.14.1/tars/TensorRT-10.14.1.48.Linux.x86_64-gnu.cuda-13.0.tar.gz"]
@@ -159,7 +161,7 @@ def cache_trt_dir():
             logger.warning(f"\nDownloading {trt_file_name}. You may need to set LD_LIBRARY_PATH={cache_lib}:$LD_LIBRARY_PATH after installation.")
             with open(tar_path+".cache", "wb") as f:
                 with tqdm(
-                    desc=f"Downloading",
+                    desc=f"",
                     total=total_size,
                     unit='B',
                     unit_scale=True,
