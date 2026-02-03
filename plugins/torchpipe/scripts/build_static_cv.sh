@@ -17,7 +17,7 @@ mkdir -p ~/.cache/omniback/torchpipe/opencv/
 if [ ! -d "$OPENCV_SRC_DIR" ]; then
     if [ ! -f "$OPENCV_ZIP" ]; then
         curl -L -o "$OPENCV_ZIP_CACHE" "https://codeload.github.com/opencv/opencv/zip/refs/tags/${OPENCV_VERSION}"
-        cp "$OPENCV_ZIP_CACHE" "$OPENCV_ZIP" && rm -f "$OPENCV_ZIP_CACHE"
+        mv "$OPENCV_ZIP_CACHE" "$OPENCV_ZIP"
     fi
     unzip -q "$OPENCV_ZIP" -d $temp_dir 
 fi
