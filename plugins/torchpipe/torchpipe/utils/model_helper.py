@@ -143,9 +143,9 @@ def export_n3hw(model: nn.Module, onnx_path: str, input_h: int, input_w: int) ->
     # Optimize with ONNX-Simplifier
     
     if shutil.which("onnxsim"):
-        os.system(f"onnxsim {tmp_onnx_path} {tmp_onnx_path}")
+        subprocess.run(["onnxsim", tmp_onnx_path, tmp_onnx_path], check=True)
     if shutil.which("onnxslim"):
-        os.system(f"onnxslim {tmp_onnx_path} {onnx_path}")
+        subprocess.run(["onnxslim", tmp_onnx_path, onnx_path], check=True)
     else:
         raise OSError("onnxslim not found")
     if tmp_onnx_path != onnx_path:
