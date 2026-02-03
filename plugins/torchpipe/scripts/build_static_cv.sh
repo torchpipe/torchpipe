@@ -11,12 +11,13 @@ OPENCV_VERSION="4.12.0"
 OPENCV_SRC_DIR="$temp_dir/opencv-${OPENCV_VERSION}"
 OPENCV_ZIP=~/.cache/omniback/torchpipe/opencv/opencv-${OPENCV_VERSION}.zip
 OPENCV_ZIP_CACHE=~/.cache/omniback/torchpipe/opencv/opencv-${OPENCV_VERSION}.zip.cache
+mkdir -p ~/.cache/omniback/torchpipe/opencv/
 
 # ==================== 2. 下载并解压源码 ====================
 if [ ! -d "$OPENCV_SRC_DIR" ]; then
     if [ ! -f "$OPENCV_ZIP" ]; then
         curl -L -o "$OPENCV_ZIP_CACHE" "https://codeload.github.com/opencv/opencv/zip/refs/tags/${OPENCV_VERSION}"
-        cp "$OPENCV_ZIP_CACHE" "$OPENCV_ZIP" && rm "$OPENCV_ZIP_CACHE"
+        mv "$OPENCV_ZIP_CACHE" "$OPENCV_ZIP"
     fi
     unzip -q "$OPENCV_ZIP" -d $temp_dir 
 fi

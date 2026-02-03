@@ -47,11 +47,14 @@ def should_use_cxx11() -> bool:
     except (ImportError, AttributeError):
         # If PyTorch is unavailable or ABI info is missing, default to C++11
         logger.warning(
-            "Warning: PyTorch not found or ABI information unavailable. "
-            "Defaulting to C++11 ABI (libomniback.so). "
+            "Warning(libomniback.so): PyTorch not found or ABI information unavailable. "
+            "Defaulting to C++11 ABI. "
             "Set USE_CXX11_ABI=0 to use the C++03 ABI version instead."
         )
         return True
+    except Exception as e:
+        logger.error("Error(libomniback.so): Failed to determine C++ ABI setting. ")
+        raise e
 
         
 def find_libomniback() -> str:

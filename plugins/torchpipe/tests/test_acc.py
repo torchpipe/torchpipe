@@ -57,11 +57,14 @@ def get_model(toml_path):
 def test_resnet50_classification():
     """Test ResNet50 image classification"""
     # Prepare test model path
-    onnx_path = os.path.join(tempfile.gettempdir(), "pytest_resnet50.onnx")
+    p = tempfile.gettempdir()
+    onnx_path = os.path.join(p, "pytest_resnet50.onnx")
     logger.info(f'Testing with model: {onnx_path}')
+    
     
     # Initialize test utilities and model
     tester = helper.ClassifyModelTester('resnet50', onnx_path)
+    assert os.path.exists(onnx_path), f"Model not found: {onnx_path}"
     omniback_model = Torch2Trt(onnx_path, 'config/resnet50.toml')
     
     # Run test
