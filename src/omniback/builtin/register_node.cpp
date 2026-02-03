@@ -68,7 +68,7 @@ class InstancesRegister : public Backend {
     iter = config.find("instance_num");
     size_t instance_num{1};
     if (iter == config.end()) {
-      SPDLOG_IDEBUG("{}::init, instance_num not found, using default: 1", *name);
+      SPDLOG_DEBUG("{}::init, instance_num not found, using default: 1", *name);
     } else {
       auto [ptr, ec] = std::from_chars(
           iter->second.data(),
