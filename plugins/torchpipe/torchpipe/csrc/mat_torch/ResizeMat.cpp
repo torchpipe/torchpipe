@@ -1,8 +1,11 @@
+#include "omniback/ffi/stl.h"
+
 #include "mat_torch/ResizeMat.hpp"
 
 #include "helper/mat.hpp"
 #include "omniback/helper/string.hpp"
 #include "opencv2/imgproc.hpp"
+
 namespace torchpipe {
 
 void ResizeMat::impl_init(

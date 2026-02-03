@@ -183,7 +183,7 @@ def find_python_helper_include_path() -> str:
     raise RuntimeError("Cannot find python helper include path.")
 
 
-def include_paths(with_tvm_ffi=False) -> list[str]:
+def include_paths(with_tvm_ffi=True) -> list[str]:
     """Find all include paths needed."""
     base_paths = find_include_paths()  # 这是您需要实现的新函数
 

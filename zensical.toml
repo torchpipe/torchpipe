@@ -35,6 +35,7 @@ nav = [
         "usage/links.md",
     ]},
     {"Examples" = [
+        {"YOLO example"="https://github.com/torchpipe/torchpipe/tree/main/plugins/torchpipe/examples/yolo/"},
         {"TIMM example"="https://github.com/torchpipe/torchpipe/tree/main/plugins/torchpipe/examples/timm_model/"},
         {"CV-CUDA Python"="https://github.com/torchpipe/torchpipe/tree/main/plugins/torchpipe/examples/cvcuda-python/"}
     ]}

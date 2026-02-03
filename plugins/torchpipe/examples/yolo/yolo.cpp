@@ -1,39 +1,42 @@
 #include "omniback/core/any.hpp"
 #include "omniback/core/backend.hpp"
 #include "omniback/core/reflect.h"
+#include "omniback/ffi/box.hpp"
+#include "omniback/addons/torch/type_traits.h"
 
-#include <torch/extension.h>
+// #include <torch/extension.h>
 #include <torch/torch.h>
 
 #include <tvm/ffi/function.h>
-#include "torchpipe/csrc/helper/torch.hpp"
+// #include "torchpipe/csrc/helper/torch.hpp"
 
 using om::Box;
 using om::Boxes;
 
 using om::dict;
 
-namespace {
-dict box2dict(Box box) {
-  dict data = std::make_shared<std::unordered_map<std::string, om::any>>();
-  data->insert_or_assign("id", box.id);
-  data->insert_or_assign("score", box.score);
-  data->insert_or_assign("x1", box.x1);
-  data->insert_or_assign("y1", box.y1);
-  data->insert_or_assign("x2", box.x2);
-  data->insert_or_assign("y2", box.y2);
-  return data;
-}
+// namespace {
 
-std::vector<dict> boxes2dicts(std::vector<Box> boxes) {
-  std::vector<dict> result;
-  result.reserve(boxes.size()); // 预分配内存提升性能
-  for (const auto& box : boxes) {
-    result.push_back(box2dict(box));
-  }
-  return result;
-}
-}
+// dict box2dict(Box box) {
+//   dict data = std::make_shared<std::unordered_map<std::string, om::any>>();
+//   data->insert_or_assign("id", box.id);
+//   data->insert_or_assign("score", box.score);
+//   data->insert_or_assign("x1", box.x1);
+//   data->insert_or_assign("y1", box.y1);
+//   data->insert_or_assign("x2", box.x2);
+//   data->insert_or_assign("y2", box.y2);
+//   return data;
+// }
+
+// std::vector<dict> boxes2dicts(std::vector<Box> boxes) {
+//   std::vector<dict> result;
+//   result.reserve(boxes.size()); // 预分配内存提升性能
+//   for (const auto& box : boxes) {
+//     result.push_back(box2dict(box));
+//   }
+//   return result;
+// }
+// }
 
 float iou(const Box& a, const Box& b) {
   const float inter_x1 = std::max(a.x1, b.x1);
@@ -105,11 +108,11 @@ om::Boxes nms(
 
   return result;
 }
-dict yolo11_post_cpp(
-    torch::Tensor& prediction,
+std::vector<Box> yolo11_post_cpp(
+    torch::Tensor prediction,
     float conf_thres,
     float iou_thres,
-    int max_det) {
+    size_t max_det) {
   TORCH_CHECK(
       prediction.dim() == 3, "预测张量必须是3维 [batch, features, num_boxes]");
   TORCH_CHECK(prediction.size(0) == 1, "仅支持批大小为1");
@@ -143,17 +146,8 @@ dict yolo11_post_cpp(
   if (re_boxes.boxes.size() > max_det)
     re_boxes.boxes.resize(max_det); // sorted
 
-  return boxes2dicts(re_boxes.boxes);
+  return re_boxes.boxes;
 }
-
-dict yolo11_post(
-    torch::Tensor& prediction,
-    float conf_thres,
-    float iou_thres,
-    int max_det) {
-  // 检查输入张量维度
-  return yolo11_post_cpp(prediction, conf_thres, iou_thres, max_det);
-  }
 
 namespace om {
 class Yolo11Post : public om::BackendOne {
@@ -167,7 +161,7 @@ class Yolo11Post : public om::BackendOne {
     std::pair<int, int> offset =
         any_cast<std::pair<int, int>>(io->at("offset"));
     float scale = any_cast<float>(io->at("scale"));
-    for (auto& box : result.boxes) {
+    for (auto& box : result) {
       box.x1 = (box.x1 - offset.first) / scale;
       box.y1 = (box.y1 - offset.second) / scale;
       box.x2 = (box.x2 - offset.first) / scale;
@@ -190,4 +184,4 @@ OMNI_REGISTER(om::Backend, Yolo11Post);
 //       pybind11::arg("max_det") = 300); // 默认值 300
 // }
 
-TVM_FFI_DLL_EXPORT_TYPED_FUNC(yolo11_post, yolo11_post)
+TVM_FFI_DLL_EXPORT_TYPED_FUNC(yolo11_post, yolo11_post_cpp)

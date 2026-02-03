@@ -39,10 +39,10 @@ class StdAnyObj : public tvm::ffi::Object {
   explicit StdAnyObj(T&& input_data)
       : to_tvm_ffi_any_func(
             [input_data]() { return tvm::ffi::Any(input_data); }),
-        data(input_data) {
-        }
+        data(input_data){}
 
-  const std::type_info& type() const noexcept{
+            const std::type_info
+            & type() const noexcept {
     return data.type();
   }
 

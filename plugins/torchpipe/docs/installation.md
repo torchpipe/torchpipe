@@ -4,7 +4,7 @@
 ## Quick Installation (PyPI)
 
 ```bash
-img_name=nvcr.io/nvidia/pytorch:25.05-py3  # alternatives: 24.05, 23.05, 25.06, 24.04(for 1080)
+img_name=nvcr.io/nvidia/pytorch:25.05-py3  # alternatives: 24.05, 23.05, 25.06, 24.03(for 1080, cudnn8)
 
 docker run --rm --gpus all -it --network host \
     -v $(pwd):/pwd/ --ipc=host --ulimit memlock=-1 --ulimit stack=67108864 \
@@ -54,9 +54,11 @@ curl -LsSf https://astral.sh/uv/install.sh | sh && source $HOME/.local/bin/env
 
 uv venv && source .venv/bin/activate
 
-git tag t0.1.23a1
+
 
 uv pip install --upgrade scikit_build_core fire ninja setuptools-scm setuptools apache-tvm-ffi 
+
+export SETUPTOOLS_SCM_PRETEND_VERSION="0.1.23"
 
 uv pip install -e . --no-build-isolation -v
 

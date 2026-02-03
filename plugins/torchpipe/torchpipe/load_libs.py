@@ -16,12 +16,13 @@ logger = logging.getLogger(__name__)  # type: ignore
 csrc_dir = os.path.dirname(__file__)
 current_dir = os.path.join(os.path.dirname(__file__))
 
-def load_whl_lib(path_of_cache):
+def load_whl_lib(path_of_cache, symbol_global=True):
     p = os.path.join(os.path.dirname(__file__), 'lib',
                      os.path.basename(path_of_cache))
     # print(f"load_whl_lib: {p}")
     if os.path.exists(p):
-        ctypes.CDLL(p, mode=ctypes.RTLD_GLOBAL)
+        mode = ctypes.RTLD_GLOBAL if symbol_global else ctypes.RTLD_LOCAL
+        ctypes.CDLL(p, mode=mode)
         logger.info(f'Successfully loaded precompiled {p} from the installed package')
         return True
     return False
@@ -213,7 +214,7 @@ def _load_lib(name):
         torchpipe_opencv = build_lib.get_cache_lib(
             "torchpipe_opencv", "", True)
 
-        if load_whl_lib(torchpipe_opencv):
+        if load_whl_lib(torchpipe_opencv, symbol_global=False):
             return True
         if os.path.exists(torchpipe_opencv):
             try:
