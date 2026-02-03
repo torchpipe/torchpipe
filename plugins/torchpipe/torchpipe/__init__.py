@@ -42,7 +42,7 @@ if SKIP_ALL != "1":
             _load_or_build_lib("torchpipe_core_cuda")
     except Exception as e:
         logger.warning(f'Failed to load or JIT compile builtin extensions: \n{e}')
-        SKIP_ALL == "1"
+        SKIP_ALL = "1"
     else:
         SKIP_TENSORRT=os.environ.get("TORCHPIPE_SKIP_TENSORRT", "0")
                 
