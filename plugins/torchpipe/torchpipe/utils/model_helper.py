@@ -3,7 +3,7 @@ from __future__ import annotations
 # Model_helper.py
 from collections import defaultdict
 import importlib
-import os
+import os, shutil
 import subprocess
 import urllib.request
 from io import BytesIO
@@ -141,9 +141,15 @@ def export_n3hw(model: nn.Module, onnx_path: str, input_h: int, input_w: int) ->
     )
 
     # Optimize with ONNX-Simplifier
-    os.system(f"onnxsim {tmp_onnx_path} {onnx_path}")
-    os.system(f'onnxslim {tmp_onnx_path} {tmp_onnx_path}')
-    os.remove(tmp_onnx_path)
+    
+    if shutil.which("onnxsim"):
+        os.system(f"onnxsim {tmp_onnx_path} {tmp_onnx_path}")
+    if shutil.which("onnxslim"):
+        os.system(f"onnxslim {tmp_onnx_path} {onnx_path}")
+    else:
+        raise OSError("onnxslim not found")
+    if tmp_onnx_path != onnx_path:
+        os.remove(tmp_onnx_path)
 
     print(f"Optimized ONNX model saved to: {onnx_path}")
     return onnx_path

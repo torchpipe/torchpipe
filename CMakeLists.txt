@@ -148,7 +148,17 @@ function(add_omniback_library TARGET_NAME ABI_FLAG OUTPUT_NAME_SUFFIX)
     if(${ABI_FLAG})
         install(TARGETS ${TARGET_NAME} DESTINATION lib/abiflag1)
     else()
-        # install(TARGETS ${TARGET_NAME} DESTINATION lib/abiflag0)
+        add_custom_command(
+                TARGET ${TARGET_NAME} POST_BUILD
+                COMMAND patchelf --set-soname libomniback.so $<TARGET_FILE:${TARGET_NAME}>
+                COMMENT "Patching SONAME to libomniback.so"
+        )
+        install(
+            FILES "$<TARGET_FILE:${TARGET_NAME}>"
+            DESTINATION lib/abiflag0
+            RENAME libomniback.so
+        )
+
         install(
             FILES "$<TARGET_FILE:${TARGET_NAME}>"
             DESTINATION lib/abiflag0

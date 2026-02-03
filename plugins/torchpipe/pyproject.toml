@@ -1,12 +1,12 @@
 [project]
 name = "torchpipe"
-version = "0.1.23a0"
+version = "0.1.23a1"
 
 requires-python = ">=3.8"
 description = "Serving inside Pytorch"
 dependencies = [
     "torch",
-    "omniback>=0.1.23a0,<0.1.23a6",
+    "omniback>=0.1.23a1,<0.1.23a6",
     "setuptools",
     "packaging",
     "tqdm",
@@ -42,7 +42,8 @@ test = [
     "onnxslim",
     "pytest",  
     'pillow',
-    "tabulate",        
+    "tabulate",     
+    'onnxslim',
 ]
 
 [tool.setuptools]

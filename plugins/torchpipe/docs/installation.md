@@ -54,7 +54,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh && source $HOME/.local/bin/env
 
 uv venv && source .venv/bin/activate
 
-git tag t0.1.23a0
+git tag t0.1.23a1
 
 uv pip install --upgrade scikit_build_core fire ninja setuptools-scm setuptools apache-tvm-ffi 
 

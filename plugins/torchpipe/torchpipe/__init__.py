@@ -53,7 +53,7 @@ if SKIP_ALL != "1":
 
             _load_or_build_lib_skip_if_error("torchpipe_nvjpeg")
         else:
-            logger.warning("CUDA is not available, skip loading CUDA extensions.")
+            logger.warning("[JIT] CUDA is not available, skip loading CUDA extensions.")
 
         SKIP_OPENCV=os.environ.get("TORCHPIPE_SKIP_OPENCV", "0")
         if SKIP_OPENCV != "1":

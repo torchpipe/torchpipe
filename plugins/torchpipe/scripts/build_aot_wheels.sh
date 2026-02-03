@@ -18,8 +18,7 @@
 # shellcheck disable=SC1090,1091
 set -eux
 
-arch=$1
-
+arch=${1:-x86_64}
 
 os=$(uname -s)
 
@@ -32,8 +31,10 @@ case "$os" in
         ;;
 esac
 
-export UV_VENV_CLEAR=1
+# export UV_VENV_CLEAR=1
 export TVM_FFI_DISABLE_TORCH_C_DLPACK=1
+export UV_INDEX_URL="https://mirrors.aliyun.com/pypi/simple/"
+pkill uv || true
 
 omniback="$PWD"/
 torchpipe="$omniback"/plugins/torchpipe
@@ -67,12 +68,12 @@ function build_local_libs() {
     # else
     #     uv pip install torch=="$torch_version"
     # fi
-    uv pip install torch==$torch_version # -i  http://mirrors.aliyun.com/pypi/simple/
+    uv pip install torch==$torch_version --index-url https://download.pytorch.org/whl/cpu # -i  http://mirrors.aliyun.com/pypi/simple/
     
     abiflag=$(python -c "import torch; print(int(torch.compiled_with_cxx11_abi()))")
     if [[ "$os" == "Linux" ]]; then
         python -m omniback.utils.build_lib --output-dir "$torchpipe"/torchpipe/lib/ --source-dirs "$csrc"/torchplugins/ "$csrc"/helper/ --include-dirs="$csrc"/ --name torchpipe_core
-        python -m omniback.utils.build_lib --output-dir "$torchpipe"/torchpipe/lib/ --source-dirs "$csrc"/core_cuda/ "$csrc"/helper_cuda/ --include-dirs="$csrc"/ --build-with-cuda --name torchpipe_core_cuda
+        # python -m omniback.utils.build_lib --output-dir "$torchpipe"/torchpipe/lib/ --source-dirs "$csrc"/core_cuda/ "$csrc"/helper_cuda/ --include-dirs="$csrc"/ --build-with-cuda --name torchpipe_core_cuda
 
         for abiflag in 1 0; do
             # opencv_install=/opencv_install/abiflag$abiflag/
@@ -96,11 +97,18 @@ mkdir -p "$torchpipe"/lib
 
 
 rm -rf build
+# rm -rf "$omniback"/.venv/py3.11
 
-uv venv "$omniback"/.venv/py3.11 --python 3.11
+
+if [ ! -d "$omniback"/.venv/py3.11 ]; then
+    uv venv "$omniback"/.venv/py3.11 --python 3.11
+fi
+
+# echo $UV_AUDIT
+
 source "$omniback"/.venv/py3.11/bin/activate
-uv pip install setuptools ninja fire
-uv pip install omniback --upgrade
+uv pip install setuptools ninja fire -v
+uv pip install omniback --upgrade --pre
 deactivate
 
 # https://pytorch.org/get-started/previous-versions/
@@ -129,6 +137,7 @@ uv cache clean
 source "$omniback"/.venv/py3.11/bin/activate
 uv pip install build wheel scikit_build_core setuptools-scm
 cd "$torchpipe"
+rm -rf wheelhouse/
 mkdir -p wheelhouse/
 rm -rf dist/
 python -m build -w --no-isolation
@@ -138,7 +147,7 @@ if [[ "$os" == "Linux" ]]; then
     uv pip install auditwheel
     ls dist/*.whl
     # cp dist/*.whl wheelhouse/
-    auditwheel repair --exclude libomniback.so --exclude libtvm_ffi.so \
+    auditwheel repair --exclude libomniback.so --exclude libomniback_cxx03.so --exclude libtvm_ffi.so \
         --exclude libtorch.so --exclude libtorch_cpu.so --exclude libc10.so --exclude libtorch_python.so --exclude libtorch_cuda.so --exclude libc10_cuda.so dist/*.whl -w wheelhouse
 else
     # python -m wheel tags dist/*.whl --python-tag="$python_version" --abi-tag="$python_version" --platform-tag=macosx_11_0_arm64 --remove
