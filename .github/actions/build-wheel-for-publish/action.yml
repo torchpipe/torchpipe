@@ -94,5 +94,5 @@ runs:
       if: ${{ inputs.build_sdist == 'true' }}
       shell: bash
       run: |
-        pipx run build --sdist --outdir dist .
-        pipx run twine check dist/*
+        uv tool run --from build pyproject-build --sdist --outdir dist .
+        uv tool run --from twine twine check dist/*
