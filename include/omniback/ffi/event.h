@@ -226,33 +226,34 @@ class EventObj : public tf::Object {
   }
 
   void try_callback() {
-    bool should_try = false;
     std::vector<std::function<void(std::exception_ptr)>> excep_cb;
+    std::vector<std::function<void()>> cbs;
+    std::vector<std::function<void()>> latest_cbs;
     std::exception_ptr captured_eptr;
     {
       std::lock_guard<std::mutex> lk(mut);
-      should_try = (ref_count >= num_task);
+      if (ref_count < num_task) return;
       std::swap(excep_cb, exception_callbacks_);
+      std::swap(cbs, callbacks_);
+      std::swap(latest_cbs, latest_callbacks_);
       if (eptr_ && !excep_cb.empty()) {
         std::swap(captured_eptr, eptr_);
       }
     }
 
-    if (should_try) {
-      if (captured_eptr && !excep_cb.empty()) {
-        while (!excep_cb.empty()) {
-          excep_cb.back()(captured_eptr);
-          excep_cb.pop_back();
-        }
+    if (captured_eptr) {
+      while (!excep_cb.empty()) {
+        excep_cb.back()(captured_eptr);
+        excep_cb.pop_back();
       }
-      while (!callbacks_.empty()) {
-        callbacks_.back()();
-        callbacks_.pop_back();
-      }
-      while (!latest_callbacks_.empty()) {
-        latest_callbacks_.back()();
-        latest_callbacks_.pop_back();
-      }
+    }
+    while (!cbs.empty()) {
+      cbs.back()();
+      cbs.pop_back();
+    }
+    while (!latest_cbs.empty()) {
+      latest_cbs.back()();
+      latest_cbs.pop_back();
     }
   }
 
