@@ -58,31 +58,6 @@ void Loop::impl_forward_sync(const std::vector<dict>& ios) {
   // SPDLOG_INFO("impl_forward_sync start");
   injected_dependency_->forward(ios);
   // SPDLOG_INFO("impl_forward_sync end");
-  return;
-  std::vector<Event> events;
-  for (const auto& item : ios) {
-    auto iter = item->find(TASK_EVENT_KEY);
-    events.push_back(any_cast<Event>(iter->second));
-    item->erase(iter);
-    item->erase(TASK_RESULT_KEY);
-  }
-  try {
-    injected_dependency_->forward(ios);
-  } catch (...) {
-    for (std::size_t i = 0; i < ios.size(); ++i) {
-      (*ios[i])[TASK_EVENT_KEY] = events[i];
-      ios[i]->erase(TASK_RESULT_KEY);
-    }
-    for (const auto& ev : events) {
-      ev->set_exception_and_notify_all(std::current_exception());
-    }
-  }
-  for (std::size_t i = 0; i < ios.size(); ++i) {
-    (*ios[i])[TASK_EVENT_KEY] = events[i];
-  }
-  for (const auto& ev : events) {
-    ev->notify_all();
-  }
 }
 
 void Loop::run() {
@@ -132,7 +107,9 @@ void Loop::run() {
       if (input_data_size + new_pop >= max_) {
         continue; // go to another branch
       }
-      impl_forward_sync(input_data);
+      if (!input_data.empty()) {
+        impl_forward_sync(input_data);
+      }
     } else {
       if (input_data_size == 0) {
         input_data_size += src_queue_->front_size();
@@ -175,16 +152,16 @@ void Loop::impl_forward(const std::vector<dict>& ios) {
 OMNI_REGISTER_BACKEND(Loop);
 
 void Batching::impl_init(
-    const std::unordered_map<string, string>& config,
-    const dict& kwargs) {
-  str::try_update(config, "batching_timeout", batching_timeout_);
-  str::try_update(config, "node_name", node_name_);
+    const std::unordered_map<string, string>& params,
+    const dict& options) {
+  str::try_update(params, "batching_timeout", batching_timeout_);
+  str::try_update(params, "node_name", node_name_);
 
   OMNI_ASSERT((batching_timeout_ >= 0 || batching_timeout_ == -1));
 
-  OMNI_ASSERT(kwargs);
+  OMNI_ASSERT(options);
   instances_state_ = dict_get<std::shared_ptr<InstancesState>>(
-      kwargs, TASK_RESOURCE_STATE_KEY);
+      options, TASK_RESOURCE_STATE_KEY);
   OMNI_ASSERT(instances_state_);
 }
 
@@ -228,7 +205,8 @@ void Batching::impl_forward_with_dep(
 }
 
 void Batching::run(size_t max_bs) {
-  while (bInited_.load() && !input_queue_.wait_for(batching_timeout_)) {
+  int wait_time = batching_timeout_ > 0 ? batching_timeout_ : SHUTDOWN_TIMEOUT;
+  while (bInited_.load() && !input_queue_.wait_for(wait_time)) {
   };
   // const size_t max_bs = max();
   SPDLOG_INFO(
@@ -270,12 +248,21 @@ void Batching::run(size_t max_bs) {
           new_pop,
           cached_size,
           helper::timestamp());
-      if (!try_forward(cached_data, new_pop + cached_size, 1)) {
-        instances_state_->wait_for(new_pop + cached_size, SHUTDOWN_TIMEOUT);
-        continue;
+      if (new_pop + cached_size > 0) {
+        if (!try_forward(cached_data, new_pop + cached_size, 1)) {
+          // Check shutdown flag before waiting to avoid deadlock
+          if (!bInited_.load()) {
+            break;
+          }
+          instances_state_->wait_for(new_pop + cached_size, SHUTDOWN_TIMEOUT);
+          continue;
+        } else {
+          already_batching_timout = false;
+          cached_data.clear();
+        }
       } else {
         already_batching_timout = false;
-        cached_data.clear();
+        // cached_data is already empty
       }
     } else if (
         cached_size == 1 && instances_state_->running_intance_count() == 0) {
@@ -300,16 +287,16 @@ void Batching::run(size_t max_bs) {
 }
 
 void InstanceDispatcher::impl_init(
-    const std::unordered_map<string, string>& config,
-    const dict& kwargs) {
+    const std::unordered_map<string, string>& params,
+    const dict& options) {
   instances_state_ = dict_get<std::shared_ptr<InstancesState>>(
-      kwargs, TASK_RESOURCE_STATE_KEY);
-  auto iter = config.find("node_name");
-  OMNI_ASSERT(iter != config.end(), "node_name not found");
+      options, TASK_RESOURCE_STATE_KEY);
+  auto iter = params.find("node_name");
+  OMNI_ASSERT(iter != params.end(), "node_name not found");
   std::string node_name = iter->second;
 
   size_t instance_num{1};
-  str::try_update(config, "instance_num", instance_num);
+  str::try_update(params, "instance_num", instance_num);
 
   for (size_t i = 0; i < instance_num; ++i) {
     base_dependencies_.push_back(
@@ -338,22 +325,22 @@ void InstanceDispatcher::impl_forward(const std::vector<dict>& ios) {
       helper::none_or_all_has_key_and_unempty(ios, TASK_EVENT_KEY),
       std::to_string(ios.size()));
   const size_t req_size = get_request_size(ios);
-  //
-  std::string node_name = dict_get<std::string>(ios[0], "node_name", true);
+  
+  // Cache base_dependencies_.size() to avoid repeated calls
+  const size_t num_deps = base_dependencies_.size();
+  if (num_deps == 0) {
+    throw std::runtime_error("InstanceDispatcher: no dependencies available");
+  }
 
   std::optional<uint32_t> index;
+  std::string node_name = dict_get<std::string>(ios[0], "node_name", true);
   do {
     index = instances_state_->query_available(req_size, 100, true, node_name);
   } while (!index);
 
-  uint32_t valid_index{*index};
-  // SPDLOG_INFO(
-  //     "InstanceDispatcher, num deps = {}, req_size = {}, ios = {}",
-  //     base_dependencies_.size(),
-  //     req_size,
-  //     ios.size());
+  const uint32_t valid_index{*index};
 
-  OMNI_FATAL_ASSERT(valid_index < base_dependencies_.size());
+  OMNI_FATAL_ASSERT(valid_index < num_deps);
 
   Event event;
   auto iter = ios.back()->find(TASK_EVENT_KEY);
@@ -376,20 +363,20 @@ void InstanceDispatcher::impl_forward(const std::vector<dict>& ios) {
 }
 
 void BackgroundThread::impl_init(
-    const std::unordered_map<string, string>& config,
-    const dict& kwargs) {
-  const auto dependency_name = get_dependency_name_force(this, config);
+    const std::unordered_map<string, string>& params,
+    const dict& options) {
+  const auto dependency_name = get_dependency_name_force(this, params);
 
   dependency_ = std::unique_ptr<Backend>(OMNI_CREATE(Backend, dependency_name));
   OMNI_ASSERT(dependency_);
-  auto iter = config.find("priority");
-  if (iter != config.end()) {
+  auto iter = params.find("priority");
+  if (iter != params.end()) {
     priority_ = std::stoi(iter->second);
     SPDLOG_INFO("priority = {}", priority_);
   }
 
-  init_task_ = [this, config, kwargs]() {
-    dependency_->init(config, kwargs);
+  init_task_ = [this, params, options]() {
+    dependency_->init(params, options);
     OMNI_ASSERT(
         dependency_->min() >= 1 && dependency_->min() <= dependency_->max(),
         std::to_string(dependency_->min()) + " " +
@@ -399,12 +386,12 @@ void BackgroundThread::impl_init(
   };
 
   thread_ = std::thread(&BackgroundThread::run, this);
-  while (!bInited_.load() && (!bStoped_.load())) {
+  while (!bInited_.load() && (!bStopped_.load())) {
     std::this_thread::yield();
   }
   if (init_eptr_)
     std::rethrow_exception(init_eptr_);
-  OMNI_ASSERT(bInited_.load() && (!bStoped_.load()));
+  OMNI_ASSERT(bInited_.load() && (!bStopped_.load()));
   SPDLOG_INFO(
       "BackgroundThread inited: {}[{}, {}]",
       dependency_name,
@@ -504,7 +491,7 @@ void BackgroundThread::run() {
       events[i]->notify_all();
     }
   }
-  bStoped_.store(true);
+  bStopped_.store(true);
 }
 
 OMNI_REGISTER(Backend, BackgroundThread, "BackgroundThread");
@@ -515,11 +502,11 @@ OMNI_REGISTER(Backend, Batching);
 class SharedInstancesState : public Backend {
  private:
   void impl_init(
-      const std::unordered_map<std::string, std::string>& config,
-      const dict& kwargs) override final {
-    OMNI_ASSERT(kwargs, "kwargs is empty");
+      const std::unordered_map<std::string, std::string>& params,
+      const dict& options) override final {
+    OMNI_ASSERT(options, "options is empty");
     auto res = std::make_shared<InstancesState>();
-    (*kwargs)[TASK_RESOURCE_STATE_KEY] = res;
+    (*options)[TASK_RESOURCE_STATE_KEY] = res;
   }
 };
 

@@ -13,7 +13,7 @@ try:
     for dtype in missing_dtypes:
         if not hasattr(torch, dtype):
             setattr(torch, dtype, None)
-except:
+except ImportError:
     pass
 
 try:
@@ -23,16 +23,15 @@ try:
     if version.parse(torch.__version__) < version.parse("2.4.0"):
         # skip compilation step of tvm_ffi: https://github.com/apache/tvm-ffi/issues/381
         os.environ["TVM_FFI_DISABLE_TORCH_C_DLPACK"] = "1"
-except:
+except ImportError:
     pass
 
 # isort: off
 import tvm_ffi
 from . import utils
-from .parser import parse, init_from_file, pipe
+from .parser import parse, parse_group, init_from_file, pipe
 from . import libinfo
 from . import _ffi_api as ffi
-from . import _ffi_api as _C
 
 from ._ffi_api import libomniback
 
@@ -59,33 +58,65 @@ def init(name, params={}, options=None, register_name=None):
     return ffi.init(name, params, options, register_name)
 
 
+import logging
+logger = logging.getLogger(__name__)
+
 def register(name, object_or_type):
     import inspect
 
-    if isinstance(object_or_type, type):
-        ins_type = object_or_type
+    if not isinstance(name, str):
+        raise TypeError(f"Registration name must be a string, got {type(name).__name__}")
+    
+    if not name:
+        raise ValueError("Registration name cannot be empty")
 
-        init_signature = inspect.signature(ins_type.__init__)
-        params = list(init_signature.parameters.values())
+    try:
+        if isinstance(object_or_type, type):
+            ins_type = object_or_type
 
-        for param in params[1:]:
-            if param.kind in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD):
-                continue
-            if param.default is inspect.Parameter.empty:
-                raise TypeError(
-                    f"Class '{ins_type.__name__}' cannot be default-constructed: "
-                    f"parameter '{param.name}' has no default value"
-                )
+            if not hasattr(ins_type, "__init__"):
+                raise TypeError(f"Class '{ins_type.__name__}' has no __init__ method")
 
-        def creator_or_instance(): return ins_type()
-    else:
-        ins_type = type(object_or_type)
-        creator_or_instance = object_or_type
-    init_func = getattr(ins_type, "init", None)
-    forward_func = getattr(ins_type, "forward", None)
-    max_func = getattr(ins_type, "max", None)
-    min_func = getattr(ins_type, "min", None)
-    return ffi.register(name, creator_or_instance, init_func, forward_func, max_func, min_func)
+            init_signature = inspect.signature(ins_type.__init__)
+            params = list(init_signature.parameters.values())
+
+            for param in params[1:]:
+                if param.kind in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD):
+                    continue
+                if param.default is inspect.Parameter.empty:
+                    error_msg = (
+                        f"Class '{ins_type.__name__}' cannot be default-constructed: "
+                        f"parameter '{param.name}' has no default value. "
+                        f"Please ensure all __init__ parameters have default values "
+                        f"or provide a factory function directly."
+                    )
+                    logger.error(error_msg)
+                    raise TypeError(error_msg)
+
+            def create_instance():
+                return ins_type()
+        else:
+            ins_type = type(object_or_type)
+            create_instance = object_or_type
+
+        init_func = getattr(ins_type, "init", None)
+        forward_func = getattr(ins_type, "forward", None)
+        max_func = getattr(ins_type, "max", None)
+        min_func = getattr(ins_type, "min", None)
+        
+        if forward_func is None:
+            logger.warning(
+                "Registering backend '%s' without a 'forward' method. "
+                "This backend may not function correctly.",
+                name
+            )
+        
+        logger.debug("Registering backend '%s' with type '%s'", name, ins_type.__name__)
+        
+        return ffi.register(name, create_instance, init_func, forward_func, max_func, min_func)
+    except Exception as e:
+        logger.error("Failed to register backend '%s': %s", name, e, exc_info=True)
+        raise
 
 
 assert atexit.register(ffi.cleanup)
@@ -122,12 +153,11 @@ def extra_ldflags():
     return [f"-L{get_library_dir()}", '-lomniback'],
 
 
-__all__ = ["Any", "Dict", 'Backend', 'Event', 'create', 'create', 'register', 'parse',
-           'init', 'get',  "timestamp", "pipe", 'init', 'load_kwargs', "_C"]
-
-__all__.extend(['Queue', 'default_queue'])
-
-__all__.extend(['print', 'utils', 'libinfo', 'ffi'])
-
-__all__.extend(['print', 'utils', 'libinfo', 'ffi',
-               'extra_include_paths', 'extra_ldflags'])
+__all__ = [
+    "Any", "Dict", "Backend", "Event", "Queue",
+    "create", "register", "parse", "parse_group", "init", "get",
+    "pipe", "default_queue", "default_page_table",
+    "compiled_with_cxx11_abi",
+    "extra_include_paths", "extra_ldflags",
+    "utils", "libinfo", "ffi"
+]

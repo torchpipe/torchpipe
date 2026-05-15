@@ -62,8 +62,6 @@ def test_ioc_phase_initialization():
         ioc.init(config, omniback.Dict())
     # ioc.init(config, omniback.Dict())
 
- 
-    
-    
+
 if __name__ == "__main__":
     test_ioc_phase_initialization()

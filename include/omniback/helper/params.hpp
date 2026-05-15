@@ -34,10 +34,10 @@ class Params {
   Params() = default;
 
   Params(
-      std::unordered_map<std::string, std::string> init_optional_params,
-      std::set<std::string> init_required_params = {})
-      : init_optional_params_(std::move(init_optional_params)),
-        init_required_params_(std::move(init_required_params)) {}
+      const std::unordered_map<std::string, std::string>& init_optional_params,
+      const std::set<std::string>& init_required_params = {})
+      : init_optional_params_(init_optional_params),
+        init_required_params_(init_required_params) {}
 
   /**
    * @brief Initialization function. It mainly:

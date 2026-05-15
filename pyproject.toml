@@ -15,7 +15,8 @@
 [project]
 name = "omniback"
 dynamic = ["version"]
-
+description = "A flexible and efficient inference framework"
+authors = [{ name = "TorchPipe Team" }]
 readme = "README.md"
 license = { text = "Apache 2.0" }
 classifiers = [
@@ -24,11 +25,34 @@ classifiers = [
   "Intended Audience :: Developers",
   "Intended Audience :: Education",
   "Intended Audience :: Science/Research",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Programming Language :: Python :: Free Threading :: 2",
 ]
 keywords = ["machine learning", "inference"]
 requires-python = ">=3.8"
 
-dependencies = ["apache-tvm-ffi==0.1.8.post2", "fire", "tomli>=1.2.3; python_version < '3.11'", 'ninja']
+dependencies = [
+    "apache-tvm-ffi==0.1.11",
+    "fire",
+    "tomli>=1.2.3; python_version < '3.11'",
+    "ninja",
+]
+
+[project.scripts]
+omniback = "omniback.commands:main"
+
+[project.urls]
+Homepage = "https://github.com/torchpipe/torchpipe"
+Documentation = "https://torchpipe.github.io/torchpipe/"
+Repository = "https://github.com/torchpipe/torchpipe.git"
+"Bug Tracker" = "https://github.com/torchpipe/torchpipe/issues"
 
 [build-system]
 requires = ["scikit-build-core>=0.11.0", "apache-tvm-ffi","setuptools-scm", "packaging>=25.0", 'ninja', 'cmake', 'patchelf']
@@ -58,11 +82,10 @@ build.verbose = true
 
 # CMake configuration
 cmake.version = "CMakeLists.txt"
-cmake.build-type = "RelWithDebugInfo"
-cmake.define.USE_CXX11_ABI = { env = "USE_CXX11_ABI" }  # 读取环境变量
-cmake.define.BUILD_BOTH_ABIS = { env = "BUILD_BOTH_ABIS" }  # 读取环境变量
-
-cmake.define.SKIP_CMAKE = { env = "SKIP_CMAKE" }  # 读取环境变量
+cmake.build-type = "RelWithDebInfo"
+cmake.define.USE_CXX11_ABI = { env = "USE_CXX11_ABI" }
+cmake.define.BUILD_BOTH_ABIS = { env = "BUILD_BOTH_ABIS" }
+cmake.define.SKIP_CMAKE = { env = "SKIP_CMAKE" }
 
 cmake.define.CMAKE_BUILD_PARALLEL_LEVEL = { env = "CMAKE_BUILD_PARALLEL_LEVEL" }
 

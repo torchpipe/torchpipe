@@ -35,8 +35,8 @@ torch::Tensor libtorch_copy_make_border(
     int left,
     int right) {
   if (input.sizes().size() >= 2) { //..hw
-    // 使用 torch::nn::functional::pad 进行边界填充
-    // 注意：PyTorch 的 pad 参数顺序是 {left, right, top, bottom}
+    // Use torch::nn::functional::pad for border padding
+    // Note: PyTorch pad parameter order is {left, right, top, bottom}
     std::vector<int64_t> pad = {left, right, top, bottom};
 
     return torch::nn::functional::pad(
@@ -59,7 +59,8 @@ torch::Tensor libtorch_copy_make_border(
 void CropTensor::forward(const dict& input_dict) {
   auto& input = *input_dict;
 
-  std::vector<int> pbox = dict_get<std::vector<int>>(input_dict, TASK_BOX_KEY);
+  // Use const reference to avoid copy
+  const std::vector<int>& pbox = dict_get<std::vector<int>>(input_dict, TASK_BOX_KEY);
 
   auto input_tensor = dict_get<torch::Tensor>(input_dict, TASK_DATA_KEY);
 
@@ -77,7 +78,7 @@ void CropTensor::forward(const dict& input_dict) {
     throw std::runtime_error("get an empty tensor");
   }
 
-  input[TASK_RESULT_KEY] = cropped;
+  input[TASK_RESULT_KEY] = std::move(cropped);
 }
 
 OMNI_REGISTER(Backend, CropTensor, "CropTensor");
@@ -85,7 +86,7 @@ OMNI_REGISTER(Backend, CropTensor, "CropTensor");
 void CopyMakeBorderTensor::forward(const dict& input_dict) {
   auto& input = *input_dict;
 
-  // 保留原有的成员变量赋值
+  // Keep original member variable assignment
   top_ = dict_get<int>(input_dict, "top");
   bottom_ = dict_get<int>(input_dict, "bottom");
   left_ = dict_get<int>(input_dict, "left");
@@ -93,10 +94,10 @@ void CopyMakeBorderTensor::forward(const dict& input_dict) {
 
   auto input_tensor = dict_get<torch::Tensor>(input_dict, TASK_DATA_KEY);
 
-  // 确保输入张量是 1CHW 格式
+  // Ensure input tensor is in 1CHW format
   input_tensor = img_1chw_guard(input_tensor);
 
-  // 参数检查
+  // Parameter validation
   if (top_ < 0 || bottom_ < 0 || left_ < 0 || right_ < 0) {
     std::stringstream ss;
     ss << "CopyMakeBorderTensor: negative padding values not allowed: "
@@ -114,30 +115,9 @@ void CopyMakeBorderTensor::forward(const dict& input_dict) {
     throw std::runtime_error("get an empty tensor after padding");
   }
 
-  input[TASK_RESULT_KEY] = padded;
+  input[TASK_RESULT_KEY] = std::move(padded);
 }
 
 OMNI_REGISTER(Backend, CopyMakeBorderTensor, "CopyMakeBorderTensor");
 
-// void WarpAffineTensor::impl_init(
-//     const std::unordered_map<std::string, std::string>& config,
-//     const dict& kwargs) {
-//   target_h_ = om::str::str2int<int>(config, "target_h");
-//   target_h_ = om::str::str2int<int>(config, "target_w");
-
-//   // 参数检查
-//   if (target_h_ > 1024 * 1024 || target_w_ > 1024 * 1024 || target_h_ <= 0 ||
-//       target_w_ <= 0 || target_w_ * (target_h_ / 1024.0) > 1024.0 * 1024) {
-//     SPDLOG_ERROR(
-//         "WarpAffineTensor: illegal h or w: h=" + std::to_string(target_h_) +
-//         " w=" + std::to_string(target_w_));
-//     throw std::invalid_argument("WarpAffineTensor: illegal h or w");
-//   }
-// }
-// void WarpAffineTensor::forward(const dict& input_dict) 
-// {
-
-// }
-// OMNI_REGISTER(Backend, WarpAffineTensor, "WarpAffineTensor");
-
-} // namespace torchpipe
+}  // namespace torchpipe

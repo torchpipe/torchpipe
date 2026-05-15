@@ -12,30 +12,50 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// #include "base_logging.hpp"
-
-// #define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_DEBUG
 #include "spdlog/fmt/bundled/color.h"
 #include "spdlog/fmt/fmt.h"
 #include "spdlog/spdlog.h"
 
 #include "omniback/helper/base_logging.hpp"
+#include <mutex>
 
 namespace om {
+
 std::shared_ptr<spdlog::logger> default_logger() {
   return spdlog::default_logger();
 }
+
 spdlog::logger* default_logger_raw() {
   return spdlog::default_logger_raw();
 }
 
-// Function to colorize text using spdlog and fmt
 std::string colored(const std::string& message) {
   return fmt::format(
-      fmt::bg(fmt::terminal_color::cyan) | // Set background color to cyan
-          fmt::fg(fmt::terminal_color::black) | // Set foreground color to black
-          fmt::emphasis::bold, // Set text to bold
-      message // The message to format
+      fmt::bg(fmt::terminal_color::cyan) |
+          fmt::fg(fmt::terminal_color::black) |
+          fmt::emphasis::bold,
+      message
   );
 }
+
+namespace {
+
+class LoggerGuard {
+ public:
+  LoggerGuard() {
+    std::lock_guard<std::mutex> lock(lock_);
+    auto in_default = default_logger();
+    auto now_logger = spdlog::default_logger();
+    if (in_default != now_logger && in_default)
+      spdlog::set_default_logger(in_default);
+  };
+
+ private:
+  static std::mutex lock_;
+};
+std::mutex LoggerGuard::lock_;
+static LoggerGuard g_tmp_lock_guard;
+
+} // namespace
+
 } // namespace om

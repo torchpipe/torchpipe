@@ -12,12 +12,6 @@
 
 namespace om::ffi {
 
-// tvm::ffi::Any dict2obj(const dict value){
-//    return  om::ffi::DictRef(tvm::ffi::make_object<om::ffi::DictObj>(value));
-// }
-
-
-
 namespace ffi = tvm::ffi;
 namespace refl = tvm::ffi::reflection;
 

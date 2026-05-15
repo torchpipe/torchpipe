@@ -1,8 +1,10 @@
 #include "omniback/helper/string.hpp"
 #include <algorithm>
-#include <cctype> //   isspace   iscntrl
+#include <cctype> // isspace iscntrl
+#include <initializer_list>
 #include <stack>
 #include <string>
+#include <vector>
 #include "omniback/helper/base_logging.hpp"
 #include "omniback/helper/macro.h"
 
@@ -281,28 +283,35 @@ std::unordered_map<std::string, std::string> auto_config_split(
 }
 
 namespace {
-size_t min3(size_t a, size_t b, size_t c) {
-  a = a < b ? a : b;
-  return a < c ? a : c;
+inline size_t min3(size_t a, size_t b, size_t c) {
+  return std::min({a, b, c});
 }
 } // namespace
 // levenshtein distance
 size_t edit_distance(const std::string& s, const std::string& t) {
-  size_t dp[s.length() + 1][t.length() + 1];
-  for (size_t i = 0; i <= s.length(); i++)
+  const size_t m = s.length();
+  const size_t n = t.length();
+  
+  // Use vector instead of VLA for portability
+  std::vector<std::vector<size_t>> dp(m + 1, std::vector<size_t>(n + 1));
+  
+  for (size_t i = 0; i <= m; i++) {
     dp[i][0] = i;
-  for (size_t j = 1; j <= t.length(); j++)
+  }
+  for (size_t j = 1; j <= n; j++) {
     dp[0][j] = j;
-  for (size_t j = 0; j < t.length(); j++) {
-    for (size_t i = 0; i < s.length(); i++) {
-      if (s[i] == t[j])
+  }
+  
+  for (size_t j = 0; j < n; j++) {
+    for (size_t i = 0; i < m; i++) {
+      if (s[i] == t[j]) {
         dp[i + 1][j + 1] = dp[i][j];
-      else
-        dp[i + 1][j + 1] =
-            min3(dp[i][j + 1] + 1, dp[i + 1][j] + 1, dp[i][j] + 1);
+      } else {
+        dp[i + 1][j + 1] = min3(dp[i][j + 1] + 1, dp[i + 1][j] + 1, dp[i][j] + 1);
+      }
     }
   }
-  return dp[s.length()][t.length()];
+  return dp[m][n];
 }
 
 size_t replace_once(

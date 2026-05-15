@@ -38,14 +38,13 @@ try:
     for dtype in missing_dtypes:
         if not hasattr(torch, dtype):
             setattr(torch, dtype, None)
-except:
+except Exception:
     torch = None
-    pass
 
 try:
     import torch.torch_version
     import torch.utils.cpp_extension
-except:
+except Exception:
     pass
 
 import logging
@@ -66,7 +65,7 @@ def unique_paths(paths):
         norm_p = os.path.abspath(p_str)
         if norm_p not in seen:
             seen.add(norm_p)
-            unique.append(norm_p)  # 保留标准化后的路径
+            unique.append(norm_p)  # Keep normalized path
     return unique
 
 def get_cpp_source(source_dir):
@@ -90,12 +89,13 @@ def get_torch_include_paths(build_with_cuda: bool) -> Sequence[str]:
             device_type="cuda" if build_with_cuda else "cpu"
         )
     else:
+        from torch.utils import cpp_extension
         # type: ignore[call-arg]
         return torch.utils.cpp_extension.include_paths(cuda=build_with_cuda)
 
 def get_cache_dir():
     return str(Path(os.environ.get("OMNIBACK_CACHE_DIR",
-                            "~/.cache/omniback/")).expanduser())
+                                   "~/.cache/omniback/")).expanduser())
 
 
 def get_cache_lib(name: str, device: str, no_torch: bool):
@@ -135,7 +135,7 @@ def main() -> None:  # noqa: PLR0912, PLR0915
     parser.add_argument(
         '--source-dirs',
         type=str,
-        nargs='+',  
+        nargs='+',
         required=True,
         help='One or more source directories to search for C++ files'
     )
@@ -153,8 +153,7 @@ def main() -> None:  # noqa: PLR0912, PLR0915
         default=[],
         help='One or more include directories to search for C++ headers'
     )
-    
-    
+
     parser.add_argument(
         "--output-dir",
         type=str,
@@ -162,7 +161,7 @@ def main() -> None:  # noqa: PLR0912, PLR0915
         default=get_cache_dir(),
         help="Directory to store the built extension library. If not specified, the default cache directory of omniback will be used.",
     )
-    
+
     parser.add_argument(
         "--abiflag",
         type=str,
@@ -170,8 +169,7 @@ def main() -> None:  # noqa: PLR0912, PLR0915
         default="",
         help="",
     )
-    
-    
+
     parser.add_argument(
         "--build-with-cuda",
         action="store_true",
@@ -213,18 +211,18 @@ def main() -> None:  # noqa: PLR0912, PLR0915
         device = "rocm"
     else:
         device = "cpu"
-    
+
     abiflag = args.abiflag
-    if abiflag not in  ["1", "0"]:
+    if abiflag not in ["1", "0"]:
         assert torch is not None, "torch is not installed. Specify --abiflag option."
         # use CXX11 ABI
         if torch.compiled_with_cxx11_abi():
             abiflag = "1"
         else:
             abiflag = "0"
-    
+
     libname = get_cache_name(args.name, device, args.no_torch, abiflag)
-    
+
     tmp_libname = libname + ".tmp"
 
     # create output directory is not exists
@@ -253,17 +251,17 @@ def main() -> None:  # noqa: PLR0912, PLR0915
         # resolve configs
         cflags = []
         # include_paths.append(sysconfig.get_paths()["include"])
-        
+
         if abiflag == "1":
             cflags.append("-D_GLIBCXX_USE_CXX11_ABI=1")
         else:
             cflags.append("-D_GLIBCXX_USE_CXX11_ABI=0")
-        
+
         if not args.no_torch:
             if args.build_with_cuda:
                 cflags.append("-DBUILD_WITH_CUDA")
                 if torch.utils.cpp_extension.CUDA_HOME is None:
-                    logger.error("can not find CUDA_HOME")
+                    logger.error("CUDA_HOME not found")
             elif args.build_with_rocm:
                 cflags.extend(torch.utils.cpp_extension.COMMON_HIP_FLAGS)
                 cflags.append("-DBUILD_WITH_ROCM")
@@ -275,10 +273,10 @@ def main() -> None:  # noqa: PLR0912, PLR0915
                     ldflags.append(f"/LIBPATH:{lib_dir}")
                 else:
                     ldflags.extend(["-L", str(lib_dir)])
-            
+
             import glob
             from torch.utils.cpp_extension import CUDA_HOME
-            if not CUDA_HOME is None:
+            if CUDA_HOME is not None:
                 cuda_lib_dir = os.path.join(CUDA_HOME, "lib64")
                 # dirs = glob.glob(os.path.join(CUDA_HOME, "**/*/lib/stubs"))
                 # assert len(dirs) == 1
@@ -301,7 +299,6 @@ def main() -> None:  # noqa: PLR0912, PLR0915
                 if args.build_with_cuda:
                     ldflags.extend(["-ltorch_cuda", "-lc10_cuda"])
 
-
         from omniback import get_include_dirs
         import omniback as om
         om_lib = om.libinfo.find_libomniback()
@@ -311,20 +308,18 @@ def main() -> None:  # noqa: PLR0912, PLR0915
         if om_lib_name.startswith('lib'):
             om_lib_name = om_lib_name[3:]
         ldflags.append(f"-l{om_lib_name}")
-                
+
         from tvm_ffi.cpp.extension import build
-        
-        
-    
+
         include_paths += get_include_dirs()
-    
+
         include_paths = [str(x) for x in include_paths]
         include_paths = unique_paths(include_paths)
         result_lib = build(name=tmp_libname, cpp_files=[str(x) for x in source_path], extra_cflags=cflags,
-                extra_ldflags=ldflags, extra_include_paths=include_paths, build_directory=build_dir)
+                           extra_ldflags=ldflags, extra_include_paths=include_paths, build_directory=build_dir)
 
         # rename the tmp file to final libname
-        final_path=os.path.join(output_dir, os.path.basename(result_lib).replace(".tmp.", '.'))
+        final_path = os.path.join(output_dir, os.path.basename(result_lib).replace(".tmp.", '.'))
         shutil.move(str(result_lib), final_path)
         print(f'saved to {final_path}')
 

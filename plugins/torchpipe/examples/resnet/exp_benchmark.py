@@ -34,7 +34,7 @@ def test_throughput(omniback_backend):
     
     bench.forward_with_dep([omniback.Dict({'data': image_bytes})]*100, omniback_backend)
     result = omniback.default_queue().get(True)
-    print(type(result))
+    # print(type(result))
     print("Benchmark result:", result)
 
 def test(model='resnet50'):

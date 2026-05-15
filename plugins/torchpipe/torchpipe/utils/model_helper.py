@@ -3,34 +3,29 @@ from __future__ import annotations
 # Model_helper.py
 from collections import defaultdict
 import importlib
-import os, shutil
+import os
+import shutil
 import subprocess
 import urllib.request
 from io import BytesIO
-from typing import Callable, Tuple, Optional
+from typing import Callable, Tuple, Optional, List, Union, Any
 import numpy as np
-from typing import List, Union, Callable, Tuple, Any
 
 try:
     import cv2
 except ImportError:
     pass
-    # print("OpenCV not found. Please install it to use this feature.")
 
 import torch
 import torch.nn as nn
 try:
     from torchvision import transforms
     from PIL import Image
-except Exception as e:
+except Exception:
     pass
-    # print(
-    #     f"Torchvision not found. Please install it to use this feature. e = {e}")
 
 import tempfile
 import logging
-import importlib
-import subprocess
 
 
 # TEST_IMAGES = [
@@ -80,23 +75,23 @@ def import_or_install_package(package_name: str, import_name=None) -> None:
 
 
 def get_max_supported_onnx_opset():
-    """获取当前 PyTorch 版本支持的 ONNX 最大 opset 版本"""
-    # PyTorch 1.8+ 使用这个属性
+    """Get the maximum ONNX opset version supported by current PyTorch version."""
+    # PyTorch 1.8+ uses this attribute
     if hasattr(torch.onnx, 'ONNX_MAX_OPSET_VERSION'):
         return torch.onnx.ONNX_MAX_OPSET_VERSION
 
-    # PyTorch 1.12+ 移除了上述属性，使用这个内部常量
+    # PyTorch 1.12+ removed above attribute, use this internal constant
     if hasattr(torch.onnx, '_constants'):
         from torch.onnx import _constants
         if hasattr(_constants, 'ONNX_TORCHSCRIPT_EXPORTER_MAX_OPSET'):
             return _constants.ONNX_TORCHSCRIPT_EXPORTER_MAX_OPSET
         elif hasattr(_constants, 'ONNX_MAX_OPSET'):
             return _constants.ONNX_MAX_OPSET
-    
-    torch_version = torch.__version__.split('+')[0]  # 移除可能的 CUDA 后缀
+
+    torch_version = torch.__version__.split('+')[0]  # Remove possible CUDA suffix
     major, minor = map(int, torch_version.split('.')[:2])
 
-    if (major == 1 and minor >= 1.12) or major >= 2:
+    if (major == 1 and minor >= 12) or major >= 2:
         return 17
     else:
         return 11
@@ -122,12 +117,11 @@ def export_n3hw(model: nn.Module, onnx_path: str, input_h: int, input_w: int) ->
     # Generate dummy input
     original_device = next(model.parameters()).device
     original_dtype = next(model.parameters()).dtype
-    dummy_input = torch.randn(1, 3, input_h, input_w, 
-                             device=original_device,
-                             dtype=original_dtype)
-    
+    dummy_input = torch.randn(1, 3, input_h, input_w,
+                              device=original_device,
+                              dtype=original_dtype)
+
     tmp_onnx_path = tempfile.mktemp()
-    
 
     # Export initial ONNX model
     torch.onnx.export(
@@ -141,7 +135,7 @@ def export_n3hw(model: nn.Module, onnx_path: str, input_h: int, input_w: int) ->
     )
 
     # Optimize with ONNX-Simplifier
-    
+
     if shutil.which("onnxsim"):
         subprocess.run(["onnxsim", tmp_onnx_path, tmp_onnx_path], check=True)
     if shutil.which("onnxslim"):
@@ -159,14 +153,14 @@ onnx_export = export_n3hw
 
 
 def preprocess_with_cv2(image_bytes, input_h=224, input_w=224):
-    nparr = np.frombuffer(image_bytes, np.uint8)  # 转换为numpy数组
+    nparr = np.frombuffer(image_bytes, np.uint8)  # Convert to numpy array
     image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-    image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)  # 转换为 OpenCV 的 BGR 格式
+    image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)  # Convert to OpenCV BGR format
 
     image = cv2.resize(image, (input_w, input_h))
 
     image = image.transpose((2, 0, 1))  # HWC to CHW
-    image = image.astype(np.float32) / 255.0  # 归一化到 [0, 1]
+    image = image.astype(np.float32) / 255.0  # Normalize to [0, 1]
 
     mean = np.array([0.485, 0.456, 0.406], dtype=np.float32).reshape(3, 1, 1)
     std = np.array([0.229, 0.224, 0.225], dtype=np.float32).reshape(3, 1, 1)
@@ -198,9 +192,9 @@ def get_classification_model(name: str, input_h: int, input_w: int) -> Tuple[nn.
     )
     model.eval()
 
-    # 创建包含字节解码的预处理流程
+    # Create preprocessing pipeline with byte decoding
     preprocess = transforms.Compose([
-        # 添加字节解码步骤
+        # Add byte decoding step
         transforms.Lambda(lambda x: Image.open(BytesIO(x)).convert('RGB')),
         transforms.Resize((input_h, input_w)),
         transforms.ToTensor(),
@@ -282,7 +276,7 @@ def get_mini_imagenet():
     ms_val_dataset = MsDataset.load(
         'mini_imagenet100', namespace='tany0699',
         subset_name='default', split='validation',
-        download_mode=DownloadMode.REUSE_DATASET_IF_EXISTS)  # 加载验证集
+        download_mode=DownloadMode.REUSE_DATASET_IF_EXISTS)  # Load validation set
     # print(next(iter(ms_val_dataset)))
     return ms_val_dataset
 
@@ -552,37 +546,37 @@ def report_classification(all_results, top_k=5):
 
 
 def build_label_mapping(all_results):
-    """建立原始标签（0-99）到预测类别（0-999）的映射表
+    """Build mapping table from original labels (0-99) to predicted classes (0-999)
 
     Args:
-        all_results: 字典格式 {id: (原始标签, 预测张量)}
+        all_results: Dict format {id: (original_label, prediction_tensor)}
 
     Returns:
-        label_map: 字典 {原始标签: 预测类别}
-        confidence_map: 字典 {原始标签: 中位数置信度}
+        label_map: Dict {original_label: predicted_class}
+        confidence_map: Dict {original_label: median_confidence}
     """
-    # 收集每个原始标签的所有预测结果
+    # Collect all predictions for each original label
     label_predictions = defaultdict(list)
     for _, (label, pred) in all_results.items():
-        # 确保处理 (1, 1000) 形状张量
+        # Ensure handling (1, 1000) shaped tensors
         if isinstance(pred, torch.Tensor):
             if pred.dim() == 2 and pred.shape[0] == 1:
                 pred = torch.argmax(pred, dim=-1).item()
 
-        # 记录预测类别和置信度
+        # Record predicted class and confidence
         label_predictions[label].append(pred)
 
-    # 计算每个标签的中位数预测类别
+    # Calculate median predicted class for each label
     label_map = {}
     confidence_map = {}
     all_preds = set()
     for label, preds in label_predictions.items():
-        # 合并所有样本的预测结果
+        # Merge all sample predictions
         preds.sort()
 
-        # 计算中位数预测类别
+        # Calculate median predicted class
         median_class = int(preds[len(preds)//2])
-        # 计算preds含有median_class的个数
+        # Count how many preds contain median_class
         count = 0
         for i in range(len(preds)):
             if preds[i] == median_class:
@@ -591,7 +585,7 @@ def build_label_mapping(all_results):
             median_class = -1
         else:
             all_preds.add(median_class)
-        # 记录映射关系
+        # Record mapping
         label_map[label] = (median_class)
     print(f"len(label_map): {len(label_map)}, label: {len(label_predictions)}")
     assert (len(label_map) == len(label_predictions))
@@ -677,8 +671,8 @@ def compare_classification(all_result):
         ) if result.dim() > 1 else result[pytorch_class].item()
         onnx_top_prob_for_pytorch_class = onnx_result[0, pytorch_class].item(
         ) if onnx_result.dim() > 1 else onnx_result[pytorch_class].item()
-        top_class_diff = abs(pytorch_top_prob -
-                             onnx_top_prob_for_pytorch_class)
+        top_class_diff = abs(pytorch_top_prob
+                             - onnx_top_prob_for_pytorch_class)
 
         if top_class_diff > max_top_class_diff:
             max_top_class_diff = top_class_diff
@@ -692,10 +686,10 @@ def compare_classification(all_result):
             print(
                 f"user's Result: {onnx_result.shape} max = {onnx_result.max().item()}")
             print(f"Max Difference: {current_max_diff:.6f}")
-            print("Value similarity: " +
-                  ("Similar" if is_similar else "Different"))
-            print("Class prediction: " + ("Same" if is_same_class else "Different") +
-                  f" ({pytorch_class} vs {onnx_class})")
+            print("Value similarity: "
+                  + ("Similar" if is_similar else "Different"))
+            print("Class prediction: " + ("Same" if is_same_class else "Different")
+                  + f" ({pytorch_class} vs {onnx_class})")
             print("-" * 50)
 
     # Sort mismatches by the absolute difference (largest first)
@@ -745,7 +739,7 @@ class TestImageDataset:
     with support for resetting and reusing the iterator.
 
     Args:
-        image_sources (list, optional): List of (image_id, url) tuples. 
+        image_sources (list, optional): List of (image_id, url) tuples.
             If None, uses predefined IMAGENET_IMAGES.
         timeout (float, optional): Request timeout in seconds. Default: 10.0
         max_retries (int, optional): Maximum number of download retries. Default: 2
@@ -1046,19 +1040,6 @@ class ClassifyModelTester:
         if callable_func:
             compare_classification(all_result)
         return all_result
-
-
-def test_from_raw_file(
-    forward_function:  Callable[[List[tuple[str, bytes]]], Any],
-    file_dir: str,
-    num_clients=10,
-    request_batch=1,
-    total_number=10000,
-    num_preload=1000,
-    recursive=True,
-    ext=[".jpg", ".JPG", ".jpeg", ".JPEG"],
-):
-    pass
 
 
 if __name__ == "__main__":

@@ -58,9 +58,11 @@ uv venv && source .venv/bin/activate
 
 uv pip install --upgrade scikit_build_core fire ninja setuptools-scm setuptools apache-tvm-ffi 
 
-export SETUPTOOLS_SCM_PRETEND_VERSION="0.1.23"
+export SETUPTOOLS_SCM_PRETEND_VERSION="0.1.24"
 
 uv pip install -e . --no-build-isolation -v
+
+python -c "import omniback; assert omniback.__version__ == '0.1.24'"
 
 cd plugins/torchpipe
 

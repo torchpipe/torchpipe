@@ -59,9 +59,10 @@ convert::ImageData cvMatToImageData(const cv::Mat& mat) {
 
   return out;
 }
-} // 
+}  // namespace
 
-} // namespace namespace
+}  // namespace torchpipe
+
 namespace torchpipe {
 
 using namespace convert;

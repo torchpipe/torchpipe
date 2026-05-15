@@ -23,12 +23,12 @@ def test_queue():
     print(f'{dq.size()}')
     with pytest.raises(RuntimeError):
         dq.get(False)
-        
-    
+
+
 def test_dict():
     d = omniback.Dict()
     print(d)
-    
+
 if __name__ == "__main__":
     test_dict()
     test_queue()

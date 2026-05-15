@@ -1,0 +1,2 @@
+bs,prefill_len,trt_decode_tok_s,trt_decode_step_ms_mean,vllm_decode_tok_s,vllm_warm_s,vllm_cached_s,error
+10,128,2769.882518182545,3.6102614224091667,2719.799820278889,0.5770958350040019,0.4706228710128926,

@@ -29,7 +29,7 @@ def get_cxx_include_dirs():
     result = subprocess.run(
         [system_cxx, "-E", "-Wp,-v", "-"],
         input="",
-        stdout=subprocess.DEVNULL,   # 丢弃 stdout
+        stdout=subprocess.DEVNULL,   # Discard stdout
         stderr=subprocess.PIPE,
         text=True
     )
@@ -43,7 +43,7 @@ def get_cxx_include_dirs():
         if "End of search list." in line:
             break
         if in_search and line.startswith(" "):
-            # 提取路径（去掉前导空格，忽略注释）
+            # Extract path (remove leading spaces, ignore comments)
             path = line.strip().split()[0]
             if os.path.exists(path):
                 paths.append(path)
@@ -60,10 +60,10 @@ def get_ld_search_dirs():
     elif not IS_WINDOWS:
         result = subprocess.run([system_ld, "--verbose"],
                                 capture_output=True, text=True, check=True)
-        # 匹配 SEARCH_DIR("=xxx") 或 SEARCH_DIR("xxx")
+        # Match SEARCH_DIR("=xxx") or SEARCH_DIR("xxx")
         matches = re.findall(r'SEARCH_DIR\("=?(.*?)"\)', result.stdout)
         matches = [x for x in matches if os.path.exists(x)]
-        return matches  
+        return matches
     return []
 
 

@@ -52,11 +52,11 @@ def should_use_cxx11() -> bool:
             "Set USE_CXX11_ABI=0 to use the C++03 ABI version instead."
         )
         return True
-    except Exception as e:
-        logger.error("Error(libomniback.so): Failed to determine C++ ABI setting. ")
-        raise e
+    except RuntimeError as e:
+        logger.error("Failed to determine C++ ABI setting: %s", e)
+        raise
 
-        
+
 def find_libomniback() -> str:
     """Find libomniback.
 
@@ -71,7 +71,7 @@ def find_libomniback() -> str:
         candidate = _find_library_by_basename("omniback", "omniback", "lib/abiflag0")
     if ret := _resolve_and_validate([candidate], cond=lambda _: True):
         return ret
-    
+
     raise RuntimeError("Cannot find libomniback")
 
 
@@ -185,7 +185,7 @@ def find_python_helper_include_path() -> str:
 
 def include_paths(with_tvm_ffi=True) -> list[str]:
     """Find all include paths needed."""
-    base_paths = find_include_paths()  # 这是您需要实现的新函数
+    base_paths = find_include_paths()  # This is the new function to implement
 
     if with_tvm_ffi:
         return sorted(

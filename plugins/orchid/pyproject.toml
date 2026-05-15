@@ -1,0 +1,45 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "orchid"
+version = "0.1.0"
+description = "Omniback LLM serving and benchmarking plugin"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi",
+  "numpy",
+  "pydantic>=2",
+  "transformers",
+  "uvicorn",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest",
+]
+gpu = [
+  "flashinfer-python",
+  "janus",
+  "tensorrt-cu12",
+  "torch",
+  "vllm",
+]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+orchid = [
+  "llmscheduler/plugins/csrc/*",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

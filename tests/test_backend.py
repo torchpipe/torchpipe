@@ -5,7 +5,7 @@ import numpy as np
 
 def test_backend():
     bk = om.Backend()
-    
+
 def test_backend_creation():
     # Test Identity backend
     backend = omniback.create("Identities", None)
@@ -18,18 +18,17 @@ def test_backend_creation():
 def test_backend_initialization():
     backend = om.create("Identity")
     # Test chained initialization
-    a=backend.init({"param1": "value1"}, None)
+    a = backend.init({"param1": "value1"}, None)
     assert isinstance(a, om.Backend)
-    
+
     # Test with empty config
     backend.init({}, None)
-    
 
 
 def test_backend_execution():
     backend = om.create("Identity")
     backend.init({}, None)
-    
+
     # Test with different input types
     test_cases = [
         {"data": "string_input"},
@@ -38,7 +37,7 @@ def test_backend_execution():
         {"data": [1, 2, 3]},
         {"data": {"nested": "data"}}
     ]
-    
+
     for test_input in test_cases:
         input_dict = test_input # om.Dict(test_input)
         backend(input_dict)
@@ -47,7 +46,7 @@ def test_backend_execution():
 def test_backend_with_event():
     backend = om.create("Identity")
     backend.init({}, None)
-    
+
     input_data = om.Dict({"data": 100, "event": 1})
     backend(input_data)
     assert input_data["result"] == 100
@@ -56,7 +55,6 @@ def test_backend_with_event():
         io = {"data": 100, "event": om.Event()}
         backend(io)
 
-        
-    
+
 if __name__ == "__main__":
     test_backend_with_event()

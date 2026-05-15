@@ -2,9 +2,8 @@
 
 #include <thread>
 #include <numeric>
-// #include "threadsafe_queue.hpp"
+
 #include "omniback/builtin/basic_backends.hpp"
-// #include  "omniback/helper/threadsafe_queue.hpp"
 #include "omniback/builtin/page_table.hpp"
 #include "omniback/core/helper.hpp"
 #include "omniback/core/queue.hpp"
@@ -17,8 +16,9 @@ namespace om {
 
 class Loop : public Backend {
  private:
-  void impl_init(const std::unordered_map<string, string>& config, const dict&)
-      override;
+  void impl_init(
+      const std::unordered_map<string, string>& params,
+      const dict& options) override;
   void impl_forward(const std::vector<dict>& input) override;
   virtual void run();
   void impl_inject_dependency(Backend* dep) override {
@@ -61,8 +61,9 @@ class Loop : public Backend {
 
 class Batching : public Dependency {
  private:
-  void impl_init(const std::unordered_map<string, string>& config, const dict&)
-      override final;
+  void impl_init(
+      const std::unordered_map<string, string>& params,
+      const dict& options) override final;
   void impl_forward_with_dep(const std::vector<dict>& input, Backend& dep)
       override final;
   virtual void run(size_t max_bs);
@@ -85,9 +86,6 @@ class Batching : public Dependency {
       size_t timeout) {
     if (instances_state_->query_available(
             req_size, timeout, false, node_name_)) {
-      // SPDLOG_INFO(
-      //     "Batching::try_forward, node_name = {}, req_size = {} io size =
-      //     {}", node_name_, req_size, input_output.size());
       injected_dependency_->forward(input_output);
       return true;
     }
@@ -105,8 +103,9 @@ class Batching : public Dependency {
 
 class BackgroundThread : public Backend {
  private:
-  void impl_init(const std::unordered_map<string, string>& config, const dict&)
-      override final;
+  void impl_init(
+      const std::unordered_map<string, string>& params,
+      const dict& options) override final;
   void impl_forward(const std::vector<dict>& inputs) override final;
 
   virtual void run();
@@ -127,7 +126,7 @@ class BackgroundThread : public Backend {
 
  private:
   std::atomic_bool bInited_{false};
-  std::atomic_bool bStoped_{false};
+  std::atomic_bool bStopped_{false};
   std::thread thread_;
   SingleElementQueue<std::vector<dict>> batched_queue_;
   std::string dependency_name_;
@@ -135,15 +134,13 @@ class BackgroundThread : public Backend {
   std::exception_ptr init_eptr_;
   std::function<void(void)> init_task_;
   int priority_{0};
-  // std::function<void(void)> init_task_;
-  // void forward_task(const std::vector<dict>& inputs);
 };
 
 class InstanceDispatcher : public Backend {
  private:
   void impl_init(
-      const std::unordered_map<std::string, std::string>& config,
-      const dict& kwargs) override final;
+      const std::unordered_map<std::string, std::string>& params,
+      const dict& options) override final;
   virtual void impl_forward(const std::vector<dict>& inputs) override;
 
   [[nodiscard]] uint32_t impl_max() const override final {
@@ -161,15 +158,14 @@ class InstanceDispatcher : public Backend {
 
  protected:
   std::vector<Backend*> base_dependencies_;
-  // std::unique_ptr<InstancesState> instances_state_;
   std::shared_ptr<InstancesState> instances_state_;
 };
 
 class FakeInstance : public Backend {
  private:
   void impl_init(
-      const std::unordered_map<std::string, std::string>& config,
-      const dict& dict_config) override;
+      const std::unordered_map<std::string, std::string>& params,
+      const dict& options) override;
 
   void impl_forward(const std::vector<dict>& ios) override;
 
@@ -219,7 +215,5 @@ class FakeInstance : public Backend {
   uint32_t min_{0};
 
   std::vector<std::size_t> sorted_max_;
-
-  // std::unordered_map<std::string, std::string> config_;
 };
 } // namespace om

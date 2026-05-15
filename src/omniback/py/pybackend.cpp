@@ -38,13 +38,13 @@ std::unique_ptr<om::Backend> object2backend(
 
           tvm::ffi::Optional<PyDictRef> options_dict;
           if (options) {
-            auto options_dict =
-                tvm::ffi::make_object<om::ffi::DictObj>(options);
+            options_dict =
+                PyDictRef(tvm::ffi::make_object<om::ffi::DictObj>(options));
           }
 
           (init_func.value())(py_obj, params_map, options_dict);
         };
-    };
+    }
 
     if (forward_func.has_value()) {
         forward_cb = [py_obj, forward_func](const std::vector<om::dict>& ios) {

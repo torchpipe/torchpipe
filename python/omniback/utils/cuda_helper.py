@@ -4,7 +4,7 @@ import tvm_ffi
 def create_new_stream_if_using_default():
     if torch.cuda.current_stream() != torch.cuda.default_stream():
         return False
-    
+
     context = tvm_ffi.use_torch_stream(torch.cuda.stream(torch.cuda.Stream()))
     context.__enter__()
     return True
@@ -18,4 +18,3 @@ def wait_for_default_stream():
 
 def current_stream_synchronize():
     torch.cuda.current_stream().synchronize()
-

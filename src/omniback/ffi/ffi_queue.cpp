@@ -5,7 +5,6 @@
 #include <tvm/ffi/function.h>
 #include <omniback/ffi/queue.h>
 #include <tvm/ffi/reflection/registry.h>
-// #include <tvm/ffi/reflection/overload.h>
 #include <tvm/ffi/base_details.h>
 #include <tvm/ffi/extra/stl.h>
 
@@ -118,8 +117,6 @@ ThreadSafeQueueObj* py_default_queue_one_arg(const std::string& tag = ""){
   auto& q = default_queue(tag);
   return &q;
 }
-
-// TVM_FFI_DLL_EXPORT_TYPED_FUNC(default_queue_one_arg, py_default_queue_one_arg);
 
 TVM_FFI_STATIC_INIT_BLOCK() {
   namespace refl = tvm::ffi::reflection;

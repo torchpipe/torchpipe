@@ -102,9 +102,10 @@ void TensorrtInferTensor::impl_forward(
 
   for (unsigned j = 0; j < info_.first.size(); j++) {
     const auto& name_str = *info_.first[j].name;
-    const auto* name = name_str.c_str();
+    // Cache c_str() to avoid repeated calls
+    const char* name = name_str.c_str();
 
-    nvinfer1::Dims infer_dims_nv = context_->getTensorShape(name);
+    const nvinfer1::Dims infer_dims_nv = context_->getTensorShape(name);
     auto infer_dims = convert_dims(infer_dims_nv);
     // static_assert(sizeof(nvinfer1::Dims) == sizeof(NetIOInfo::Dims64));
     if (!match(infer_dims, inputs[j])) {
@@ -113,7 +114,7 @@ void TensorrtInferTensor::impl_forward(
       mem_size_ = 0;
     }
 
-    bool status = context_->setTensorAddress(name, inputs[j].data_ptr());
+    const bool status = context_->setTensorAddress(name, inputs[j].data_ptr());
     OMNI_ASSERT(status);
   }
 
@@ -133,8 +134,9 @@ void TensorrtInferTensor::impl_forward(
 
   for (unsigned j = 0; j < info_.second.size(); j++) {
     const auto& name_str = *info_.second[j].name;
-    const auto* name = name_str.c_str();
-    const auto infer_dims_nv = context_->getTensorShape(name);
+    // Cache c_str() to avoid repeated calls
+    const char* name = name_str.c_str();
+    const nvinfer1::Dims infer_dims_nv = context_->getTensorShape(name);
     const auto infer_dims = convert_dims(infer_dims_nv);
     OMNI_FATAL_ASSERT(
         infer_dims.nbDims > 0,
@@ -143,13 +145,14 @@ void TensorrtInferTensor::impl_forward(
 
     if (predefined_size > j) {
       OMNI_ASSERT(outputs[j].is_contiguous());
-      int64_t total_bytes = outputs[j].numel() * outputs[j].element_size();
-      int64_t need_bytes = std::accumulate(
-                               infer_dims.d,
-                               infer_dims.d + infer_dims.nbDims,
-                               1,
-                               std::multiplies<int64_t>()) *
-          elementSize(info_.second[j].type);
+      const int64_t total_bytes = outputs[j].numel() * outputs[j].element_size();
+      // Cache element size to avoid repeated lookup
+      const size_t elem_size = elementSize(info_.second[j].type);
+      const int64_t need_bytes = std::accumulate(
+                                     infer_dims.d,
+                                     infer_dims.d + infer_dims.nbDims,
+                                     1,
+                                     std::multiplies<int64_t>()) * elem_size;
       if (need_bytes != total_bytes) {
         SPDLOG_ERROR(
             "need_bytes({}) != total_bytes({})", need_bytes, total_bytes);

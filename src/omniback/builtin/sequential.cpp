@@ -24,14 +24,15 @@ void SequentialV0::impl_forward(const std::vector<dict>& io) {
   for (std::size_t i = 0; i < base_dependencies_.size(); ++i) {
     // filters
     std::vector<dict> valid_inputs;
+    const auto& curr_config = base_config_.at(i);
     if (i == 0)
       valid_inputs = io;
     else {
-      bool or_filter =
-          base_config_.at(i).find("or") != base_config_.at(i).end() &&
-          (base_config_.at(i)["or"] == "1");
+      const bool or_filter =
+          curr_config.find("or") != curr_config.end() &&
+          (curr_config.at("or") == "1");
       for (std::size_t j = 0; j < io.size() && break_index.count(j) == 0; ++j) {
-        const auto input_dict = io[j];
+        const auto& input_dict = io[j];
         auto iter = input_dict->find(TASK_RESULT_KEY);
         if (iter != input_dict->end()) {
           (*input_dict)[TASK_DATA_KEY] = iter->second;
@@ -124,21 +125,22 @@ void Sequential::impl_forward(const std::vector<dict>& io) {
   for (std::size_t i = 0; i < backends_.size(); ++i) {
     // filters
     std::vector<dict> valid_inputs;
+    const bool is_filter_or = filter_or_[i];
     if (i == 0)
       valid_inputs = io;
     else {
       for (std::size_t j = 0; j < io.size() && break_index.count(j) == 0; ++j) {
-        const auto input_dict = io[j];
+        const auto& input_dict = io[j];
         auto iter = input_dict->find(TASK_RESULT_KEY);
         if (iter != input_dict->end()) {
-          if (!filter_or_[i]) {
+          if (!is_filter_or) {
             (*input_dict)[TASK_DATA_KEY] = iter->second;
             input_dict->erase(iter);
             valid_inputs.push_back(input_dict);
           } else {
             continue;
           }
-        } else if (filter_or_[i]) {
+        } else if (is_filter_or) {
           valid_inputs.push_back(input_dict);
         } else {
           // dicts_guard.erase(TASK_RESULT_KEY);

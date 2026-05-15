@@ -15,8 +15,6 @@ class Source : public Backend {
   void impl_forward(const std::vector<dict>& input) override;
 
  public:
-  // ~Source() { bInited_.store(false); }
-
  private:
   std::atomic_bool bInited_{false};
   size_t total_number_ = 0;

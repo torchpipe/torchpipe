@@ -16,14 +16,20 @@ def install_and_import(package):
     except ImportError:
         print(f"Package '{package}' not found. Installing now...")
         try:
+            # Use uv pip instead of pip
             subprocess.check_call(
-                [sys.executable, "-m", "pip", "install", package])
+                ["uv", "pip", "install", "--python", sys.executable, package])
             print(f"Successfully installed '{package}'.")
-        except subprocess.CalledProcessError as e:
-            print(f"Failed to install '{package}': {e}")
-            sys.exit(1)
+        except (subprocess.CalledProcessError, FileNotFoundError) as e:
+            # Fallback to pip if uv not available
+            try:
+                subprocess.check_call(
+                    [sys.executable, "-m", "pip", "install", package])
+                print(f"Successfully installed '{package}'.")
+            except subprocess.CalledProcessError as e2:
+                print(f"Failed to install '{package}': {e2}")
+                sys.exit(1)
         # 重新导入以确保安装成功
-        importlib.reload(importlib.import_module('sys'))
         globals()[package] = importlib.import_module(package)
 
 

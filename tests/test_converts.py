@@ -11,13 +11,12 @@ def test_type_converts():
         ([1, 2, 3], list),
         ({"a": 1}, dict)
     ]
-    
+
     for value, expected_type in test_cases:
-        any_obj = om.Dict({'1':value})
+        any_obj = om.Dict({'1': value})
         # print(any_obj['1'], type(any_obj['1']))
         assert (expected_type(any_obj['1']) == value)
         # assert isinstance(any_obj['1'], expected_type)
-
 
 
 if __name__ == "__main__":

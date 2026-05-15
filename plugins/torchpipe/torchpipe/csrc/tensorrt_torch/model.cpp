@@ -97,18 +97,19 @@ class LocalFileStreamReader //: public nvinfer1::IStreamReader
       file_stream.read(static_cast<char*>(destination), nbBytes);
       return file_stream.gcount();
     } else if (attributes.type == cudaMemoryTypeDevice) {
-      // Set up a temp buffer to read into if reading into device memory.
-      std::unique_ptr<char[]> tmpBuf{new char[nbBytes]};
-      file_stream.read(tmpBuf.get(), nbBytes);
+      // Use vector for automatic memory management and potential SSO optimization
+      std::vector<char> tmpBuf;
+      tmpBuf.resize(static_cast<size_t>(nbBytes));
+      file_stream.read(tmpBuf.data(), nbBytes);
       // cudaMemcpyAsync into device storage.
       if (cudaMemcpyAsync(
               destination,
-              tmpBuf.get(),
+              tmpBuf.data(),
               nbBytes,
               cudaMemcpyHostToDevice,
               stream) != cudaSuccess)
         return -1;
-      // ok to free tmpBuf
+      // tmpBuf will be automatically freed when it goes out of scope
       // cudaMemcpyAsync will return once the pageable buffer has been.
       return file_stream.gcount();
     }
@@ -141,12 +142,13 @@ void LoadTensorrtEngine::impl_init(
   size_t independent_index = 0;
   om::str::try_update(config, TASK_INDEX_KEY, independent_index);
   OMNI_ASSERT(kwargs);
-  if (kwargs->find(TASK_ENGINE_KEY) != kwargs->end()) {
-
-    nvinfer1::ICudaEngine* engine = kwargs->at(
-        TASK_ENGINE_KEY).cast<nvinfer1::ICudaEngine*>();
+  
+  // Cache iterator to avoid double lookup
+  auto engine_iter = kwargs->find(TASK_ENGINE_KEY);
+  if (engine_iter != kwargs->end()) {
+    nvinfer1::ICudaEngine* engine = engine_iter->second.cast<nvinfer1::ICudaEngine*>();
     OMNI_ASSERT(engine && independent_index != 0);
-    size_t num_profiles = engine->getNbOptimizationProfiles();
+    const size_t num_profiles = engine->getNbOptimizationProfiles();
     if (independent_index % num_profiles != 0) {
       SPDLOG_INFO(
           "LoadTensorrtEngine: aready loaded engine in kwargs, skip "
@@ -185,6 +187,7 @@ void Onnx2Tensorrt::impl_init(
     const std::unordered_map<std::string, std::string>& config,
     const om::dict& kwargs) {
   OMNI_ASSERT(kwargs);
+  // Cache iterator to avoid double lookup
   if (kwargs->find(TASK_ENGINE_KEY) != kwargs->end()) {
     SPDLOG_INFO(
         "Onnx2Tensorrt: aready loaded engine in kwargs, skip "

@@ -1,6 +1,7 @@
 import pytest
 import omniback
 from typing import Dict, Any
+import os
 
 # import toml
 
@@ -15,7 +16,7 @@ def test_configs():
     import time
     # time.sleep(8)
     for x in test_config:
-        toml_path = f"config/{x}.toml"
+        toml_path = os.path.join(os.path.dirname(__file__), f"config/{x}.toml")
 
         data = omniback.parse(toml_path)
         print(data)

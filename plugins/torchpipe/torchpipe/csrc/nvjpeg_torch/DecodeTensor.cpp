@@ -31,14 +31,16 @@ bool decode(
     torch::Tensor& image_tensor,
     const std::string& color,
     const std::string& data_format) {
-  const auto* blob = (const unsigned char*)data.data();
+  const auto* blob = reinterpret_cast<const unsigned char*>(data.data());
   int nComponents;
   nvjpegChromaSubsampling_t subsampling;
   int widths[NVJPEG_MAX_COMPONENT];
   int heights[NVJPEG_MAX_COMPONENT];
 
-  auto re = nvjpegGetImageInfo(
-      handle, blob, data.length(), &nComponents, &subsampling, widths, heights);
+  // Cache data.length() to avoid repeated calls
+  const size_t data_len = data.length();
+  const nvjpegStatus_t re = nvjpegGetImageInfo(
+      handle, blob, data_len, &nComponents, &subsampling, widths, heights);
   if (NVJPEG_STATUS_SUCCESS != re) {
     SPDLOG_WARN(
         "nvjpegGetImageInfo failed. data.length() = {} result = {}",
@@ -111,7 +113,7 @@ bool decode(
           handle,
           state,
           blob,
-          data.length(),
+          data_len,  // Use cached length
           target_color,
           &nv_image,
           c10::cuda::getCurrentCUDAStream())) {
@@ -169,12 +171,13 @@ void DecodeTensor::impl_init(
 void DecodeTensor::forward(const om::dict& input_dict) {
   auto& input = *input_dict;
 
-  std::string data = input[TASK_DATA_KEY].cast<std::string>();
+  // Use const reference to avoid copy
+  const std::string& data = input[TASK_DATA_KEY].cast<std::string>();
 
   at::Tensor tensor;
 
   if (decode(data, handle_, state_, tensor, color_, data_format_)) {
-    input[TASK_RESULT_KEY] = tensor;
+    input[TASK_RESULT_KEY] = std::move(tensor);
     input["color"] = color_;
     input["data_format"] = data_format_;
   } else {
