@@ -31,19 +31,6 @@ class EventObj : public tf::Object {
     }
   }
 
-  uint32_t reset(uint32_t num) {
-    {
-      std::unique_lock<std::mutex> lk(mut);
-      num_task = num;
-      std::swap(num_task, num);
-    }
-
-    try_callback();
-
-    data_cond.notify_all();
-    return num;
-  }
-
   bool wait_finish(uint32_t timeout_ms) {
     std::unique_lock<std::mutex> lk(mut);
 
@@ -238,34 +225,33 @@ class EventObj : public tf::Object {
     return eptr_;
   }
 
-  void task_add(uint32_t num) {
-    std::lock_guard<std::mutex> lk(mut);
-    num_task += num;
-  }
   void try_callback() {
     bool should_try = false;
     std::vector<std::function<void(std::exception_ptr)>> excep_cb;
+    std::exception_ptr captured_eptr;
     {
       std::lock_guard<std::mutex> lk(mut);
       should_try = (ref_count >= num_task);
       std::swap(excep_cb, exception_callbacks_);
+      if (eptr_ && !excep_cb.empty()) {
+        std::swap(captured_eptr, eptr_);
+      }
     }
 
     if (should_try) {
-      if (eptr_ && !excep_cb.empty()) { // no need to lock the eptr_ now
+      if (captured_eptr && !excep_cb.empty()) {
         while (!excep_cb.empty()) {
-          excep_cb.back()(eptr_); // Execute the last callback
-          excep_cb.pop_back(); // Remove the last callback
+          excep_cb.back()(captured_eptr);
+          excep_cb.pop_back();
         }
-        eptr_ = nullptr;
       }
       while (!callbacks_.empty()) {
-        callbacks_.back()(); // Execute the last callback
-        callbacks_.pop_back(); // Remove the last callback
+        callbacks_.back()();
+        callbacks_.pop_back();
       }
       while (!latest_callbacks_.empty()) {
-        latest_callbacks_.back()(); // Execute the last callback
-        latest_callbacks_.pop_back(); // Remove the last callback
+        latest_callbacks_.back()();
+        latest_callbacks_.pop_back();
       }
     }
   }
