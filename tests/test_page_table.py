@@ -7,7 +7,7 @@ def create_initialized_page_table():
     page_size = 16
     max_num_req = 10
     max_num_page = 1000
-    page_table = omniback._C.default_page_table("")
+    page_table = omniback.default_page_table("")
     assert page_table is not None
     page_table.init(max_num_req,
                     max_num_page,

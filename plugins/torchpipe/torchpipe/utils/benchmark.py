@@ -31,17 +31,17 @@
 # # update 0.1.8 2022-07-28  直接读取jpg binary， 不在预先解码（文件名后缀需要为 ".jpg", '.JPG', '.jpeg', '.JPEG'）
 # # update 2022-09-08  增加callback， 用于接收和处理结果；此时推理函数返回类型需要是list类型；
 # #                           当 total_number <=0 时，变为只跑一遍的模式；
-# #                           图片数量过少时，不再宕机;   
-# # update 2023-01-04  增加 PRELOAD_TYPE: yes no auto;                        
-# # update 2023-04-21  重新整理成类，兼容通用自定义场景;                        
-# # update 2023-06-02  对齐文档中的新的API，兼容广义场景（API仍处于测试阶段）;                        
-# # update 2023-07-25  更改主要API为test_from_raw_file;                        
-# # update 2023-08-17  增加测试结果的返回;                        
-# # update 2023-11-09  增加gpu使用率中位数输出;                        
+# #                           图片数量过少时，不再宕机;
+# # update 2023-01-04  增加 PRELOAD_TYPE: yes no auto;
+# # update 2023-04-21  重新整理成类，兼容通用自定义场景;
+# # update 2023-06-02  对齐文档中的新的API，兼容广义场景（API仍处于测试阶段）;
+# # update 2023-07-25  更改主要API为test_from_raw_file;
+# # update 2023-08-17  增加测试结果的返回;
+# # update 2023-11-09  增加gpu使用率中位数输出;
 # # update 2024-04-24  恢复为单文件，并增加 ProcessAdaptor
 # # update 2024-05-22  使用batch_size取代request_batch参数。但保持兼容性
 # # update 2024-10-30  fix test_thrift_from_raw_file 读图过多耗时过长的问题
-# # update 2024-10-30   移除batch_size参数 
+# # update 2024-10-30   移除batch_size参数
 # """
 
 
@@ -627,7 +627,7 @@
 
 #     qps = round(total_number / total_time, 2)
 #     avg = round(1000 * num_clients / qps, 2)
-    
+
 #     print("------------------------------Summary------------------------------")
 #     print(f"tool's version:: {version}")
 #     print(f"num_clients:: {num_clients}")
@@ -716,7 +716,7 @@
 #         model(input)
 #     return test_from_raw_file(run, file_dir, num_clients, 1, 1, total_number, num_preload, recursive, ext)
 
-    
+
 # def test_from_raw_file(
 #     forward_function: Union[
 #         Callable[[List[tuple[str, bytes]]]], List[Callable[[List[tuple[str, bytes]]]]]

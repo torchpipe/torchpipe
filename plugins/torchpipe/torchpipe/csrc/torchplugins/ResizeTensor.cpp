@@ -29,32 +29,33 @@ class ResizeTensor : public BackendOne {
    * @param TASK_RESULT_KEY input[TASK_RESULT_KEY] =
    * input[TASK_DATA_KEY].cuda()
    */
-  virtual void forward(const dict& input_dict) override {
+  void forward(const dict& input_dict) override {
     auto input_tensor = dict_get<torch::Tensor>(input_dict, TASK_DATA_KEY);
-    bool is_hwc_tensor = is_hwc(input_tensor);
+    const bool is_hwc_tensor = is_hwc(input_tensor);
 
     input_tensor = img_1chw_guard(input_tensor);
     if (input_tensor.dtype() != torch::kFloat) {
       input_tensor = input_tensor.to(torch::kFloat);
     }
 
-    if (!input_tensor.is_contiguous())
+    if (!input_tensor.is_contiguous()) {
       input_tensor = input_tensor.contiguous();
+    }
 
     at::Tensor im_resize;
 
-    if (input_tensor.size(2) == resize_h_ &&
-        input_tensor.size(3) == resize_w_) {
+    if (input_tensor.size(2) == static_cast<int64_t>(resize_h_) &&
+        input_tensor.size(3) == static_cast<int64_t>(resize_w_)) {
       im_resize = input_tensor;
     } else {
       im_resize = torch::upsample_bilinear2d(
-          input_tensor, {(long)resize_h_, (long)resize_w_}, true);
+          input_tensor, {static_cast<int64_t>(resize_h_), static_cast<int64_t>(resize_w_)}, true);
     }
     if (is_hwc_tensor) {
       im_resize = im_resize.permute({0, 2, 3, 1}).squeeze(0);
     }
 
-    (*input_dict)[TASK_RESULT_KEY] = im_resize;
+    (*input_dict)[TASK_RESULT_KEY] = std::move(im_resize);
   }
 
  private:
@@ -66,21 +67,21 @@ OMNI_REGISTER(om::Backend, ResizeTensor, "ResizeTensor");
 
 class DynamicResizeTensor : public BackendOne {
  private:
-  virtual void forward(const dict& input_dict) override {
+  void forward(const dict& input_dict) override {
     auto input_tensor = dict_get<torch::Tensor>(input_dict, TASK_DATA_KEY);
-     resize_h_ =
-        dict_get<int>(input_dict, "resize_h");
-     resize_w_ = dict_get<int>(input_dict, "resize_w");
+    resize_h_ = dict_get<int>(input_dict, "resize_h");
+    resize_w_ = dict_get<int>(input_dict, "resize_w");
 
-     bool is_hwc_tensor = is_hwc(input_tensor);
+    const bool is_hwc_tensor = is_hwc(input_tensor);
 
-     input_tensor = img_1chw_guard(input_tensor);
-     if (input_tensor.dtype() != torch::kFloat) {
-       input_tensor = input_tensor.to(torch::kFloat);
+    input_tensor = img_1chw_guard(input_tensor);
+    if (input_tensor.dtype() != torch::kFloat) {
+      input_tensor = input_tensor.to(torch::kFloat);
     }
 
-    if (!input_tensor.is_contiguous())
+    if (!input_tensor.is_contiguous()) {
       input_tensor = input_tensor.contiguous();
+    }
 
     torch::Tensor im_resize;
 
@@ -95,7 +96,7 @@ class DynamicResizeTensor : public BackendOne {
       im_resize = im_resize.permute({0, 2, 3, 1}).squeeze(0);
     }
 
-    (*input_dict)[TASK_RESULT_KEY] = im_resize;
+    (*input_dict)[TASK_RESULT_KEY] = std::move(im_resize);
   }
 
  private:

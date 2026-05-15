@@ -17,13 +17,10 @@ class BackendObj : public tvm::ffi::Object {
   std::shared_ptr<Backend> data_owned;
   Backend* data;
 
-  explicit BackendObj() {
-    data_owned = std::make_shared<Backend>();
-    data = data_owned.get();
-  }
+  explicit BackendObj() : BackendObj(std::make_shared<Backend>()) {}
 
-  explicit BackendObj(std::shared_ptr<Backend> ptr) : data_owned(ptr) {
-    TVM_FFI_ICHECK(ptr) << "null BackendObj is not allowed";
+  explicit BackendObj(std::shared_ptr<Backend> ptr) : data_owned(std::move(ptr)) {
+    TVM_FFI_ICHECK(data_owned) << "null BackendObj is not allowed";
     data = data_owned.get();
   }
   explicit BackendObj(Backend* ptr) : data(ptr) {
@@ -32,7 +29,7 @@ class BackendObj : public tvm::ffi::Object {
 
   explicit BackendObj(std::unique_ptr<Backend>&& ptr)
       : data_owned(std::move(ptr)) {
-    TVM_FFI_ICHECK(data) << "null BackendObj is not allowed";
+    TVM_FFI_ICHECK(data_owned) << "null BackendObj is not allowed";
     data = data_owned.get();
   }
 
@@ -61,9 +58,9 @@ namespace refl = tvm::ffi::reflection;
 namespace {
 std::shared_ptr<Backend> pycreate(
     const std::string& class_name,
-    tvm::ffi::Optional<tvm::ffi::String> aspect_name) {
+    const tvm::ffi::Optional<tvm::ffi::String>& aspect_name) {
   auto backend =
-      std::shared_ptr<Backend>(std::move(create_backend(class_name)));
+      std::shared_ptr<Backend>(create_backend(class_name));
   if (aspect_name.has_value()) {
     register_backend(aspect_name.value(), backend);
   }
@@ -138,7 +135,7 @@ std::shared_ptr<Backend> pyinit(
     const tvm::ffi::Optional<tvm::ffi::Variant<
         DictObj*,
         tvm::ffi::Map<tvm::ffi::String, tvm::ffi::Any>>>& options,
-    tvm::ffi::Optional<tvm::ffi::String> aspect_name) {
+    const tvm::ffi::Optional<tvm::ffi::String>& aspect_name) {
   auto backend = init_backend(
       class_config,
       {params.begin(), params.end()},
@@ -161,7 +158,7 @@ std::shared_ptr<Backend> pyinit(
       }(),
       aspect_name.has_value() ? aspect_name.value() : "");
 
-  return std::move(backend);
+  return backend;
 };
 
 void backend_forward_with_dep_function(
@@ -172,40 +169,39 @@ void backend_forward_with_dep_function(
         tvm::ffi::Map<tvm::ffi::String, tvm::ffi::Any>,
         tvm::ffi::Array<tvm::ffi::Map<tvm::ffi::String, tvm::ffi::Any>>>& ios,
     tvm::ffi::Optional<BackendObj*> dep) {
-  if (auto data = ios.as<DictObj*>()) {
-    const auto& item = data.value();
+  
+  std::vector<om::dict> inputs;
+  DictObj::PyCallBackGuard guard;
 
+  auto process_dict_obj = [&](DictObj* item) {
     TVM_FFI_ICHECK(item) << "null DictObj* is not allowed";
-    DictObj::PyCallBackGuard guard(item);
-
+    guard.add(item);
     item->check_pycallback_legal();
-    if (!dep.has_value())
-      self->data->forward({item->get()});
-    else {
-      self->data->forward_with_dep({item->get()}, *(dep.value()->data));
-    }
-    item->try_invoke_and_clean_pycallback();
+    inputs.push_back(item->get());
+  };
+
+  if (auto data = ios.as<DictObj*>()) {
+    process_dict_obj(data.value());
   } else if (auto data = ios.as<tvm::ffi::Array<DictObj*>>()) {
     TVM_FFI_ICHECK(data.value().size() > 0) << "empty input is not allowed";
-    std::vector<om::dict> vec;
-    DictObj::PyCallBackGuard guard;
+    inputs.reserve(data.value().size());
     for (const auto& item : data.value()) {
-      TVM_FFI_ICHECK(item) << "null DictObj* is not allowed";
-      guard.add(item);
-      item->check_pycallback_legal();
-      vec.push_back(item->get());
+      process_dict_obj(item);
     }
-    if (!dep.has_value())
-      self->data->forward(vec);
-    else
-      self->data->forward_with_dep(vec, *(dep.value()->data));
-
-    for (const auto& item : data.value()) {
-      item->try_invoke_and_clean_pycallback();
-    }
-  } else
+  } else {
     TVM_FFI_THROW(TypeError)
         << "invalid input type for Backend.__call__. Use om.Dict or List[om.Dict].";
+  }
+
+  if (!dep.has_value()) {
+    self->data->forward(inputs);
+  } else {
+    self->data->forward_with_dep(inputs, *(dep.value()->data));
+  }
+
+  for (auto* item : guard.dict_objects_) {
+    item->try_invoke_and_clean_pycallback();
+  }
 };
 
 void backend_forward(

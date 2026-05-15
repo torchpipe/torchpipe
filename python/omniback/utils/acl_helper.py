@@ -17,7 +17,7 @@ om = ThreadSafeWrapper(om)
 '''
 # For the latest version and further usage instructions, please refer to:  https://g.hz.netease.com/deploy/helper
 
-# 20241205: 修复输入数据在cpu上无法正确处理的问题
+# 20241205: Fix issue where input data on CPU cannot be processed correctly
 
 from timeit import default_timer as timer
 import threading
@@ -41,7 +41,7 @@ def device_guard(device_id: int = 0):
     local_device_id, ret = acl.rt.get_device()
     if (ret == 0 and local_device_id == device_id):
         return
-        
+
     ret = acl.rt.set_device(device_id)
     check_ret("acl.rt.set_device()", ret)
 
@@ -49,11 +49,11 @@ def device_guard(device_id: int = 0):
 def set_device(device_id: int):
     ret = acl.rt.set_device(device_id)
     check_ret("acl.rt.set_device", ret)
-    
+
 def init_acl():
     MULTIPLE_DEVICE_MODE = os.getenv("ACL_HELPER_MULTIPLE_DEVICE_MODE", "0")
     if MULTIPLE_DEVICE_MODE == "0":
-        
+
         assert torch.npu.device_count(
         ) == 1, "Only support single NPU device, but got {torch.npu.device_count()} devices.  You must run this script in docker contaier with --device=/dev/davinciX, where X is the NPU device id that no other process occupied. You may also set ASCEND_RT_VISIBLE_DEVICES env."
 
@@ -441,9 +441,7 @@ def get_soc_version():
     return _get_soc_version()
 
 def _get_soc_version():
-    """
-    获取 soc_version，通过调用系统命令 'npu-smi info -m | grep Ascend'。
-    """
+    """Get soc_version by running system command 'npu-smi info -m | grep Ascend'."""
     try:
         result = subprocess.run(
             ["npu-smi", "info", "-m"],
@@ -464,16 +462,17 @@ def _get_soc_version():
 
 
 def onnx2om(onnx_path_or_dir: str, atc_args=''):
-    """
-    # 动态batchsize(推荐模式)
-    python3 acl_helper.py onnx2om /path/to.onnx  --atc_args="--input_shape=input:-1,3,224,224 --dynamic_batch_size=1,2,3,4,8 "
+    """Convert ONNX to OM format.
 
-     # 静态batchsize
-    python src/acl_helper.py onnx2om model/classifier.onnx 
+    Dynamic batchsize (recommended):
+    python3 acl_helper.py onnx2om /path/to.onnx --atc_args="--input_shape=input:-1,3,224,224 --dynamic_batch_size=1,2,3,4,8"
+
+    Static batchsize:
+    python src/acl_helper.py onnx2om model/classifier.onnx
     python src/acl_helper.py onnx2om model/classifier_dynamic.onnx --atc_args="--input_shape=input:1,3,224,224"
 
-    # 强制fp32 （不推荐）
-    python src/acl_helper.py onnx2om model/classifier_dynamic.onnx  --atc_args="--precision_mode force_fp32"
+    Force fp32 (not recommended):
+    python src/acl_helper.py onnx2om model/classifier_dynamic.onnx --atc_args="--precision_mode force_fp32"
     """
     onnxs = []
     if os.path.isfile(onnx_path_or_dir):

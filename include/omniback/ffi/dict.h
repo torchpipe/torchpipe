@@ -1,21 +1,12 @@
 #ifndef OMNIBACK_FFI_DICT_H__
 #define OMNIBACK_FFI_DICT_H__
 
-
-
 #include <unordered_map>
 #include <memory>
 #include <string>
 
-// #include <tvm/ffi/error.h>
-
-
-// #include <tvm/ffi/function.h>
-// #include "omniback/ffi/dict.h"
-// #include <tvm/ffi/function.h>
 #include "omniback/ffi/any_wrapper.h"
 #include <tvm/ffi/reflection/registry.h>
-// #include "tvm/ffi/extra/stl.h"
 #include <tvm/ffi/type_traits.h>
 #include <tvm/ffi/function.h>
 
@@ -26,28 +17,29 @@ namespace ffi = tvm::ffi;
 namespace refl = tvm::ffi::reflection;
 
 /*!
- * \brief 自定义字典对象，暴露给FFI
+ * \brief Custom dictionary object exposed to FFI
  */
 class DictObj : public ffi::Object {
  public:
   std::shared_ptr<std::unordered_map<std::string, om::any>> data;
   tvm::ffi::Function py_callback;
 
-  struct PyCallBackGuard{
-    PyCallBackGuard(DictObj* dict_obj){
+  struct PyCallBackGuard {
+    PyCallBackGuard(DictObj* dict_obj) {
       add(dict_obj);
     }
-    PyCallBackGuard() =default;
+    PyCallBackGuard() = default;
 
     void add(DictObj* dict_obj) {
       TVM_FFI_ICHECK(dict_obj);
       dict_objects_.push_back(dict_obj);
     }
 
-    ~PyCallBackGuard(){
-      for (const auto& dict_obj : dict_objects_)
+    ~PyCallBackGuard() {
+      for (const auto& dict_obj : dict_objects_) {
         dict_obj->clean_pycallback();
-      } 
+      }
+    }
     std::vector<DictObj*> dict_objects_;
   };
 
@@ -62,7 +54,6 @@ class DictObj : public ffi::Object {
   }
 
   void clean_pycallback() {
-
     py_callback = tvm::ffi::Function();
   }
 
@@ -90,8 +81,8 @@ class DictObj : public ffi::Object {
   }
 
   /*!
-   * \brief 获取可变map引用（懒初始化）
-   * \return map的可变引用
+   * \brief Get mutable map reference (lazy initialization)
+   * \return Mutable reference to the map
    */
   std::unordered_map<std::string, om::any>& GetMutableMap() {
     if (!data) {
@@ -101,13 +92,13 @@ class DictObj : public ffi::Object {
   }
 
   /*!
-   * \brief 获取只读map引用
-   * \return map的只读引用
+   * \brief Get read-only map reference
+   * \return Read-only reference to the map
    */
   const std::unordered_map<std::string, om::any>& GetMap() const {
     return *data;
   }
-  std::shared_ptr<std::unordered_map<std::string, om::any>> get() const{
+  std::shared_ptr<std::unordered_map<std::string, om::any>> get() const {
     return data;
   }
   operator std::shared_ptr<std::unordered_map<std::string, om::any>>() {
@@ -120,13 +111,6 @@ class DictObj : public ffi::Object {
 
 class DictRef : public tvm::ffi::ObjectRef {
  public:
-  // DictRef(const std::shared_ptr<std::unordered_map<std::string, om::any>>&data){
-  //   data_ = tvm::ffi::make_object<DictObj>(data);
-  // }
-  // operator std::shared_ptr<std::unordered_map<std::string, om::any>>(){
-  //   return data_->get();
-  // }
-
   TVM_FFI_DEFINE_OBJECT_REF_METHODS_NULLABLE(
       DictRef,
       tvm::ffi::ObjectRef,
@@ -136,18 +120,12 @@ class DictRef : public tvm::ffi::ObjectRef {
 } // namespace om::ffi
 
 namespace tvm::ffi {
-// template <>
-// inline constexpr bool use_default_type_traits_v<
-//     std::shared_ptr<std::unordered_map<std::string, om::any>>> = false;
 
-    // ObjectRefTypeTraitsBase
-    // TypeTraitsBase
 template <>
 struct TypeTraits<
     std::shared_ptr<std::unordered_map<std::string, om::any>>>
     : public TypeTraits<om::ffi::DictObj*> {
  public:
-  // static constexpr bool storage_enabled = false;
   using Self = std::shared_ptr<std::unordered_map<std::string, om::any>>;
   using DictObj = om::ffi::DictObj;
 
@@ -162,14 +140,11 @@ struct TypeTraits<
 
   TVM_FFI_INLINE static std::optional<Self> TryCastFromAnyView(const TVMFFIAny* src) {
     std::optional<om::ffi::DictObj*> re = tvm::ffi::TypeTraits<DictObj*>::TryCastFromAnyView(src);
-    if (re.has_value()){
+    if (re.has_value()) {
       return re.value()->get();
     }
-    else{
-        return std::nullopt;
-      }
-    }
-
+    return std::nullopt;
+  }
 
   TVM_FFI_INLINE static std::string TypeStr() {
     return "om::Dict";
@@ -179,5 +154,5 @@ struct TypeTraits<
   }
 };
 
-}; // namespace tvm::ffi
+} // namespace tvm::ffi
 #endif

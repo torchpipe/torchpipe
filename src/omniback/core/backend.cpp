@@ -12,18 +12,6 @@
 
 namespace om {
 
-// void Backend::get_class_name(std::string& default_name) const {
-//     auto name = OMNI_OBJECT_NAME(Backend, this);
-//     if (name == std::nullopt) {
-//         name = default_name;
-//         SPDLOG_WARN(
-//             "{}::init, it seems this instance was not created via reflection,
-//             " "using default name {}. " "Please configure its dependency via
-//             the parameter {}::dependency", default_name, default_name,
-//             default_name);
-//     } else
-//         default_name = *name;
-// }
 void HasEventForwardGuard::impl_forward(const std::vector<dict>& inputs) {
   const bool all_have_event =
       std::all_of(inputs.begin(), inputs.end(), [](const auto& item) {
@@ -95,21 +83,6 @@ void cleanup_backend() {
 
 OMNI_REGISTER(Backend, Backend, "Backend, Pass");
 
-// std::unique_ptr<Backend> init_backend(
-//     const std::string &backend_config,
-//     std::unordered_map<std::string, std::string> dst_config, const dict
-//     &kwargs, const std::string &aspect_name_str)
-// {
-//     auto main_backend = str::brackets_split(backend_config, dst_config);
-//     auto backend = std::unique_ptr<Backend>(
-//         OMNI_CREATE(Backend, main_backend, aspect_name_str));
-//     OMNI_ASSERT(backend != nullptr, "Failed to create backend " +
-//     main_backend +
-//                                         " through reflection");
-//     backend->init(dst_config, kwargs);
-//     return backend;
-// };
-
 std::unique_ptr<Backend> init_backend(
     const std::string& backend_config,
     std::unordered_map<std::string, std::string> dst_config,
@@ -134,7 +107,7 @@ std::string& current_dependency() {
 }
 } // namespace
 
-const std::string& get_current_dependency() { // 注意返回 const&
+const std::string& get_current_dependency() { // Note: returns const&
   return current_dependency();
 }
 
@@ -159,21 +132,24 @@ Backend* get_backend(const std::string& aspect_name_str) {
 #endif
 
 void Backend::safe_forward(const std::vector<dict>& input_output) {
-  size_t io_size = get_request_size(input_output);
-  if (io_size >= min() && io_size <= max()) {
+  const size_t io_size = get_request_size(input_output);
+  const uint32_t min_val = min();
+  const uint32_t max_val = max();
+  
+  if (io_size >= min_val && io_size <= max_val) {
     forward(input_output);
-  } else if (1 == max()) { // special case
+  } else if (1 == max_val) { // special case
     for (const auto& item : input_output) {
       forward({item});
     }
-  } else if (input_output.size() > max()) {
+  } else if (input_output.size() > max_val) {
     forward(
-        std::vector<dict>(input_output.begin(), input_output.begin() + max()));
+        std::vector<dict>(input_output.begin(), input_output.begin() + max_val));
     const auto& left =
-        std::vector<dict>(input_output.begin() + max(), input_output.end());
+        std::vector<dict>(input_output.begin() + max_val, input_output.end());
     if (!left.empty())
       safe_forward(left);
-  } else if (input_output.size() < min()) {
+  } else if (input_output.size() < min_val) {
     throw std::invalid_argument("input_output.size() < min()");
   }
 }
@@ -234,10 +210,11 @@ std::string get_dependency_name(
   if (!name)
     name = defualt_cls_name;
   OMNI_ASSERT(name, "this instance was not created via reflection");
-  auto iter = config.find(*name + "::dependency");
+  const std::string dep_key = *name + "::dependency";
+  auto iter = config.find(dep_key);
   OMNI_ASSERT(
       iter != config.end(),
-      *name + "::dependency" + " not found in configuration. ");
+      dep_key + " not found in configuration. ");
   return iter->second;
 }
 } // namespace backend

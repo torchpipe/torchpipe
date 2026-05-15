@@ -1,23 +1,34 @@
+// Copyright 2021-2026 NetEase.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 #include <fstream>
+#include <sstream>
 
 #include "helper/task_keys.hpp"
 #include "helper/torch.hpp"
 #include "torchplugins/GpuTensor.hpp"
 #include <tvm/ffi/error.h>
 
-using namespace om;
-
 namespace torchpipe {
 
 /**
- * @brief cpu->gpu
+ * @brief Move tensor from CPU to GPU
  */
-
 class GpuTensor : public om::BackendOne {
  public:
-  void forward(const dict& io) override {
-    auto data = dict_gets<torch::Tensor>(io, TASK_DATA_KEY);
+  void forward(const om::dict& io) override {
+    auto data = om::dict_gets<torch::Tensor>(io, TASK_DATA_KEY);
     for (auto& item : data) {
       if (item.is_cpu()) {
         item = item.cuda();
@@ -29,19 +40,14 @@ class GpuTensor : public om::BackendOne {
       (*io)[TASK_RESULT_KEY] = data;
   }
 };
-OMNI_REGISTER(Backend, GpuTensor);
+OMNI_REGISTER(om::Backend, GpuTensor);
 
 /**
- * @brief gpu->cpu
+ * @brief Move tensor from GPU to CPU
  */
-class CpuTensor : public BackendOne {
+class CpuTensor : public om::BackendOne {
  public:
-  /**
-   * @brief cpu->gpu
-   * @param TASK_RESULT_KEY input[TASK_RESULT_KEY] =
-   * input[TASK_DATA_KEY].cuda()
-   */
-  virtual void forward(const dict& io) override {
+  void forward(const om::dict& io) override {
     auto& input = *io;
 
     if (auto opt = input[TASK_DATA_KEY].try_cast<torch::Tensor>()) {
@@ -50,10 +56,8 @@ class CpuTensor : public BackendOne {
         SPDLOG_ERROR("input_tensor should be gpu tensor");
         throw std::runtime_error("input_tensor should be gpu tensor");
       }
-
       input[TASK_RESULT_KEY] = input_tensor.cpu();
-    } else if (
-        auto opt = input[TASK_DATA_KEY].try_cast<std::vector<torch::Tensor>>()) {
+    } else if (auto opt = input[TASK_DATA_KEY].try_cast<std::vector<torch::Tensor>>()) {
       std::vector<torch::Tensor> input_tensor = opt.value();
       for (auto& item : input_tensor) {
         if (item.is_cuda()) {
@@ -64,11 +68,9 @@ class CpuTensor : public BackendOne {
         }
       }
       input[TASK_RESULT_KEY] = input_tensor;
-      }
-    else {
-      TVM_FFI_THROW(TypeError)<<(
-          "CpuTensor: torch::Tensor/std::vector<torch::Tensor> needed; "
-          "error input type: " );
+    } else {
+      TVM_FFI_THROW(TypeError)
+          << "CpuTensor: torch::Tensor or std::vector<torch::Tensor> required";
     }
   }
 };
@@ -77,35 +79,37 @@ OMNI_REGISTER(om::Backend, CpuTensor, "CpuTensor");
 
 void IndexSelectTensor::impl_init(
     const std::unordered_map<std::string, std::string>& params,
-    const dict& options) {
-  parser_v2::ArgsKwargs args_kwargs =
-      parser_v2::get_args_kwargs(this, reflect_cls_name(), params);
-  OMNI_ASSERT(
-      args_kwargs.first.size() == 1,
-      "Requires exactly 1 argument. Usage: "
-      "IndexSelectTensor(weight.pt)/IndexSelectTensor::args=weight.pt");
+    const om::dict& options) {
+  auto args_kwargs = om::parser_v2::get_args_kwargs(this, reflect_cls_name(), params);
+  OMNI_ASSERT(args_kwargs.first.size() == 1,
+              "Requires exactly 1 argument. Usage: IndexSelectTensor(weight.pt)");
+  
   std::string device = "cuda";
-  str::try_update(args_kwargs.second, "device", device);
+  om::str::try_update(args_kwargs.second, "device", device);
 
   const auto& name = args_kwargs.first.at(0);
-  SPDLOG_INFO("load " + name);
-  std::ifstream file(name);
+  SPDLOG_INFO("Loading weight from: {}", name);
+  
+  std::ifstream file(name, std::ios::binary);
   if (!file.good()) {
-    throw std::invalid_argument(name + " not exists.");
+    throw std::invalid_argument(name + " does not exist.");
   }
-  file.seekg(0, file.end);
-  int length = file.tellg();
-  file.seekg(0, file.beg);
+  
+  file.seekg(0, std::ios::end);
+  const auto length = file.tellg();
+  file.seekg(0, std::ios::beg);
 
-  std::vector<char> data(length);
+  // Reserve capacity to avoid reallocations
+  std::vector<char> data;
+  data.reserve(static_cast<size_t>(length));
+  data.resize(static_cast<size_t>(length));
   file.read(data.data(), length);
 
   device_ = torch::Device(device);
-
   weight_ = torch::pickle_load(data).toTensor().to(device_);
 }
 
-void IndexSelectTensor::impl_forward(const std::vector<dict>& ios) {
+void IndexSelectTensor::impl_forward(const std::vector<om::dict>& ios) {
   for (const auto& io : ios) {
     auto input = om::dict_get<torch::Tensor>(io, TASK_DATA_KEY);
     if (device_ != input.device()) {
@@ -121,7 +125,7 @@ void IndexSelectTensor::impl_forward(const std::vector<dict>& ios) {
 }
 OMNI_REGISTER_BACKEND(IndexSelectTensor);
 
-void EmbeddingTensor::impl_forward(const std::vector<dict>& ios) {
+void EmbeddingTensor::impl_forward(const std::vector<om::dict>& ios) {
   for (const auto& io : ios) {
     auto input = om::dict_get<torch::Tensor>(io, TASK_DATA_KEY);
     if (device_ != input.device()) {
@@ -138,9 +142,9 @@ void EmbeddingTensor::impl_forward(const std::vector<dict>& ios) {
 OMNI_REGISTER_BACKEND(EmbeddingTensor);
 
 class SetTensorRequestSize : public om::Backend {
-  void impl_forward(const std::vector<dict>& ios) override {
+  void impl_forward(const std::vector<om::dict>& ios) override {
     for (const auto& io : ios) {
-      auto data = dict_gets<torch::Tensor>(io, TASK_DATA_KEY);
+      auto data = om::dict_gets<torch::Tensor>(io, TASK_DATA_KEY);
 
       const size_t req_size = data.at(0).size(0);
       SPDLOG_DEBUG(
@@ -222,20 +226,24 @@ class PrintTensor : public om::BackendOne {
   void impl_init(
       const std::unordered_map<std::string, std::string>& params,
       const om::dict& options) override {}
-  void forward(const dict& io) override {
-    auto data = dict_gets<torch::Tensor>(io, TASK_DATA_KEY);
+  void forward(const om::dict& io) override {
+    auto data = om::dict_gets<torch::Tensor>(io, TASK_DATA_KEY);
     std::string id;
-    try_update<std::string>(io, TASK_REQUEST_ID_KEY, id);
+    om::try_update<std::string>(io, om::TASK_REQUEST_ID_KEY, id);
     std::ostringstream oss;
+    std::string result;
+    result.reserve(data.size() * 100);
+
     for (size_t i = 0; i < data.size(); ++i) {
       oss << "Tensor " << i << " shape = " << data[i].sizes() << "\n";
     }
 
     for (const auto& item : data) {
       if (item.numel() > 60) {
-        auto new_view = item.view(-1); // 将张量展平
-        auto head = new_view.slice(0, 0, 5); // 取前5个元素
-        auto tail = new_view.slice(0, -5, new_view.size(0)); // 取后5个元素
+        // Use const reference to avoid copy
+        const auto new_view = item.view(-1);
+        const auto head = new_view.slice(0, 0, 5);
+        const auto tail = new_view.slice(0, -5, new_view.size(0));
         oss << "Tensor is large. Shape: " << item.sizes()
             << ". Showing head and tail:\n";
         oss << "head: " << head << "\n...\ntail: " << tail << "\n";
@@ -245,7 +253,8 @@ class PrintTensor : public om::BackendOne {
     }
     SPDLOG_WARN("PrintTensor({}): {}", id, oss.str());
 
-    io->operator[](TASK_RESULT_KEY) = io->at(TASK_DATA_KEY);
+    // Use operator[] directly with at() for consistency
+    (*io)[TASK_RESULT_KEY] = io->at(TASK_DATA_KEY);
   }
 };
 
@@ -253,40 +262,34 @@ OMNI_REGISTER_BACKEND(SetTensorRequestSize);
 // OMNI_REGISTER_BACKEND(AppendIndexSelectTensor);
 OMNI_REGISTER_BACKEND(PrintTensor);
 
+/**
+ * @brief Log GPU timestamp for profiling
+ */
 class OMNI_EXPORT LogGPUTime : public om::Backend {
  private:
+  size_t max_{std::numeric_limits<uint32_t>::max()};
+  std::string key_;
+
   void impl_init(
       const std::unordered_map<std::string, std::string>& params,
-      const dict& options) override final {
-    auto args_kwargs =
-        om::parser_v2::get_args_kwargs(this, "LogGPUTime", params);
-    OMNI_ASSERT(
-        args_kwargs.first.size() == 1,
-        "Requires exactly ==1 argument. Usage: LogGPUTime(key)/LogGPUTime::args=key_to_time");
+      const om::dict& options) override final {
+    auto args_kwargs = om::parser_v2::get_args_kwargs(this, "LogGPUTime", params);
+    OMNI_ASSERT(args_kwargs.first.size() == 1,
+                "Requires exactly 1 argument. Usage: LogGPUTime(key)");
     key_ = args_kwargs.first[0];
   }
-  void impl_forward(
-      const std::vector<om::dict>& input_output) override final {
-    // float time = get_time();
+  
+  void impl_forward(const std::vector<om::dict>& input_output) override final {
     float time = om::helper::timestamp();
     SPDLOG_INFO("timer: {} = {}", key_, time);
     for (const auto& item : input_output) {
       (*item)[TASK_RESULT_KEY] = item->at(TASK_DATA_KEY);
     }
   }
+  
   [[nodiscard]] uint32_t impl_max() const override final {
-    return max_;
+    return static_cast<uint32_t>(max_);
   }
-
- private:
-  float get_time() {
-    return static_cast<float>(
-        std::chrono::duration<double>(
-            std::chrono::system_clock::now().time_since_epoch())
-            .count());
-  }
-  size_t max_{std::numeric_limits<uint32_t>::max()};
-  std::string key_;
 };
 OMNI_REGISTER_BACKEND(LogGPUTime);
 

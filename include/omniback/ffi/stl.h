@@ -24,7 +24,7 @@ struct TypeTraits<std::pair<T1, T2>>
     if (src->type_index != TypeIndex::kTVMFFIArray)
       return false;
     const ArrayObj& arr = *reinterpret_cast<const ArrayObj*>(src->v_obj);
-    return arr.size_ == 2;
+    return arr.size() == 2;
   }
 
  public:
@@ -33,11 +33,10 @@ struct TypeTraits<std::pair<T1, T2>>
   TVM_FFI_INLINE static void CopyToAnyView(const Self& src, TVMFFIAny* result) {
     auto array = ArrayObj::Empty(2);
     auto dst = array->MutableBegin();
-    // 异常安全：逐元素构造，失败时已构造元素会被 ArrayObj 析构
     ::new (dst) Any(src.first);
-    array->size_++;
+    array->TVMFFISeqCell::size++;
     ::new (dst + 1) Any(src.second);
-    array->size_++;
+    array->TVMFFISeqCell::size++;
     MoveToAnyImpl(std::move(array), result);
   }
 
@@ -45,9 +44,9 @@ struct TypeTraits<std::pair<T1, T2>>
     auto array = ArrayObj::Empty(2);
     auto dst = array->MutableBegin();
     ::new (dst) Any(std::move(src.first));
-    array->size_++;
+    array->TVMFFISeqCell::size++;
     ::new (dst + 1) Any(std::move(src.second));
-    array->size_++;
+    array->TVMFFISeqCell::size++;
     MoveToAnyImpl(std::move(array), result);
   }
 
@@ -58,7 +57,7 @@ struct TypeTraits<std::pair<T1, T2>>
     try {
       auto array = CopyFromAnyImpl<ArrayObj>(src);
       auto begin = array->MutableBegin();
-      // 严格按顺序转换：first -> T1, second -> T2
+      // Strict order conversion: first -> T1, second -> T2
       T1 first = ConstructFromAny<T1>(begin[0]);
       T2 second = ConstructFromAny<T2>(begin[1]);
       return Self{std::move(first), std::move(second)};

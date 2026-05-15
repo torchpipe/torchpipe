@@ -1,18 +1,24 @@
 
 
-# Torchpipe
+# TorchPipe
 
-torchpipe is an alternative choice for Triton Inference Server, mainly featuring similar functionalities such as [Shared-momory](https://docs.nvidia.com/deeplearning/triton-inference-server/user-guide/docs/protocol/extension_shared_memory.html), [Ensemble](https://github.com/triton-inference-server/server/blob/main/docs/user_guide/architecture.md#ensemble-models), and [BLS](https://github.com/triton-inference-server/python_backend#business-logic-scripting) mechanism.
+[![PyPI version](https://img.shields.io/pypi/v/torchpipe.svg)](https://pypi.org/project/torchpipe/)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![Documentation](https://img.shields.io/badge/-Documentation-brightgreen)](https://torchpipe.github.io/torchpipe)
+[![Benchmark](https://img.shields.io/badge/-Benchmark-orange)](https://torchpipe.github.io/torchpipe/)
+
+TorchPipe is an alternative choice for Triton Inference Server, mainly featuring similar functionalities such as [Shared-momory](https://docs.nvidia.com/deeplearning/triton-inference-server/user-guide/docs/protocol/extension_shared_memory.html), [Ensemble](https://github.com/triton-inference-server/server/blob/main/docs/user_guide/architecture.md#ensemble-models), and [BLS](https://github.com/triton-inference-server/python_backend#business-logic-scripting) mechanism.
 
  For serving scenarios, TorchPipe is designed to support multi-instance deployment, pipeline parallelism, adaptive batching, GPU-accelerated operators, and reduced head-of-line (HOL) blocking.It acts as a bridge between lower-level acceleration libraries (e.g., TensorRT, OpenCV, CVCUDA) and RPC frameworks (e.g., Thrift). At its core, it is an engine that enables programmable scheduling.
 
-<a href="https://torchpipe.github.io/torchpipe/"><img src="https://img.shields.io/badge/-Documentation-brightgreen"/></a> <a href="https://torchpipe.github.io/torchpipe/"><img src="https://img.shields.io/badge/-Benchmark-brightgreen"/></a>
 
 
 
-## update
-- [20260123] Available on Pypi: `pip install torchpipe`
-- [20260104] We switched to [tvm_ffi](https://github.com/apache/tvm-ffi) to provide clearer C++-Python interaction.
+
+## News
+
+- **[2026-01-23]** 📦 Available on PyPI: `pip install torchpipe`
+- **[2026-01-04]** 🔧 We switched to [tvm_ffi](https://github.com/apache/tvm-ffi) to provide clearer C++-Python interaction.
 
 
 

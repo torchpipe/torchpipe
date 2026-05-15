@@ -13,7 +13,7 @@ RUN apt-get update -y && apt-get install -y vim ninja-build zip curl python3-pip
 RUN ln -s /usr/bin/python3 /usr/bin/python # && python -m pip install --upgrade pip 
 # RUN pip config set global.index-url https://mirrors.aliyun.com/pypi/simple/
 
-RUN pip --no-cache-dir install torch==2.10.0 "numpy<2" torchvision &&\
+RUN pip --no-cache-dir install torch==2.10.0 torchvision &&\
     rm -rf /root/.cache/
 # --index-url https://download.pytorch.org/whl/cu126 
 

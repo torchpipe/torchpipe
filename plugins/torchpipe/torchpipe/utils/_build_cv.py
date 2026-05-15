@@ -126,9 +126,9 @@ def get_cv_include_lib_dir():
     # from cache
     OPENCV_INCLUDE = OPENCV_LIB = None
     cache_header = os.path.join(get_cache_dir(), f"opencv/abiflag{abiflag}/include/opencv4/")
-    cache_lib = os.path.join(get_cache_dir(), "opencv/abiflag{abiflag}/lib/")
+    cache_lib = os.path.join(get_cache_dir(), f"opencv/abiflag{abiflag}/lib/")
     possible_header_dirs = [cache_header]
-    possible_lib_dirs = [cache_lib] +[os.path.join(get_cache_dir(), "opencv/abiflag{abiflag}/lib64/")]
+    possible_lib_dirs = [cache_lib] +[os.path.join(get_cache_dir(), f"opencv/abiflag{abiflag}/lib64/")]
     for item in possible_header_dirs:
         if os.path.exists(os.path.join(item, "opencv2/core.hpp")):
             OPENCV_INCLUDE = item
@@ -305,6 +305,9 @@ def cache_cv_dir():
 
 
 def _build_cv(csrc_dir, skip_download=True):
+    if os.environ.get("TORCHPIPE_SKIP_OPENCV", "0") == "1":
+        logger.info("TORCHPIPE_SKIP_OPENCV is set, skipping OpenCV build")
+        return
     # python -m omniback.utils.build_lib --no-torch --source-dirs csrc/mat_torch/ --include-dirs csrc/ /usr/local/include/opencv4/ --ldflags "-lopencv_core -lopencv_imgproc -lopencv_imgcodecs" --name torchpipe_opencv
     if skip_download and need_download_for_jit():
         FORCE_DOWNLOAD_OPENCV = os.environ.get("FORCE_DOWNLOAD_OPENCV", "0")
@@ -316,7 +319,8 @@ def _build_cv(csrc_dir, skip_download=True):
                 "\n"
                 "To proceed, please either:\n"
                 "  - Set OPENCV_INCLUDE (e.g., /path/to/OPENCV/include/opencv4/) and OPENCV_LIB (e.g., /path/to/OPENCV/lib), or\n"
-                f"  - Set FORCE_DOWNLOAD_OPENCV=1 to enable automatic download of OPENCV {OPENCV_VERSION}."
+                f"  - Set FORCE_DOWNLOAD_OPENCV=1 to enable automatic download of OPENCV {OPENCV_VERSION},\n"
+                "  - Set TORCHPIPE_SKIP_OPENCV=1 to skip OpenCV support entirely."
             )
             return
 

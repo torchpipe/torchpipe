@@ -65,7 +65,7 @@ def test_resnet50_classification():
     # Initialize test utilities and model
     tester = helper.ClassifyModelTester('resnet50', onnx_path)
     assert os.path.exists(onnx_path), f"Model not found: {onnx_path}"
-    omniback_model = Torch2Trt(onnx_path, 'config/resnet50.toml')
+    omniback_model = Torch2Trt(onnx_path, os.path.dirname(__file__)+'/config/resnet50.toml')
     
     # Run test
     tester.test(omniback_model)

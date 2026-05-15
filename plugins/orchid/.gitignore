@@ -1,0 +1,44 @@
+# Python caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Editable install / packaging
+*.egg-info/
+.eggs/
+build/
+dist/
+pip-wheel-metadata/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Local logs and temp files
+*.log
+*.out
+*.tmp
+*.temp
+core.*
+
+# Native build leftovers under source tree
+src/orchid/llmscheduler/plugins/csrc/*.so
+src/orchid/llmscheduler/plugins/csrc/*.dylib
+src/orchid/llmscheduler/plugins/csrc/*.dll
+src/orchid/llmscheduler/plugins/csrc/*.o
+src/orchid/llmscheduler/plugins/csrc/*.a
+
+# Local benchmark / test outputs, including EvalScope outputs and compare reports
+benchmarks/artifacts/*
+!benchmarks/artifacts/.gitignore
+tests/artifacts/*
+!tests/artifacts/.gitignore
+!tests/artifacts/perf_matrix_smoke.csv
+
+# OS / IDE
+.DS_Store
+.idea/
+.vscode/

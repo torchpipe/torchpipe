@@ -30,18 +30,6 @@ def get_includes() -> str:  # noqa: ARG001
         DIR, "./"),  os.path.join(DIR, "../3rdparty/spdlog/include/")]
     re += [os.path.join(DIR, "../")]
     return re
-    source_path = os.path.join(os.path.dirname(DIR), "include")
-    in_directories.append(installed_path if os.path.exists(
-        installed_path) else source_path)
-
-    curr = os.path.join(DIR, "../")
-    assert os.path.exists(os.path.join(curr, "omniback", "csrc")), curr
-    in_directories.append(curr)
-
-    third = os.path.join(curr, "./3rdparty/spdlog/include/")
-    assert os.path.exists(third)
-    in_directories.append(third)
-    return in_directories
 
 
 def get_library_dir() -> str:  # noqa: ARG001

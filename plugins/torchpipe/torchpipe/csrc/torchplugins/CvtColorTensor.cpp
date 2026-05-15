@@ -25,7 +25,8 @@ void CvtColorTensor::forward(const dict& input_dict) {
   auto src_color = input_dict->find(TASK_COLOR_KEY);
   OMNI_ASSERT(src_color != input_dict->end(), "input dict must contain color");
 
-  std::string input_color = any_cast<std::string>(src_color->second);
+  // Use const reference to avoid string copy
+  const std::string& input_color = any_cast<std::string>(src_color->second);
 
   if (input_color == color_) {
     (*input_dict)[TASK_RESULT_KEY] = (*input_dict)[TASK_DATA_KEY];

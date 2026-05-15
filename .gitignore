@@ -1,46 +1,297 @@
-.vscode
-build/
-omniback*.egg-info/
-dist/
-v0
+# =============================================================================
+# TorchPipe .gitignore - Optimized for C++/Python projects
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Python
+# -----------------------------------------------------------------------------
 __pycache__/
-lib*.so
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+*.egg
+*.so
 *.cpython*.so
-core
-!core.*
-!core/
-.tox
-version.py
-omniback/version.py
-.setuptools-cmake-build/
-version.py
-plugins/torchpipe/torchpipe/native.so
-wheelhouse/
+*.whl
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
 .eggs/
-VERSION.txt
-*.trt
-log.txt
-.trunk
-*.swp
-omniback/_build_info.py
-ali/
-plugins/torchpipe/examples/yolo/dog_result.jpg
-.trunk/
-tmp.md
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.nox/
+htmlcov/
+.coverage
+.coverage.*
+.coveragerc
+coverage.xml
+*.cover
+*.log
+.gitmailmap
 
-plugins/torchpipe/exp/exp2/tmp.txt
-plugins/torchpipe/exp/exp2batch/tmp.txt
-plugins/torchpipe/exp/model_parameters
-tmp.py
-*.onnx
-*.onnx.data
-omniback/_version.py
-site/
-_version.py
-opencv*.zip
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+.venv*
 
+# IPython
+*.ipynb_checkpoints
+ipython_config.py
+profile_default/
+
+# Jupyter
+.ipynb
+.ipynb_checkpoints
+*.widget*.js
+
+# -----------------------------------------------------------------------------
+# Build Directories
+# -----------------------------------------------------------------------------
+build/
 build_cxx11/
 build_cxx03/
-omniback/lib/
+build_test/
+build_backend/
+build_temp/
+.wheelhouse/
+eggs/
+.cmake/
+cmake-build-*/
+cmake_*
+CMakeCache.txt
+CMakeFiles/
+CMakeScripts/
+cmake_install.cmake
+install_manifest.txt
+Makefile
+*.cmake
+!cmake/**
+*.ninja
+!ninja/**
+CTestTestfile.cmake
+_deps/
+
+# scikit-build
+.skbuild/
+*.egg-info/
+setup.py
+
+# -----------------------------------------------------------------------------
+# IDE
+# -----------------------------------------------------------------------------
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+.project
+.classpath
+.settings/
+*.sublime-*
+.vim/
+*.bak
+*.orig
+
+# Eclipse
+.classpath
+.project
+.settings/
+.externalToolBuilders/
+
+# Visual Studio
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.rsuser
+*.opensdf
+*.sdf
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+*.vspscc
+*.vssscc
+.vs/
+ipch/
+*.obj
+*.exe
+*.pdb
+*.lib
+*.log
+x64/
+x86/
+Win32/
+Debug/
+Release/
+ReleaseMinRel/
+RelWithDebInfo/
+
+# CLion
+*.iws
+.idea/
+
+# Qt
+*.pro
+*.pri
+
+# -----------------------------------------------------------------------------
+# Version Control
+# -----------------------------------------------------------------------------
+.git-blame-ignore-revs
+
+# -----------------------------------------------------------------------------
+# TorchPipe Specific
+# -----------------------------------------------------------------------------
+# Build outputs
+libomniback*.so
+libtorchpipe*.so
+*.dylib
+*.dll
+!plugins/torchpipe/torchpipe/lib/
+
+# Cache directories
+.cache/
+*.cache
+torchpipe_cache/
+.omniback_cache/
+
+# Compiled extensions
+*.pyi
+!python/**/*.pyi
+!plugins/torchpipe/**/*.pyi
+
+# Test outputs
+test_results/
+benchmark_results/
+*.trt
+*.onnx
+*.onnx.data
+
+# Experiment and debug outputs
+plugins/torchpipe/exp/
+plugins/torchpipe/examples/*/output/
+plugins/torchpipe/examples/*/runs/
+plugins/torchpipe/examples/*/logs/
+plugins/torchpipe/examples/*/predictions/
+plugins/torchpipe/examples/*/checkpoints/
+plugins/torchpipe/examples/*/*.jpg
+plugins/torchpipe/examples/*/*.png
+plugins/torchpipe/examples/*/*.mp4
+plugins/torchpipe/examples/yolo/dog_result.jpg
+
+# TorchPipe config overrides (local only)
+group-*.toml
+!tests/config/*.toml
+!plugins/torchpipe/tests/config/*.toml
+!plugins/torchpipe/group-torchpipe.toml
+
+# -----------------------------------------------------------------------------
+# Logs
+# -----------------------------------------------------------------------------
+*.log
+log.txt
+logs/
+*.out
+stdout.*
+stderr.*
+
+# -----------------------------------------------------------------------------
+# Temporary Files
+# -----------------------------------------------------------------------------
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+\#*
+.\#*
+tmp/
+tmp.py
+tmp.md
+temp/
+temp_*
+*.lock
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+bun.lockb
+
+# -----------------------------------------------------------------------------
+# OS Specific
+# -----------------------------------------------------------------------------
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+
+# -----------------------------------------------------------------------------
+# Third-party Build Artifacts
+# -----------------------------------------------------------------------------
+3rdparty/*/build/
+3rdparty/*/dist/
+3rdparty/*/*.a
+3rdparty/*/*.lib
+
+# -----------------------------------------------------------------------------
+# Documentation Build
+# -----------------------------------------------------------------------------
+docs/_build/
+docs/.doctrees/
+site/
+*.pdf
+
+# -----------------------------------------------------------------------------
+# CUDA / GPU
+# -----------------------------------------------------------------------------
+*.cup
+*.cubin
+*.cudnn*
+*.fatbin
+*.ptx
+
+# -----------------------------------------------------------------------------
+# Docker
+# -----------------------------------------------------------------------------
+.dockerignore
+
+# -----------------------------------------------------------------------------
+# Environment
+# -----------------------------------------------------------------------------
+.env
+.env.local
+.env.*.local
+*.env
+
+# -----------------------------------------------------------------------------
+# Misc
+# -----------------------------------------------------------------------------
+.trae/
+.github/stale.yml
+VERSION.txt
+version.py
+_version.py
+omniback/version.py
+omniback/_version.py
+omniback/_build_info.py
+core
+core.*
+!core/
+!core.*
+site/
 libs/
+ali/
+opencv*.zip

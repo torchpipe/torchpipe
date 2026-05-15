@@ -4,7 +4,7 @@ from typing import List
 import omniback
 import time
 
-        
+
 class PY:
     def __init__(self, *args, **kwargs) -> None:
         self.data = {"1,2": 3}
@@ -15,6 +15,5 @@ class PY:
         inout[0]['result'] = inout[0]['data']
 
 
- 
 if __name__ == "__main__":
     omniback.register('py', PY)

@@ -9,17 +9,13 @@ namespace torchpipe {
 
 namespace {
 
-cv::Mat cpu_decode(std::string data) {
-  std::vector<char> vectordata(data.begin(), data.end());
-
-  // Check if the data is a JPEG file
-  // if (vectordata.size() < 2 || vectordata[0] != char(0xFF) ||
-  //     vectordata[1] != char(0xD8)) {
-  //     SPDLOG_ERROR("The data is not a valid JPEG file.");
-  //     return cv::Mat();
-  // }
-
-  return cv::imdecode(cv::Mat(vectordata), cv::IMREAD_COLOR);
+cv::Mat cpu_decode(const std::string& data) {
+  // Avoid copying data by using cv::Mat with const_cast (imdecode doesn't modify data)
+  // cv::Mat signature: Mat(int rows, int cols, int type, void* data, size_t step = AUTO_STEP)
+  // For decoding, we create a 1-row Mat with the data
+  cv::Mat data_mat(1, static_cast<int>(data.size()), CV_8UC1, 
+                   const_cast<void*>(static_cast<const void*>(data.data())));
+  return cv::imdecode(data_mat, cv::IMREAD_COLOR);
 }
 } // namespace
 void DecodeMat::impl_init(
@@ -35,7 +31,7 @@ void DecodeMat::impl_init(
 void DecodeMat::forward(const om::dict& input_dict) {
   auto& input = *input_dict;
 
-  std::string data = input.at(TASK_DATA_KEY).cast<std::string>();
+  const std::string& data = input.at(TASK_DATA_KEY).cast<std::string>();
  
   auto tensor = cpu_decode(data); // tensor type is Mat
   if (tensor.channels() != 3) {

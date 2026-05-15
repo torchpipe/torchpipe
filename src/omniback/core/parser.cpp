@@ -1,6 +1,5 @@
 #include <queue>
 #include <stdexcept>
-// #include <algorithm>
 #include <stack>
 
 #include "omniback/core/backend.hpp"

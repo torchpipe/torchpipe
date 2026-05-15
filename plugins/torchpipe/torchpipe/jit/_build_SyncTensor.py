@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 
-
 import argparse
 import os
 import shutil
@@ -29,23 +28,23 @@ omniback.ffi.partial_register("SyncTensor", grp, 0)
 
 @tvm_ffi.register_global_func(f"{grp}.SyncTensor.init")
 def SyncTensor_init(self: om.Dict, params: dict[str, str], options: om.Dict):
-    print("SyncTensor_init",self,  params, options)
-    # get_current_dependency 
+    print("SyncTensor_init", self,  params, options)
+    # get_current_dependency
     if torch.cuda.current_stream() != torch.cuda.default_stream():
-        return 
-    
+        return
+
     context = tvm_ffi.use_torch_stream(torch.cuda.stream(torch.cuda.Stream()))
     context.__enter__()
-    self["context"] = context 
-    
+    self["context"] = context
+
 # @tvm_ffi.register_global_func(f"{grp}.SyncTensor.forward")
 # def SyncTensor_forward(self: om.Dict, ios: list(om.Dict)):
 #     print("SyncTensor_forward",self,  params, options)
 #     if torch.cuda.current_stream() != torch.cuda.default_stream():
-#         return 
-    
+#         return
+
 #     context = tvm_ffi.use_torch_stream(torch.cuda.stream(torch.cuda.Stream()))
 #     context.__enter__()
-#     self["context"] = context 
-    
+#     self["context"] = context
+
 print("SyncTensor register")

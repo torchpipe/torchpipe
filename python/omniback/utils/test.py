@@ -4,7 +4,7 @@
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#  http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -12,58 +12,52 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# throughput and lantecy test
+"""Performance and latency testing tools for omniback.
+
+Version: 20251217
+
+Update history:
+- 0.0.1 2022-03-15: Initial version
+- 0.1.1 2022-03-16: Add multiple requests per call
+- 0.1.2 2022-03-18: Fix avg time calculation for batch requests
+- 0.1.3 2022-03-18: Random data selection for each request
+- 0.1.4 2022-03-18: Documentation and typo fixes
+- 0.1.5 2022-03-24: Add MEAN metric
+- 0.1.6 2022-05-26: Add CPU and memory usage monitoring
+- 0.1.7 2022-06-17: Support custom pid, fix batch_size>1
+- 0.1.8 2022-07-28: Direct jpg binary reading
+- 2022-09-08: Add callback support
+- 2023-01-04: Add PRELOAD_TYPE option
+- 2023-04-21: Refactor to class-based design
+- 2023-06-02: Align with new API (beta)
+- 2023-07-25: Change main API to test_from_raw_file
+- 2023-08-17: Add result return
+- 2023-11-09: Add GPU usage monitoring
+- 2024-04-24: Restore single file, add ProcessAdaptor
+- 2024-05-22: Replace request_batch with batch_size
+- 2024-10-30: Fix test_thrift_from_raw_file performance
+- 2024-10-30: Remove batch_size parameter
+- 2025-04-29: Remove num_preload parameter
+- 2026-01-18: Remove top-level numpy dependency
+"""
+
 from __future__ import annotations
 from collections import namedtuple
-from typing import List, Tuple
+from typing import List, Tuple, Union, Callable, Any
 import math
-from typing import List, Union, Callable, Tuple, Any
 import threading
 import os
 import random
 import sys
 from timeit import default_timer as timer
 
+
 version = "20251217"
-
-"""! @package test-tools
-# update 0.0.1 2022-03-15 整理出基础版本。 nan
-# update 0.1.1 2022-03-16 增加一次发送多个请求。 by nan
-# update 0.1.2 2022-03-18 在一次发送多个请求的情况下修复avg 时间的计算。 by nan
-# update 0.1.3 2022-03-18 在一次发送多个请求的情况每个数据都随机。 by nan
-# update 0.1.4 2022-03-18 文档， typo. by nan
-# update 0.1.5 2022-03-24 整理文档，格式调整， typo, 增加MEAN. 实际上MEAN～=avg，
-#                         但是少了数据选取（choice）和结果打印等时间, 根据avg和MEAN的值的差距推断，这部分影响在千分之三以内；
-#                         可以限制最长边大小，需要手动取消# img=pre_resize(img) 的注释  by nan
-# update 0.1.6 2022-05-26 增加输出当前进程cpu使用情况和内存使用情况中位数  by nan
-# update 0.1.7 2022-06-17 可设置pid；pid不存在时提示并退出；cpu利用率过小时，不显示结果（大概率匹配到错误的进程）fix batch_size>1   by nan wlc
-# update 0.1.8 2022-07-28  直接读取jpg binary， 不在预先解码（文件名后缀需要为 ".jpg", '.JPG', '.jpeg', '.JPEG'）
-# update 2022-09-08  增加callback， 用于接收和处理结果；此时推理函数返回类型需要是list类型；
-#                           当 total_number <=0 时，变为只跑一遍的模式；
-#                           图片数量过少时，不再宕机;   
-# update 2023-01-04  增加 PRELOAD_TYPE: yes no auto;                        
-# update 2023-04-21  重新整理成类，兼容通用自定义场景;                        
-# update 2023-06-02  对齐文档中的新的API，兼容广义场景（API仍处于测试阶段）;                        
-# update 2023-07-25  更改主要API为test_from_raw_file;                        
-# update 2023-08-17  增加测试结果的返回;                        
-# update 2023-11-09  增加gpu使用率中位数输出;                        
-# update 2024-04-24  恢复为单文件，并增加 ProcessAdaptor
-# update 2024-05-22  使用batch_size取代request_batch参数。但保持兼容性
-# update 2024-10-30  fix test_thrift_from_raw_file 读图过多耗时过长的问题
-# update 2024-10-30   移除batch_size参数 
-# update 2025-04-29   移除 num_preload 参数 
-# update 2026-01-18   移除 顶层 numpy 依赖
-
-"""
-
-
-# from curses import flash
-
-
-# import cv2
 
 
 class Sampler:
+    """Base class for data sampling."""
+
     def __init__(self):
         pass
 
@@ -75,6 +69,8 @@ class Sampler:
 
 
 class RandomSampler(Sampler):
+    """Random sampling from data source."""
+
     def __init__(self, data_source: List, batch_size=1):
         super().__init__()
         self.data_source = data_source
@@ -98,6 +94,8 @@ class RandomSampler(Sampler):
 
 
 class SequentialSampler(Sampler):
+    """Sequential sampling from data source."""
+
     def __init__(self, data: List, batch_size=1):
         super().__init__()
         self.data = data
@@ -116,6 +114,8 @@ class SequentialSampler(Sampler):
 
 
 class LoopSampler(Sampler):
+    """Looping sampling from data source."""
+
     def __init__(self, data: List, batch_size=1):
         super().__init__()
         self.data = data
@@ -138,6 +138,8 @@ class LoopSampler(Sampler):
 
 
 class FileSampler(LoopSampler):
+    """File-based sampling with raw bytes."""
+
     def __init__(self, data: List, batch_size=1):
         super().__init__(data, batch_size)
         self.local_result = {}
@@ -154,6 +156,8 @@ class FileSampler(LoopSampler):
 
 
 class Identity:
+    """Identity transform for testing."""
+
     def __init__(self, request_batch):
         self.request_batch = request_batch
 
@@ -167,11 +171,22 @@ class Identity:
 def preload(
     file_dir, recursive=True, ext=[".jpg", ".JPG", ".jpeg", ".JPEG"]
 ) -> List[Tuple[str, bytes]]:
+    """Preload image files from directory.
+
+    Args:
+        file_dir: Directory to scan
+        recursive: Whether to scan recursively
+        ext: File extensions to include
+
+    Returns:
+        List of (file_path, bytes) tuples
+    """
     if not os.path.exists(file_dir):
         raise RuntimeError(file_dir + " not exists")
 
     list_images = []
     result = []
+
     if recursive:
         for root, folders, filenames in os.walk(file_dir):
             for filename in filenames:
@@ -184,32 +199,38 @@ def preload(
         list_images = [os.path.join(file_dir, x) for x in list_images]
 
     for file_path in list_images:
-
         result.append(file_path)
 
     if len(result) == 0:
-        raise RuntimeError("find no vaild files. ext = " + ext)
+        raise RuntimeError("find no valid files. ext = " + ext)
 
     return result
 
 
 class TestParams:
+    """Shared test parameters with thread-safe state."""
+
     def __init__(self, total_number, num_clients) -> None:
         self.lock = threading.Lock()
         self.result = {}
         self.finish_condition = threading.Condition()
 
         assert total_number >= 0
+
         self.total_number = total_number
         self.num_clients = num_clients
 
 
 class LocalResult:
+    """Local result storage for each thread."""
+
     def __init__(self) -> None:
         self.latency = []
 
 
 class InferThreadData(threading.Thread):
+    """Inference thread for performance testing."""
+
     def __init__(self, index, test_params: TestParams, forward_class: Sampler) -> None:
         threading.Thread.__init__(self, name=str(index))
         self.params = test_params
@@ -221,7 +242,7 @@ class InferThreadData(threading.Thread):
 
         self.start_index = 0
         self.should_stop = False
-        self.update_local_data()  # keep this
+        self.update_local_data()
         self.local_result = LocalResult()
 
     def update_local_data(self):
@@ -238,11 +259,10 @@ class InferThreadData(threading.Thread):
             else:
                 self.params.total_number -= self.batch_size
                 self.start_index = 0
-            # print(f'{self.params.total_number}, {self.batch_size}')
 
     def onFinish(self):
         self.local_result.end_time = timer()
-        # while True:
+
         should_wait = False
         with self.params.lock:
             self.params.num_clients -= 1
@@ -277,17 +297,13 @@ class InferThreadData(threading.Thread):
 
             os._exit(-1)
 
-        # self.forward_class.onFinish()
-
     def forward(self, start_index):
         start = timer()
 
-        # print(f'self.forward_class={self.forward_class}')
         self.forward_class(start_index)
 
         result_time = timer() - start
         self.local_result.latency.append((result_time, self.batch_size))
-        # return num_batch
 
     def __del__(self):
         pass
@@ -298,17 +314,17 @@ class InferThreadData(threading.Thread):
 
 
 class GpuInfo(object):
+    """GPU monitoring using pynvml."""
+
     def __init__(self, pid):
-        # 初始化
-        # nvml_lib = CDLL("/usr/lib/x86_64-linux-gnu/libnvidia-ml.so.1")
-        import pynvml  # pip install  py3nvml # nvidia-ml-py3 pynvml
+        import pynvml
 
         self.pynvml = pynvml
         pynvml.nvmlInit()
 
-        self.need_record_index = -1  # 需要记录的进程PID
+        self.need_record_index = -1
 
-        gpuDeviceCount = pynvml.nvmlDeviceGetCount()  # 获取Nvidia GPU块数
+        gpuDeviceCount = pynvml.nvmlDeviceGetCount()
         i = -1
 
         CUDA_VISIBLE_DEVICES = os.environ.get(
@@ -358,13 +374,12 @@ class GpuInfo(object):
         return gpu_info
 
     def __del__(self):
-        # 最后要关闭管理工具
         pass
-        # self.pynvml.nvmlShutdown()
 
 
-# note 如果待测试函数有返回值，比如cuda上的tensor，有一定概率会copy到cpu并打印出来（初始概率下约打印10次，后续如果打印对象太大，则相应递减概率，但通常对性能影响小于千分之三
 class ResourceThread(threading.Thread):
+    """Resource monitoring thread."""
+
     def __init__(self, pid, result_list, my_event):
         if pid == 0:
             pid = os.getpid()
@@ -373,7 +388,6 @@ class ResourceThread(threading.Thread):
         threading.Thread.__init__(self, name="ResourceThread:" + str(pid))
         import psutil
 
-        # self.p = psutil.Process(pid)
         try:
             self.p = psutil.Process(pid)
         except:
@@ -381,15 +395,12 @@ class ResourceThread(threading.Thread):
             exit(0)
         print(
             f"Resource Monitor started: found {self.p.num_threads()} threads")
-        # print(psutil.pids())
-        # 'username',, 'status'
+
         for proc in psutil.process_iter(["pid", "exe", "cmdline"]):
-            # if (proc.info["name"] in ["top", "cpptools-srv", "bash", "node", "cpptools", "sshd"]):
             if pid != proc.info["pid"]:
                 continue
             print(proc.info)
-        # import time
-        # time.sleep(22)
+
         self.result_list = result_list
         self.my_event = my_event
 
@@ -425,6 +436,15 @@ class ResourceThread(threading.Thread):
 
 
 def test(sample: Union[Sampler, List[Sampler]], total_number=10000):
+    """Run performance test with given sampler(s).
+
+    Args:
+        sample: Single sampler or list of samplers
+        total_number: Total number of requests
+
+    Returns:
+        Test result dict
+    """
     import numpy as np
     if isinstance(sample, list):
         num_clients = len(sample)
@@ -449,7 +469,6 @@ def test(sample: Union[Sampler, List[Sampler]], total_number=10000):
         for thread_ in instance_threads:
             t.submit(thread_.warmup, warm_up_num)
 
-    # torch.cuda.synchronize()
     print("Warm-up finished", flush=True)
 
     resource_result = []
@@ -562,11 +581,10 @@ def test(sample: Union[Sampler, List[Sampler]], total_number=10000):
 
     data = []
     if False:
-        # x.field_names = ["Project",  "Value"]
+        x.field_names = ["Project", "Value"]
         data.append(["tool's version", version])
         data.append(["num_clients", num_clients])
         data.append(["total_number", total_number])
-
         data.append(["throughput::qps", qps])
         data.append(["throughput::avg", f"{avg}"])
         data.append(["latency::TP50", f"{tp50}"])
@@ -574,7 +592,8 @@ def test(sample: Union[Sampler, List[Sampler]], total_number=10000):
         data.append(["latency::TP99", f"{tp99}"])
         data.append(["latency::avg", mean])
         data.append(
-            ["-50,-40,-20,-10,-1", f"{tp_5},{tp_4},{tp_3},{tp_2},{tp_1}"])
+            ["-50,-40,-20,-10,-1", f"{tp_5},{tp_4},{tp_3},{tp_2},{tp_1}"]
+        )
         try:
             from prettytable import PrettyTable
             import prettytable
@@ -591,7 +610,6 @@ def test(sample: Union[Sampler, List[Sampler]], total_number=10000):
     result["tool's version"] = version
     result["num_clients"] = num_clients
     result["total_number"] = total_number
-
     result["throughput::qps"] = qps
     result["throughput::avg"] = avg
     result["latency::TP50"] = tp50
@@ -599,7 +617,7 @@ def test(sample: Union[Sampler, List[Sampler]], total_number=10000):
     result["latency::TP99"] = tp99
     result["latency::avg"] = mean
     result["-50"] = tp_5
-    result["-50"] = tp_4
+    result["-40"] = tp_4
     result["-20"] = tp_3
     result["-10"] = tp_2
     result["-1"] = tp_1
@@ -608,12 +626,23 @@ def test(sample: Union[Sampler, List[Sampler]], total_number=10000):
     return result
 
 
-def test_from_ids(forward_function: Union[
-        Callable[[List[int]]], List[Callable[[List[int]]]]
+def test_from_ids(
+    forward_function: Union[
+        Callable[[List[int]], List[Callable[[List[int]]]]]
     ],
     ids: List[int],
-        request_batch=1):
+    request_batch=1
+):
+    """Test with pre-defined IDs.
 
+    Args:
+        forward_function: Function or list of functions
+        ids: List of IDs
+        request_batch: Batch size
+
+    Returns:
+        Test result dict
+    """
     assert isinstance(forward_function, list)
     assert len(ids) > 0
     assert isinstance(ids[0], int)
@@ -630,8 +659,8 @@ def test_from_ids(forward_function: Union[
 
 def test_from_raw_file(
     forward_function: Union[
-        Callable[[List[tuple[str, bytes]]]
-                 ], List[Callable[[List[tuple[str, bytes]]]]]
+        Callable[[List[tuple[str, bytes]]],
+                 List[Callable[[List[tuple[str, bytes]]]]]]
     ],
     file_dir: str,
     num_clients=10,
@@ -640,9 +669,19 @@ def test_from_raw_file(
     recursive=True,
     ext=[".jpg", ".JPG", ".jpeg", ".JPEG"],
 ):
-    """
-    This function is used to test the performance of a function.
-    It can be used to test the performance of a function that processes a single image, or a function that processes a batch of images.
+    """Test performance with raw file data.
+
+    Args:
+        forward_function: Function or list of functions
+        file_dir: Directory containing images
+        num_clients: Number of concurrent clients
+        request_batch: Batch size
+        total_number: Total number of requests
+        recursive: Scan directory recursively
+        ext: File extensions to include
+
+    Returns:
+        Test result dict
     """
     data = preload(
         file_dir=file_dir, recursive=recursive, ext=ext
@@ -674,15 +713,17 @@ def test_function(
     request_batch=1,
     total_number=10000,
 ):
-    """
-    This function is used to test the performance of a function.
-    :param forward_function: a function or a list of functions.
-    :param num_clients: number of clients.
-    :param batch_size: batch size.
-    :param total_number: total number of data.
-    :return: None
-    """
+    """Test performance with a simple function.
 
+    Args:
+        forward_function: Function or list of functions
+        num_clients: Number of concurrent clients
+        request_batch: Batch size
+        total_number: Total number of requests
+
+    Returns:
+        Test result dict
+    """
     class FunctionSampler:
         def __init__(self, function, batchsize) -> None:
             self.function = function
@@ -698,6 +739,7 @@ def test_function(
         assert len(forward_function) == num_clients
     else:
         forward_function = [forward_function] * num_clients
+
     forwards = [
         FunctionSampler(forward_function[i], request_batch) for i in range(num_clients)
     ]
@@ -705,19 +747,18 @@ def test_function(
 
 
 def example_mutil_clients_speed_test(file_dir, port, num_clients=10, total_number=5000, host="127.0.0.1"):
+    """Multi-client speed test example (thrift-based)."""
+
     class Client:
-        """wrapper for thrift's python API. You may need to re-implement this class."""
+        """Wrapper for thrift's python API."""
 
         def __init__(self, host, port, request_batch, id2data) -> None:
             """
-            :param host: ip
-            :type host: str
-            :param port: port
-            :type port: int
-            :param request_batch: size of sended data in batches.
-            :type request_batch: int
+            Args:
+                host: IP address
+                port: Port number
+                request_batch: Size of sent data in batches
             """
-            # example thrift service:
             import sys
             sys.path.append("src")
             from serve import InferenceService
@@ -736,15 +777,13 @@ def example_mutil_clients_speed_test(file_dir, port, num_clients=10, total_numbe
 
             self.client = InferenceService.Client(self.protocol)
 
-            # Connect!
             self.transport.open()
             self.client.ping()
             self.request_batch = request_batch
             self.id2data = id2data
 
         def forward(self, ids: List[int]):
-            """batch processing
-            """
+            """Batch processing."""
             assert len(ids) == 1, "right now only support bs = 1"
 
             ids[0] = self.id2data[ids[0]]
@@ -755,20 +794,19 @@ def example_mutil_clients_speed_test(file_dir, port, num_clients=10, total_numbe
         def __del__(self):
             self.transport.close()
 
-    # prepare_data
     ext = [".jpg", ".JPG", ".jpeg", ".JPEG"]
     list_images = [
         x for x in os.listdir(file_dir) if os.path.splitext(x)[-1] in ext
     ]
     list_images = [os.path.join(file_dir, x) for x in list_images]
     if len(list_images) > 1000:
-        # not enough memory. todo cal mem online
         list_images = list_images[:1000]
     id2data = {}
     for i in range(len(list_images)):
         with open(list_images[i], 'rb') as f:
             id2data[i] = (list_images[i], f.read())
     print(f'{len(id2data)} file readed')
+
     ids = list(range(len(list_images)))
     repeats = math.ceil(total_number / len(ids))
     ids = (ids * repeats)[:total_number]
@@ -777,10 +815,13 @@ def example_mutil_clients_speed_test(file_dir, port, num_clients=10, total_numbe
 
     test_from_ids(
         forward_function=[x.forward for x in instances],
-        ids=ids)
+        ids=ids
+    )
 
 
 def check_recall_diff(key, threshold, result_path_a, result_path_b):
+    """Check recall difference between two result files."""
+
     import pickle
 
     def load_recalled_ids(pkl_path):
@@ -792,11 +833,8 @@ def check_recall_diff(key, threshold, result_path_a, result_path_b):
     recalled_b, all_b = load_recalled_ids(result_path_b)
     assert all_a == all_b, "Total number of items differ between the two results"
 
-    # A 检出但 B 没检出
     only_in_a = recalled_a - recalled_b
-    # B 检出但 A 没检出
     only_in_b = recalled_b - recalled_a
-    # 两者都检出
     both = recalled_a & recalled_b
 
     total_a = len(recalled_a)
@@ -811,6 +849,8 @@ def check_recall_diff(key, threshold, result_path_a, result_path_b):
 
 
 def check_recall(key, threshold, file_dir=".", prefix='result'):
+    """Check recall for multiple result files."""
+
     import pickle
     import glob
     import numpy as np
@@ -825,26 +865,25 @@ def check_recall(key, threshold, file_dir=".", prefix='result'):
         with open(pkl_path, 'rb') as f:
             result = pickle.load(f)
 
-        # 批量提取所有 score → 转为 NumPy 数组
         scores = np.fromiter(
             (res[key].score for res in result.values()),
-            dtype=np.float32,  # 或 np.float64
+            dtype=np.float32,
             count=len(result)
         )
 
-        # 向量化比较：O(1) 时间（底层 C）
         recalled_count = np.count_nonzero(scores >= threshold)
         total = len(result)
 
         print(f'{pkl_path}: recalled {recalled_count}/{total}')
         recall_nums.append(recalled_count)
 
-    # 检查一致性
     if recall_nums and not np.all(np.array(recall_nums) == recall_nums[0]):
         raise AssertionError("Different rounds have different recall numbers")
 
 
 def multiple_round_inference(file_dir, port, num_round=10, save_prefix="result", host="127.0.0.1", num_clients=10, thrift=None):
+    """Run multiple rounds of inference and save results."""
+
     import pickle
     for i in range(num_round):
         if thrift is not None:
@@ -869,20 +908,23 @@ def multiple_round_inference(file_dir, port, num_round=10, save_prefix="result",
             pickle.dump(result, f)
             print(f'{pkl_name} saved.')
 
+
 def thriftpy2_example(file_dir, thrift_file, host, port, num_clients):
+    """ThriftPy2 example."""
+
     import thriftpy2
     RESULT_GLOBAL = []
+
     class ThriftPy2Client:
         def __init__(self, thrift_file, host, port, id2data):
             import thriftpy2
             self.thrift_def = thriftpy2.load(thrift_file, module_name="imported_thrift")
 
-            # Create a client to use the protocol encoder
             from thriftpy2.rpc import make_client
             self.client = make_client(self.thrift_def.DetectService, host, port)
-            self.id2data=id2data
-            
-        def forward(self, ids: List[int]) :
+            self.id2data = id2data
+
+        def forward(self, ids: List[int]):
             data = [self.id2data[x] for x in ids]
             input_bytes = [pickle.load(open(img_path, 'rb')) for img_path in data]
             tran_list = [self.thrift_def.DetectParams(str(x), y) for x, y in zip(ids, input_bytes)]
@@ -890,51 +932,48 @@ def thriftpy2_example(file_dir, thrift_file, host, port, num_clients):
 
             for img_name, result in zip(data, results):
                 RESULT_GLOBAL.append((img_name, result))
-    
+
     import glob
     files = glob.glob(os.path.join(file_dir, f"*.pickle"))
 
     instances = [ThriftPy2Client(thrift_file, host, port, files) for i in range(num_clients)]
-    
+
     ids = list(range(len(files)))
-        
+
     test_from_ids(
         forward_function=[x.forward for x in instances],
         ids=ids
     )
-    
+
+
 def mutil_clients_inference(file_dir, thrift, port, host="127.0.0.1", num_clients=10, shuffle=False):
+    """Multi-client inference (thrift-based)."""
+
     import thriftpy2
     pingpong_thrift = thriftpy2.load(thrift, module_name="pingpong_thrift")
     final_result = {}
 
     class Client:
-        """wrapper for thrift's python API. You may need to re-implement this class."""
+        """Wrapper for thrift's python API."""
 
         def __init__(self, host, port, request_batch, data) -> None:
             """
-            :param host: ip
-            :type host: str
-            :param port: port
-            :type port: int
-            :param request_batch: size of sended data in batches.
-            :type request_batch: int
+            Args:
+                host: IP address
+                port: Port number
+                request_batch: Size of sent data in batches
             """
-            # example thrift service:
-
             self.InferenceParams = pingpong_thrift.InferenceParams
 
             self.client = thriftpy2.rpc.make_client(
                 pingpong_thrift.InferenceService, host, port)
 
-            # Connect!
             self.client.ping()
             self.request_batch = request_batch
             self.data = data
 
         def forward(self, data: List[int]):
-            """batch processing
-            """
+            """Batch processing."""
             assert len(data) == 1, "right now only support bs = 1"
 
             file_path = self.data[data[0]]
@@ -948,7 +987,6 @@ def mutil_clients_inference(file_dir, thrift, port, host="127.0.0.1", num_client
         def __del__(self):
             self.transport.close()
 
-    # prepare_data
     ext = [".jpg", ".JPG", ".jpeg", ".JPEG"]
     list_images = [
         x for x in os.listdir(file_dir) if os.path.splitext(x)[-1] in ext
@@ -959,32 +997,33 @@ def mutil_clients_inference(file_dir, thrift, port, host="127.0.0.1", num_client
                  for i in range(num_clients)]
 
     ids = list(range(len(list_images)))
+
     if shuffle:
-        random.shuffle(ids)  # 原地打乱
+        random.shuffle(ids)
 
     test_from_ids(
         forward_function=[x.forward for x in instances],
         ids=ids
     )
+
     return final_result
 
 
 def example_mutil_clients_inference(file_dir, port, host="127.0.0.1", num_clients=10, shuffle=False):
+    """Multi-client inference example."""
+
     final_result = {}
 
     class Client:
-        """wrapper for thrift's python API. You may need to re-implement this class."""
+        """Wrapper for thrift's python API."""
 
         def __init__(self, host, port, request_batch, data) -> None:
             """
-            :param host: ip
-            :type host: str
-            :param port: port
-            :type port: int
-            :param request_batch: size of sended data in batches.
-            :type request_batch: int
+            Args:
+                host: IP address
+                port: Port number
+                request_batch: Size of sent data in batches
             """
-            # example thrift service:
             import sys
             sys.path.append("src")
             from serve import InferenceService
@@ -1003,15 +1042,13 @@ def example_mutil_clients_inference(file_dir, port, host="127.0.0.1", num_client
 
             self.client = InferenceService.Client(self.protocol)
 
-            # Connect!
             self.transport.open()
             self.client.ping()
             self.request_batch = request_batch
             self.data = data
 
         def forward(self, data: List[int]):
-            """batch processing
-            """
+            """Batch processing."""
             assert len(data) == 1, "right now only support bs = 1"
 
             file_path = self.data[data[0]]
@@ -1025,7 +1062,6 @@ def example_mutil_clients_inference(file_dir, port, host="127.0.0.1", num_client
         def __del__(self):
             self.transport.close()
 
-    # prepare_data
     ext = [".jpg", ".jpeg", '.png']
     list_images = [
         x for x in os.listdir(file_dir) if os.path.splitext(x)[-1].lower() in ext
@@ -1036,13 +1072,15 @@ def example_mutil_clients_inference(file_dir, port, host="127.0.0.1", num_client
                  for i in range(num_clients)]
 
     ids = list(range(len(list_images)))
+
     if shuffle:
-        random.shuffle(ids)  # 原地打乱
+        random.shuffle(ids)
 
     test_from_ids(
         forward_function=[x.forward for x in instances],
         ids=ids
     )
+
     return final_result
 
 
@@ -1060,12 +1098,12 @@ if __name__ == "__main__":
         "check_recall_diff": check_recall_diff,
     })
 
-    # 压测脚本： 跑多次，并将结果保存在result*.pkl ：
+    # Stress test: Run multiple rounds and save results to result*.pkl:
     # nohup python src/test.py multiple_round_inference /path/to/data/ --port=8090 --num_round=100 --save_prefix=result &
 
-    # 速度测试：
+    # Speed test:
     # python src/test.py example_mutil_clients_speed_test /path/to/data/ --port=8090
 
-    # 检查multiple_round_inference保存的结果的recall
+    # Check recall of results saved by multiple_round_inference
     # python src/test.py check_recall  label threshold
     # python src/test.py check_recall_diff  label threshold result_0.pkl result_1.pkl

@@ -4,7 +4,7 @@
 
 ## Export timm model to onnx
 ```bash
-pip install fire onnx_graphsurgeon "torch<2.9"
+pip install fire onnx_graphsurgeon torch
 python export.py --model_name=eva02_base_patch14_448.mim_in22k_ft_in22k_in1k --opset=20
 # timm 好像有自带的export_onnx脚本
 ```
@@ -33,7 +33,7 @@ torchpipe installation and
 
 ### 
 ```bash
-pip install "torch<2.9" torchvision  thrift fire timm
+pip install torch torchvision  thrift fire timm
 
  python benchmarks/bench.py --num_clients=1
   python benchmarks/bench.py --num_clients=2

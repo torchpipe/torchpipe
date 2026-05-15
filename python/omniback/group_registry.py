@@ -4,7 +4,7 @@ try:
     import tomllib
 except ImportError:
     import tomli as tomllib
-    
+
 from typing import Dict, List, Set, Optional
 from collections import defaultdict, deque
 from collections.abc import Callable
@@ -18,7 +18,7 @@ class GroupRegistry:
         self._groups: Dict[str, dict] = {}
 
         # backend_name -> set of group names that provide it
-        self._backend_to_groups: Dict[str, str] = defaultdict(set)
+        self._backend_to_groups: Dict[str, Set[str]] = defaultdict(set)
 
     def register_group(
         self,
@@ -27,10 +27,12 @@ class GroupRegistry:
         dependencies: Optional[List[str]] = None
     ):
         """
-        注册一个后端组。
-        :param name: 组名，如 "torchpipe.opencv"
-        :param backends: 该组提供的后端列表
-        :param dependencies: 依赖的其他组名列表
+        Register a backend group.
+
+        Args:
+            name: Group name, e.g., "torchpipe.opencv"
+            backends: List of backends provided by this group
+            dependencies: List of group names this group depends on
         """
         if not name:
             raise ValueError("Group name cannot be empty")
@@ -38,19 +40,19 @@ class GroupRegistry:
             raise ValueError(f"Group '{name}' is already registered")
 
         dependencies = dependencies or []
-        # 检查所有依赖是否已注册
+        # Check all dependencies are registered
         for dep in dependencies:
             if dep not in self._groups:
                 raise ValueError(f"Dependency group '{dep}' not registered yet. "
                                  f"Please register it before '{name}'.")
 
-        # 注册组元数据
+        # Register group metadata
         self._groups[name] = {
             "backends": list(backends),
             "dependencies": list(dependencies)
         }
 
-        # 更新后端到组的映射
+        # Update backend to group mapping
         for backend in backends:
             if not backend:
                 raise ValueError(f"Empty backend name in group '{name}'")
@@ -60,22 +62,22 @@ class GroupRegistry:
         with open(toml_path, 'rb') as f:
             data = tomllib.load(f)
 
-        # 提取所有组定义（支持嵌套结构）
+        # Extract all group definitions (supports nested structure)
         groups_to_register = {}
 
         for key, value in data.items():
             if key == "version":
                 continue
 
-            # 如果值是字典且包含 "backend" 字段，说明是直接定义的组
+            # If value is a dict with "backend" field, it's a directly defined group
             if isinstance(value, dict) and "backend" in value:
                 groups_to_register[key] = {
                     "backends": value.get("backend", []),
                     "dependencies": value.get("dependencies", [])
                 }
-            # 否则可能是嵌套结构（如 torchpipe.core）
+            # Otherwise it might be nested structure (e.g., torchpipe.core)
             elif isinstance(value, dict):
-                # 遍历嵌套的字典
+                # Iterate nested dict
                 for subkey, subvalue in value.items():
                     if isinstance(subvalue, dict) and "backend" in subvalue:
                         group_name = f"{key}.{subkey}"
@@ -84,7 +86,7 @@ class GroupRegistry:
                             "dependencies": subvalue.get("dependencies", [])
                         }
 
-        # 构建依赖图用于拓扑排序
+        # Build dependency graph for topological sort
         from collections import defaultdict, deque
         from_nodes = defaultdict(list)  # dep -> [group]
         in_degree = {name: 0 for name in groups_to_register}
@@ -97,7 +99,7 @@ class GroupRegistry:
                 from_nodes[dep].append(name)
                 in_degree[name] = in_degree.get(name, 0) + 1
 
-        # 拓扑排序（Kahn 算法）
+        # Topological sort (Kahn's algorithm)
         queue = deque([name for name in in_degree if in_degree[name] == 0])
         sorted_order = []
 
@@ -112,28 +114,28 @@ class GroupRegistry:
         if len(sorted_order) != len(groups_to_register):
             raise ValueError("Circular dependency detected among groups!")
 
-        # 按拓扑顺序注册
+        # Register in topological order
         for name in sorted_order:
             info = groups_to_register[name]
             self.register_group(name, info["backends"], info["dependencies"])
 
     def get_groups_for_backend(self, backend: str) -> Set[str]:
-        """返回提供该后端的所有组名"""
+        """Return all group names that provide this backend."""
         return set(self._backend_to_groups.get(backend, []))
 
     def list_all_backends(self) -> Set[str]:
-        """返回所有已注册的后端名"""
+        """Return all registered backend names."""
         return set(self._backend_to_groups.keys())
 
     def list_all_groups(self) -> Set[str]:
-        """返回所有已注册的组名"""
+        """Return all registered group names."""
         return set(self._groups.keys())
 
     def resolve_load_order(self) -> List[str]:
         """
-        返回推荐的组加载顺序（按依赖拓扑排序）
+        Return recommended group loading order (topologically sorted by dependencies).
         """
-        # 重新构建依赖图（仅已注册的组）
+        # Rebuild dependency graph (registered groups only)
         from_nodes = defaultdict(list)
         in_degree = {name: 0 for name in self._groups}
 
@@ -155,7 +157,7 @@ class GroupRegistry:
         return order
 
     def get_group_info(self, group_name: str) -> dict:
-        """获取组的详细信息"""
+        """Get detailed information about a group."""
         if group_name not in self._groups:
             raise KeyError(f"Group '{group_name}' not registered")
         return self._groups[group_name].copy()
@@ -183,10 +185,8 @@ def main(toml_path: str):
     registry = GroupRegistry()
     registry.load_from_toml(toml_path)
     for backend, grp_name in registry._backend_to_groups.items():
-        print(backend, grp_name.first())
+        print(backend, next(iter(grp_name)) if grp_name else None)
 
 if __name__ == "__main__":
     import fire
     fire.Fire(main)
-
-

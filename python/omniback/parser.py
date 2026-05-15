@@ -51,52 +51,8 @@ def to_dual_str(config: Dict[str, Dict[str, Any]]) -> Dict[str, Dict[str, str]]:
     return re
 
 
-
-def parse_group(file_path: Union[str, Path]):
-    """
-    Parse and convert TOML file content to string-based nested configuration.
-
-    Args:
-        file_path: Path to the TOML configuration file
-
-    Returns:
-        Nested dictionary with all values converted to strings
-
-    Raises:
-        FileNotFoundError: If specified file doesn't exist
-        IOError: For file reading errors
-        RuntimeError: For parsing/validation errors
-    """
-    # Convert to Path object for modern path handling
-    path = Path(file_path)
-
-    if not path.exists():
-        raise FileNotFoundError(f"Config file not found: {file_path}")
-    if not path.is_file():
-        raise IOError(f"Path is not a file: {file_path}")
-
-    try:
-        with path.open('rb') as f:
-            raw_config = tomllib.load(f)
-    except tomllib.TOMLDecodeError as e:
-        raise RuntimeError(f"TOML parsing failed: {e}") from e
-    
-def parse(file_path: Union[str, Path]) -> Dict[str, Dict[str, str]]:
-    """
-    Parse and convert TOML file content to string-based nested configuration.
-
-    Args:
-        file_path: Path to the TOML configuration file
-
-    Returns:
-        Nested dictionary with all values converted to strings
-
-    Raises:
-        FileNotFoundError: If specified file doesn't exist
-        IOError: For file reading errors
-        RuntimeError: For parsing/validation errors
-    """
-    # Convert to Path object for modern path handling
+def _parse_toml_file(file_path: Union[str, Path]) -> Dict[str, Dict[str, str]]:
+    """Internal function to parse TOML file and convert to string-based config."""
     path = Path(file_path)
 
     if not path.exists():
@@ -111,6 +67,28 @@ def parse(file_path: Union[str, Path]) -> Dict[str, Dict[str, str]]:
         raise RuntimeError(f"TOML parsing failed: {e}") from e
 
     return to_dual_str(raw_config)
+
+
+def parse(file_path: Union[str, Path]) -> Dict[str, Dict[str, str]]:
+    """Parse and convert TOML file content to string-based nested configuration.
+
+    Args:
+        file_path: Path to the TOML configuration file
+
+    Returns:
+        Nested dictionary with all values converted to strings
+
+    Raises:
+        FileNotFoundError: If specified file doesn't exist
+        IOError: For file reading errors
+        RuntimeError: For parsing/validation errors
+    """
+    return _parse_toml_file(file_path)
+
+
+def parse_group(file_path: Union[str, Path]) -> Dict[str, Dict[str, str]]:
+    """Alias for parse() - kept for backward compatibility."""
+    return parse(file_path)
 
 
 def log_structured_config(config: Dict[str, Any], title: str = "Configuration") -> None:
@@ -136,29 +114,49 @@ def log_structured_config(config: Dict[str, Any], title: str = "Configuration") 
     logger.info("=" * 50)
 
 
-def pipe(config):
-    if isinstance(config, str):
-        if config.endswith('.toml'):
-            assert os.path.exists(config), config
+def pipe(config: Union[str, Dict[str, Any], Path]) -> Any:
+    """Create and initialize a pipeline from various configuration formats.
+
+    This is the main entry point for creating pipelines. It accepts:
+    - A path to a TOML configuration file (str or Path ending with .toml)
+    - A dictionary containing configuration
+    - A backend name string
+
+    Args:
+        config: Configuration source - TOML file path, dict, or backend name
+
+    Returns:
+        Initialized Backend instance
+
+    Examples:
+        >>> pipe("config.toml")  # From TOML file
+        >>> pipe({"global": {"batch_size": 32}})  # From dict
+        >>> pipe("Interpreter")  # From backend name
+    """
+    if isinstance(config, (str, Path)):
+        config_str = str(config)
+        if config_str.endswith('.toml'):
+            assert os.path.exists(config_str), config_str
             return init_from_file(config)
     elif isinstance(config, dict):
         for k, v in config.items():
             if isinstance(v, dict):
                 for k2, v2 in v.items():
-                    if not isinstance(v, (bytes, str)):
-                        config[k][k2] = str(v2)  # .encode("utf8")
+                    if not isinstance(v2, (bytes, str)):
+                        config[k][k2] = str(v2)
             else:
                 if not isinstance(v, (bytes, str)):
-                    config[k] = str(v)  # .encode("utf8")
-        print(config)
+                    config[k] = str(v)
+        logger.debug("Creating Interpreter with config: %s", config)
         return init("Interpreter", {}, OmDict({"config": (config)}), None)
 
     return init(config, {}, None, None)
 
 
-def init_from_file(file_path: Union[str, Path]):
-    """
-    Initialize backend components from a TOML configuration file.
+def init_from_file(file_path: Union[str, Path]) -> Any:
+    """Initialize backend components from a TOML configuration file.
+
+    This is a convenience wrapper around pipe() for TOML files.
 
     Args:
         file_path: Path to the TOML configuration file
@@ -170,7 +168,6 @@ def init_from_file(file_path: Union[str, Path]):
 
     data = parse(file_path)
 
-    # Log the configuration in a structured format
     log_structured_config(data, title="Configuration loaded")
 
     logger.info(f"Initializing interpreter with {len(data)} components")

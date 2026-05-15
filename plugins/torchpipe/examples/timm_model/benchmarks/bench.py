@@ -24,24 +24,36 @@ def main(
         target += ['torch2trt']
     
     if 'torch2trt' in target:
-        assert torch.__version__ < "2.9", "pls exporting onnx with torch<2.9 (or set dynamo=False)"
-        from run_torch2trt import get_client
-        client = get_client(image_path)
-        results['torch2trt'] = test_from_ids([client]*num_clients, ids)
-        del client
-        gc.collect()
+        if torch.__version__ >= "2.9":
+            import warnings
+            warnings.warn(f"torch {torch.__version__} >= 2.9: ONNX export may need dynamo=False. "
+                          f"Continuing anyway; if export fails, try downgrading torch or setting dynamo=False.")
+        try:
+            from run_torch2trt import get_client
+        except ModuleNotFoundError:
+            import warnings
+            warnings.warn("torch2trt not installed, skipping torch2trt benchmark")
+        else:
+            client = get_client(image_path)
+            results['torch2trt'] = test_from_ids([client]*num_clients, ids)
+            del client
+            gc.collect()
     
     # apt install -y thrift-compiler
     # cd benchmarks && thrift --gen py server.thrift && mv gen-py/* ./
     # pip install thrift
     if 'torchpipe-thrift' in target:
-        from run_torchpipe import get_thrift_client
-        forward_funcs, clients = get_thrift_client(
-            image_path, model_path=model_name+".onnx", num_clients=num_clients, port=1020)
-        results['torchpipe-thrift'] = test_from_ids(
-            forward_funcs, ids)
-        del clients
-        gc.collect()
+        try:
+            from run_torchpipe import get_thrift_client
+            forward_funcs, clients = get_thrift_client(
+                image_path, model_path=model_name+".onnx", num_clients=num_clients, port=3303)
+            results['torchpipe-thrift'] = test_from_ids(
+                forward_funcs, ids)
+            del clients
+            gc.collect()
+        except (PermissionError, ModuleNotFoundError) as e:
+            import warnings
+            warnings.warn(f"thrift benchmark skipped: {e}")
         
     # export onnx
     if 'torchpipe' in target:

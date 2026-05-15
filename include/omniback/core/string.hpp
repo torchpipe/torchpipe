@@ -18,9 +18,6 @@
 #include "omniback/helper/string.hpp"
 
 namespace om {
-// using string = std::string;
-// using str_map = std::unordered_map<string, string>;
-// using mapmap = std::unordered_map<string, str_map>;
 using string = str::string;
-} // namespace om
+}  // namespace om
 #endif

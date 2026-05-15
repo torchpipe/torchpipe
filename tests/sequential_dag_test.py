@@ -7,7 +7,7 @@ class BackendManager:
         "instance_num": "2",
         "backend": "Identity"
     }
-    
+
     BACKEND_TEMPLATE = "List[InstancesRegister[BackgroundThread[Reflect]],Register[IoCV0[SharedInstancesState,InstanceDispatcher,Batching;DI_v0[Batching, InstanceDispatcher]]]]"
 
     def __init__(self):
@@ -21,7 +21,7 @@ class BackendManager:
             {"node_name": "node_c", "backend": "Pow"},
             {"node_name": "node_d", "backend": "Pow"}
         ]
-        
+
         for config in backend_configs:
             node_name = config["node_name"]
             full_config = {**self.BASE_CONFIG, **config}
