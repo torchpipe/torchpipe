@@ -29,7 +29,7 @@ model = ConvModel()
 model.eval()
 
 # Step 2: Export to ONNX
-tmp_onnx = tempfile.mktemp(suffix='.onnx')
+tmp_onnx = tempfile.NamedTemporaryFile(suffix='.onnx', delete=False).name
 dummy_input = torch.randn(1, 3, 224, 224)
 torch.onnx.export(
     model,

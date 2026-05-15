@@ -121,7 +121,7 @@ class ConvPool(torch.nn.Module):
 def get_tmp_onnx(model: torch.nn.Module, input_shape, onnx_path: str = None) -> str:
     """Export PyTorch model to ONNX format."""
     if onnx_path is None:
-        onnx_path = tempfile.mktemp(suffix=".onnx")
+        onnx_path = tempfile.NamedTemporaryFile(suffix=".onnx", delete=False).name
     
     model.eval()
     
@@ -148,7 +148,7 @@ def get_tmp_onnx(model: torch.nn.Module, input_shape, onnx_path: str = None) -> 
 def get_tmp_onnx_multi_input(model: torch.nn.Module, input_shapes: List[Tuple], onnx_path: str = None) -> str:
     """Export PyTorch model with multiple inputs to ONNX format."""
     if onnx_path is None:
-        onnx_path = tempfile.mktemp(suffix=".onnx")
+        onnx_path = tempfile.NamedTemporaryFile(suffix=".onnx", delete=False).name
     
     model.eval()
     
@@ -170,7 +170,7 @@ def get_tmp_onnx_multi_input(model: torch.nn.Module, input_shapes: List[Tuple], 
 def get_tmp_onnx_multi_output(model: torch.nn.Module, input_shape, onnx_path: str = None) -> str:
     """Export PyTorch model with multiple outputs to ONNX format."""
     if onnx_path is None:
-        onnx_path = tempfile.mktemp(suffix=".onnx")
+        onnx_path = tempfile.NamedTemporaryFile(suffix=".onnx", delete=False).name
     
     model.eval()
     input_data = torch.randn(input_shape)
@@ -189,7 +189,7 @@ def get_tmp_onnx_multi_output(model: torch.nn.Module, input_shape, onnx_path: st
 def get_tmp_onnx_cuda(model: torch.nn.Module, input_shape, dtype=torch.float16, onnx_path: str = None) -> str:
     """Export PyTorch model to ONNX format with CUDA tensor."""
     if onnx_path is None:
-        onnx_path = tempfile.mktemp(suffix=".onnx")
+        onnx_path = tempfile.NamedTemporaryFile(suffix=".onnx", delete=False).name
     
     model.eval()
     input_data = torch.randn(input_shape).cuda().to(dtype)
@@ -316,7 +316,7 @@ class TestMultiInputOutput:
         
         model = AddModel()
         model.eval()
-        tmp_onnx = tempfile.mktemp(suffix=".onnx")
+        tmp_onnx = tempfile.NamedTemporaryFile(suffix=".onnx", delete=False).name
         
         # Export with explicit input shapes (not dynamic)
         x = torch.randn(1, 3, 224, 224)

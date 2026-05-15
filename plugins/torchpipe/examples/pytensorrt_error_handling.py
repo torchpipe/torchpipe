@@ -60,7 +60,7 @@ class ModelManager:
     def create_onnx(self, model, input_shape):
         """Create ONNX model from PyTorch model."""
         model.eval()
-        self._onnx_path = tempfile.mktemp(suffix='.onnx')
+        self._onnx_path = tempfile.NamedTemporaryFile(suffix='.onnx', delete=False).name
         _cleanup_paths.append(self._onnx_path)
         
         dummy_input = torch.randn(input_shape)

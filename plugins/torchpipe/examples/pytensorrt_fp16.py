@@ -54,7 +54,7 @@ model.eval()
 model = model.cuda().half()
 
 # Step 2: Export to ONNX with FP16
-tmp_onnx = tempfile.mktemp(suffix='.onnx')
+tmp_onnx = tempfile.NamedTemporaryFile(suffix='.onnx', delete=False).name
 dummy_input = torch.randn(1, 3, 224, 224, dtype=torch.float16, device='cuda')
 torch.onnx.export(
     model,
