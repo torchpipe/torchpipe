@@ -48,11 +48,6 @@ PATH="$PWD/../../.venv/bin:$PATH" FORCE_DOWNLOAD_OPENCV=1 ../../.venv/bin/python
 - omniback: 由 setuptools-scm 自动生成，`SETUPTOOLS_SCM_PRETEND_VERSION` 覆盖
 - torchpipe: 硬编码在 `plugins/torchpipe/pyproject.toml` 中 `version = "0.1.24"`
 
-## 关键依赖版本
-- `apache-tvm-ffi==0.1.11`（pyproject.toml 中锁定）
-- `torch>=2.12.0`（CUDA 13 环境）
-- 注意：tvm_ffi 0.1.11 将 `ArrayObj::size_` 改为 `TVMFFISeqCell::size`，不要使用旧 API
 
 ## git remote
 - `origin`: git@github.com:torchpipe/torchpipe.git（官方仓库）
-- `nan2088`: git@github.com:nan2088/torchpipe.git（feat/jit 分支来源）
