@@ -15,7 +15,7 @@ uv pip install --python .venv/bin/python torch cmake ninja  # 基础依赖
 
 ### 编译安装 omniback
 ```bash
-export SETUPTOOLS_SCM_PRETEND_VERSION=0.1.25
+export SETUPTOOLS_SCM_PRETEND_VERSION=0.1.26
 uv pip install --python .venv/bin/python -e .
 ```
 
