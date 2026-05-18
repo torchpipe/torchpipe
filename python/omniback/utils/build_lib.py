@@ -265,11 +265,12 @@ def main() -> None:  # noqa: PLR0912, PLR0915
         if not args.no_torch:
             # Import directly to avoid torch.utils.cpp_extension attribute
             # access issues on older PyTorch (e.g. 1.13).
-            from torch.utils.cpp_extension import (
-                CUDA_HOME,
-                COMMON_HIP_FLAGS,
-                library_paths,
-            )
+            # COMMON_HIP_FLAGS only exists in ROCm-enabled PyTorch builds.
+            from torch.utils.cpp_extension import CUDA_HOME, library_paths
+            try:
+                from torch.utils.cpp_extension import COMMON_HIP_FLAGS
+            except ImportError:
+                COMMON_HIP_FLAGS = []
 
             if args.build_with_cuda:
                 cflags.append("-DBUILD_WITH_CUDA")
