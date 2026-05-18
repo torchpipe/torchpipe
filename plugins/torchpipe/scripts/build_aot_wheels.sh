@@ -111,7 +111,8 @@ fi
 
 source "$omniback"/.venv/py3.11/bin/activate
 uv pip install setuptools ninja fire -v
-uv pip install omniback --upgrade --pre
+# Aliyun mirror may lag behind PyPI; install omniback from official index.
+uv pip install omniback --upgrade --pre --index-url https://pypi.org/simple/
 deactivate
 
 # https://pytorch.org/get-started/previous-versions/
