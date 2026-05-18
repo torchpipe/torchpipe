@@ -84,14 +84,19 @@ def get_cpp_source(source_dir):
 
 def get_torch_include_paths(build_with_cuda: bool) -> Sequence[str]:
     """Get the include paths for building with torch."""
-    if torch.__version__ >= torch.torch_version.TorchVersion("2.6.0"):
-        return torch.utils.cpp_extension.include_paths(
-            device_type="cuda" if build_with_cuda else "cpu"
-        )
-    else:
-        from torch.utils import cpp_extension
-        # type: ignore[call-arg]
-        return torch.utils.cpp_extension.include_paths(cuda=build_with_cuda)
+    from torch.utils.cpp_extension import include_paths as _include_paths
+
+    # torch.torch_version may not exist in older PyTorch (e.g. 1.13).
+    # Fall back to the cuda= kwarg API when the version check itself fails.
+    try:
+        if torch.__version__ >= torch.torch_version.TorchVersion("2.6.0"):
+            return _include_paths(
+                device_type="cuda" if build_with_cuda else "cpu"
+            )
+    except (AttributeError, ImportError):
+        pass
+
+    return _include_paths(cuda=build_with_cuda)  # type: ignore[call-arg]
 
 def get_cache_dir():
     return str(Path(os.environ.get("OMNIBACK_CACHE_DIR",
@@ -258,24 +263,31 @@ def main() -> None:  # noqa: PLR0912, PLR0915
             cflags.append("-D_GLIBCXX_USE_CXX11_ABI=0")
 
         if not args.no_torch:
+            # Import directly to avoid torch.utils.cpp_extension attribute
+            # access issues on older PyTorch (e.g. 1.13).
+            from torch.utils.cpp_extension import (
+                CUDA_HOME,
+                COMMON_HIP_FLAGS,
+                library_paths,
+            )
+
             if args.build_with_cuda:
                 cflags.append("-DBUILD_WITH_CUDA")
-                if torch.utils.cpp_extension.CUDA_HOME is None:
+                if CUDA_HOME is None:
                     logger.error("CUDA_HOME not found")
             elif args.build_with_rocm:
-                cflags.extend(torch.utils.cpp_extension.COMMON_HIP_FLAGS)
+                cflags.extend(COMMON_HIP_FLAGS)
                 cflags.append("-DBUILD_WITH_ROCM")
             include_paths.extend(get_torch_include_paths(
                 args.build_with_cuda or args.build_with_rocm))
 
-            for lib_dir in torch.utils.cpp_extension.library_paths():
+            for lib_dir in library_paths():
                 if IS_WINDOWS:
                     ldflags.append(f"/LIBPATH:{lib_dir}")
                 else:
                     ldflags.extend(["-L", str(lib_dir)])
 
             import glob
-            from torch.utils.cpp_extension import CUDA_HOME
             if CUDA_HOME is not None:
                 cuda_lib_dir = os.path.join(CUDA_HOME, "lib64")
                 # dirs = glob.glob(os.path.join(CUDA_HOME, "**/*/lib/stubs"))

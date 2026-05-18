@@ -15,7 +15,7 @@ import cv2
 
 # print(omniback.Box)
 
-cpp = torch.utils.cpp_extension.load(
+cpp = cpp_extension.load(
     name="yolo_cpp_extension",
     sources=["yolo.cpp"],
     extra_cflags=["-O3", "-Wall", "-std=c++17"],
