@@ -69,6 +69,8 @@ function build_local_libs() {
     #     uv pip install torch=="$torch_version"
     # fi
     uv pip install torch==$torch_version --index-url https://download.pytorch.org/whl/cpu # -i  http://mirrors.aliyun.com/pypi/simple/
+    # torch 1.13's cpp_extension requires pkg_resources from setuptools
+    uv pip install setuptools
     
     abiflag=$(python -c "import torch; print(int(torch.compiled_with_cxx11_abi()))")
     if [[ "$os" == "Linux" ]]; then
