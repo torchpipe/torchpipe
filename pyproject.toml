@@ -81,7 +81,7 @@ build.verbose = true
 
 # CMake configuration
 cmake.version = "CMakeLists.txt"
-cmake.build-type = "RelWithDebInfo"
+cmake.build-type = "Release"
 cmake.define.USE_CXX11_ABI = { env = "USE_CXX11_ABI" }
 cmake.define.BUILD_BOTH_ABIS = { env = "BUILD_BOTH_ABIS" }
 cmake.define.SKIP_CMAKE = { env = "SKIP_CMAKE" }
