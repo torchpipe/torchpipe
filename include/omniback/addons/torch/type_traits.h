@@ -40,14 +40,11 @@ struct TypeTraits<at::Tensor> : public TypeTraitsBase {
   using Self = at::Tensor;
 
   TVM_FFI_INLINE static void MoveToAny(Self&& src, TVMFFIAny* result) {
-#if defined(DLPACK_MAJOR_VERSION) && \
-    (DLPACK_MAJOR_VERSION * 100 + DLPACK_MINOR_VERSION * 10 >= 130)
-    DLManagedTensorVersioned* mid = ::at::toDLPackVersioned(src);
-    tvm::ffi::Tensor te = tvm::ffi::Tensor::FromDLPackVersioned(mid);
-#else
+    // Use legacy DLPack API for maximum compatibility across PyTorch
+    // versions and build flavours. at::toDLPackVersioned is only
+    // available in recent CUDA builds (2.12+), not in CPU wheels.
     DLManagedTensor* mid = ::at::toDLPack(src);
     tvm::ffi::Tensor te = tvm::ffi::Tensor::FromDLPack(mid);
-#endif
     tvm::ffi::TypeTraits<tvm::ffi::Tensor>::MoveToAny(std::move(te), result);
   }
 
@@ -55,16 +52,9 @@ struct TypeTraits<at::Tensor> : public TypeTraitsBase {
       const TVMFFIAny* src) {
     std::optional<tvm::ffi::Tensor> re =
         tvm::ffi::TypeTraits<tvm::ffi::Tensor>::TryCastFromAnyView(src);
-#if defined(DLPACK_MAJOR_VERSION) && \
-    (DLPACK_MAJOR_VERSION * 100 + DLPACK_MINOR_VERSION * 10 >= 130)
-    if (re.has_value()) {
-    return at::fromDLPackVersioned(re.value().ToDLPackVersioned());
-  }
-#else
     if (re.has_value()) {
       return at::fromDLPack(re.value().ToDLPack());
     }
-#endif
     else {
       return std::nullopt;
     }
