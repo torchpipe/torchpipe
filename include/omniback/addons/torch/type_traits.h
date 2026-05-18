@@ -41,7 +41,8 @@ struct TypeTraits<at::Tensor> : public TypeTraitsBase {
 
   TVM_FFI_INLINE static void MoveToAny(Self&& src, TVMFFIAny* result) {
 #if defined(DLPACK_MAJOR_VERSION) && \
-    (DLPACK_MAJOR_VERSION * 100 + DLPACK_MINOR_VERSION * 10 >= 130)
+    (DLPACK_MAJOR_VERSION * 100 + DLPACK_MINOR_VERSION * 10 >= 130) && \
+    (TORCH_VERSION_MAJOR > 2 || (TORCH_VERSION_MAJOR == 2 && TORCH_VERSION_MINOR >= 12))
     DLManagedTensorVersioned* mid = ::at::toDLPackVersioned(src);
     tvm::ffi::Tensor te = tvm::ffi::Tensor::FromDLPackVersioned(mid);
 #else
@@ -56,7 +57,8 @@ struct TypeTraits<at::Tensor> : public TypeTraitsBase {
     std::optional<tvm::ffi::Tensor> re =
         tvm::ffi::TypeTraits<tvm::ffi::Tensor>::TryCastFromAnyView(src);
 #if defined(DLPACK_MAJOR_VERSION) && \
-    (DLPACK_MAJOR_VERSION * 100 + DLPACK_MINOR_VERSION * 10 >= 130)
+    (DLPACK_MAJOR_VERSION * 100 + DLPACK_MINOR_VERSION * 10 >= 130) && \
+    (TORCH_VERSION_MAJOR > 2 || (TORCH_VERSION_MAJOR == 2 && TORCH_VERSION_MINOR >= 12))
     if (re.has_value()) {
     return at::fromDLPackVersioned(re.value().ToDLPackVersioned());
   }
