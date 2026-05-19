@@ -82,8 +82,33 @@ def get_cpp_source(source_dir):
 
     return source_path
 
+def _check_pkg_resources() -> None:
+    """Ensure pkg_resources is available for torch.utils.cpp_extension.
+
+    torch<2.0 uses pkg_resources (setuptools<81) internally.
+    torch>=2.0 no longer depends on it, so skip the check.
+    """
+    # Only needed on PyTorch < 2.0
+    try:
+        if torch.__version__ >= torch.torch_version.TorchVersion("2.0"):
+            return
+    except (AttributeError, ImportError):
+        pass  # old torch without torch_version; likely < 2.0
+
+    try:
+        import pkg_resources  # noqa: F401
+    except ModuleNotFoundError:
+        logger.error(
+            "pkg_resources (setuptools<81) is required for JIT compilation "
+            "with older PyTorch versions (<2.0). Install it with:\n"
+            "  pip install 'setuptools<81'"
+        )
+        raise
+
+
 def get_torch_include_paths(build_with_cuda: bool) -> Sequence[str]:
     """Get the include paths for building with torch."""
+    _check_pkg_resources()
     from torch.utils.cpp_extension import include_paths as _include_paths
 
     # torch.torch_version may not exist in older PyTorch (e.g. 1.13).
@@ -266,6 +291,7 @@ def main() -> None:  # noqa: PLR0912, PLR0915
             # Import directly to avoid torch.utils.cpp_extension attribute
             # access issues on older PyTorch (e.g. 1.13).
             # COMMON_HIP_FLAGS only exists in ROCm-enabled PyTorch builds.
+            _check_pkg_resources()
             from torch.utils.cpp_extension import CUDA_HOME, library_paths
             try:
                 from torch.utils.cpp_extension import COMMON_HIP_FLAGS
