@@ -86,7 +86,15 @@ def _check_pkg_resources() -> None:
     """Ensure pkg_resources is available for torch.utils.cpp_extension.
 
     torch<2.0 uses pkg_resources (setuptools<81) internally.
+    torch>=2.0 no longer depends on it, so skip the check.
     """
+    # Only needed on PyTorch < 2.0
+    try:
+        if torch.__version__ >= torch.torch_version.TorchVersion("2.0"):
+            return
+    except (AttributeError, ImportError):
+        pass  # old torch without torch_version; likely < 2.0
+
     try:
         import pkg_resources  # noqa: F401
     except ModuleNotFoundError:
