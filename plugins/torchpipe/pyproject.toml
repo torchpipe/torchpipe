@@ -18,3 +18,6 @@ dependencies = [
 
 [tool.setuptools]
 packages = ["torchpipe"]
+
+[tool.setuptools.package-data]
+torchpipe = ["lib/*.so"]
