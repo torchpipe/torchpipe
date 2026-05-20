@@ -113,21 +113,21 @@ uv pip install omniback --upgrade --pre --index-url https://pypi.org/simple/
 deactivate
 
 # https://pytorch.org/get-started/previous-versions/
-torch_versions=("2.3" "2.4")
-for version in "${torch_versions[@]}"; do
-    build_local_libs "$version" 3.11
-done
-
-uv cache clean
-# 2.8 -> 2.7
-torch_versions=("2.5" "2.6" "2.7") # => next version
+torch_versions=("2.0")
 for version in "${torch_versions[@]}"; do
     build_local_libs "$version" 3.11
 done
 
 uv cache clean
 
-torch_versions=("2.8" "2.9" "2.10") # => next version
+torch_versions=("2.7" "2.8" "2.9" "2.10")
+for version in "${torch_versions[@]}"; do
+    build_local_libs "$version" 3.11
+done
+
+uv cache clean
+
+torch_versions=("2.11" "2.12")
 for version in "${torch_versions[@]}"; do
     build_local_libs "$version" 3.11
 done
