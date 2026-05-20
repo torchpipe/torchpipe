@@ -1,11 +1,11 @@
 [project]
 name = "torchpipe"
-version = "0.2.0"
+version = "0.2.1"
 
 requires-python = ">=3.8"
 description = "Serving inside Pytorch"
 dependencies = [
-    "torch>=2.0",
+    "torch>=2.2",
     "omniback>=0.1.27",
     "setuptools",
     "packaging",
