@@ -68,10 +68,7 @@ function build_local_libs() {
     # else
     #     uv pip install torch=="$torch_version"
     # fi
-    uv pip install torch==$torch_version --index-url https://download.pytorch.org/whl/cpu # -i  http://mirrors.aliyun.com/pypi/simple/
-    # torch 1.13's cpp_extension requires pkg_resources from setuptools;
-    # setuptools>=81 removed pkg_resources entirely, so pin <81.
-    uv pip install "setuptools<81"
+    uv pip install "torch==$torch_version" --index-url https://download.pytorch.org/whl/cpu
     
     abiflag=$(python -c "import torch; print(int(torch.compiled_with_cxx11_abi()))")
     if [[ "$os" == "Linux" ]]; then
@@ -85,9 +82,9 @@ function build_local_libs() {
             echo "opencv installed in ${opencv_install}"
 
             python -m omniback.utils.build_lib --output-dir "$torchpipe"/torchpipe/lib/ --source-dirs "$csrc"/mat_torch/  \
-                --ldflags "-L$opencv_install/lib -Wl,-Bstatic -lopencv_imgproc -lopencv_imgcodecs -lopencv_core -L$opencv_install/lib/opencv4/3rdparty/ \
+                --ldflags "-L${opencv_install}/lib -Wl,-Bstatic -lopencv_imgproc -lopencv_imgcodecs -lopencv_core -L${opencv_install}/lib/opencv4/3rdparty/ \
                  -ltbb -llibjpeg-turbo -llibpng -llibtiff -llibopenjp2 -lzlib -lipphal -lippiw -lippicv -Wl,-Bdynamic -ldl  -lpthread"  \
-                --include-dirs="$csrc/ $opencv_install/include/opencv4/" --name torchpipe_opencv --no-torch --abiflag=$abiflag
+                --include-dirs="$csrc/ ${opencv_install}/include/opencv4/" --name torchpipe_opencv --no-torch --abiflag="$abiflag"
 
    
         done
@@ -116,21 +113,21 @@ uv pip install omniback --upgrade --pre --index-url https://pypi.org/simple/
 deactivate
 
 # https://pytorch.org/get-started/previous-versions/
-torch_versions=("1.13" "2.3" "2.4") # => next version
-for version in "${torch_versions[@]}"; do
-    build_local_libs "$version" 3.11
-done
-
-uv cache clean
-# 2.8 -> 2.7
-torch_versions=("2.5" "2.6" "2.7") # => next version
+torch_versions=("2.0")
 for version in "${torch_versions[@]}"; do
     build_local_libs "$version" 3.11
 done
 
 uv cache clean
 
-torch_versions=("2.8" "2.9" "2.10") # => next version
+torch_versions=("2.7" "2.8" "2.9" "2.10")
+for version in "${torch_versions[@]}"; do
+    build_local_libs "$version" 3.11
+done
+
+uv cache clean
+
+torch_versions=("2.11" "2.12")
 for version in "${torch_versions[@]}"; do
     build_local_libs "$version" 3.11
 done
