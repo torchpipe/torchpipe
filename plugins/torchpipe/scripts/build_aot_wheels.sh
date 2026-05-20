@@ -68,7 +68,7 @@ function build_local_libs() {
     # else
     #     uv pip install torch=="$torch_version"
     # fi
-    uv pip install torch==$torch_version --index-url https://download.pytorch.org/whl/cpu
+    uv pip install "torch==$torch_version" --index-url https://download.pytorch.org/whl/cpu
     
     abiflag=$(python -c "import torch; print(int(torch.compiled_with_cxx11_abi()))")
     if [[ "$os" == "Linux" ]]; then
@@ -82,9 +82,9 @@ function build_local_libs() {
             echo "opencv installed in ${opencv_install}"
 
             python -m omniback.utils.build_lib --output-dir "$torchpipe"/torchpipe/lib/ --source-dirs "$csrc"/mat_torch/  \
-                --ldflags "-L$opencv_install/lib -Wl,-Bstatic -lopencv_imgproc -lopencv_imgcodecs -lopencv_core -L$opencv_install/lib/opencv4/3rdparty/ \
+                --ldflags "-L${opencv_install}/lib -Wl,-Bstatic -lopencv_imgproc -lopencv_imgcodecs -lopencv_core -L${opencv_install}/lib/opencv4/3rdparty/ \
                  -ltbb -llibjpeg-turbo -llibpng -llibtiff -llibopenjp2 -lzlib -lipphal -lippiw -lippicv -Wl,-Bdynamic -ldl  -lpthread"  \
-                --include-dirs="$csrc/ $opencv_install/include/opencv4/" --name torchpipe_opencv --no-torch --abiflag=$abiflag
+                --include-dirs="$csrc/ ${opencv_install}/include/opencv4/" --name torchpipe_opencv --no-torch --abiflag="$abiflag"
 
    
         done
