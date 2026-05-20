@@ -47,6 +47,7 @@ PATH="$PWD/../../.venv/bin:$PATH" FORCE_DOWNLOAD_OPENCV=1 ../../.venv/bin/python
 ## 版本号
 - omniback: 由 setuptools-scm 自动生成，`SETUPTOOLS_SCM_PRETEND_VERSION` 覆盖
 - torchpipe: 硬编码在 `plugins/torchpipe/pyproject.toml` 中 `version = "..."`
+- **torchpipe >= 0.2.0 要求 torch >= 2.0**；torch 1.x 用户请使用 0.1.x 系列或 `dev-torch1.x` 分支
 
 
 ## git remote

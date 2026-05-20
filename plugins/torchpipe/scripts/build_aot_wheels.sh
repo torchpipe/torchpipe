@@ -68,10 +68,7 @@ function build_local_libs() {
     # else
     #     uv pip install torch=="$torch_version"
     # fi
-    uv pip install torch==$torch_version --index-url https://download.pytorch.org/whl/cpu # -i  http://mirrors.aliyun.com/pypi/simple/
-    # torch 1.13's cpp_extension requires pkg_resources from setuptools;
-    # setuptools>=81 removed pkg_resources entirely, so pin <81.
-    uv pip install "setuptools<81"
+    uv pip install torch==$torch_version --index-url https://download.pytorch.org/whl/cpu
     
     abiflag=$(python -c "import torch; print(int(torch.compiled_with_cxx11_abi()))")
     if [[ "$os" == "Linux" ]]; then
@@ -116,7 +113,7 @@ uv pip install omniback --upgrade --pre --index-url https://pypi.org/simple/
 deactivate
 
 # https://pytorch.org/get-started/previous-versions/
-torch_versions=("1.13" "2.3" "2.4") # => next version
+torch_versions=("2.3" "2.4")
 for version in "${torch_versions[@]}"; do
     build_local_libs "$version" 3.11
 done
