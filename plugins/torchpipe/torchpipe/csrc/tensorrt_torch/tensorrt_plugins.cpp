@@ -247,7 +247,7 @@ int32_t TorchPlugin::enqueue(
   }();
 
   // 获取当前CUDA设备
-  int device_id = c10::cuda::GetDevice();
+  int device_id = c10::cuda::current_device();
 
   // 2. 条件性创建流守卫
   at::cuda::CUDAEvent pre_event;
