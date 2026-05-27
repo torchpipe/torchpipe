@@ -332,7 +332,7 @@ def main() -> None:  # noqa: PLR0912, PLR0915
 
             import glob
             if CUDA_HOME is not None:
-                cuda_lib_dir = os.path.join(CUDA_HOME, "lib64")
+                cuda_lib_dir = os.path.join(CUDA_HOME, "lib64" if os.path.exists(os.path.join(CUDA_HOME, "lib64")) else "lib")
                 # dirs = glob.glob(os.path.join(CUDA_HOME, "**/*/lib/stubs"))
                 # assert len(dirs) == 1
                 if IS_WINDOWS:
