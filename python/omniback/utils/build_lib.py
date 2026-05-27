@@ -145,8 +145,7 @@ def get_cache_name(name: str, device: str, no_torch: bool, abiflag: str = ""):
         return f"{name}-abiflag{abiflag}"
     major, minor = torch.__version__.split(".")[:2]
 
-    cuda_suffix = ""
-    if device == "cuda" and hasattr(torch.version, "cuda") and torch.version.cuda:
+    if device == "cuda" and hasattr(torch, "version") and getattr(torch.version, "cuda", None):
         cuda_major = torch.version.cuda.split('.')[0]
         device = f"cuda{cuda_major}"
 
