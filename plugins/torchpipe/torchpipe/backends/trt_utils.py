@@ -192,9 +192,10 @@ if _tensorrt_available:
         trt.DataType.INT8: DataType.INT8,
         trt.DataType.INT32: DataType.INT32,
         trt.DataType.BOOL: DataType.BOOL,
-        trt.DataType.INT64: DataType.INT64,
     }
 
+    if hasattr(trt.DataType, 'INT64'):
+        TRT_DTYPE_TO_DATATYPE[trt.DataType.INT64] = DataType.INT64
     if hasattr(trt.DataType, 'BF16'):
         TRT_DTYPE_TO_DATATYPE[trt.DataType.BF16] = DataType.BF16
     if hasattr(trt.DataType, 'FP8'):
