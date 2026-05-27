@@ -166,15 +166,27 @@ void LoadTensorrtEngine::impl_init(
   OMNI_ASSERT(
       config.find("model") != config.end(), "`model` is not found in config");
 
-  OMNI_ASSERT(om::filesystem::exists(config.at("model")));
-  LocalFileStreamReader reader(config.at("model"));
+  std::string model_type;
+  if (config.find("model_type") != config.end()) {
+    model_type = config.at("model_type");
+  }
+
+  std::vector<char> data;
+  if (model_type == ".trt_buffer" || model_type == "trt_buffer") {
+    data.assign(config.at("model").begin(), config.at("model").end());
+  } else {
+    OMNI_ASSERT(om::filesystem::exists(config.at("model")));
+    LocalFileStreamReader reader(config.at("model"));
+    data = reader.read();
+  }
+
   runtime_ = std::unique_ptr<nvinfer1::IRuntime>(
       nvinfer1::createInferRuntime(*get_trt_logger()));
 #if (NV_TENSORRT_MAJOR >= 10)
   allocator_ = std::make_unique<TorchAsyncAllocator>();
   runtime_->setGpuAllocator(allocator_.get());
 #endif
-  auto data = reader.read(); // core dump if directly use reader...
+  
   auto* engine_ptr = runtime_->deserializeCudaEngine(data.data(), data.size());
   engine_ = std::unique_ptr<nvinfer1::ICudaEngine>(engine_ptr);
   // OMNI_ASSERT(engine_->getNbOptimizationProfiles() == instance_num);
@@ -220,9 +232,11 @@ void Onnx2Tensorrt::impl_init(
   // auto mem = !model_cache_exist ? onnx2trt(params) : nullptr;
 
   if (!model_cache_exist) {
-    OMNI_ASSERT(
-        om::filesystem::exists(params.model),
-        "file of `model(and model::cache)` not found: " + params.model);
+    if (params.model_type != ".onnx_buffer" && params.model_type != "onnx_buffer") {
+      OMNI_ASSERT(
+          om::filesystem::exists(params.model),
+          "file of `model(and model::cache)` not found: " + params.model);
+    }
     auto mem = onnx2trt(params);
     OMNI_ASSERT(mem);
     if (!params.model_cache.empty()) {

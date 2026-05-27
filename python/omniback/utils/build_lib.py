@@ -300,10 +300,10 @@ def main() -> None:  # noqa: PLR0912, PLR0915
             
             # Fallback for missing CUDA_HOME
             if CUDA_HOME is None and args.build_with_cuda:
-                import torch
+                import torch as _torch
                 # Try to use PyTorch's internal CUDA paths if available
-                if hasattr(torch, "version") and getattr(torch.version, "cuda", None):
-                    cuda_dir = os.path.dirname(torch.__file__)
+                if hasattr(_torch, "version") and getattr(_torch.version, "cuda", None):
+                    cuda_dir = os.path.dirname(_torch.__file__)
                     if os.path.exists(os.path.join(cuda_dir, "lib")):
                         CUDA_HOME = cuda_dir
                         os.environ["CUDA_HOME"] = CUDA_HOME
