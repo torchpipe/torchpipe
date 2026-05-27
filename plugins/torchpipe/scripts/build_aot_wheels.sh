@@ -68,13 +68,13 @@ function build_local_libs() {
     # else
     #     uv pip install torch=="$torch_version"
     # fi
-    uv pip install "torch==$torch_version" --index-url https://download.pytorch.org/whl/cpu
+    uv pip install "torch==$torch_version"
     
     abiflag=$(python -c "import torch; print(int(torch.compiled_with_cxx11_abi()))")
     if [[ "$os" == "Linux" ]]; then
         python -m omniback.utils.build_lib --output-dir "$torchpipe"/torchpipe/lib/ --source-dirs "$csrc"/torchplugins/ "$csrc"/helper/ --include-dirs="$csrc"/ --name torchpipe_core
-        # python -m omniback.utils.build_lib --output-dir "$torchpipe"/torchpipe/lib/ --source-dirs "$csrc"/core_cuda/ "$csrc"/helper_cuda/ --include-dirs="$csrc"/ --build-with-cuda --name torchpipe_core_cuda
-        # python -m omniback.utils.build_lib --output-dir "$torchpipe"/torchpipe/lib/ --source-dirs "$csrc"/nvjpeg_torch/ --include-dirs="$csrc"/ --build-with-cuda --ldflags="-lnvjpeg" --name torchpipe_nvjpeg
+        python -m omniback.utils.build_lib --output-dir "$torchpipe"/torchpipe/lib/ --source-dirs "$csrc"/core_cuda/ "$csrc"/helper_cuda/ --include-dirs="$csrc"/ --build-with-cuda --name torchpipe_core_cuda
+        python -m omniback.utils.build_lib --output-dir "$torchpipe"/torchpipe/lib/ --source-dirs "$csrc"/nvjpeg_torch/ --include-dirs="$csrc"/ --build-with-cuda --ldflags="-lnvjpeg" --name torchpipe_nvjpeg
 
         for abiflag in 1 0; do
             # opencv_install=/opencv_install/abiflag$abiflag/

@@ -297,6 +297,18 @@ def main() -> None:  # noqa: PLR0912, PLR0915
             # COMMON_HIP_FLAGS only exists in ROCm-enabled PyTorch builds.
             _check_pkg_resources()
             from torch.utils.cpp_extension import CUDA_HOME, library_paths
+            
+            # Fallback for missing CUDA_HOME
+            if CUDA_HOME is None and args.build_with_cuda:
+                import torch
+                # Try to use PyTorch's internal CUDA paths if available
+                if hasattr(torch, "version") and getattr(torch.version, "cuda", None):
+                    cuda_dir = os.path.dirname(torch.__file__)
+                    if os.path.exists(os.path.join(cuda_dir, "lib")):
+                        CUDA_HOME = cuda_dir
+                        os.environ["CUDA_HOME"] = CUDA_HOME
+                        logger.warning(f"CUDA_HOME not found. Falling back to PyTorch's internal CUDA path: {CUDA_HOME}")
+            
             try:
                 from torch.utils.cpp_extension import COMMON_HIP_FLAGS
             except ImportError:
