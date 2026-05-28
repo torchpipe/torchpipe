@@ -697,12 +697,21 @@ std::unique_ptr<nvinfer1::IHostMemory> onnx2trt(OnnxParams& params) {
   if (builder->setMaxThreads(max_threads))
     SPDLOG_DEBUG("tensorrt builder: max_threads={}", max_threads);
 
-  SPDLOG_INFO("parse {}", params.model);
   // todo timecache
-  auto b_parsed = parser->parseFromFile(
-      params.model.c_str(),
-      static_cast<int>(trt_get_log_level(params.log_level)));
-  OMNI_ASSERT(b_parsed, "parsed failed for " + params.model);
+  bool b_parsed = false;
+  if (params.model_type == ".onnx_buffer" || params.model_type == "onnx_buffer") {
+    SPDLOG_INFO("parse from memory buffer (size: {})", params.model.size());
+    b_parsed = parser->parse(
+        params.model.data(),
+        params.model.size());
+    OMNI_ASSERT(b_parsed, "parsed failed for memory buffer");
+  } else {
+    SPDLOG_INFO("parse {}", params.model);
+    b_parsed = parser->parseFromFile(
+        params.model.c_str(),
+        static_cast<int>(trt_get_log_level(params.log_level)));
+    OMNI_ASSERT(b_parsed, "parsed failed for " + params.model);
+  }
   // todo max workspace size for setMemoryPoolLimit
 
   // todo ampere_plus
@@ -898,6 +907,7 @@ OnnxParams config2onnxparams(
     const std::unordered_map<std::string, std::string>& config) {
   OnnxParams params;
 
+  om::str::try_update(config, "model_type", params.model_type);
   params.instance_num = 1;
   om::str::try_update(config, "instance_num", params.instance_num);
   om::str::try_update(config, "model", params.model);

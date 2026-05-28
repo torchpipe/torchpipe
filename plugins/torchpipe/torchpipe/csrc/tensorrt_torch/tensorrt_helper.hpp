@@ -62,6 +62,7 @@ nvinfer1::Dims infer_shape(
     const nvinfer1::Dims& net_input);
 
 struct OnnxParams {
+  std::string model_type; // model_type
   std::string model; // moddel
   std::string model_cache; // model::cache
   std::string precision{"fp16"};
