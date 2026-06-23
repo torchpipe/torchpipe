@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import logging
 import os
+import secrets
 import shutil
 import subprocess
 import sys
+import tempfile
 from typing import Optional, Tuple
 
 import torch
@@ -17,6 +19,31 @@ from ._cache_setting import get_cache_dir
 logger = logging.getLogger(__name__)
 
 _cuda_version = int(torch.version.cuda.split('.')[0])
+
+
+def _prepare_secret_key_include_dir() -> Tuple[str, str]:
+    """Generate a compile-time secret key header for TensorRT encryption."""
+    temp_dir = tempfile.mkdtemp(prefix="torchpipe-tensorrt-key-")
+    include_dir = os.path.join(temp_dir, "include")
+    os.makedirs(include_dir, exist_ok=True)
+
+    secret_key = os.environ.get("TORCHPIPE_TENSORRT_SECRET_KEY")
+    if not secret_key:
+        secret_key = f"tp_{secrets.token_hex(16)}"
+    else:
+        secret_key = "tp_" + "".join(
+            ch if ch.isalnum() else "_" for ch in secret_key.strip()
+        )
+
+    header_path = os.path.join(include_dir, "torchpipe_tensorrt_secret_key.hpp")
+    with open(header_path, "w", encoding="ascii") as f:
+        f.write(
+            "#pragma once\n"
+            f"#define SECRET_KEY {secret_key}\n"
+        )
+
+    logger.info("Prepared temporary TensorRT encryption key header at %s", header_path)
+    return include_dir, temp_dir
 
 def is_system_exists_trt() -> bool:
     """Check if TensorRT is available in system paths."""
@@ -205,60 +232,40 @@ def _build_trt(csrc_dir, skip_download=True):
         logger.info("TORCHPIPE_SKIP_TENSORRT=1, skipping TensorRT build")
         return
 
-    if skip_download and need_download_for_jit():
-        logger.warning(
-                "TensorRT not found. Checked:\n"
-                "  1. Environment variables TENSORRT_INCLUDE and TENSORRT_LIB,\n"
-                "  2. Standard system library paths\n"
-                "  3. Cache directory\n"
-                "\n"
-                "Please either:\n"
-                "  - Set TENSORRT_INCLUDE (e.g., /path/to/TensorRT/include) and TENSORRT_LIB (e.g., /path/to/TensorRT/lib), or\n"
-                "  - Set FORCE_DOWNLOAD_TENSORRT=1 to download automatically, or\n"
-                "  - Set TORCHPIPE_SKIP_TENSORRT=1 to skip TensorRT support entirely.\n"
-                "You may also need to set LD_LIBRARY_PATH if not installed in a standard system path.\n"
-            )
-        FORCE_DOWNLOAD_TENSORRT = os.environ.get("FORCE_DOWNLOAD_TENSORRT", "0")
-        if FORCE_DOWNLOAD_TENSORRT == "0":
-            return
+    secret_key_include_dir, secret_key_temp_dir = _prepare_secret_key_include_dir()
+    try:
+        if skip_download and need_download_for_jit():
+            logger.warning(
+                    "TensorRT not found. Checked:\n"
+                    "  1. Environment variables TENSORRT_INCLUDE and TENSORRT_LIB,\n"
+                    "  2. Standard system library paths\n"
+                    "  3. Cache directory\n"
+                    "\n"
+                    "Please either:\n"
+                    "  - Set TENSORRT_INCLUDE (e.g., /path/to/TensorRT/include) and TENSORRT_LIB (e.g., /path/to/TensorRT/lib), or\n"
+                    "  - Set FORCE_DOWNLOAD_TENSORRT=1 to download automatically, or\n"
+                    "  - Set TORCHPIPE_SKIP_TENSORRT=1 to skip TensorRT support entirely.\n"
+                    "You may also need to set LD_LIBRARY_PATH if not installed in a standard system path.\n"
+                )
+            FORCE_DOWNLOAD_TENSORRT = os.environ.get("FORCE_DOWNLOAD_TENSORRT", "0")
+            if FORCE_DOWNLOAD_TENSORRT == "0":
+                return
 
-    # python -m omniback.utils.build_lib --source-dirs csrc/tensorrt_torch/ --include-dirs=csrc/ --build-with-cuda --ldflags="-lnvinfer -lnvonnxparser  -lnvinfer_plugin" --name torchpipe_tensorrt
+        # python -m omniback.utils.build_lib --source-dirs csrc/tensorrt_torch/ --include-dirs=csrc/ --build-with-cuda --ldflags="-lnvinfer -lnvonnxparser  -lnvinfer_plugin" --name torchpipe_tensorrt
 
-    if not is_system_exists_trt() and not can_use_trt_env():
-        trt_inc, trt_lib = get_trt_include_lib_dir()
-        if trt_inc is None:
-            trt_inc, trt_lib = cache_trt_dir()
-        if trt_inc is None:
-            raise RuntimeError(
-                "TensorRT not found. Please specify its location using the "
-                "TENSORRT_INCLUDE and TENSORRT_LIB environment variables, "
-                "or set FORCE_DOWNLOAD_TENSORRT=1 to automatically download."
-            )
-        os.environ["LD_LIBRARY_PATH"] = f"{trt_lib}:" + \
-            os.environ.get("LD_LIBRARY_PATH", "")
+        if not is_system_exists_trt() and not can_use_trt_env():
+            trt_inc, trt_lib = get_trt_include_lib_dir()
+            if trt_inc is None:
+                trt_inc, trt_lib = cache_trt_dir()
+            if trt_inc is None:
+                raise RuntimeError(
+                    "TensorRT not found. Please specify its location using the "
+                    "TENSORRT_INCLUDE and TENSORRT_LIB environment variables, "
+                    "or set FORCE_DOWNLOAD_TENSORRT=1 to automatically download."
+                )
+            os.environ["LD_LIBRARY_PATH"] = f"{trt_lib}:" + \
+                os.environ.get("LD_LIBRARY_PATH", "")
 
-        subprocess.run(
-            [
-                sys.executable,
-                "-m",
-                "omniback.utils.build_lib",
-                "--source-dirs",
-                os.path.join(csrc_dir, "csrc/tensorrt_torch/"),
-                "--include-dirs",
-                os.path.join(csrc_dir, "csrc/"),
-                f"{trt_inc}",
-                "--build-with-cuda",
-                # f"--ldflags=-L{trt_lib} -lnvinfer -lnvonnxparser  -lnvinfer_plugin",
-                f"--ldflags=-L{trt_lib} -Wl,-rpath,{trt_lib} -lnvinfer -lnvonnxparser -lnvinfer_plugin",
-                "--name",
-                "torchpipe_tensorrt"
-            ],
-            check=True,
-            env={**os.environ, "EXAMPLE_ENV": "1"},
-        )
-    else:
-        trt_inc, trt_lib = get_trt_include_lib_dir()
-        if trt_inc and trt_lib:
             subprocess.run(
                 [
                     sys.executable,
@@ -268,8 +275,10 @@ def _build_trt(csrc_dir, skip_download=True):
                     os.path.join(csrc_dir, "csrc/tensorrt_torch/"),
                     "--include-dirs",
                     os.path.join(csrc_dir, "csrc/"),
-                    trt_inc,
+                    secret_key_include_dir,
+                    f"{trt_inc}",
                     "--build-with-cuda",
+                    # f"--ldflags=-L{trt_lib} -lnvinfer -lnvonnxparser  -lnvinfer_plugin",
                     f"--ldflags=-L{trt_lib} -Wl,-rpath,{trt_lib} -lnvinfer -lnvonnxparser -lnvinfer_plugin",
                     "--name",
                     "torchpipe_tensorrt"
@@ -278,20 +287,45 @@ def _build_trt(csrc_dir, skip_download=True):
                 env={**os.environ, "EXAMPLE_ENV": "1"},
             )
         else:
-            subprocess.run(
-                [
-                    sys.executable,
-                    "-m",
-                    "omniback.utils.build_lib",
-                    "--source-dirs",
-                    os.path.join(csrc_dir, "csrc/tensorrt_torch/"),
-                    "--include-dirs",
-                    os.path.join(csrc_dir, "csrc/"),
-                    "--build-with-cuda",
-                    f"--ldflags=-lnvinfer -lnvonnxparser -lnvinfer_plugin",
-                    "--name",
-                    "torchpipe_tensorrt"
-                ],
-                check=True,
-                env={**os.environ, "EXAMPLE_ENV": "1"},
-            )
+            trt_inc, trt_lib = get_trt_include_lib_dir()
+            if trt_inc and trt_lib:
+                subprocess.run(
+                    [
+                        sys.executable,
+                        "-m",
+                        "omniback.utils.build_lib",
+                        "--source-dirs",
+                        os.path.join(csrc_dir, "csrc/tensorrt_torch/"),
+                        "--include-dirs",
+                        os.path.join(csrc_dir, "csrc/"),
+                        secret_key_include_dir,
+                        trt_inc,
+                        "--build-with-cuda",
+                        f"--ldflags=-L{trt_lib} -Wl,-rpath,{trt_lib} -lnvinfer -lnvonnxparser -lnvinfer_plugin",
+                        "--name",
+                        "torchpipe_tensorrt"
+                    ],
+                    check=True,
+                    env={**os.environ, "EXAMPLE_ENV": "1"},
+                )
+            else:
+                subprocess.run(
+                    [
+                        sys.executable,
+                        "-m",
+                        "omniback.utils.build_lib",
+                        "--source-dirs",
+                        os.path.join(csrc_dir, "csrc/tensorrt_torch/"),
+                        "--include-dirs",
+                        os.path.join(csrc_dir, "csrc/"),
+                        secret_key_include_dir,
+                        "--build-with-cuda",
+                        f"--ldflags=-lnvinfer -lnvonnxparser -lnvinfer_plugin",
+                        "--name",
+                        "torchpipe_tensorrt"
+                    ],
+                    check=True,
+                    env={**os.environ, "EXAMPLE_ENV": "1"},
+                )
+    finally:
+        shutil.rmtree(secret_key_temp_dir, ignore_errors=True)

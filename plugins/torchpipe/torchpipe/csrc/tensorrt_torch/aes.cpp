@@ -54,8 +54,13 @@ unsigned char* AES::EncryptECB(
   KeyExpansion(key, roundKeys);
 
   std::memcpy(out, in, inLen);
-  std::size_t target_index_start = int(inLen / 2.0 * 0.2);
-  std::size_t target_index_end = int(inLen / 2.0 * 0.96);
+  const auto align_to_block = [this](std::size_t value) {
+    return value - value % blockBytesLen;
+  };
+  const std::size_t target_index_start =
+      align_to_block(static_cast<std::size_t>(inLen / 2.0 * 0.2));
+  const std::size_t target_index_end =
+      align_to_block(static_cast<std::size_t>(inLen / 2.0 * 0.96));
   for (std::size_t index = 0; index < target_index_start;
        index += blockBytesLen) {
     if (index % 320 == 0 || (index < 1024 * 1024 && index % 64 == 0) ||
@@ -70,10 +75,10 @@ unsigned char* AES::EncryptECB(
   }
   const std::size_t half_Len = inLen / 2;
   for (std::size_t i = target_index_end; i < half_Len; i += blockBytesLen) {
-    const auto index = target_index_end - i;
-    if (index % 320 == 0 || (index < 1024 * 1024 && index % 64 == 0) ||
-        (index < 1024 * 128 && index % 32 == 0) ||
-        (index < 1024 && index % 8 == 0) || index < 32) {
+    const auto offset = i - target_index_end;
+    if (offset % 320 == 0 || (offset < 1024 * 1024 && offset % 64 == 0) ||
+        (offset < 1024 * 128 && offset % 32 == 0) ||
+        (offset < 1024 && offset % 8 == 0) || offset < 32) {
       EncryptBlock(in + i, out + i, roundKeys);
       EncryptBlock(
           in + inLen - i - blockBytesLen,
@@ -97,8 +102,13 @@ unsigned char* AES::DecryptECB(
   KeyExpansion(key, roundKeys);
 
   std::memcpy(out, in, inLen);
-  std::size_t target_index_start = int(inLen / 2.0 * 0.2);
-  std::size_t target_index_end = int(inLen / 2.0 * 0.96);
+  const auto align_to_block = [this](std::size_t value) {
+    return value - value % blockBytesLen;
+  };
+  const std::size_t target_index_start =
+      align_to_block(static_cast<std::size_t>(inLen / 2.0 * 0.2));
+  const std::size_t target_index_end =
+      align_to_block(static_cast<std::size_t>(inLen / 2.0 * 0.96));
   for (std::size_t index = 0; index < target_index_start;
        index += blockBytesLen) {
     if (index % 320 == 0 || (index < 1024 * 1024 && index % 64 == 0) ||
@@ -113,10 +123,10 @@ unsigned char* AES::DecryptECB(
   }
   const std::size_t half_Len = inLen / 2;
   for (std::size_t i = target_index_end; i < half_Len; i += blockBytesLen) {
-    const auto index = target_index_end - i;
-    if (index % 320 == 0 || (index < 1024 * 1024 && index % 64 == 0) ||
-        (index < 1024 * 128 && index % 32 == 0) ||
-        (index < 1024 && index % 8 == 0) || index < 32) {
+    const auto offset = i - target_index_end;
+    if (offset % 320 == 0 || (offset < 1024 * 1024 && offset % 64 == 0) ||
+        (offset < 1024 * 128 && offset % 32 == 0) ||
+        (offset < 1024 && offset % 8 == 0) || offset < 32) {
       DecryptBlock(in + i, out + i, roundKeys);
       DecryptBlock(
           in + inLen - i - blockBytesLen,

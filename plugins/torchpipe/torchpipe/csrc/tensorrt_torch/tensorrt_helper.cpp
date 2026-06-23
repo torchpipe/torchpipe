@@ -10,6 +10,7 @@
 #include <c10/cuda/CUDAStream.h>
 #include <omniback/extension.hpp>
 #include "NvInferPlugin.h"
+#include "tensorrt_torch/encrypt.hpp"
 #include "tensorrt_torch/tensorrt_helper.hpp"
 
 namespace {
@@ -705,6 +706,17 @@ std::unique_ptr<nvinfer1::IHostMemory> onnx2trt(OnnxParams& params) {
         params.model.data(),
         params.model.size());
     OMNI_ASSERT(b_parsed, "parsed failed for memory buffer");
+  } else if (
+      params.model_type == ".onnx.encrypted" ||
+      params.model_type == "onnx.encrypted" ||
+      om::str::endswith(params.model, ".onnx.encrypted")) {
+    SPDLOG_INFO("parse encrypted onnx {}", params.model);
+    auto decrypted_model = decrypt_file(params.model);
+    OMNI_ASSERT(
+        !decrypted_model.empty(),
+        "decrypted onnx is empty: " + params.model);
+    b_parsed = parser->parse(decrypted_model.data(), decrypted_model.size());
+    OMNI_ASSERT(b_parsed, "parsed failed for encrypted onnx " + params.model);
   } else {
     SPDLOG_INFO("parse {}", params.model);
     b_parsed = parser->parseFromFile(
