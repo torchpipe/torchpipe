@@ -14,6 +14,7 @@
 
 #include <array>
 #include <cassert>
+#include <cctype>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
@@ -24,19 +25,12 @@
 
 #include "encrypt.hpp"
 #include "aes.h"
-#if __has_include("torchpipe_tensorrt_secret_key.hpp")
-#include "torchpipe_tensorrt_secret_key.hpp"
-#endif
-#ifndef SECRET_KEY
-#error "SECRET_KEY is not defined. Build torchpipe_tensorrt via torchpipe.utils._build_trt or set TORCHPIPE_TENSORRT_SECRET_KEY."
+#ifndef TORCHPIPE_TENSORRT_KEY_HEX
+#error "TORCHPIPE_TENSORRT_KEY_HEX is not defined. Build torchpipe_tensorrt via torchpipe.utils._build_trt."
 #endif
 
 
 namespace {
-
-
-#define TO_STR_INNER(x) #x
-#define TO_STR(x) TO_STR_INNER(x)
 
 template <typename T, std::size_t N>
 constexpr uint32_t array_sum(T (&array)[N]) {
@@ -232,11 +226,35 @@ Sha256Digest sha256_digest(std::string_view input) {
   return digest;
 }
 
-std::string get_secret_text(const std::string& key) {
-  if (!key.empty()) {
-    return key;
+unsigned char decode_hex_nibble(char value) {
+  if (value >= '0' && value <= '9') {
+    return static_cast<unsigned char>(value - '0');
   }
-  return TO_STR(SECRET_KEY);
+  if (value >= 'a' && value <= 'f') {
+    return static_cast<unsigned char>(10 + value - 'a');
+  }
+  if (value >= 'A' && value <= 'F') {
+    return static_cast<unsigned char>(10 + value - 'A');
+  }
+  throw std::runtime_error("TORCHPIPE_TENSORRT_KEY_HEX contains non-hex characters.");
+}
+
+Sha256Digest parse_key_hex(std::string_view key_hex) {
+  if (key_hex.size() != 64) {
+    throw std::runtime_error("TORCHPIPE_TENSORRT_KEY_HEX must contain 64 hex characters.");
+  }
+  Sha256Digest key_bytes {};
+  for (std::size_t i = 0; i < key_bytes.size(); ++i) {
+    const auto high = decode_hex_nibble(key_hex[i * 2]);
+    const auto low = decode_hex_nibble(key_hex[i * 2 + 1]);
+    key_bytes[i] = static_cast<unsigned char>((high << 4) | low);
+  }
+  return key_bytes;
+}
+
+const Sha256Digest& get_compiled_key_bytes() {
+  static const Sha256Digest key_bytes = parse_key_hex(TORCHPIPE_TENSORRT_KEY_HEX);
+  return key_bytes;
 }
 
 struct KeyMaterial {
@@ -246,8 +264,16 @@ struct KeyMaterial {
 };
 
 KeyMaterial get_primary_key_material(const std::string& key) {
-  const auto secret_text = get_secret_text(key);
-  const auto digest = sha256_digest(secret_text);
+  if (key.empty()) {
+    const auto& key_bytes = get_compiled_key_bytes();
+    return {
+        AESKeyLength::AES_256,
+        std::vector<unsigned char>(key_bytes.begin(), key_bytes.end()),
+        array_sum(key_bytes),
+    };
+  }
+
+  const auto digest = sha256_digest(key);
   return {
       AESKeyLength::AES_256,
       std::vector<unsigned char>(digest.begin(), digest.end()),

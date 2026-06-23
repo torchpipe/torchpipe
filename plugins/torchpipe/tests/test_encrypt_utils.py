@@ -1,3 +1,4 @@
+import hashlib
 import os
 import shutil
 import subprocess
@@ -9,51 +10,41 @@ from torchpipe.utils import _build_trt as build_trt
 from torchpipe.utils import encrypt as encrypt_utils
 
 
-def test_prepare_secret_key_include_dir_uses_temp_dir_and_writes_header(monkeypatch):
+def test_resolve_compile_time_key_hex_uses_sha256_of_env_secret(monkeypatch):
     monkeypatch.setenv("TORCHPIPE_TENSORRT_SECRET_KEY", "ab-cd 123")
 
-    include_dir, temp_dir = build_trt._prepare_secret_key_include_dir()
-    try:
-        include_path = Path(include_dir)
-        assert include_path.parent == Path(temp_dir)
-
-        header_path = include_path / "torchpipe_tensorrt_secret_key.hpp"
-        assert header_path.exists()
-
-        content = header_path.read_text(encoding="ascii")
-        assert '#define SECRET_KEY tp_ab_cd_123' in content
-    finally:
-        build_trt.shutil.rmtree(temp_dir, ignore_errors=True)
+    assert build_trt._resolve_compile_time_key_hex() == hashlib.sha256(
+        b"ab-cd 123"
+    ).hexdigest()
 
 
-def test_build_trt_cleans_up_temp_secret_dir_on_failure(monkeypatch, tmp_path):
-    temp_dir = tmp_path / "secret-key-dir"
-    include_dir = temp_dir / "include"
-    include_dir.mkdir(parents=True)
-    (include_dir / "torchpipe_tensorrt_secret_key.hpp").write_text(
-        "#define SECRET_KEY tp_test\n",
-        encoding="ascii",
-    )
+def test_build_trt_passes_compiled_key_hex_to_builder(monkeypatch):
+    calls = {}
 
-    monkeypatch.setattr(
-        build_trt,
-        "_prepare_secret_key_include_dir",
-        lambda: (str(include_dir), str(temp_dir)),
-    )
+    monkeypatch.setattr(build_trt, "_resolve_compile_time_key_hex", lambda: "ab" * 32)
     monkeypatch.setattr(build_trt, "need_download_for_jit", lambda: False)
     monkeypatch.setattr(build_trt, "is_system_exists_trt", lambda: True)
     monkeypatch.setattr(build_trt, "can_use_trt_env", lambda: True)
     monkeypatch.setattr(build_trt, "get_trt_include_lib_dir", lambda: (None, None))
+    monkeypatch.setattr(
+        build_trt,
+        "_build_tensorrt_extension",
+        lambda csrc_dir, include_dirs, ldflags, extra_cflags: calls.update(
+            {
+                "csrc_dir": csrc_dir,
+                "include_dirs": include_dirs,
+                "ldflags": ldflags,
+                "extra_cflags": extra_cflags,
+            }
+        ),
+    )
 
-    def fake_run(*args, **kwargs):
-        raise subprocess.CalledProcessError(returncode=1, cmd=args[0])
+    build_trt._build_trt("/tmp/fake-csrc", skip_download=True)
 
-    monkeypatch.setattr(build_trt.subprocess, "run", fake_run)
-
-    with pytest.raises(subprocess.CalledProcessError):
-        build_trt._build_trt("/tmp/fake-csrc", skip_download=True)
-
-    assert not temp_dir.exists()
+    assert calls["csrc_dir"] == "/tmp/fake-csrc"
+    assert calls["include_dirs"] == []
+    assert calls["ldflags"] == ["-lnvinfer", "-lnvonnxparser", "-lnvinfer_plugin"]
+    assert calls["extra_cflags"] == ['-DTORCHPIPE_TENSORRT_KEY_HEX="{}"'.format("ab" * 32)]
 
 
 def test_encrypt_file_calls_exported_c_function(monkeypatch, tmp_path):
@@ -214,7 +205,9 @@ int main() {{
     compile_cmd = [
         gxx,
         "-std=c++17",
-        "-DSECRET_KEY=tp_roundtripcheck",
+        '-DTORCHPIPE_TENSORRT_KEY_HEX="{}"'.format(
+            hashlib.sha256(b"tp_roundtripcheck").hexdigest()
+        ),
         f"-I{csrc_dir}",
         str(roundtrip_cpp),
         str(csrc_dir / "aes.cpp"),
