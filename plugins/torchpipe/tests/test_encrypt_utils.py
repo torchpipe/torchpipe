@@ -1,4 +1,5 @@
 import hashlib
+import logging
 import os
 import shutil
 import subprocess
@@ -45,6 +46,45 @@ def test_build_trt_passes_compiled_key_hex_to_builder(monkeypatch):
     assert calls["include_dirs"] == []
     assert calls["ldflags"] == ["-lnvinfer", "-lnvonnxparser", "-lnvinfer_plugin"]
     assert calls["extra_cflags"] == ['-DTORCHPIPE_TENSORRT_KEY_HEX="{}"'.format("ab" * 32)]
+
+
+def test_build_trt_warns_when_download_not_enabled(monkeypatch, caplog):
+    monkeypatch.delenv("FORCE_DOWNLOAD_TENSORRT", raising=False)
+    monkeypatch.setattr(build_trt, "_resolve_compile_time_key_hex", lambda: "ab" * 32)
+    monkeypatch.setattr(build_trt, "need_download_for_jit", lambda: True)
+    monkeypatch.setattr(
+        build_trt,
+        "_build_tensorrt_extension",
+        lambda *args, **kwargs: pytest.fail("should not build without TensorRT"),
+    )
+
+    with caplog.at_level(logging.INFO):
+        build_trt._build_trt("/tmp/fake-csrc", skip_download=True)
+
+    assert "set FORCE_DOWNLOAD_TENSORRT=1 to download automatically" in caplog.text
+    assert "downloading TensorRT into the cache" not in caplog.text
+
+
+def test_build_trt_logs_download_attempt_when_force_download_enabled(monkeypatch, caplog):
+    monkeypatch.setenv("FORCE_DOWNLOAD_TENSORRT", "1")
+    monkeypatch.setattr(build_trt, "_resolve_compile_time_key_hex", lambda: "ab" * 32)
+    monkeypatch.setattr(build_trt, "need_download_for_jit", lambda: True)
+    monkeypatch.setattr(build_trt, "is_system_exists_trt", lambda: False)
+    monkeypatch.setattr(build_trt, "can_use_trt_env", lambda: False)
+    monkeypatch.setattr(build_trt, "get_trt_include_lib_dir", lambda: (None, None))
+    monkeypatch.setattr(build_trt, "cache_trt_dir", lambda: (None, None))
+    monkeypatch.setattr(
+        build_trt,
+        "_build_tensorrt_extension",
+        lambda *args, **kwargs: pytest.fail("should not build when TensorRT remains unavailable"),
+    )
+
+    with caplog.at_level(logging.INFO):
+        with pytest.raises(RuntimeError, match="download was attempted because FORCE_DOWNLOAD_TENSORRT=1"):
+            build_trt._build_trt("/tmp/fake-csrc", skip_download=True)
+
+    assert "downloading TensorRT into the cache" in caplog.text
+    assert "Set FORCE_DOWNLOAD_TENSORRT=1 to download automatically" not in caplog.text
 
 
 def test_encrypt_file_calls_exported_c_function(monkeypatch, tmp_path):

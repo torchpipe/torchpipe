@@ -320,28 +320,30 @@ def _build_trt(csrc_dir, skip_download=True):
 
     key_hex = _resolve_compile_time_key_hex()
     extra_cflags = [f'-DTORCHPIPE_TENSORRT_KEY_HEX="{key_hex}"']
+    force_download_tensorrt = os.environ.get("FORCE_DOWNLOAD_TENSORRT", "0")
     if skip_download and need_download_for_jit():
-        logger.warning(
-                "TensorRT not found. Checked:\n"
-                "  1. Environment variables TENSORRT_INCLUDE and TENSORRT_LIB,\n"
-                "  2. Standard system library paths\n"
-                "  3. Cache directory\n"
-                "\n"
-                "Please either:\n"
-                "  - Set TENSORRT_INCLUDE (e.g., /path/to/TensorRT/include) and TENSORRT_LIB (e.g., /path/to/TensorRT/lib), or\n"
-                "  - Set FORCE_DOWNLOAD_TENSORRT=1 to download automatically, or\n"
-                "  - Set TORCHPIPE_SKIP_TENSORRT=1 to skip TensorRT support entirely.\n"
-                "You may also need to set LD_LIBRARY_PATH if not installed in a standard system path.\n"
+        if force_download_tensorrt == "0":
+            logger.warning(
+                "TensorRT not found in environment variables, system library paths, or cache.\n"
+                "Set TENSORRT_INCLUDE/TENSORRT_LIB, set FORCE_DOWNLOAD_TENSORRT=1 to download automatically,\n"
+                "or set TORCHPIPE_SKIP_TENSORRT=1 to skip TensorRT support."
             )
-        FORCE_DOWNLOAD_TENSORRT = os.environ.get("FORCE_DOWNLOAD_TENSORRT", "0")
-        if FORCE_DOWNLOAD_TENSORRT == "0":
             return
+        logger.info(
+            "TensorRT not found locally; FORCE_DOWNLOAD_TENSORRT=1, downloading TensorRT into the cache."
+        )
 
     if not is_system_exists_trt() and not can_use_trt_env():
         trt_inc, trt_lib = get_trt_include_lib_dir()
         if trt_inc is None:
             trt_inc, trt_lib = cache_trt_dir()
         if trt_inc is None:
+            if force_download_tensorrt != "0":
+                raise RuntimeError(
+                    "TensorRT download was attempted because FORCE_DOWNLOAD_TENSORRT=1, "
+                    "but TensorRT is still unavailable. Set TENSORRT_INCLUDE/TENSORRT_LIB "
+                    "manually or inspect the download/cache state."
+                )
             raise RuntimeError(
                 "TensorRT not found. Please specify its location using the "
                 "TENSORRT_INCLUDE and TENSORRT_LIB environment variables, "
