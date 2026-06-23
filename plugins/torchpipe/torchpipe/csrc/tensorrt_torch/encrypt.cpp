@@ -254,9 +254,19 @@ Sha256Digest parse_key_hex(std::string_view key_hex) {
   return key_bytes;
 }
 
+std::string_view normalize_compiled_key_hex(std::string_view key_hex) {
+  if (key_hex.size() >= 2 && key_hex.front() == '"' && key_hex.back() == '"') {
+    return key_hex.substr(1, key_hex.size() - 2);
+  }
+  return key_hex;
+}
+
 const Sha256Digest& get_compiled_key_bytes() {
-  static const Sha256Digest key_bytes =
-      parse_key_hex(TORCHPIPE_STRINGIFY(TORCHPIPE_TENSORRT_KEY_HEX));
+  static const Sha256Digest key_bytes = []() {
+    return parse_key_hex(
+        normalize_compiled_key_hex(
+            TORCHPIPE_STRINGIFY(TORCHPIPE_TENSORRT_KEY_HEX)));
+  }();
   return key_bytes;
 }
 

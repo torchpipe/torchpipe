@@ -199,7 +199,8 @@ def test_main_prints_clear_output_message(monkeypatch, tmp_path, capsys):
     assert captured.out.strip() == f"Encrypted file written to: {output_path.resolve()}"
 
 
-def test_cpp_encrypt_roundtrip_uses_sha256_key_derivation(tmp_path):
+@pytest.mark.parametrize("quoted_macro", [False, True])
+def test_cpp_encrypt_roundtrip_uses_sha256_key_derivation(tmp_path, quoted_macro):
     gxx = shutil.which("g++")
     if gxx is None:
         pytest.skip("g++ not available")
@@ -242,12 +243,13 @@ int main() {{
         encoding="utf-8",
     )
 
+    key_hex = hashlib.sha256(b"tp_roundtripcheck").hexdigest()
+    macro_value = f'"{key_hex}"' if quoted_macro else key_hex
+
     compile_cmd = [
         gxx,
         "-std=c++17",
-        "-DTORCHPIPE_TENSORRT_KEY_HEX={}".format(
-            hashlib.sha256(b"tp_roundtripcheck").hexdigest()
-        ),
+        f"-DTORCHPIPE_TENSORRT_KEY_HEX={macro_value}",
         f"-I{csrc_dir}",
         str(roundtrip_cpp),
         str(csrc_dir / "aes.cpp"),
