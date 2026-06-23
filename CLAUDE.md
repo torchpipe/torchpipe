@@ -8,7 +8,7 @@ index-url = "https://mirrors.aliyun.com/pypi/simple/"
 
 ### 创建 venv 并安装依赖
 ```bash
-uv venv --python 3.12
+uv venv --python 3.10
 source .venv/bin/activate  # 可选
 uv pip install --python .venv/bin/python torch cmake ninja  # 基础依赖
 ```

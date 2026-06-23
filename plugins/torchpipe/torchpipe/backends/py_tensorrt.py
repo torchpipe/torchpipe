@@ -29,18 +29,20 @@ from typing import Optional, List, Dict, Any, Tuple, Union, Callable
 logger = logging.getLogger(__name__)
 
 _torch_available = False
+_torch_import_error: Optional[Exception] = None
 try:
     import torch
     _torch_available = True
-except ImportError:
-    logger.error("PyTorch is required for PyTensorrtTensor")
+except ImportError as e:
+    _torch_import_error = e
 
 _tensorrt_available = False
+_tensorrt_import_error: Optional[Exception] = None
 try:
     import tensorrt as trt
     _tensorrt_available = True
-except (ImportError, OSError):
-    logger.error("TensorRT Python bindings are required for PyTensorrtTensor")
+except (ImportError, OSError) as e:
+    _tensorrt_import_error = e
 
 _omniback_available = False
 try:
@@ -92,6 +94,15 @@ TASK_OUTPUT_KEY = "output"
 TASK_ENGINE_KEY = "engine"
 TASK_IO_INFO_KEY = "net_io_infos"
 TASK_INDEX_KEY = "instance_index"
+
+
+def _raise_py_tensorrt_unavailable() -> None:
+    raise TensorRTError(
+        "PyTensorrtTensor requires the TensorRT Python package `tensorrt`, "
+        "but import failed. This does not affect the C++ TensorRT backend or "
+        "`python -m torchpipe.utils.encrypt`.",
+        cause=_tensorrt_import_error,
+    )
 
 
 @dataclass
@@ -221,7 +232,7 @@ class PyTensorrtEngine:
             logger: Optional TensorRT logger
         """
         if not _tensorrt_available:
-            raise TensorRTError("TensorRT not available")
+            _raise_py_tensorrt_unavailable()
         
         if logger is None:
             logger = get_trt_logger()
@@ -258,7 +269,7 @@ class PyTensorrtEngine:
             **kwargs: Additional build options
         """
         if not _tensorrt_available:
-            raise TensorRTError("TensorRT not available")
+            _raise_py_tensorrt_unavailable()
         
         if logger is None:
             logger = get_trt_logger()

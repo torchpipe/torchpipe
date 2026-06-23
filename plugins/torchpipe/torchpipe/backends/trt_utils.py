@@ -26,18 +26,34 @@ from typing import (
 logger = logging.getLogger(__name__)
 
 _torch_available = False
+_torch_import_error: Optional[Exception] = None
 try:
     import torch
     _torch_available = True
-except ImportError:
-    logger.warning("PyTorch not available")
+except ImportError as e:
+    _torch_import_error = e
 
 _tensorrt_available = False
+_tensorrt_import_error: Optional[Exception] = None
 try:
     import tensorrt as trt
     _tensorrt_available = True
-except (ImportError, OSError):
-    logger.warning("TensorRT Python bindings not available")
+except (ImportError, OSError) as e:
+    _tensorrt_import_error = e
+
+
+def _raise_torch_unavailable(feature: str) -> None:
+    raise TensorRTError(
+        f"{feature} requires PyTorch, but importing `torch` failed.",
+        cause=_torch_import_error,
+    )
+
+
+def _raise_tensorrt_unavailable(feature: str) -> None:
+    raise TensorRTError(
+        f"{feature} requires the TensorRT Python package `tensorrt`, but import failed.",
+        cause=_tensorrt_import_error,
+    )
 
 
 class TensorRTError(Exception):
@@ -220,14 +236,14 @@ TORCH_DTYPE_TO_DATATYPE = {v: k for k, v in DATATYPE_TO_TORCH_DTYPE.items() if v
 def trt_dtype_to_datatype(trt_dtype) -> DataType:
     """Convert TensorRT DataType to our DataType enum."""
     if not _tensorrt_available:
-        raise TensorRTError("TensorRT not available")
+        _raise_tensorrt_unavailable("TensorRT dtype conversion")
     return TRT_DTYPE_TO_DATATYPE.get(trt_dtype, DataType.UNKNOWN)
 
 
 def datatype_to_torch_dtype(dtype: DataType) -> 'torch.dtype':
     """Convert DataType to PyTorch dtype."""
     if not _torch_available:
-        raise TensorRTError("PyTorch not available")
+        _raise_torch_unavailable("Converting TensorRT dtype to torch dtype")
     torch_dtype = DATATYPE_TO_TORCH_DTYPE.get(dtype)
     if torch_dtype is None:
         raise TensorRTError(f"Unsupported DataType: {dtype}")
@@ -237,7 +253,7 @@ def datatype_to_torch_dtype(dtype: DataType) -> 'torch.dtype':
 def torch_dtype_to_datatype(torch_dtype: 'torch.dtype') -> DataType:
     """Convert PyTorch dtype to DataType."""
     if not _torch_available:
-        raise TensorRTError("PyTorch not available")
+        _raise_torch_unavailable("Converting torch dtype to TensorRT dtype")
     return TORCH_DTYPE_TO_DATATYPE.get(torch_dtype, DataType.UNKNOWN)
 
 
@@ -258,7 +274,7 @@ def get_trt_logger() -> 'trt.Logger':
     global _cached_trt_logger
 
     if not _tensorrt_available:
-        raise TensorRTError("TensorRT not available")
+        _raise_tensorrt_unavailable("Creating a TensorRT logger")
 
     if _cached_trt_logger is None:
         _cached_trt_logger = trt.Logger(trt.Logger.WARNING)
@@ -281,7 +297,7 @@ def load_engine_from_file(
         TensorRT CUDA engine
     """
     if not _tensorrt_available:
-        raise TensorRTError("TensorRT not available")
+        _raise_tensorrt_unavailable("Loading a TensorRT engine")
     
     if logger is None:
         logger = get_trt_logger()
@@ -313,7 +329,7 @@ def save_engine_to_file(
         engine_path: Path to save the .trt file
     """
     if not _tensorrt_available:
-        raise TensorRTError("TensorRT not available")
+        _raise_tensorrt_unavailable("Saving a TensorRT engine")
     
     serialized_engine = engine.serialize()
     
@@ -354,7 +370,7 @@ def onnx_to_trt(
         TensorRT CUDA engine
     """
     if not _tensorrt_available:
-        raise TensorRTError("TensorRT not available")
+        _raise_tensorrt_unavailable("Building a TensorRT engine from ONNX")
     
     if logger is None:
         logger = get_trt_logger()
@@ -496,7 +512,7 @@ def get_engine_io_info(
         Tuple of (input_infos, output_infos)
     """
     if not _tensorrt_available:
-        raise TensorRTError("TensorRT not available")
+        _raise_tensorrt_unavailable("Reading TensorRT engine IO info")
     
     input_infos: List[NetIOInfo] = []
     output_infos: List[NetIOInfo] = []
@@ -588,7 +604,7 @@ def get_context_io_info(
         Tuple of (input_infos, output_infos)
     """
     if not _tensorrt_available:
-        raise TensorRTError("TensorRT not available")
+        _raise_tensorrt_unavailable("Reading TensorRT context IO info")
     
     engine = context.engine
     return get_engine_io_info(engine, profile_index)
@@ -609,7 +625,7 @@ def create_context(
         TensorRT execution context
     """
     if not _tensorrt_available:
-        raise TensorRTError("TensorRT not available")
+        _raise_tensorrt_unavailable("Creating a TensorRT execution context")
     
     context = engine.create_execution_context()
     
@@ -709,7 +725,7 @@ class TensorRTAllocator:
             device: CUDA device index
         """
         if not _torch_available:
-            raise TensorRTError("PyTorch not available")
+            _raise_torch_unavailable("TensorRTAllocator")
         
         self._device = device if device is not None else torch.cuda.current_device()
         self._allocations: Dict[int, torch.Tensor] = {}
