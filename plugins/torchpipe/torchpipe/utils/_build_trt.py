@@ -319,7 +319,7 @@ def _build_trt(csrc_dir, skip_download=True):
         return
 
     key_hex = _resolve_compile_time_key_hex()
-    extra_cflags = [f'-DTORCHPIPE_TENSORRT_KEY_HEX="{key_hex}"']
+    extra_cflags = [f"-DTORCHPIPE_TENSORRT_KEY_HEX={key_hex}"]
     force_download_tensorrt = os.environ.get("FORCE_DOWNLOAD_TENSORRT", "0")
     if skip_download and need_download_for_jit():
         if force_download_tensorrt == "0":
