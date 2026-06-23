@@ -80,6 +80,16 @@ def _build_tensorrt_extension(
                 link_flags.extend(["-L", str(lib_dir)])
 
         if CUDA_HOME is None:
+            if hasattr(torch, "version") and getattr(torch.version, "cuda", None):
+                torch_dir = os.path.dirname(torch.__file__)
+                if os.path.exists(os.path.join(torch_dir, "lib")):
+                    CUDA_HOME = torch_dir
+                    os.environ["CUDA_HOME"] = CUDA_HOME
+                    logger.warning(
+                        "CUDA_HOME not found. Falling back to PyTorch's internal CUDA path: %s",
+                        CUDA_HOME,
+                    )
+        if CUDA_HOME is None:
             logger.error("CUDA_HOME not found")
         else:
             cuda_lib_dir = os.path.join(
