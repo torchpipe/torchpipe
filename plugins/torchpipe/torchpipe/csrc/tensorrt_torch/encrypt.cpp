@@ -282,7 +282,9 @@ class OMNI_LOCAL EncryptHelper {
     return std::string(re.begin(), re.end());
   }
 
-  std::vector<unsigned char> decrypt(const std::string& buffer, std::string key) {
+  std::vector<unsigned char> decrypt(
+      const std::vector<unsigned char>& buffer,
+      std::string key) {
     const auto key_material = get_primary_key_material(key);
     return decrypt_with_key_material(buffer, key_material);
   }
@@ -297,12 +299,10 @@ class OMNI_LOCAL EncryptHelper {
     char not_used_post[8];
   };
   std::vector<unsigned char> decrypt_with_key_material(
-      const std::string& buffer,
+      const std::vector<unsigned char>& buffer,
       const KeyMaterial& key_material) {
     AES aes(key_material.key_length);
-    auto result = aes.DecryptECB(
-        std::vector<unsigned char>(buffer.begin(), buffer.end()),
-        key_material.key_bytes);
+    auto result = aes.DecryptECB(buffer, key_material.key_bytes);
     assert(result.size() % 16 == 0);
 
     return get_data(result, get_torchpipe_tag(key_material));
@@ -370,10 +370,9 @@ namespace torchpipe {
  
 OMNI_LOCAL std::vector<unsigned char> decrypt_file(std::string path) {
   const auto encrypted = read_file_binary(path);
-  std::string buffer(encrypted.begin(), encrypted.end());
 
   EncryptHelper decry;
-  std::vector<unsigned char> result = decry.decrypt(buffer, "");
+  std::vector<unsigned char> result = decry.decrypt(encrypted, "");
 
   return result;
 }

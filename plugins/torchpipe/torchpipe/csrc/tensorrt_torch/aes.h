@@ -132,12 +132,12 @@ class AES {
       const unsigned char* iv);
 
   std::vector<unsigned char> EncryptECB(
-      std::vector<unsigned char> in,
-      std::vector<unsigned char> key);
+      const std::vector<unsigned char>& in,
+      const std::vector<unsigned char>& key);
 
   std::vector<unsigned char> DecryptECB(
-      std::vector<unsigned char> in,
-      std::vector<unsigned char> key);
+      const std::vector<unsigned char>& in,
+      const std::vector<unsigned char>& key);
 
   std::vector<unsigned char> EncryptCBC(
       std::vector<unsigned char> in,

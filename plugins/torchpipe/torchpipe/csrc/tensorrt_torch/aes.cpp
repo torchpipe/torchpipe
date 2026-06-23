@@ -508,20 +508,20 @@ unsigned char* AES::VectorToArray(std::vector<unsigned char>& a) {
 }
 
 std::vector<unsigned char> AES::EncryptECB(
-    std::vector<unsigned char> in,
-    std::vector<unsigned char> key) {
+    const std::vector<unsigned char>& in,
+    const std::vector<unsigned char>& key) {
   unsigned char* out = EncryptECB(
-      VectorToArray(in), (unsigned int)in.size(), VectorToArray(key));
+      in.data(), (unsigned int)in.size(), key.data());
   std::vector<unsigned char> v = ArrayToVector(out, in.size());
   delete[] out;
   return v;
 }
 
 std::vector<unsigned char> AES::DecryptECB(
-    std::vector<unsigned char> in,
-    std::vector<unsigned char> key) {
+    const std::vector<unsigned char>& in,
+    const std::vector<unsigned char>& key) {
   unsigned char* out = DecryptECB(
-      VectorToArray(in), (unsigned int)in.size(), VectorToArray(key));
+      in.data(), (unsigned int)in.size(), key.data());
   std::vector<unsigned char> v = ArrayToVector(out, (unsigned int)in.size());
   delete[] out;
   return v;
