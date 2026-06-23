@@ -4,7 +4,7 @@
 namespace torchpipe {
 
 constexpr auto INIT_STR =
-    "ModelLoadder[(.onnx)Onnx2Tensorrt,(.onnx_buffer)Onnx2Tensorrt,(.trt)LoadTensorrtEngine,(.trt_buffer)LoadTensorrtEngine], "
+    "ModelLoadder[(.onnx)Onnx2Tensorrt,(.onnx.encrypted)Onnx2Tensorrt,(.onnx_buffer)Onnx2Tensorrt,(.trt)LoadTensorrtEngine,(.trt_buffer)LoadTensorrtEngine], "
     "TensorrtInferTensor";
 constexpr auto FORWARD_STR =
     "CatSplit[S[FixTensor,CatTensor],S[ContiguousTensor,"

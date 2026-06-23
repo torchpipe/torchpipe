@@ -121,7 +121,7 @@ done
 
 uv cache clean
 
-torch_versions=("2.7" "2.8" "2.9" "2.10")
+torch_versions=("2.7" "2.8" "2.9")
 for version in "${torch_versions[@]}"; do
     build_local_libs "$version" 3.11
 done

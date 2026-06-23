@@ -14,20 +14,28 @@
 
 #pragma once
 
+#include <cstddef>
 #include <string>
+#include <vector>
 
 #define OMNI_LOCAL __attribute__((visibility("hidden")))
+#define TORCHPIPE_TENSORRT_EXPORT __attribute__((visibility("default")))
 
 namespace torchpipe {
  
 OMNI_LOCAL std::vector<unsigned char> decrypt_file(std::string path);
-// OMNI_LOCAL void encrypt_file_to_file(
-//     std::string file_path,
-//     std::string out_file_path,
-//     std::string key);
+OMNI_LOCAL void encrypt_file_to_file(
+    const std::string& file_path,
+    const std::string& out_file_path);
 OMNI_LOCAL void encrypt2file(
     const char* data,
     size_t data_len,
     std::string out_file_path);
 
 } // namespace torchpipe
+
+extern "C" TORCHPIPE_TENSORRT_EXPORT int torchpipe_encrypt_file(
+    const char* input_path,
+    const char* output_path,
+    char* error_message,
+    size_t error_message_size);

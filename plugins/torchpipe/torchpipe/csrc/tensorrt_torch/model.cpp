@@ -240,7 +240,7 @@ void Onnx2Tensorrt::impl_init(
     auto mem = onnx2trt(params);
     OMNI_ASSERT(mem);
     if (!params.model_cache.empty()) {
-      if (om::str::endswith(params.model_cache, ".enc")) {
+      if (om::str::endswith(params.model_cache, ".enc") || om::str::endswith(params.model_cache, ".encrypted")) {
         torchpipe::encrypt2file(
             (char*)mem->data(), mem->size(), params.model_cache);
       } else {
@@ -266,7 +266,7 @@ void Onnx2Tensorrt::impl_init(
         params.model_cache);
     
     nvinfer1::ICudaEngine* engine_ptr {nullptr};
-    if (om::str::endswith(params.model_cache, ".enc")) {
+    if (om::str::endswith(params.model_cache, ".enc") || om::str::endswith(params.model_cache, ".encrypted")) {
       auto data = torchpipe::decrypt_file(params.model_cache);
       engine_ptr = runtime_->deserializeCudaEngine(data.data(), data.size());
     } else {
