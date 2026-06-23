@@ -180,9 +180,7 @@ def test_cpp_encrypt_roundtrip_uses_sha256_key_derivation(tmp_path):
     input_bytes = bytes((index * 17 + 3) % 256 for index in range(380))
     input_path.write_bytes(input_bytes)
 
-    csrc_dir = Path(
-        "/mnt/data2/zhangshiyang/workspace/torchpipe/plugins/torchpipe/torchpipe/csrc/tensorrt_torch"
-    )
+    csrc_dir = Path(__file__).resolve().parent.parent / "torchpipe" / "csrc" / "tensorrt_torch"
     roundtrip_cpp.write_text(
         f"""
 #include <fstream>
