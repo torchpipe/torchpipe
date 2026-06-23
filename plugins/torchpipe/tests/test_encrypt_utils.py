@@ -45,7 +45,7 @@ def test_build_trt_passes_compiled_key_hex_to_builder(monkeypatch):
     assert calls["csrc_dir"] == "/tmp/fake-csrc"
     assert calls["include_dirs"] == []
     assert calls["ldflags"] == ["-lnvinfer", "-lnvonnxparser", "-lnvinfer_plugin"]
-    assert calls["extra_cflags"] == ['-DTORCHPIPE_TENSORRT_KEY_HEX="{}"'.format("ab" * 32)]
+    assert calls["extra_cflags"] == ["-DTORCHPIPE_TENSORRT_KEY_HEX={}".format("ab" * 32)]
 
 
 def test_build_trt_warns_when_download_not_enabled(monkeypatch, caplog):
@@ -245,7 +245,7 @@ int main() {{
     compile_cmd = [
         gxx,
         "-std=c++17",
-        '-DTORCHPIPE_TENSORRT_KEY_HEX="{}"'.format(
+        "-DTORCHPIPE_TENSORRT_KEY_HEX={}".format(
             hashlib.sha256(b"tp_roundtripcheck").hexdigest()
         ),
         f"-I{csrc_dir}",

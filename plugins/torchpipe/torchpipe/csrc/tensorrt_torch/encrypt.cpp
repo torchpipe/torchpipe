@@ -28,6 +28,8 @@
 #ifndef TORCHPIPE_TENSORRT_KEY_HEX
 #error "TORCHPIPE_TENSORRT_KEY_HEX is not defined. Build torchpipe_tensorrt via torchpipe.utils._build_trt."
 #endif
+#define TORCHPIPE_STRINGIFY_IMPL(value) #value
+#define TORCHPIPE_STRINGIFY(value) TORCHPIPE_STRINGIFY_IMPL(value)
 
 
 namespace {
@@ -253,7 +255,8 @@ Sha256Digest parse_key_hex(std::string_view key_hex) {
 }
 
 const Sha256Digest& get_compiled_key_bytes() {
-  static const Sha256Digest key_bytes = parse_key_hex(TORCHPIPE_TENSORRT_KEY_HEX);
+  static const Sha256Digest key_bytes =
+      parse_key_hex(TORCHPIPE_STRINGIFY(TORCHPIPE_TENSORRT_KEY_HEX));
   return key_bytes;
 }
 
